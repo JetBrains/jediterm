@@ -1,0 +1,31 @@
+ChangeLog of JediTerm
+
+==============================
+
+
+10/01/2013
+
+Gritty was forked to JediTerm
+Refactored a bit. Added ability to change font and colors.
+
+
+
+History before:
+===============================
+Gritty
+
+
+16/04/2007
+
+Sorted out embedding API, now fairly simple to use. 
+Split out swing and jsch dependent parts.
+Damage based drawing, very close to speed of gnome terminal or putty now. 
+
+12/04/2007 0.01
+
+Rewritten almost entirely, with scrolling, backbuffer for cut and paste, colors,
+emulation is of VT102. Eventual goal is xterm sans Tektronik. 
+
+09/04/2007
+
+Initially started with JCTerm

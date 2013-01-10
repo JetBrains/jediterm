@@ -1,0 +1,9 @@
+JediTerm
+============
+
+A pure Java terminal.
+
+
+
+Started from JCTerm, almost entirely rewritten now.
+See http://code.google.com/p/gritty/

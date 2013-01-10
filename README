@@ -1,9 +1,23 @@
 JediTerm
 ============
 
-A pure Java terminal.
+The main purpose of the project is to provide a pure Java terminal widget ready to embed into IDE.
+From this comes the name J(from `Java`)edi(reversed `IDE`)Term(obviously from `terminal`)
+
+Licensed under LGPL.
+
+Supports:
+
+* ssh using JSch from jcraft.org
+* vt102 emulation
+* xterm colours
+* back buffer so selection / cut and paste works
+* scroll buffer
+* terminal resizing from client or server side
 
 
 
-Started from JCTerm, almost entirely rewritten now.
-See http://code.google.com/p/gritty/
+Continued as a fork of a Gritty (http://code.google.com/p/gritty) by Robert Wittams and Omer Kudat,
+which was in its own turn a rework of JCTerm(http://www.jcraft.com/jcterm) by Atsuhiko Yamanaka
+
+

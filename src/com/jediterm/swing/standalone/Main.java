@@ -21,7 +21,6 @@ import org.apache.log4j.Logger;
 import com.jediterm.RequestOrigin;
 import com.jediterm.ResizePanelDelegate;
 import com.jediterm.jsch.JSchTty;
-import com.jediterm.swing.GrittyTerminal;
 
 
 public class Main {

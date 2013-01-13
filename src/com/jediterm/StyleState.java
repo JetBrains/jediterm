@@ -3,19 +3,19 @@ package com.jediterm;
 import java.awt.Color;
 
 public class StyleState {
-  private TermStyle myCurrentStyle = TermStyle.EMPTY;
-  private TermStyle myDefaultStyle = TermStyle.EMPTY;
+  private TextStyle myCurrentStyle = TextStyle.EMPTY;
+  private TextStyle myDefaultStyle = TextStyle.EMPTY;
 
   public StyleState() {
-    myCurrentStyle = TermStyle.EMPTY;
+    myCurrentStyle = TextStyle.EMPTY;
   }
 
-  public TermStyle getCurrent() {
-    return TermStyle.getCanonicalStyle(merge(myCurrentStyle, myDefaultStyle));
+  public TextStyle getCurrent() {
+    return TextStyle.getCanonicalStyle(merge(myCurrentStyle, myDefaultStyle));
   }
 
-  private static TermStyle merge(TermStyle style, TermStyle defaultStyle) {
-    TermStyle newStyle = style;
+  private static TextStyle merge(TextStyle style, TextStyle defaultStyle) {
+    TextStyle newStyle = style;
     if (newStyle.getBackground() == null) {
       newStyle = newStyle.setBackground(defaultStyle.getBackground());
     }
@@ -33,19 +33,19 @@ public class StyleState {
     myCurrentStyle = myCurrentStyle.setForeground(fg);
   }
 
-  public void setOption(TermStyle.Option opt, boolean val) {
+  public void setOption(TextStyle.Option opt, boolean val) {
     myCurrentStyle = myCurrentStyle.setOption(opt, val);
   }
 
   public void reset() {
-    myCurrentStyle = new TermStyle();
+    myCurrentStyle = new TextStyle();
   }
 
   public void set(StyleState styleState) {
     myCurrentStyle = styleState.getCurrent();
   }
 
-  public void setDefaultStyle(TermStyle defaultStyle) {
+  public void setDefaultStyle(TextStyle defaultStyle) {
     myDefaultStyle = defaultStyle;
   }
 

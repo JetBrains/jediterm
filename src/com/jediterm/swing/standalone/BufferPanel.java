@@ -4,7 +4,6 @@
 package com.jediterm.swing.standalone;
 
 import com.jediterm.swing.SwingJediTerminal;
-import com.jediterm.swing.GrittyTerminal;
 
 import javax.swing.*;
 import java.awt.*;

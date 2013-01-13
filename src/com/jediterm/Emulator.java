@@ -388,22 +388,22 @@ public class Emulator {
           styleState.reset();
           break;
         case 1:// Bright
-          styleState.setOption(TermStyle.Option.BOLD, true);
+          styleState.setOption(TextStyle.Option.BOLD, true);
           break;
         case 2:// Dim
-          styleState.setOption(TermStyle.Option.DIM, true);
+          styleState.setOption(TextStyle.Option.DIM, true);
           break;
         case 4:// Underscore on
-          styleState.setOption(TermStyle.Option.UNDERSCORE, true);
+          styleState.setOption(TextStyle.Option.UNDERSCORE, true);
           break;
         case 5:// Blink on
-          styleState.setOption(TermStyle.Option.BLINK, true);
+          styleState.setOption(TextStyle.Option.BLINK, true);
           break;
         case 7:// Reverse video on
-          styleState.setOption(TermStyle.Option.REVERSE, true);
+          styleState.setOption(TextStyle.Option.REVERSE, true);
           break;
         case 8: // Hidden
-          styleState.setOption(TermStyle.Option.HIDDEN, true);
+          styleState.setOption(TextStyle.Option.HIDDEN, true);
           break;
         default:
           if (arg >= 30 && arg <= 37) {

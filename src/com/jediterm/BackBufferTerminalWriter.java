@@ -22,16 +22,19 @@ public class BackBufferTerminalWriter implements TerminalWriter {
   private int termWidth = 80;
   private int myTerminalHeight = 24;
 
-  private final TerminalDisplay display;
-  private final BackBuffer backBuffer;
+  private final TerminalDisplay myDisplay;
+  private final BackBuffer myBackBuffer;
   private final StyleState myStyleState;
+
+  private final ScrollBuffer myScrollBuffer;
 
   private final EnumSet<TerminalMode> modes = EnumSet.of(TerminalMode.ANSI);
 
-  public BackBufferTerminalWriter(final TerminalDisplay term, final BackBuffer buf, final StyleState styleState) {
-    this.display = term;
-    this.backBuffer = buf;
-    this.myStyleState = styleState;
+  public BackBufferTerminalWriter(final TerminalDisplay term, final BackBuffer buf, final StyleState styleState, ScrollBuffer buffer) {
+    myDisplay = term;
+    myBackBuffer = buf;
+    myStyleState = styleState;
+    myScrollBuffer = buffer;
 
     termWidth = term.getColumnCount();
     myTerminalHeight = term.getRowCount();
@@ -70,24 +73,24 @@ public class BackBufferTerminalWriter implements TerminalWriter {
   }
 
   private void finishText() {
-    display.setCursor(cursorX, cursorY);
+    myDisplay.setCursor(cursorX, cursorY);
     scrollY();
   }
 
   public void writeASCII(final byte[] chosenBuffer, final int start,
                          final int length) {
-    backBuffer.lock();
+    myBackBuffer.lock();
     try {
       wrapLines();
       if (length != 0) {
-        backBuffer.clearArea(cursorX, cursorY - 1, cursorX + length, cursorY);
-        backBuffer.drawBytes(chosenBuffer, start, length, cursorX, cursorY);
+        myBackBuffer.clearArea(cursorX, cursorY - 1, cursorX + length, cursorY);
+        myBackBuffer.drawBytes(chosenBuffer, start, length, cursorX, cursorY);
       }
       cursorX += length;
       finishText();
     }
     finally {
-      backBuffer.unlock();
+      myBackBuffer.unlock();
     }
   }
 
@@ -96,16 +99,16 @@ public class BackBufferTerminalWriter implements TerminalWriter {
   }
 
   public void writeString(String string) {
-    backBuffer.lock();
+    myBackBuffer.lock();
     try {
       wrapLines();
-      backBuffer.clearArea(cursorX, cursorY - 1, cursorX + string.length(), cursorY);
-      backBuffer.drawString(string, cursorX, cursorY);
+      myBackBuffer.clearArea(cursorX, cursorY - 1, cursorX + string.length(), cursorY);
+      myBackBuffer.drawString(string, cursorX, cursorY);
       cursorX += string.length();
       finishText();
     }
     finally {
-      backBuffer.unlock();
+      myBackBuffer.unlock();
     }
   }
 
@@ -123,25 +126,27 @@ public class BackBufferTerminalWriter implements TerminalWriter {
 
 
   public void scrollY() {
-    backBuffer.lock();
+    myBackBuffer.lock();
     try {
       if (cursorY > scrollRegionBottom) {
         final int dy = scrollRegionBottom - cursorY;
         cursorY = scrollRegionBottom;
         scrollArea(scrollRegionTop, scrollRegionBottom
                                     - scrollRegionTop, dy);
-        backBuffer.clearArea(0, cursorY - 1, termWidth, cursorY);
-        display.setCursor(cursorX, cursorY);
+        myBackBuffer.clearArea(0, cursorY - 1, termWidth, cursorY);
+        myDisplay.setCursor(cursorX, cursorY);
       }
     }
     finally {
-      backBuffer.unlock();
+      myBackBuffer.unlock();
     }
   }
 
   public void newLine() {
+    //myBackBuffer.pumpRow(cursorY, myScrollBuffer);
     cursorY += 1;
-    display.setCursor(cursorX, cursorY);
+    myDisplay.setCursor(cursorX, cursorY);
+
     scrollY();
   }
 
@@ -151,12 +156,12 @@ public class BackBufferTerminalWriter implements TerminalWriter {
       cursorY -= 1;
       cursorX = termWidth - 1;
     }
-    display.setCursor(cursorX, cursorY);
+    myDisplay.setCursor(cursorX, cursorY);
   }
 
   public void carriageReturn() {
     cursorX = 0;
-    display.setCursor(cursorX, cursorY);
+    myDisplay.setCursor(cursorX, cursorY);
   }
 
   public void horizontalTab() {
@@ -165,11 +170,11 @@ public class BackBufferTerminalWriter implements TerminalWriter {
       cursorX = 0;
       cursorY += 1;
     }
-    display.setCursor(cursorX, cursorY);
+    myDisplay.setCursor(cursorX, cursorY);
   }
 
   public void eraseInDisplay(final int arg) {
-    backBuffer.lock();
+    myBackBuffer.lock();
     try {
       int beginY;
       int endY;
@@ -178,7 +183,7 @@ public class BackBufferTerminalWriter implements TerminalWriter {
         case 0:
           // Initial line
           if (cursorX < termWidth) {
-            backBuffer.clearArea(cursorX, cursorY - 1, termWidth, cursorY);
+            myBackBuffer.clearArea(cursorX, cursorY - 1, termWidth, cursorY);
           }
           // Rest
           beginY = cursorY;
@@ -187,7 +192,7 @@ public class BackBufferTerminalWriter implements TerminalWriter {
           break;
         case 1:
           // initial line
-          backBuffer.clearArea(0, cursorY - 1, cursorX + 1, cursorY);
+          myBackBuffer.clearArea(0, cursorY - 1, cursorX + 1, cursorY);
 
           beginY = 0;
           endY = cursorY - 1;
@@ -208,17 +213,17 @@ public class BackBufferTerminalWriter implements TerminalWriter {
       }
     }
     finally {
-      backBuffer.unlock();
+      myBackBuffer.unlock();
     }
   }
 
   public void clearLines(final int beginY, final int endY) {
-    backBuffer.lock();
+    myBackBuffer.lock();
     try {
-      backBuffer.clearArea(0, beginY, termWidth, endY);
+      myBackBuffer.clearArea(0, beginY, termWidth, endY);
     }
     finally {
-      backBuffer.unlock();
+      myBackBuffer.unlock();
     }
   }
 
@@ -227,20 +232,20 @@ public class BackBufferTerminalWriter implements TerminalWriter {
   }
 
   public void eraseInLine(int arg) {
-    backBuffer.lock();
+    myBackBuffer.lock();
     try {
       switch (arg) {
         case 0:
           if (cursorX < termWidth) {
-            backBuffer.clearArea(cursorX, cursorY - 1, termWidth, cursorY);
+            myBackBuffer.clearArea(cursorX, cursorY - 1, termWidth, cursorY);
           }
           break;
         case 1:
           final int extent = Math.min(cursorX + 1, termWidth);
-          backBuffer.clearArea(0, cursorY - 1, extent, cursorY);
+          myBackBuffer.clearArea(0, cursorY - 1, extent, cursorY);
           break;
         case 2:
-          backBuffer.clearArea(0, cursorY - 1, termWidth, cursorY);
+          myBackBuffer.clearArea(0, cursorY - 1, termWidth, cursorY);
           break;
         default:
           logger.error("Unsupported erase in line mode:" + arg);
@@ -248,113 +253,113 @@ public class BackBufferTerminalWriter implements TerminalWriter {
       }
     }
     finally {
-      backBuffer.unlock();
+      myBackBuffer.unlock();
     }
   }
 
   public void cursorUp(final int countY) {
-    backBuffer.lock();
+    myBackBuffer.lock();
     try {
       cursorY -= countY;
       cursorY = Math.max(cursorY, 1);
-      display.setCursor(cursorX, cursorY);
+      myDisplay.setCursor(cursorX, cursorY);
     }
     finally {
-      backBuffer.unlock();
+      myBackBuffer.unlock();
     }
   }
 
   public void cursorDown(final int dY) {
-    backBuffer.lock();
+    myBackBuffer.lock();
     try {
       cursorY += dY;
       cursorY = Math.min(cursorY, myTerminalHeight);
-      display.setCursor(cursorX, cursorY);
+      myDisplay.setCursor(cursorX, cursorY);
     }
     finally {
-      backBuffer.unlock();
+      myBackBuffer.unlock();
     }
   }
 
   public void index() {
-    backBuffer.lock();
+    myBackBuffer.lock();
     try {
       if (cursorY == myTerminalHeight) {
         scrollArea(scrollRegionTop, scrollRegionBottom
                                     - scrollRegionTop, -1);
-        backBuffer.clearArea(0, scrollRegionBottom - 1, termWidth,
-                             scrollRegionBottom);
+        myBackBuffer.clearArea(0, scrollRegionBottom - 1, termWidth,
+                               scrollRegionBottom);
       }
       else {
         cursorY += 1;
-        display.setCursor(cursorX, cursorY);
+        myDisplay.setCursor(cursorX, cursorY);
       }
     }
     finally {
-      backBuffer.unlock();
+      myBackBuffer.unlock();
     }
   }
 
   // Dodgy ?
   private void scrollArea(int y, int h, int dy) {
-    display.scrollArea(y, h, dy);
-    backBuffer.scrollArea(y, h, dy);
+    myDisplay.scrollArea(y, h, dy);
+    myBackBuffer.scrollArea(y, h, dy);
   }
 
   public void nextLine() {
-    backBuffer.lock();
+    myBackBuffer.lock();
     try {
       cursorX = 0;
       if (cursorY == myTerminalHeight) {
         scrollArea(scrollRegionTop, scrollRegionBottom
                                     - scrollRegionTop, -1);
-        backBuffer.clearArea(0, scrollRegionBottom - 1, termWidth,
-                             scrollRegionBottom);
+        myBackBuffer.clearArea(0, scrollRegionBottom - 1, termWidth,
+                               scrollRegionBottom);
       }
       else {
         cursorY += 1;
       }
-      display.setCursor(cursorX, cursorY);
+      myDisplay.setCursor(cursorX, cursorY);
     }
     finally {
-      backBuffer.unlock();
+      myBackBuffer.unlock();
     }
   }
 
   public void reverseIndex() {
-    backBuffer.lock();
+    myBackBuffer.lock();
     try {
       if (cursorY == 1) {
         scrollArea(scrollRegionTop - 1, scrollRegionBottom
                                         - scrollRegionTop, 1);
-        backBuffer.clearArea(cursorX, cursorY - 1, termWidth, cursorY);
+        myBackBuffer.clearArea(cursorX, cursorY - 1, termWidth, cursorY);
       }
       else {
         cursorY -= 1;
-        display.setCursor(cursorX, cursorY);
+        myDisplay.setCursor(cursorX, cursorY);
       }
     }
     finally {
-      backBuffer.unlock();
+      myBackBuffer.unlock();
     }
   }
 
   public void cursorForward(final int dX) {
     cursorX += dX;
     cursorX = Math.min(cursorX, termWidth - 1);
-    display.setCursor(cursorX, cursorY);
+    myDisplay.setCursor(cursorX, cursorY);
   }
 
   public void cursorBackward(final int dX) {
     cursorX -= dX;
     cursorX = Math.max(cursorX, 0);
-    display.setCursor(cursorX, cursorY);
+    myDisplay.setCursor(cursorX, cursorY);
   }
 
   public void cursorPosition(int x, int y) {
     cursorX = x - 1;
     cursorY = y;
-    display.setCursor(cursorX, cursorY);
+    myDisplay.setCursor(cursorX, cursorY);
   }
 
   public void setScrollingRegion(int top, int bottom) {
@@ -367,7 +372,7 @@ public class BackBufferTerminalWriter implements TerminalWriter {
   }
 
   public void beep() {
-    display.beep();
+    myDisplay.beep();
   }
 
   public int distanceToLineEnd() {
@@ -387,15 +392,15 @@ public class BackBufferTerminalWriter implements TerminalWriter {
       cursorX = storedCursor.x;
       cursorY = storedCursor.y;
     }
-    display.setCursor(cursorX, cursorY);
+    myDisplay.setCursor(cursorX, cursorY);
   }
 
   public Dimension resize(final Dimension pendingResize, final RequestOrigin origin) {
     final int oldHeight = myTerminalHeight;
-    final Dimension pixelSize = display.doResize(pendingResize, origin);
+    final Dimension pixelSize = myDisplay.doResize(pendingResize, origin);
 
-    termWidth = display.getColumnCount();
-    myTerminalHeight = display.getRowCount();
+    termWidth = myDisplay.getColumnCount();
+    myTerminalHeight = myDisplay.getRowCount();
 
     scrollRegionBottom += myTerminalHeight - oldHeight;
     cursorY += myTerminalHeight - oldHeight;
@@ -404,18 +409,18 @@ public class BackBufferTerminalWriter implements TerminalWriter {
   }
 
   public void fillScreen(final char c) {
-    backBuffer.lock();
+    myBackBuffer.lock();
     try {
       final char[] chars = new char[termWidth];
       Arrays.fill(chars, c);
       final String str = new String(chars);
 
       for (int row = 1; row <= myTerminalHeight; row++) {
-        backBuffer.drawString(str, 0, row);
+        myBackBuffer.drawString(str, 0, row);
       }
     }
     finally {
-      backBuffer.unlock();
+      myBackBuffer.unlock();
     }
   }
 

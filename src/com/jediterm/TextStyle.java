@@ -8,7 +8,7 @@ import java.lang.ref.WeakReference;
 import java.util.EnumSet;
 import java.util.WeakHashMap;
 
-public class TermStyle implements Cloneable {
+public class TextStyle implements Cloneable {
   public static final EnumSet<Option> NO_OPTIONS = EnumSet.noneOf(Option.class);
   private static int COUNT = 1;
 
@@ -20,16 +20,16 @@ public class TermStyle implements Cloneable {
     return BACKGROUND;
   }
 
-  public TermStyle setBackground(Color background) {
-    return new TermStyle(myForeground, background, myOptions);
+  public TextStyle setBackground(Color background) {
+    return new TextStyle(myForeground, background, myOptions);
   }
 
-  public TermStyle setForeground(Color foreground) {
-    return new TermStyle(foreground, myBackground, myOptions);
+  public TextStyle setForeground(Color foreground) {
+    return new TextStyle(foreground, myBackground, myOptions);
   }
 
-  public TermStyle setOptions(EnumSet<Option> options) {
-    return new TermStyle(myForeground, myBackground, options);
+  public TextStyle setOptions(EnumSet<Option> options) {
+    return new TextStyle(myForeground, myBackground, options);
   }
 
   static class ChosenColor extends Color {
@@ -62,19 +62,19 @@ public class TermStyle implements Cloneable {
     }
   }
 
-  public static final TermStyle EMPTY = new TermStyle();
-  private static final WeakHashMap<TermStyle, WeakReference<TermStyle>> styles = new WeakHashMap<TermStyle, WeakReference<TermStyle>>();
+  public static final TextStyle EMPTY = new TextStyle();
+  private static final WeakHashMap<TextStyle, WeakReference<TextStyle>> styles = new WeakHashMap<TextStyle, WeakReference<TextStyle>>();
 
 
-  public static TermStyle getCanonicalStyle(TermStyle currentStyle) {
-    final WeakReference<TermStyle> canonRef = styles.get(currentStyle);
+  public static TextStyle getCanonicalStyle(TextStyle currentStyle) {
+    final WeakReference<TextStyle> canonRef = styles.get(currentStyle);
     if (canonRef != null) {
-      final TermStyle canonStyle = canonRef.get();
+      final TextStyle canonStyle = canonRef.get();
       if (canonStyle != null) {
         return canonStyle;
       }
     }
-    styles.put(currentStyle, new WeakReference<TermStyle>(currentStyle));
+    styles.put(currentStyle, new WeakReference<TextStyle>(currentStyle));
     return currentStyle;
   }
 
@@ -84,15 +84,15 @@ public class TermStyle implements Cloneable {
   private EnumSet<Option> myOptions;
   private int number;
 
-  public TermStyle() {
+  public TextStyle() {
     this(null, null, NO_OPTIONS);
   }
 
-  public TermStyle(final Color foreground, final Color background) {
+  public TextStyle(final Color foreground, final Color background) {
     this(foreground, background, NO_OPTIONS);
   }
 
-  public TermStyle(final Color foreground, final Color background, final EnumSet<Option> options) {
+  public TextStyle(final Color foreground, final Color background, final EnumSet<Option> options) {
     number = COUNT++;
     this.myForeground = foreground;
     this.myBackground = background;
@@ -108,13 +108,13 @@ public class TermStyle implements Cloneable {
     return myBackground;
   }
 
-  public TermStyle setOption(final Option opt, final boolean val) {
+  public TextStyle setOption(final Option opt, final boolean val) {
     return setOptions(opt.set(EnumSet.copyOf(myOptions), val));
   }
 
   @Override
-  public TermStyle clone() {
-    return new TermStyle(myForeground, myBackground, myOptions);
+  public TextStyle clone() {
+    return new TextStyle(myForeground, myBackground, myOptions);
   }
 
   public int getNumber() {
@@ -146,7 +146,7 @@ public class TermStyle implements Cloneable {
     if (getClass() != obj.getClass()) {
       return false;
     }
-    final TermStyle other = (TermStyle)obj;
+    final TextStyle other = (TextStyle)obj;
     if (myBackground == null) {
       if (other.myBackground != null) {
         return false;

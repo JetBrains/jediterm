@@ -59,9 +59,9 @@ import javax.swing.event.ChangeListener;
 import com.jediterm.*;
 import org.apache.log4j.Logger;
 
-import com.jediterm.TermStyle;
+import com.jediterm.TextStyle;
 
-public class SwingTerminalPanel extends JComponent implements TerminalDisplay, ClipboardOwner, StyledRunConsumer {
+public class SwingTerminalPanel extends JComponent implements TerminalDisplay, ClipboardOwner, StyledTextConsumer {
   private static final Logger logger = Logger.getLogger(SwingTerminalPanel.class);
   private static final long serialVersionUID = -1048763516632093014L;
   private static final double FPS = 20;
@@ -110,6 +110,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   protected volatile int newClientScrollOrigin;
   protected volatile boolean shouldDrawCursor;
   private KeyListener keyHandler;
+  private TextBuffer textBuffer;
 
 
   public SwingTerminalPanel(BackBuffer backBuffer, ScrollBuffer scrollBuffer, StyleState styleState) {
@@ -232,26 +233,28 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
                                                  : selectionEnd;
     }
 
-    final StringBuffer selection = new StringBuffer();
+    final StringBuilder selectionText = new StringBuilder();
+
     if (top.y < 0) {
       final Point scrollEnd = bottom.y >= 0 ? new Point(termSize.width, -1) : bottom;
-      scrollBuffer.pumpRuns(top.y, scrollEnd.y - top.y,
-                            new SelectionRunConsumer(selection, top, scrollEnd));
+      scrollBuffer.processBufferRows(top.y, scrollEnd.y - top.y,
+                                     new SelectionTextAppender(selectionText, top, scrollEnd));
     }
 
     if (bottom.y >= 0) {
       final Point backBegin = top.y < 0 ? new Point(0, 0) : top;
-      backBuffer.pumpRuns(0, backBegin.y, termSize.width, bottom.y - backBegin.y + 1,
-                          new SelectionRunConsumer(selection, backBegin, bottom));
+      backBuffer.processBufferRuns(0, backBegin.y, termSize.width, bottom.y - backBegin.y + 1,
+                                   new SelectionTextAppender(selectionText, backBegin, bottom));
     }
 
-    if (selection.length() == 0) return;
+    if (selectionText.length() != 0) {
 
-    try {
-      clipBoard.setContents(new StringSelection(selection.toString()), this);
-    }
-    catch (final IllegalStateException e) {
-      logger.error("Could not set clipboard:", e);
+      try {
+        clipBoard.setContents(new StringSelection(selectionText.toString()), this);
+      }
+      catch (final IllegalStateException e) {
+        logger.error("Could not set clipboard:", e);
+      }
     }
   }
 
@@ -373,7 +376,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       keyHandler.keyPressed(e);
     }
     else if (id == KeyEvent.KEY_RELEASED) {
-			/* keyReleased(e); */
+                        /* keyReleased(e); */
     }
     else if (id == KeyEvent.KEY_TYPED) {
       keyHandler.keyTyped(e);
@@ -401,7 +404,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   public void drawCursor(Graphics2D g) {
     final int y = (cursor.y - 1 - clientScrollOrigin);
     if (y >= 0 && y < termSize.height) {
-      TermStyle current = styleState.getCurrent();
+      TextStyle current = styleState.getCurrent();
       g.setColor(current.getForeground());
       g.setXORMode(current.getBackground());
       g.fillRect(cursor.x * charSize.width, y * charSize.height,
@@ -410,10 +413,10 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   }
 
   public void drawSelection(Graphics2D g) {
-		/* which is the top one */
+                /* which is the top one */
     Point top;
     Point bottom;
-    TermStyle current = styleState.getCurrent();
+    TextStyle current = styleState.getCurrent();
     g.setColor(current.getForeground());
     g.setXORMode(current.getBackground());
     if (selectionStart == null || selectionEnd == null) {
@@ -421,7 +424,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     }
 
     if (selectionStart.y == selectionEnd.y) {
-			/* same line */
+                        /* same line */
       if (selectionStart.x == selectionEnd.x) {
         return;
       }
@@ -438,12 +441,12 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
                                               : selectionEnd;
       bottom = selectionStart.y > selectionEnd.y ? selectionStart
                                                  : selectionEnd;
-			/* to end of first line */
+                        /* to end of first line */
       g.fillRect(top.x * charSize.width, (top.y - clientScrollOrigin) * charSize.height,
                  (termSize.width - top.x) * charSize.width, charSize.height);
 
       if (bottom.y - top.y > 1) {
-				/* intermediate lines */
+                                /* intermediate lines */
         g.fillRect(0, (top.y + 1 - clientScrollOrigin) * charSize.height,
                    termSize.width * charSize.width, (bottom.y - top.y - 1)
                                                     * charSize.height);
@@ -456,17 +459,23 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     }
   }
 
-  public void consumeRun(final int x, final int y, final TermStyle style, final char[] buf, final int start, final int len) {
-    gfx.setColor(styleState.getBackground(style.getBackgroundForRun()));
-    gfx.fillRect(x * charSize.width, (y - clientScrollOrigin) * charSize.height, len * charSize.width, charSize.height);
+  @Override
+  public void consume(int x, int y, TextStyle style, BufferCharacters buf) {
+    if (gfx != null) {
+      gfx.setColor(styleState.getBackground(style.getBackgroundForRun()));
+      gfx.fillRect(x * charSize.width, (y - clientScrollOrigin) * charSize.height, buf.getLen() * charSize.width, charSize.height);
 
-    gfx.setFont(style.hasOption(TermStyle.Option.BOLD) ? boldFont : normalFont);
-    gfx.setColor(styleState.getForeground(style.getForegroundForRun()));
+      gfx.setFont(style.hasOption(TextStyle.Option.BOLD) ? boldFont : normalFont);
+      gfx.setColor(styleState.getForeground(style.getForegroundForRun()));
 
-    int baseLine = (y + 1 - clientScrollOrigin) * charSize.height - descent;
-    gfx.drawChars(buf, start, len, x * charSize.width, baseLine);
-    if (style.hasOption(TermStyle.Option.UNDERSCORE)) {
-      gfx.drawLine(x * charSize.width, baseLine + 1, (x + len) * charSize.width, baseLine + 1);
+      int baseLine = (y + 1 - clientScrollOrigin) * charSize.height - descent;
+
+
+      gfx.drawChars(buf.getBuf(), buf.getStart(), buf.getLen(), x * charSize.width, baseLine);
+
+      if (style.hasOption(TextStyle.Option.UNDERSCORE)) {
+        gfx.drawLine(x * charSize.width, baseLine + 1, (x + buf.getLen()) * charSize.width, baseLine + 1);
+      }
     }
   }
 
@@ -484,7 +493,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       // New area at the top to be filled in - can only be from scroll buffer
       //
 
-      scrollBuffer.pumpRuns(clientScrollOrigin, -dy, this);
+      scrollBuffer.processBufferRows(clientScrollOrigin, -dy, this);
     }
     else {
       //Scrolling down; Copied up
@@ -500,11 +509,11 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       int portionInBackBuffer = dy - portionInScroll;
 
       if (portionInScroll > 0) {
-        scrollBuffer.pumpRuns(oldEnd, portionInScroll, this);
+        scrollBuffer.processBufferRows(oldEnd, portionInScroll, this);
       }
 
       if (portionInBackBuffer > 0) {
-        backBuffer.pumpRuns(0, oldEnd + portionInScroll, termSize.width, portionInBackBuffer, this);
+        backBuffer.processBufferRuns(oldEnd + portionInScroll, portionInBackBuffer, this);
       }
     }
   }
@@ -541,7 +550,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       if (hasDamage) {
         noDamage = 0;
 
-        backBuffer.pumpRunsFromDamage(this);
+        backBuffer.processDamagedRuns(this);
         backBuffer.resetDamage();
       }
       else {
@@ -563,7 +572,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       //Moving lines off the top of the screen
       //TODO: Something to do with application keypad mode
       //TODO: Something to do with the scroll margins
-      backBuffer.pumpRuns(0, y - 1, termSize.width, -dy, scrollBuffer);
+      backBuffer.processBufferRuns(y - 1, -dy, scrollBuffer);
 
       brm.setRangeProperties(0, termSize.height, -scrollBuffer.getLineCount(), termSize.height, false);
     }

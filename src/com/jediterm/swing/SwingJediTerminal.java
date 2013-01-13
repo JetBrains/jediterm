@@ -24,12 +24,13 @@ public class SwingJediTerminal extends JPanel {
     super(new BorderLayout());
 
     StyleState styleState = createDefaultStyle();
-    BackBuffer backBuffer = new BackBuffer(80, 24, styleState);
+
     ScrollBuffer scrollBuffer = new ScrollBuffer();
+    BackBuffer backBuffer = new BackBuffer(80, 24, styleState, scrollBuffer);
 
 
     termPanel = createTerminalPanel(styleState, backBuffer, scrollBuffer);
-    terminalWriter = new BackBufferTerminalWriter(termPanel, backBuffer, styleState);
+    terminalWriter = new BackBufferTerminalWriter(termPanel, backBuffer, styleState, scrollBuffer);
     preconnectHandler = new PreConnectHandler(terminalWriter);
     termPanel.setKeyHandler(preconnectHandler);
     JScrollBar scrollBar = new JScrollBar();
@@ -45,7 +46,7 @@ public class SwingJediTerminal extends JPanel {
 
   protected StyleState createDefaultStyle() {
     StyleState styleState = new StyleState();
-    styleState.setDefaultStyle(new TermStyle(TermStyle.FOREGROUND, TermStyle.BACKGROUND));
+    styleState.setDefaultStyle(new TextStyle(TextStyle.FOREGROUND, TextStyle.BACKGROUND));
     return styleState;
   }
 

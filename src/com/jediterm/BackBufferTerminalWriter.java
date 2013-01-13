@@ -12,7 +12,7 @@ import org.apache.log4j.Logger;
 
 public class BackBufferTerminalWriter implements TerminalWriter {
   private static final Logger logger = Logger.getLogger(BackBufferTerminalWriter.class);
-  private final int tab = 8;
+  private final static int TAB = 8;
 
   private int scrollRegionTop;
   private int scrollRegionBottom;
@@ -162,7 +162,7 @@ public class BackBufferTerminalWriter implements TerminalWriter {
   }
 
   public void horizontalTab() {
-    cursorX = (cursorX / tab + 1) * tab;
+    cursorX = (cursorX / TAB + 1) * TAB;
     if (cursorX >= termWidth) {
       cursorX = 0;
       cursorY += 1;

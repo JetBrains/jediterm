@@ -25,8 +25,8 @@ public class SwingJediTerminal extends JPanel {
 
     StyleState styleState = createDefaultStyle();
 
-    TextBuffer scrollBuffer = new TextBuffer();
-    BackBuffer backBuffer = new BackBuffer(80, 24, styleState);
+    LinesBuffer scrollBuffer = new LinesBuffer();
+    BackBuffer backBuffer = new BackBuffer(80, 24, styleState, scrollBuffer);
 
 
     termPanel = createTerminalPanel(styleState, backBuffer, scrollBuffer);
@@ -50,7 +50,7 @@ public class SwingJediTerminal extends JPanel {
     return styleState;
   }
 
-  protected SwingTerminalPanel createTerminalPanel(StyleState styleState, BackBuffer backBuffer, TextBuffer scrollBuffer) {
+  protected SwingTerminalPanel createTerminalPanel(StyleState styleState, BackBuffer backBuffer, LinesBuffer scrollBuffer) {
     return new SwingTerminalPanel(backBuffer, scrollBuffer, styleState);
   }
 

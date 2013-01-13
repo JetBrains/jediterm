@@ -16,23 +16,25 @@ public class BackBuffer implements StyledTextConsumer {
   private TextStyle[] myStyleBuf;
   private BitSet myDamage;
 
-  StyleState myStyleState;
+  private final StyleState myStyleState;
+  private final LinesBuffer myScrollBuffer;
 
-  private final TextBuffer myTextBuffer = new TextBuffer();
+  private final LinesBuffer myTextBuffer = new LinesBuffer();
 
   private int myWidth;
   private int myHeight;
 
   private final Lock myLock = new ReentrantLock();
 
-  public BackBuffer(final int width, final int height, StyleState styleState) {
+  public BackBuffer(final int width, final int height, StyleState styleState, LinesBuffer scrollBuffer) {
     myStyleState = styleState;
+    myScrollBuffer = scrollBuffer;
     allocateBuffers(width, height);
   }
 
   private void allocateBuffers(final int width, final int height) {
-    this.myWidth = width;
-    this.myHeight = height;
+    myWidth = width;
+    myHeight = height;
 
     myBuf = new char[width * height];
     Arrays.fill(myBuf, EMPTY_CHAR);
@@ -64,10 +66,19 @@ public class BackBuffer implements StyledTextConsumer {
       System.arraycopy(oldStyleBuf, (oldStart + i) * oldWidth, myStyleBuf, (start + i) * myWidth, copyWidth);
     }
 
-    if (pendingResize.getWidth() > oldWidth) {
-      myTextBuffer.processBufferRows(-oldHeight, oldHeight, this);
+    if (myHeight < oldHeight) {
+      //we need to move lines from text buffer to the scroll buffer
+      myTextBuffer.moveTopLinesTo(oldHeight-myHeight, myScrollBuffer);
+    } else
+    if (myHeight > oldHeight) {
+      //we need to move lines from scroll buffer to the text buffer
+      myScrollBuffer.moveBottomLinesTo(myHeight - oldHeight, myTextBuffer);
     }
 
+    if (myWidth > oldWidth || myHeight > oldHeight) {
+      //we need to fill new space with data from the text buffer
+      myTextBuffer.processLines(-myHeight, myHeight, this);
+    }
 
     myDamage.set(0, myWidth * myHeight - 1, true);
 

@@ -2,6 +2,7 @@ package com.jediterm;
 
 import com.google.common.collect.Lists;
 
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -86,5 +87,11 @@ public class CharBuffer implements Iterable<Character>, CharSequence {
   @Override
   public String toString() {
     return new String(myBuf, myStart, myLen);
+  }
+
+  public CharBuffer clone() {
+    char[] newBuf = Arrays.copyOfRange(myBuf, myStart, myStart + myLen);
+
+    return new CharBuffer(newBuf, 0, myLen);
   }
 }

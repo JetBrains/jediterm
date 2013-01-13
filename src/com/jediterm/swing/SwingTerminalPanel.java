@@ -101,7 +101,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   private ResizePanelDelegate resizePanelDelegate;
 
   final private BackBuffer backBuffer;
-  final private TextBuffer scrollBuffer;
+  final private LinesBuffer scrollBuffer;
   final private StyleState styleState;
 
   private final BoundedRangeModel brm = new DefaultBoundedRangeModel(0, 80, 0, 80);
@@ -112,7 +112,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   private KeyListener keyHandler;
 
 
-  public SwingTerminalPanel(BackBuffer backBuffer, TextBuffer scrollBuffer, StyleState styleState) {
+  public SwingTerminalPanel(BackBuffer backBuffer, LinesBuffer scrollBuffer, StyleState styleState) {
     this.scrollBuffer = scrollBuffer;
     this.backBuffer = backBuffer;
     this.styleState = styleState;
@@ -236,8 +236,8 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
     if (top.y < 0) {
       final Point scrollEnd = bottom.y >= 0 ? new Point(termSize.width, -1) : bottom;
-      scrollBuffer.processBufferRows(top.y, scrollEnd.y - top.y,
-                                     new SelectionTextAppender(selectionText, top, scrollEnd));
+      scrollBuffer.processLines(top.y, scrollEnd.y - top.y,
+                                new SelectionTextAppender(selectionText, top, scrollEnd));
     }
 
     if (bottom.y >= 0) {
@@ -492,7 +492,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       // New area at the top to be filled in - can only be from scroll buffer
       //
 
-      scrollBuffer.processBufferRows(clientScrollOrigin, -dy, this);
+      scrollBuffer.processLines(clientScrollOrigin, -dy, this);
     }
     else {
       //Scrolling down; Copied up
@@ -508,7 +508,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       int portionInBackBuffer = dy - portionInScroll;
 
       if (portionInScroll > 0) {
-        scrollBuffer.processBufferRows(oldEnd, portionInScroll, this);
+        scrollBuffer.processLines(oldEnd, portionInScroll, this);
       }
 
       if (portionInBackBuffer > 0) {
@@ -657,7 +657,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     return backBuffer;
   }
 
-  public TextBuffer getScrollBuffer() {
+  public LinesBuffer getScrollBuffer() {
     return scrollBuffer;
   }
 

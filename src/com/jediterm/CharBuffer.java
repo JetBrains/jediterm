@@ -8,12 +8,12 @@ import java.util.List;
 /**
  * @author traff
  */
-public class BufferCharacters implements Iterable<Character> {
+public class CharBuffer implements Iterable<Character>, CharSequence {
   private final char[] myBuf;
   private final int myStart;
   private final int myLen;
 
-  public BufferCharacters(char[] buf, int start, int len) {
+  public CharBuffer(char[] buf, int start, int len) {
     myBuf = buf;
     myStart = start;
     myLen = len;
@@ -53,9 +53,9 @@ public class BufferCharacters implements Iterable<Character> {
     return myLen;
   }
 
-  public static BufferCharacters adapt(Iterable<Character> characters) {
-    if (characters instanceof BufferCharacters) {
-      return (BufferCharacters)characters;
+  public static CharBuffer adapt(Iterable<Character> characters) {
+    if (characters instanceof CharBuffer) {
+      return (CharBuffer)characters;
     }
     else {
       List<Character> charList = Lists.newArrayList(characters);
@@ -64,7 +64,27 @@ public class BufferCharacters implements Iterable<Character> {
       for (Character ch : charList) {
         buf[i++] = ch;
       }
-      return new BufferCharacters(buf, 0, buf.length);
+      return new CharBuffer(buf, 0, buf.length);
     }
+  }
+
+  @Override
+  public int length() {
+    return myLen;
+  }
+
+  @Override
+  public char charAt(int index) {
+    return myBuf[myStart + index];
+  }
+
+  @Override
+  public CharSequence subSequence(int start, int end) {
+    return new CharBuffer(myBuf, myStart + start, end - start);
+  }
+
+  @Override
+  public String toString() {
+    return new String(myBuf, myStart, myLen);
   }
 }

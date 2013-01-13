@@ -101,7 +101,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   private ResizePanelDelegate resizePanelDelegate;
 
   final private BackBuffer backBuffer;
-  final private ScrollBuffer scrollBuffer;
+  final private TextBuffer scrollBuffer;
   final private StyleState styleState;
 
   private final BoundedRangeModel brm = new DefaultBoundedRangeModel(0, 80, 0, 80);
@@ -110,10 +110,9 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   protected volatile int newClientScrollOrigin;
   protected volatile boolean shouldDrawCursor;
   private KeyListener keyHandler;
-  private TextBuffer textBuffer;
 
 
-  public SwingTerminalPanel(BackBuffer backBuffer, ScrollBuffer scrollBuffer, StyleState styleState) {
+  public SwingTerminalPanel(BackBuffer backBuffer, TextBuffer scrollBuffer, StyleState styleState) {
     this.scrollBuffer = scrollBuffer;
     this.backBuffer = backBuffer;
     this.styleState = styleState;
@@ -460,7 +459,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   }
 
   @Override
-  public void consume(int x, int y, TextStyle style, BufferCharacters buf) {
+  public void consume(int x, int y, TextStyle style, CharBuffer buf) {
     if (gfx != null) {
       gfx.setColor(styleState.getBackground(style.getBackgroundForRun()));
       gfx.fillRect(x * charSize.width, (y - clientScrollOrigin) * charSize.height, buf.getLen() * charSize.width, charSize.height);
@@ -581,7 +580,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     pendingScrolls.add(y, h, dy);
   }
 
-  static class PendingScrolls {
+  private static class PendingScrolls {
     int[] ys = new int[10];
     int[] hs = new int[10];
     int[] dys = new int[10];
@@ -658,7 +657,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     return backBuffer;
   }
 
-  public ScrollBuffer getScrollBuffer() {
+  public TextBuffer getScrollBuffer() {
     return scrollBuffer;
   }
 

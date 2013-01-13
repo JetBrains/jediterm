@@ -21,7 +21,7 @@ public class SelectionTextAppender implements StyledTextConsumer {
     this.begin = begin;
   }
 
-  public void consume(final int x, final int y, final TextStyle style, final BufferCharacters characters) {
+  public void consume(final int x, final int y, final TextStyle style, final CharBuffer characters) {
     int startPos = characters.getStart();
     int extent = characters.getLen();
 

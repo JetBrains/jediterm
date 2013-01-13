@@ -26,15 +26,12 @@ public class BackBufferTerminalWriter implements TerminalWriter {
   private final BackBuffer myBackBuffer;
   private final StyleState myStyleState;
 
-  private final ScrollBuffer myScrollBuffer;
-
   private final EnumSet<TerminalMode> modes = EnumSet.of(TerminalMode.ANSI);
 
-  public BackBufferTerminalWriter(final TerminalDisplay term, final BackBuffer buf, final StyleState styleState, ScrollBuffer buffer) {
+  public BackBufferTerminalWriter(final TerminalDisplay term, final BackBuffer buf, final StyleState styleState) {
     myDisplay = term;
     myBackBuffer = buf;
     myStyleState = styleState;
-    myScrollBuffer = buffer;
 
     termWidth = term.getColumnCount();
     myTerminalHeight = term.getRowCount();
@@ -84,7 +81,7 @@ public class BackBufferTerminalWriter implements TerminalWriter {
       wrapLines();
       if (length != 0) {
         myBackBuffer.clearArea(cursorX, cursorY - 1, cursorX + length, cursorY);
-        myBackBuffer.drawBytes(chosenBuffer, start, length, cursorX, cursorY);
+        myBackBuffer.drawBytes(cursorX, cursorY, chosenBuffer, start, length);
       }
       cursorX += length;
       finishText();
@@ -103,7 +100,7 @@ public class BackBufferTerminalWriter implements TerminalWriter {
     try {
       wrapLines();
       myBackBuffer.clearArea(cursorX, cursorY - 1, cursorX + string.length(), cursorY);
-      myBackBuffer.drawString(string, cursorX, cursorY);
+      myBackBuffer.drawString(cursorX, cursorY, string);
       cursorX += string.length();
       finishText();
     }
@@ -143,7 +140,7 @@ public class BackBufferTerminalWriter implements TerminalWriter {
   }
 
   public void newLine() {
-    //myBackBuffer.pumpRow(cursorY, myScrollBuffer);
+    myBackBuffer.moveToTextBuffer(cursorY);
     cursorY += 1;
     myDisplay.setCursor(cursorX, cursorY);
 
@@ -416,7 +413,7 @@ public class BackBufferTerminalWriter implements TerminalWriter {
       final String str = new String(chars);
 
       for (int row = 1; row <= myTerminalHeight; row++) {
-        myBackBuffer.drawString(str, 0, row);
+        myBackBuffer.drawString(0, row, str);
       }
     }
     finally {

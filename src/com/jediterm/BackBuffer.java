@@ -8,7 +8,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.log4j.Logger;
 
-public class BackBuffer {
+public class BackBuffer implements StyledTextConsumer {
   private static final Logger logger = Logger.getLogger(BackBuffer.class);
   private static final char EMPTY_CHAR = ' '; // (char) 0x0;
 
@@ -18,16 +18,15 @@ public class BackBuffer {
 
   StyleState myStyleState;
 
-  private final ScrollBuffer myScrollBuffer;
+  private final TextBuffer myTextBuffer = new TextBuffer();
 
   private int myWidth;
   private int myHeight;
 
   private final Lock myLock = new ReentrantLock();
 
-  public BackBuffer(final int width, final int height, StyleState styleState, ScrollBuffer buffer) {
+  public BackBuffer(final int width, final int height, StyleState styleState) {
     myStyleState = styleState;
-    myScrollBuffer = buffer;
     allocateBuffers(width, height);
   }
 
@@ -65,7 +64,10 @@ public class BackBuffer {
       System.arraycopy(oldStyleBuf, (oldStart + i) * oldWidth, myStyleBuf, (start + i) * myWidth, copyWidth);
     }
 
-    //myScrollBuffer.pumpRuns(0, pendingResize.height, this);
+    if (pendingResize.getWidth() > oldWidth) {
+      myTextBuffer.processBufferRows(-oldHeight, oldHeight, this);
+    }
+
 
     myDamage.set(0, myWidth * myHeight - 1, true);
 
@@ -103,7 +105,7 @@ public class BackBuffer {
     }
   }
 
-  public void drawBytes(final byte[] bytes, final int s, final int len, final int x, final int y) {
+  public void drawBytes(final int x, final int y, final byte[] bytes, final int start, final int len) {
     final int adjY = y - 1;
     if (adjY >= myHeight || adjY < 0) {
       if (logger.isDebugEnabled()) {
@@ -111,7 +113,7 @@ public class BackBuffer {
           .append(adjY).append(" at (").append(x).append(",")
           .append(y).append(")");
 
-        CharacterUtils.appendBuf(sb, bytes, s, len);
+        CharacterUtils.appendBuf(sb, bytes, start, len);
         logger.debug(sb);
       }
       return;
@@ -119,13 +121,17 @@ public class BackBuffer {
 
     for (int i = 0; i < len; i++) {
       final int location = adjY * myWidth + x + i;
-      myBuf[location] = (char)bytes[s + i]; // Arraycopy does not convert
+      myBuf[location] = (char)bytes[start + i]; // Arraycopy does not convert
       myStyleBuf[location] = myStyleState.getCurrent();
     }
     myDamage.set(adjY * myWidth + x, adjY * myWidth + x + len);
   }
 
-  public void drawString(final String str, final int x, final int y) {
+  public void drawString(final int x, final int y, final String str) {
+    drawString(x, y, str, myStyleState.getCurrent());
+  }
+
+  private void drawString(int x, int y, String str, TextStyle style) {
     final int adjY = y - 1;
     if (adjY >= myHeight || adjY < 0) {
       if (logger.isDebugEnabled()) {
@@ -136,7 +142,7 @@ public class BackBuffer {
     str.getChars(0, str.length(), myBuf, adjY * myWidth + x);
     for (int i = 0; i < str.length(); i++) {
       final int location = adjY * myWidth + x + i;
-      myStyleBuf[location] = myStyleState.getCurrent();
+      myStyleBuf[location] = style;
     }
     myDamage.set(adjY * myWidth + x, adjY * myWidth + x + str.length());
   }
@@ -249,10 +255,10 @@ public class BackBuffer {
   }
 
   public void processBufferRuns(final int startCol,
-                                 final int startRow,
-                                 final int width,
-                                 final int height,
-                                 final StyledTextConsumer consumer) {
+                                final int startRow,
+                                final int width,
+                                final int height,
+                                final StyledTextConsumer consumer) {
 
     final int endRow = startRow + height;
     final int endCol = startCol + width;
@@ -287,7 +293,7 @@ public class BackBuffer {
       }
       else if (!cellStyle.equals(lastStyle)) {
         //start of new run
-        consumer.consume(beginRun, row, lastStyle, new BufferCharacters(myBuf, row * myWidth + beginRun, col - beginRun));
+        consumer.consume(beginRun, row, lastStyle, new CharBuffer(myBuf, row * myWidth + beginRun, col - beginRun));
         beginRun = col;
         lastStyle = cellStyle;
       }
@@ -297,7 +303,7 @@ public class BackBuffer {
       logger.error("Style is null for run supposed to be from " + beginRun + " to " + endCol + "on row " + row);
     }
     else {
-      consumer.consume(beginRun, row, lastStyle, new BufferCharacters(myBuf, row * myWidth + beginRun, endCol - beginRun));
+      consumer.consume(beginRun, row, lastStyle, new CharBuffer(myBuf, row * myWidth + beginRun, endCol - beginRun));
     }
   }
 
@@ -357,7 +363,7 @@ public class BackBuffer {
   }
 
   private void flushStyledText(StyledTextConsumer consumer, int row, TextStyle lastStyle, int beginRun, int col) {
-    consumer.consume(beginRun, row, lastStyle, new BufferCharacters(myBuf, row * myWidth + beginRun, col - beginRun));
+    consumer.consume(beginRun, row, lastStyle, new CharBuffer(myBuf, row * myWidth + beginRun, col - beginRun));
   }
 
   public boolean hasDamage() {
@@ -374,5 +380,18 @@ public class BackBuffer {
 
   public boolean tryLock() {
     return myLock.tryLock();
+  }
+
+  public void moveToTextBuffer(int cursorY) {
+    processBufferRow(cursorY - 1, myTextBuffer);
+  }
+
+  @Override
+  public void consume(int x, int y, TextStyle style, CharBuffer characters) {
+    int len = Math.min(myWidth - x, characters.getLen());
+
+    if (len > 0) {
+      drawString(x, y + myHeight, new String(characters.getBuf(), characters.getStart(), len), style);
+    }
   }
 }

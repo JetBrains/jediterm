@@ -1,5 +1,7 @@
 package com.jediterm;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 
@@ -12,8 +14,10 @@ import org.apache.log4j.Logger;
 public class LinesBuffer implements StyledTextConsumer {
   private static final Logger logger = Logger.getLogger(LinesBuffer.class);
 
+  private static final int BUFFER_MAX_SIZE = 10000;
+
   private int myTotalLines = 0;
-  private List<TextEntry> myTextEntries = Lists.newArrayList();
+  private Deque<TextEntry> myTextEntries = new ArrayDeque<TextEntry>();
 
   public LinesBuffer() {
   }
@@ -37,7 +41,7 @@ public class LinesBuffer implements StyledTextConsumer {
   }
 
   public synchronized void addToBufferFirst(TextStyle style, CharBuffer characters, boolean isNewLine) {
-    myTextEntries.add(0, new TextEntry(isNewLine, style, characters));
+    myTextEntries.addFirst(new TextEntry(isNewLine, style, characters));
 
     if (isNewLine) {
       myTotalLines++;
@@ -45,6 +49,9 @@ public class LinesBuffer implements StyledTextConsumer {
   }
 
   public synchronized void addToBuffer(TextStyle style, CharBuffer characters, boolean isNewLine) {
+    if (myTextEntries.size() > BUFFER_MAX_SIZE) {
+      removeTopLines(1);
+    }
     myTextEntries.add(new TextEntry(isNewLine, style, characters));
 
     if (isNewLine) {

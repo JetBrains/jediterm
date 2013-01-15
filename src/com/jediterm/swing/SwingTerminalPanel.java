@@ -575,7 +575,13 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       //TODO: Something to do with application keypad mode
       //TODO: Something to do with the scroll margins
 
-      myBoundedRangeModel.setRangeProperties(0, myTermSize.height, -myScrollBuffer.getLineCount(), myTermSize.height, false);
+      SwingUtilities.invokeLater(new Runnable() {
+        @Override
+        public void run() {
+          myBoundedRangeModel.setRangeProperties(0, myTermSize.height, -myScrollBuffer.getLineCount(), myTermSize.height, false);
+        }
+      });
+
     }
     mySelectionStart = null;
     mySelectionEnd = null;

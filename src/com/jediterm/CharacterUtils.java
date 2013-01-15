@@ -72,7 +72,7 @@ public class CharacterUtils {
 		}
 	}
 	
-	public static void appendBuf(final StringBuffer sb, final byte[] bs, final int begin, final int length) {
+	public static void appendBuf(final StringBuffer sb, final char[] bs, final int begin, final int length) {
 		CharacterType last = CharacterType.NONPRINTING;
 		final int end = begin + length;
 		for (int i = begin; i < end; i++) {

@@ -19,9 +19,9 @@ public interface TerminalWriter {
 
   void newLine();
 
-  void writeDoubleByte(byte[] bytes) throws UnsupportedEncodingException;
+  void writeDoubleByte(char[] bytes) throws UnsupportedEncodingException;
 
-  void writeASCII(byte[] buf, int offset, int len);
+  void writeASCII(char[] buf, int offset, int len);
 
   int distanceToLineEnd();
 

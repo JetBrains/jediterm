@@ -12,9 +12,11 @@ public interface Tty {
 
   String getName();
 
-  int read(byte[] buf, int offset, int length) throws IOException;
+  int read(char[] buf, int offset, int length) throws IOException;
 
   void write(byte[] bytes) throws IOException;
 
   boolean isConnected();
+
+  void write(String string) throws IOException;
 }

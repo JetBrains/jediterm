@@ -14,6 +14,7 @@ import com.jediterm.swing.standalone.Main;
 import java.awt.*;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 
 public class JSchTty implements Tty {
@@ -29,6 +30,7 @@ public class JSchTty implements Tty {
 
   private Dimension pendingTermSize;
   private Dimension pendingPixelSize;
+  private InputStreamReader inReader;
 
 
   public JSchTty() {
@@ -75,6 +77,7 @@ public class JSchTty implements Tty {
       channel = (ChannelShell)session.openChannel("shell");
       in = channel.getInputStream();
       out = channel.getOutputStream();
+      inReader = new InputStreamReader(in, "EUC-JP");
       channel.connect();
       resizeImmediately();
       return true;
@@ -152,6 +155,11 @@ public class JSchTty implements Tty {
     return "ConnectRunnable";
   }
 
+  @Override
+  public int read(char[] buf, int offset, int length) throws IOException {
+    return inReader.read(buf, offset, length);
+  }
+
   public int read(byte[] buf, int offset, int length) throws IOException {
     return in.read(buf, offset, length);
   }
@@ -164,5 +172,10 @@ public class JSchTty implements Tty {
   @Override
   public boolean isConnected() {
     return channel.isConnected();
+  }
+
+  @Override
+  public void write(String string) throws IOException {
+    write(string.getBytes("EUC-JP")); //TODO: fix
   }
 }

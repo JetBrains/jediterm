@@ -37,22 +37,11 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionAdapter;
+import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 
-import javax.swing.BoundedRangeModel;
-import javax.swing.DefaultBoundedRangeModel;
-import javax.swing.JComponent;
-import javax.swing.Timer;
+import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
@@ -155,9 +144,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       @Override
       public void mouseReleased(final MouseEvent e) {
         mySelectionInProgress = false;
-        if (mySelectionStart != null && mySelectionEnd != null) {
-          copySelection(mySelectionStart, mySelectionEnd);
-        }
+
         repaint();
       }
 
@@ -167,7 +154,8 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
         mySelectionStart = null;
         mySelectionEnd = null;
         if (e.getButton() == MouseEvent.BUTTON3) {
-          pasteSelection();
+          JPopupMenu popup = createPopupMenu(mySelectionStart, mySelectionEnd, getClipboardContent());
+          popup.show(e.getComponent(), e.getX(), e.getY());
         }
         repaint();
       }
@@ -259,14 +247,21 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
   void pasteSelection() {
     try {
-      final String selection = (String)myClipboard.getData(DataFlavor.stringFlavor);
-      myEmulator.sendBytes(selection.getBytes());
-    }
-    catch (final UnsupportedFlavorException e) {
-
+      final String selection = getClipboardContent();
+      myEmulator.sendString(selection);
     }
     catch (final IOException e) {
+      logger.info(e);
+    }
+  }
 
+  private String getClipboardContent() {
+    try {
+      return (String)myClipboard.getData(DataFlavor.stringFlavor);
+    }
+    catch (Exception e) {
+      logger.info(e);
+      return null;
     }
   }
 
@@ -679,5 +674,33 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   @Override
   public void setShouldDrawCursor(boolean shouldDrawCursor) {
     myShouldDrawCursor = shouldDrawCursor;
+  }
+
+
+  protected JPopupMenu createPopupMenu(final Point selectionStart, final Point selectionEnd, String content) {
+    JPopupMenu popup = new JPopupMenu();
+
+    ActionListener popupListener = new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        if ("Copy".equals(e.getActionCommand())) {
+          copySelection(selectionStart, selectionEnd);
+        }
+        else if ("Paste".equals(e.getActionCommand())) {
+          pasteSelection();
+        }
+      }
+    };
+
+    JMenuItem menuItem = new JMenuItem("Copy");
+    menuItem.addActionListener(popupListener);
+    menuItem.setEnabled(selectionStart != null);
+    popup.add(menuItem);
+    menuItem = new JMenuItem("Paste");
+    menuItem.setEnabled(content != null);
+    menuItem.addActionListener(popupListener);
+    popup.add(menuItem);
+
+    return popup;
   }
 }

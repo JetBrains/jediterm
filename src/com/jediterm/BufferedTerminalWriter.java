@@ -79,7 +79,7 @@ public class BufferedTerminalWriter implements TerminalWriter {
     scrollY();
   }
 
-  public void writeASCII(final byte[] chosenBuffer, final int start,
+  public void writeASCII(final char[] chosenBuffer, final int start,
                          final int length) {
     myBackBuffer.lock();
     try {
@@ -96,8 +96,8 @@ public class BufferedTerminalWriter implements TerminalWriter {
     }
   }
 
-  public void writeDoubleByte(final byte[] bytesOfChar) throws UnsupportedEncodingException {
-    writeString(new String(bytesOfChar, 0, 2, "EUC-JP"));
+  public void writeDoubleByte(final char[] bytesOfChar) throws UnsupportedEncodingException {
+    writeString(new String(bytesOfChar, 0, 2));
   }
 
   public void writeString(String string) {
@@ -403,8 +403,8 @@ public class BufferedTerminalWriter implements TerminalWriter {
 
   public Dimension resize(final Dimension pendingResize, final RequestOrigin origin) {
     final int oldHeight = myTerminalHeight;
-    if (pendingResize.width <= cursorX+1) {
-      pendingResize.setSize(cursorX+2, pendingResize.height);
+    if (pendingResize.width <= cursorX + 1) {
+      pendingResize.setSize(cursorX + 2, pendingResize.height);
     }
     final Dimension pixelSize = myDisplay.requestResize(pendingResize, origin, cursorY);
 

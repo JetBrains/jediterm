@@ -96,7 +96,7 @@ public class Emulator {
   }
 
   void singleIteration() throws IOException {
-    byte b = myTtyChannel.getChar();
+    char b = myTtyChannel.getChar();
 
     switch (b) {
       case 0:
@@ -124,16 +124,16 @@ public class Emulator {
         myTerminalWriter.newLine();
         break;
       default:
-        if (b <= CharacterUtils.US) {
+        if (b <= US) {
           if (logger.isInfoEnabled()) {
             StringBuffer sb = new StringBuffer("Unhandled control character:");
-            CharacterUtils.appendChar(sb, CharacterType.NONE, (char)b);
+            appendChar(sb, CharacterType.NONE, (char)b);
             logger.info(sb.toString());
           }
         }
-        else if (b > CharacterUtils.DEL) {
+        else if (b > DEL) {
           //TODO: double byte character.. this is crap
-          final byte[] bytesOfChar = new byte[2];
+          final char[] bytesOfChar = new char[2];
           bytesOfChar[0] = b;
           bytesOfChar[1] = myTtyChannel.getChar();
           myTerminalWriter.writeDoubleByte(bytesOfChar);
@@ -148,13 +148,13 @@ public class Emulator {
     }
   }
 
-  private void handleESC(byte initByte) throws IOException {
-    byte b = initByte;
+  private void handleESC(char initByte) throws IOException {
+    char b = initByte;
     if (b == '[') {
       doControlSequence();
     }
     else {
-      final byte[] intermediate = new byte[10];
+      final char[] intermediate = new char[10];
       int intCount = 0;
       while (b >= 0x20 && b <= 0x2F) {
         intCount++;
@@ -203,7 +203,7 @@ public class Emulator {
         }
         // Push backwards
         for (int i = intCount - 1; i >= 0; i--) {
-          final byte ib = intermediate[i];
+          final char ib = intermediate[i];
           myTtyChannel.pushChar(ib);
         }
         myTtyChannel.pushChar(b);
@@ -225,13 +225,13 @@ public class Emulator {
     myTerminalWriter.restoreCursor(storedCursor);
   }
 
-  private static String escapeSequenceToString(final byte[] intermediate,
-                                               final int intCount, final byte b) {
+  private static String escapeSequenceToString(final char[] intermediate,
+                                               final int intCount, final char b) {
 
     StringBuilder sb = new StringBuilder("ESC ");
 
     for (int i = 0; i < intCount; i++) {
-      final byte ib = intermediate[i];
+      final char ib = intermediate[i];
       sb.append(' ');
       sb.append((char)ib);
     }
@@ -450,5 +450,9 @@ public class Emulator {
         myTerminalWriter.unsetMode(mode);
       }
     }
+  }
+
+  public void sendString(String string) throws IOException {
+    myTtyChannel.sendString(string);
   }
 }

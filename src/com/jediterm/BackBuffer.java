@@ -1,6 +1,7 @@
 package com.jediterm;
 
 import java.awt.Dimension;
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.concurrent.locks.Lock;
@@ -147,7 +148,7 @@ public class BackBuffer implements StyledTextConsumer {
     }
   }
 
-  public void drawBytes(final int x, final int y, final byte[] bytes, final int start, final int len) {
+  public void drawBytes(final int x, final int y, final char[] bytes, final int start, final int len) {
     final int adjY = y - 1;
     if (adjY >= myHeight || adjY < 0) {
       if (logger.isDebugEnabled()) {
@@ -163,7 +164,8 @@ public class BackBuffer implements StyledTextConsumer {
 
     for (int i = 0; i < len; i++) {
       final int location = adjY * myWidth + x + i;
-      myBuf[location] = (char)bytes[start + i]; // Arraycopy does not convert
+      myBuf[location] = bytes[start + i]; // Arraycopy does not convert
+
       myStyleBuf[location] = myStyleState.getCurrent();
     }
     myDamage.set(adjY * myWidth + x, adjY * myWidth + x + len);

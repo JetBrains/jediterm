@@ -9,7 +9,7 @@ import java.io.IOException;
 public class TtyChannel {
   private Tty tty;
 
-  byte[] buf = new byte[1024];
+  char[] buf = new char[1024];
 
   int offset = 0;
 
@@ -22,7 +22,7 @@ public class TtyChannel {
     serial = 0;
   }
 
-  public byte getChar() throws IOException {
+  public char getChar() throws IOException {
     if (length == 0) {
       fillBuf();
     }
@@ -46,7 +46,7 @@ public class TtyChannel {
     }
   }
 
-  public void pushChar(final byte b) throws IOException {
+  public void pushChar(final char b) throws IOException {
     if (offset == 0) {
       // Pushed back too many... shift it up to the end.
       offset = buf.length - length;
@@ -65,7 +65,7 @@ public class TtyChannel {
     int len = toLineEnd > length ? length : toLineEnd;
 
     final int origLen = len;
-    byte tmp;
+    char tmp;
     while (len > 0) {
       tmp = buf[offset++];
       if (0x20 <= tmp && tmp <= 0x7f) {
@@ -87,7 +87,7 @@ public class TtyChannel {
     tty.resize(termSize, pixelSize);
   }
 
-  public void pushBackBuffer(final byte[] bytes, final int len) throws IOException {
+  public void pushBackBuffer(final char[] bytes, final int len) throws IOException {
     for (int i = len - 1; i >= 0; i--) {
       pushChar(bytes[i]);
     }
@@ -95,5 +95,9 @@ public class TtyChannel {
 
   public boolean isConnected() {
     return tty.isConnected();
+  }
+
+  public void sendString(String string) throws IOException {
+    tty.write(string);
   }
 }

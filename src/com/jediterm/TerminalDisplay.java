@@ -22,9 +22,7 @@
 
 package com.jediterm;
 
-import com.jediterm.swing.SwingTerminalPanel;
-
-import java.awt.Dimension;
+import java.awt.*;
 
 public interface TerminalDisplay {
   // Size information

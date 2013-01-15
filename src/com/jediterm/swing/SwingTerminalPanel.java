@@ -284,7 +284,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       myGfx.fillRect(0, 0, width, height);
 
       if (oldImage != null) {
-        myGfx.drawImage(oldImage, 0, myImage.getHeight() - oldImage.getHeight(),
+        myGfx.drawImage(oldImage, 0, 0,
                         oldImage.getWidth(), oldImage.getHeight(), myTerminalPanel);
       }
     }
@@ -310,10 +310,6 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
   public void setKeyListener(final KeyListener keyListener) {
     this.myKeyListener = keyListener;
-  }
-
-  public interface ResizeHandler {
-    void resized(Dimension newPixelSize, Dimension newTerminalSize, int newCursorLine);
   }
 
   public Dimension requestResize(final Dimension newSize, final RequestOrigin origin, int cursorY) {
@@ -363,6 +359,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     Graphics2D gfx = (Graphics2D)g;
     if (myImage != null) {
       gfx.drawImage(myImage, 0, 0, myTerminalPanel);
+      drawMargin(gfx, myImage.getHeight());
       drawCursor(gfx);
       drawSelection(gfx);
     }
@@ -569,6 +566,11 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     }
   }
 
+  private void drawMargin(Graphics2D gfx, int height) {
+    gfx.setColor(getBackground());
+    gfx.fillRect(0, height, getWidth(), getHeight() - height);
+  }
+
   public void scrollArea(final int y, final int h, int dy) {
     if (dy < 0) {
       //Moving lines off the top of the screen
@@ -581,7 +583,6 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
           myBoundedRangeModel.setRangeProperties(0, myTermSize.height, -myScrollBuffer.getLineCount(), myTermSize.height, false);
         }
       });
-
     }
     mySelectionStart = null;
     mySelectionEnd = null;

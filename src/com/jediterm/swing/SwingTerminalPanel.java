@@ -151,8 +151,6 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       @Override
       public void mouseClicked(final MouseEvent e) {
         requestFocusInWindow();
-        mySelectionStart = null;
-        mySelectionEnd = null;
         if (e.getButton() == MouseEvent.BUTTON3) {
           JPopupMenu popup = createPopupMenu(mySelectionStart, mySelectionEnd, getClipboardContent());
           popup.show(e.getComponent(), e.getX(), e.getY());

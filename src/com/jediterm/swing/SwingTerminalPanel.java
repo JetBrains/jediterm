@@ -66,68 +66,68 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   private static final long serialVersionUID = -1048763516632093014L;
   private static final double FPS = 20;
 
-  private BufferedImage img;
+  private BufferedImage myImage;
 
-  private Graphics2D gfx;
+  private Graphics2D myGfx;
 
-  private final Component termComponent = this;
+  private final Component myTerminalPanel = this;
 
-  private Font normalFont;
+  private Font myNormalFont;
 
-  private Font boldFont;
+  private Font myBoldFont;
 
-  private int descent = 0;
+  private int myDescent = 0;
 
-  private int lineSpace = 0;
+  private int myLineSpace = 0;
 
-  Dimension charSize = new Dimension();
+  Dimension myCharSize = new Dimension();
 
-  Dimension termSize = new Dimension(80, 24);
+  Dimension myTermSize = new Dimension(80, 24);
 
-  protected Point cursor = new Point();
+  protected Point myCursor = new Point();
 
-  private boolean antialiasing = true;
+  private boolean myAntialiasing = true;
 
-  private Emulator emulator = null;
+  private Emulator myEmulator = null;
 
-  protected Point selectionStart;
+  protected Point mySelectionStart;
 
-  protected Point selectionEnd;
+  protected Point mySelectionEnd;
 
-  protected boolean selectionInProgress;
+  protected boolean mySelectionInProgress;
 
-  private Clipboard clipBoard;
+  private Clipboard myClipboard;
 
-  private ResizePanelDelegate resizePanelDelegate;
+  private ResizePanelDelegate myResizePanelDelegate;
 
-  final private BackBuffer backBuffer;
-  final private LinesBuffer scrollBuffer;
-  final private StyleState styleState;
+  final private BackBuffer myBackBuffer;
+  final private LinesBuffer myScrollBuffer;
+  final private StyleState myStyleState;
 
-  private final BoundedRangeModel brm = new DefaultBoundedRangeModel(0, 80, 0, 80);
+  private final BoundedRangeModel myBoundedRangeModel = new DefaultBoundedRangeModel(0, 80, 0, 80);
 
-  protected int clientScrollOrigin;
-  protected volatile int newClientScrollOrigin;
-  protected volatile boolean shouldDrawCursor;
-  private KeyListener keyHandler;
+  protected int myClientScrollOrigin;
+  protected int newClientScrollOrigin;
+  protected boolean myShouldDrawCursor = true;
+  private KeyListener myKeyListener;
 
 
   public SwingTerminalPanel(BackBuffer backBuffer, LinesBuffer scrollBuffer, StyleState styleState) {
-    this.scrollBuffer = scrollBuffer;
-    this.backBuffer = backBuffer;
-    this.styleState = styleState;
-    brm.setRangeProperties(0, termSize.height, -scrollBuffer.getLineCount(), termSize.height, false);
+    myScrollBuffer = scrollBuffer;
+    myBackBuffer = backBuffer;
+    myStyleState = styleState;
+    myBoundedRangeModel.setRangeProperties(0, myTermSize.height, -scrollBuffer.getLineCount(), myTermSize.height, false);
   }
 
   public void init() {
-    normalFont = createFont();
-    boldFont = normalFont.deriveFont(Font.BOLD);
+    myNormalFont = createFont();
+    myBoldFont = myNormalFont.deriveFont(Font.BOLD);
 
     establishFontMetrics();
 
     setUpImages();
     setUpClipboard();
-    setAntiAliasing(antialiasing);
+    setAntiAliasing(myAntialiasing);
 
     setPreferredSize(new Dimension(getPixelWidth(), getPixelHeight()));
 
@@ -141,22 +141,22 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       public void mouseDragged(final MouseEvent e) {
         final Point charCoords = panelToCharCoords(e.getPoint());
 
-        if (!selectionInProgress) {
-          selectionStart = new Point(charCoords);
-          selectionInProgress = true;
+        if (!mySelectionInProgress) {
+          mySelectionStart = new Point(charCoords);
+          mySelectionInProgress = true;
         }
         repaint();
-        selectionEnd = charCoords;
-        selectionEnd.x = Math.min(selectionEnd.x + 1, termSize.width);
+        mySelectionEnd = charCoords;
+        mySelectionEnd.x = Math.min(mySelectionEnd.x + 1, myTermSize.width);
       }
     });
 
     addMouseListener(new MouseAdapter() {
       @Override
       public void mouseReleased(final MouseEvent e) {
-        selectionInProgress = false;
-        if (selectionStart != null && selectionEnd != null) {
-          copySelection(selectionStart, selectionEnd);
+        mySelectionInProgress = false;
+        if (mySelectionStart != null && mySelectionEnd != null) {
+          copySelection(mySelectionStart, mySelectionEnd);
         }
         repaint();
       }
@@ -164,8 +164,8 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       @Override
       public void mouseClicked(final MouseEvent e) {
         requestFocusInWindow();
-        selectionStart = null;
-        selectionEnd = null;
+        mySelectionStart = null;
+        mySelectionEnd = null;
         if (e.getButton() == MouseEvent.BUTTON3) {
           pasteSelection();
         }
@@ -180,9 +180,9 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       }
     });
 
-    brm.addChangeListener(new ChangeListener() {
+    myBoundedRangeModel.addChangeListener(new ChangeListener() {
       public void stateChanged(final ChangeEvent e) {
-        newClientScrollOrigin = brm.getValue();
+        newClientScrollOrigin = myBoundedRangeModel.getValue();
       }
     });
 
@@ -201,13 +201,13 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   }
 
   private Point panelToCharCoords(final Point p) {
-    return new Point(p.x / charSize.width, p.y / charSize.height + clientScrollOrigin);
+    return new Point(p.x / myCharSize.width, p.y / myCharSize.height + myClientScrollOrigin);
   }
 
   void setUpClipboard() {
-    clipBoard = Toolkit.getDefaultToolkit().getSystemSelection();
-    if (clipBoard == null) {
-      clipBoard = Toolkit.getDefaultToolkit().getSystemClipboard();
+    myClipboard = Toolkit.getDefaultToolkit().getSystemSelection();
+    if (myClipboard == null) {
+      myClipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
     }
   }
 
@@ -235,21 +235,21 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     final StringBuilder selectionText = new StringBuilder();
 
     if (top.y < 0) {
-      final Point scrollEnd = bottom.y >= 0 ? new Point(termSize.width, -1) : bottom;
-      scrollBuffer.processLines(top.y, scrollEnd.y - top.y,
-                                new SelectionTextAppender(selectionText, top, scrollEnd));
+      final Point scrollEnd = bottom.y >= 0 ? new Point(myTermSize.width, -1) : bottom;
+      myScrollBuffer.processLines(top.y, scrollEnd.y - top.y,
+                                  new SelectionTextAppender(selectionText, top, scrollEnd));
     }
 
     if (bottom.y >= 0) {
       final Point backBegin = top.y < 0 ? new Point(0, 0) : top;
-      backBuffer.processBufferRuns(0, backBegin.y, termSize.width, bottom.y - backBegin.y + 1,
-                                   new SelectionTextAppender(selectionText, backBegin, bottom));
+      myBackBuffer.processBufferCells(0, backBegin.y, myTermSize.width, bottom.y - backBegin.y + 1,
+                                      new SelectionTextAppender(selectionText, backBegin, bottom));
     }
 
     if (selectionText.length() != 0) {
 
       try {
-        clipBoard.setContents(new StringSelection(selectionText.toString()), this);
+        myClipboard.setContents(new StringSelection(selectionText.toString()), this);
       }
       catch (final IllegalStateException e) {
         logger.error("Could not set clipboard:", e);
@@ -259,8 +259,8 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
   void pasteSelection() {
     try {
-      final String selection = (String)clipBoard.getData(DataFlavor.stringFlavor);
-      emulator.sendBytes(selection.getBytes());
+      final String selection = (String)myClipboard.getData(DataFlavor.stringFlavor);
+      myEmulator.sendBytes(selection.getBytes());
     }
     catch (final UnsupportedFlavorException e) {
 
@@ -276,83 +276,88 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   }
 
   private void setUpImages() {
-    final BufferedImage oldImage = img;
+    final BufferedImage oldImage = myImage;
     int width = getPixelWidth();
     int height = getPixelHeight();
     if (width > 0 && height > 0) {
-      img = new BufferedImage(width, height,
-                              BufferedImage.TYPE_INT_RGB);
-      gfx = img.createGraphics();
+      myImage = new BufferedImage(width, height,
+                                  BufferedImage.TYPE_INT_RGB);
+      myGfx = myImage.createGraphics();
 
-      gfx.setColor(getBackground());
+      myGfx.setColor(getBackground());
 
-      gfx.fillRect(0, 0, width, height);
+      myGfx.fillRect(0, 0, width, height);
 
       if (oldImage != null) {
-        gfx.drawImage(oldImage, 0, img.getHeight() - oldImage.getHeight(),
-                      oldImage.getWidth(), oldImage.getHeight(), termComponent);
+        myGfx.drawImage(oldImage, 0, myImage.getHeight() - oldImage.getHeight(),
+                        oldImage.getWidth(), oldImage.getHeight(), myTerminalPanel);
       }
     }
   }
 
   private void sizeTerminalFromComponent() {
-    if (emulator != null) {
-      final int newWidth = getWidth() / charSize.width;
-      final int newHeight = getHeight() / charSize.height;
+    if (myEmulator != null) {
+      final int newWidth = getWidth() / myCharSize.width;
+      final int newHeight = getHeight() / myCharSize.height;
 
       if (newHeight > 0 && newWidth > 0) {
         final Dimension newSize = new Dimension(newWidth, newHeight);
 
-        emulator.postResize(newSize, RequestOrigin.User);
+        myEmulator.postResize(newSize, RequestOrigin.User);
       }
     }
   }
 
   public void setEmulator(final Emulator emulator) {
-    this.emulator = emulator;
-    this.sizeTerminalFromComponent();
+    myEmulator = emulator;
+    sizeTerminalFromComponent();
   }
 
-  public void setKeyHandler(final KeyListener keyHandler) {
-    this.keyHandler = keyHandler;
+  public void setKeyListener(final KeyListener keyListener) {
+    this.myKeyListener = keyListener;
   }
 
-  public Dimension doResize(final Dimension newSize, final RequestOrigin origin) {
-    if (!newSize.equals(termSize)) {
-      backBuffer.lock();
+  public interface ResizeHandler {
+    void resized(Dimension newPixelSize, Dimension newTerminalSize, int newCursorLine);
+  }
+
+  public Dimension requestResize(final Dimension newSize, final RequestOrigin origin, int cursorY) {
+    if (!newSize.equals(myTermSize)) {
+      myBackBuffer.lock();
       try {
-        backBuffer.doResize(newSize, origin);
-        termSize = (Dimension)newSize.clone();
+        myBackBuffer.resize(newSize, origin, cursorY);
+        myTermSize = (Dimension)newSize.clone();
         // resize images..
         setUpImages();
 
         final Dimension pixelDimension = new Dimension(getPixelWidth(), getPixelHeight());
 
         setPreferredSize(pixelDimension);
-        if (resizePanelDelegate != null) resizePanelDelegate.resizedPanel(pixelDimension, origin);
-        brm.setRangeProperties(0, termSize.height, -scrollBuffer.getLineCount(), termSize.height, false);
+        if (myResizePanelDelegate != null) myResizePanelDelegate.resizedPanel(pixelDimension, origin);
+        myBoundedRangeModel.setRangeProperties(0, myTermSize.height, -myScrollBuffer.getLineCount(), myTermSize.height, false);
       }
       finally {
-        backBuffer.unlock();
+        myBackBuffer.unlock();
       }
     }
+
     return new Dimension(getPixelWidth(), getPixelHeight());
   }
 
   public void setResizePanelDelegate(final ResizePanelDelegate resizeDelegate) {
-    resizePanelDelegate = resizeDelegate;
+    myResizePanelDelegate = resizeDelegate;
   }
 
   private void establishFontMetrics() {
     final BufferedImage img = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
     final Graphics2D graphics = img.createGraphics();
-    graphics.setFont(normalFont);
+    graphics.setFont(myNormalFont);
 
     final FontMetrics fo = graphics.getFontMetrics();
-    descent = fo.getDescent();
-    charSize.width = fo.charWidth('@');
-    charSize.height = fo.getHeight() + lineSpace * 2;
-    descent += lineSpace;
+    myDescent = fo.getDescent();
+    myCharSize.width = fo.charWidth('@');
+    myCharSize.height = fo.getHeight() + myLineSpace * 2;
+    myDescent += myLineSpace;
 
     img.flush();
     graphics.dispose();
@@ -361,8 +366,8 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   @Override
   public void paintComponent(final Graphics g) {
     Graphics2D gfx = (Graphics2D)g;
-    if (img != null) {
-      gfx.drawImage(img, 0, 0, termComponent);
+    if (myImage != null) {
+      gfx.drawImage(myImage, 0, 0, myTerminalPanel);
       drawCursor(gfx);
       drawSelection(gfx);
     }
@@ -372,42 +377,44 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   public void processKeyEvent(final KeyEvent e) {
     final int id = e.getID();
     if (id == KeyEvent.KEY_PRESSED) {
-      keyHandler.keyPressed(e);
+      myKeyListener.keyPressed(e);
     }
     else if (id == KeyEvent.KEY_RELEASED) {
                         /* keyReleased(e); */
     }
     else if (id == KeyEvent.KEY_TYPED) {
-      keyHandler.keyTyped(e);
+      myKeyListener.keyTyped(e);
     }
     e.consume();
   }
 
 
   public int getPixelWidth() {
-    return charSize.width * termSize.width;
+    return myCharSize.width * myTermSize.width;
   }
 
   public int getPixelHeight() {
-    return charSize.height * termSize.height;
+    return myCharSize.height * myTermSize.height;
   }
 
   public int getColumnCount() {
-    return termSize.width;
+    return myTermSize.width;
   }
 
   public int getRowCount() {
-    return termSize.height;
+    return myTermSize.height;
   }
 
   public void drawCursor(Graphics2D g) {
-    final int y = (cursor.y - 1 - clientScrollOrigin);
-    if (y >= 0 && y < termSize.height) {
-      TextStyle current = styleState.getCurrent();
-      g.setColor(current.getForeground());
-      g.setXORMode(current.getBackground());
-      g.fillRect(cursor.x * charSize.width, y * charSize.height,
-                 charSize.width, charSize.height);
+    if (myShouldDrawCursor) {
+      final int y = (myCursor.y - 1 - myClientScrollOrigin);
+      if (y >= 0 && y < myTermSize.height) {
+        TextStyle current = myStyleState.getCurrent();
+        g.setColor(current.getForeground());
+        g.setXORMode(current.getBackground());
+        g.fillRect(myCursor.x * myCharSize.width, y * myCharSize.height,
+                   myCharSize.width, myCharSize.height);
+      }
     }
   }
 
@@ -415,90 +422,91 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
                 /* which is the top one */
     Point top;
     Point bottom;
-    TextStyle current = styleState.getCurrent();
+    TextStyle current = myStyleState.getCurrent();
     g.setColor(current.getForeground());
     g.setXORMode(current.getBackground());
-    if (selectionStart == null || selectionEnd == null) {
+    if (mySelectionStart == null || mySelectionEnd == null) {
       return;
     }
 
-    if (selectionStart.y == selectionEnd.y) {
+    if (mySelectionStart.y == mySelectionEnd.y) {
                         /* same line */
-      if (selectionStart.x == selectionEnd.x) {
+      if (mySelectionStart.x == mySelectionEnd.x) {
         return;
       }
-      top = selectionStart.x < selectionEnd.x ? selectionStart
-                                              : selectionEnd;
-      bottom = selectionStart.x >= selectionEnd.x ? selectionStart
-                                                  : selectionEnd;
+      top = mySelectionStart.x < mySelectionEnd.x ? mySelectionStart
+                                                  : mySelectionEnd;
+      bottom = mySelectionStart.x >= mySelectionEnd.x ? mySelectionStart
+                                                      : mySelectionEnd;
 
-      g.fillRect(top.x * charSize.width, (top.y - clientScrollOrigin) * charSize.height,
-                 (bottom.x - top.x) * charSize.width, charSize.height);
+      g.fillRect(top.x * myCharSize.width, (top.y - myClientScrollOrigin) * myCharSize.height,
+                 (bottom.x - top.x) * myCharSize.width, myCharSize.height);
     }
     else {
-      top = selectionStart.y < selectionEnd.y ? selectionStart
-                                              : selectionEnd;
-      bottom = selectionStart.y > selectionEnd.y ? selectionStart
-                                                 : selectionEnd;
+      top = mySelectionStart.y < mySelectionEnd.y ? mySelectionStart
+                                                  : mySelectionEnd;
+      bottom = mySelectionStart.y > mySelectionEnd.y ? mySelectionStart
+                                                     : mySelectionEnd;
                         /* to end of first line */
-      g.fillRect(top.x * charSize.width, (top.y - clientScrollOrigin) * charSize.height,
-                 (termSize.width - top.x) * charSize.width, charSize.height);
+      g.fillRect(top.x * myCharSize.width, (top.y - myClientScrollOrigin) * myCharSize.height,
+                 (myTermSize.width - top.x) * myCharSize.width, myCharSize.height);
 
       if (bottom.y - top.y > 1) {
                                 /* intermediate lines */
-        g.fillRect(0, (top.y + 1 - clientScrollOrigin) * charSize.height,
-                   termSize.width * charSize.width, (bottom.y - top.y - 1)
-                                                    * charSize.height);
+        g.fillRect(0, (top.y + 1 - myClientScrollOrigin) * myCharSize.height,
+                   myTermSize.width * myCharSize.width, (bottom.y - top.y - 1)
+                                                        * myCharSize.height);
       }
 
 			/* from beginning of last line */
 
-      g.fillRect(0, (bottom.y - clientScrollOrigin) * charSize.height, bottom.x
-                                                                       * charSize.width, charSize.height);
+      g.fillRect(0, (bottom.y - myClientScrollOrigin) * myCharSize.height, bottom.x
+                                                                           * myCharSize.width, myCharSize.height);
     }
   }
 
   @Override
   public void consume(int x, int y, TextStyle style, CharBuffer buf) {
-    if (gfx != null) {
-      gfx.setColor(styleState.getBackground(style.getBackgroundForRun()));
-      gfx.fillRect(x * charSize.width, (y - clientScrollOrigin) * charSize.height, buf.getLen() * charSize.width, charSize.height);
+    if (myGfx != null) {
+      myGfx.setColor(myStyleState.getBackground(style.getBackgroundForRun()));
+      myGfx
+        .fillRect(x * myCharSize.width, (y - myClientScrollOrigin) * myCharSize.height, buf.getLen() * myCharSize.width, myCharSize.height);
 
-      gfx.setFont(style.hasOption(TextStyle.Option.BOLD) ? boldFont : normalFont);
-      gfx.setColor(styleState.getForeground(style.getForegroundForRun()));
+      myGfx.setFont(style.hasOption(TextStyle.Option.BOLD) ? myBoldFont : myNormalFont);
+      myGfx.setColor(myStyleState.getForeground(style.getForegroundForRun()));
 
-      int baseLine = (y + 1 - clientScrollOrigin) * charSize.height - descent;
+      int baseLine = (y + 1 - myClientScrollOrigin) * myCharSize.height - myDescent;
 
 
-      gfx.drawChars(buf.getBuf(), buf.getStart(), buf.getLen(), x * charSize.width, baseLine);
+      myGfx.drawChars(buf.getBuf(), buf.getStart(), buf.getLen(), x * myCharSize.width, baseLine);
 
       if (style.hasOption(TextStyle.Option.UNDERSCORE)) {
-        gfx.drawLine(x * charSize.width, baseLine + 1, (x + buf.getLen()) * charSize.width, baseLine + 1);
+        myGfx.drawLine(x * myCharSize.width, baseLine + 1, (x + buf.getLen()) * myCharSize.width, baseLine + 1);
       }
     }
   }
 
   private void clientScrollOriginChanged(int oldOrigin) {
-    int dy = clientScrollOrigin - oldOrigin;
+    int dy = myClientScrollOrigin - oldOrigin;
 
-    int dyPix = dy * charSize.height;
+    int dyPix = dy * myCharSize.height;
 
-    gfx.copyArea(0, Math.max(0, dyPix),
-                 getPixelWidth(), getPixelHeight() - Math.abs(dyPix),
-                 0, -dyPix);
+    myGfx.copyArea(0, Math.max(0, dyPix),
+                   getPixelWidth(), getPixelHeight() - Math.abs(dyPix),
+                   0, -dyPix);
 
     if (dy < 0) {
       // Scrolling up; Copied down
       // New area at the top to be filled in - can only be from scroll buffer
       //
 
-      scrollBuffer.processLines(clientScrollOrigin, -dy, this);
+      myScrollBuffer.processLines(myClientScrollOrigin, -dy, this);
     }
     else {
       //Scrolling down; Copied up
       // New area at the bottom to be filled - can be from both
 
-      int oldEnd = oldOrigin + termSize.height;
+      int oldEnd = oldOrigin + myTermSize.height;
 
       // Either its the whole amount above the back buffer + some more
       // Or its the whole amount we moved
@@ -508,11 +516,11 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       int portionInBackBuffer = dy - portionInScroll;
 
       if (portionInScroll > 0) {
-        scrollBuffer.processLines(oldEnd, portionInScroll, this);
+        myScrollBuffer.processLines(oldEnd, portionInScroll, this);
       }
 
       if (portionInBackBuffer > 0) {
-        backBuffer.processBufferRuns(oldEnd + portionInScroll, portionInBackBuffer, this);
+        myBackBuffer.processBufferRows(oldEnd + portionInScroll, portionInBackBuffer, this);
       }
     }
   }
@@ -524,9 +532,9 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   public void redrawFromDamage() {
 
     final int newOrigin = newClientScrollOrigin;
-    if (!backBuffer.tryLock()) {
+    if (!myBackBuffer.tryLock()) {
       if (framesSkipped >= 5) {
-        backBuffer.lock();
+        myBackBuffer.lock();
       }
       else {
         framesSkipped++;
@@ -536,21 +544,21 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     try {
       framesSkipped = 0;
 
-      boolean serverScroll = pendingScrolls.enact(gfx, getPixelWidth(), charSize.height);
+      boolean serverScroll = pendingScrolls.enact(myGfx, getPixelWidth(), myCharSize.height);
 
-      boolean clientScroll = clientScrollOrigin != newOrigin;
+      boolean clientScroll = myClientScrollOrigin != newOrigin;
       if (clientScroll) {
-        final int oldOrigin = clientScrollOrigin;
-        clientScrollOrigin = newOrigin;
+        final int oldOrigin = myClientScrollOrigin;
+        myClientScrollOrigin = newOrigin;
         clientScrollOriginChanged(oldOrigin);
       }
 
-      boolean hasDamage = backBuffer.hasDamage();
+      boolean hasDamage = myBackBuffer.hasDamage();
       if (hasDamage) {
         noDamage = 0;
 
-        backBuffer.processDamagedRuns(this);
-        backBuffer.resetDamage();
+        myBackBuffer.processDamagedCells(this);
+        myBackBuffer.resetDamage();
       }
       else {
         noDamage++;
@@ -562,7 +570,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       }
     }
     finally {
-      backBuffer.unlock();
+      myBackBuffer.unlock();
     }
   }
 
@@ -571,12 +579,11 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       //Moving lines off the top of the screen
       //TODO: Something to do with application keypad mode
       //TODO: Something to do with the scroll margins
-      backBuffer.processBufferRuns(y - 1, -dy, scrollBuffer);
 
-      brm.setRangeProperties(0, termSize.height, -scrollBuffer.getLineCount(), termSize.height, false);
+      myBoundedRangeModel.setRangeProperties(0, myTermSize.height, -myScrollBuffer.getLineCount(), myTermSize.height, false);
     }
-    selectionStart = null;
-    selectionEnd = null;
+    mySelectionStart = null;
+    mySelectionEnd = null;
     pendingScrolls.add(y, h, dy);
   }
 
@@ -624,8 +631,8 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   final PendingScrolls pendingScrolls = new PendingScrolls();
 
   public void setCursor(final int x, final int y) {
-    cursor.x = x;
-    cursor.y = y;
+    myCursor.x = x;
+    myCursor.y = y;
     cursorChanged = true;
   }
 
@@ -634,38 +641,43 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   }
 
   public void setLineSpace(final int foo) {
-    lineSpace = foo;
+    myLineSpace = foo;
   }
 
   public void setAntiAliasing(final boolean foo) {
-    if (gfx == null) {
+    if (myGfx == null) {
       return;
     }
-    antialiasing = foo;
+    myAntialiasing = foo;
     final Object mode = foo ? RenderingHints.VALUE_TEXT_ANTIALIAS_ON
                             : RenderingHints.VALUE_TEXT_ANTIALIAS_OFF;
     final RenderingHints hints = new RenderingHints(
       RenderingHints.KEY_TEXT_ANTIALIASING, mode);
-    gfx.setRenderingHints(hints);
+    myGfx.setRenderingHints(hints);
   }
 
   public BoundedRangeModel getBoundedRangeModel() {
-    return brm;
+    return myBoundedRangeModel;
   }
 
   public BackBuffer getBackBuffer() {
-    return backBuffer;
+    return myBackBuffer;
   }
 
   public LinesBuffer getScrollBuffer() {
-    return scrollBuffer;
+    return myScrollBuffer;
   }
 
   public void lock() {
-    backBuffer.lock();
+    myBackBuffer.lock();
   }
 
   public void unlock() {
-    backBuffer.unlock();
+    myBackBuffer.unlock();
+  }
+
+  @Override
+  public void setShouldDrawCursor(boolean shouldDrawCursor) {
+    myShouldDrawCursor = shouldDrawCursor;
   }
 }

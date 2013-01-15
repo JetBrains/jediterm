@@ -23,61 +23,92 @@ public class BackBuffer implements StyledTextConsumer {
 
   private int myWidth;
   private int myHeight;
+  private int myCursorY;
 
   private final Lock myLock = new ReentrantLock();
+  private int myTextLinesCount;
 
   public BackBuffer(final int width, final int height, StyleState styleState, LinesBuffer scrollBuffer) {
     myStyleState = styleState;
     myScrollBuffer = scrollBuffer;
-    allocateBuffers(width, height);
-  }
-
-  private void allocateBuffers(final int width, final int height) {
     myWidth = width;
     myHeight = height;
 
-    myBuf = new char[width * height];
-    Arrays.fill(myBuf, EMPTY_CHAR);
-
-    myStyleBuf = new TextStyle[width * height];
-    Arrays.fill(myStyleBuf, TextStyle.EMPTY);
-
-    myDamage = new BitSet(width * height);
+    allocateBuffers();
   }
 
-  public Dimension doResize(final Dimension pendingResize, final RequestOrigin origin) {
+  private void allocateBuffers() {
+    myBuf = new char[myWidth * myHeight];
+    Arrays.fill(myBuf, EMPTY_CHAR);
+
+    myStyleBuf = new TextStyle[myWidth * myHeight];
+    Arrays.fill(myStyleBuf, TextStyle.EMPTY);
+
+    myDamage = new BitSet(myWidth * myHeight);
+  }
+
+  public Dimension resize(final Dimension pendingResize, final RequestOrigin origin, int cursorY) {
     final char[] oldBuf = myBuf;
     final TextStyle[] oldStyleBuf = myStyleBuf;
     final int oldHeight = myHeight;
     final int oldWidth = myWidth;
-    allocateBuffers(pendingResize.width, pendingResize.height);
+
+    final int newWidth = pendingResize.width;
+    final int newHeight = pendingResize.height;
+    final int scrollLinesCount = myScrollBuffer.getLineCount();
+
+    boolean textBufferUpdated = false;
+
+    if (newHeight < cursorY) {
+      //we need to move lines from text buffer to the scroll buffer
+      int count = cursorY - newHeight;
+      myTextBuffer.moveTopLinesTo(count, myScrollBuffer);
+    }
+    else if (newHeight > cursorY && myScrollBuffer.getLineCount() > 0) {
+      //we need to move lines from scroll buffer to the text buffer
+      myScrollBuffer.moveBottomLinesTo(newHeight - cursorY, myTextBuffer);
+      textBufferUpdated = true;
+    }
+
+    myWidth = newWidth;
+    myHeight = newHeight;
+
+    allocateBuffers();
 
     Arrays.fill(myBuf, EMPTY_CHAR);
 
-    // copying lines...
     final int copyWidth = Math.min(oldWidth, myWidth);
     final int copyHeight = Math.min(oldHeight, myHeight);
 
-    final int oldStart = oldHeight - copyHeight;
-    final int start = myHeight - copyHeight;
+    final int oldStart;
+    final int start;
 
+
+    if (myHeight > oldHeight) {
+      oldStart = 0;
+
+      start = Math.min(myHeight - copyHeight, scrollLinesCount);
+
+      myCursorY = cursorY + start;
+    }
+    else {
+      oldStart = Math.max(0, cursorY - myHeight);
+      start = 0;
+
+      myCursorY = cursorY - oldStart;
+    }
+
+    // copying lines...
     for (int i = 0; i < copyHeight; i++) {
       System.arraycopy(oldBuf, (oldStart + i) * oldWidth, myBuf, (start + i) * myWidth, copyWidth);
       System.arraycopy(oldStyleBuf, (oldStart + i) * oldWidth, myStyleBuf, (start + i) * myWidth, copyWidth);
     }
 
-    if (myHeight < oldHeight) {
-      //we need to move lines from text buffer to the scroll buffer
-      myTextBuffer.moveTopLinesTo(oldHeight-myHeight, myScrollBuffer);
-    } else
-    if (myHeight > oldHeight) {
-      //we need to move lines from scroll buffer to the text buffer
-      myScrollBuffer.moveBottomLinesTo(myHeight - oldHeight, myTextBuffer);
-    }
-
-    if (myWidth > oldWidth || myHeight > oldHeight) {
+    if (myWidth > oldWidth || textBufferUpdated) {
       //we need to fill new space with data from the text buffer
-      myTextBuffer.processLines(-myHeight, myHeight, this);
+      int linesToUpdate = myTextBuffer.getLineCount();
+      myTextLinesCount = myTextBuffer.getLineCount();
+      myTextBuffer.processLines(-linesToUpdate, linesToUpdate, this);
     }
 
     myDamage.set(0, myWidth * myHeight - 1, true);
@@ -159,43 +190,50 @@ public class BackBuffer implements StyledTextConsumer {
   }
 
   public void scrollArea(final int y, final int h, final int dy) {
-    final int lastLine = y + h;
-    if (dy > 0)
-    // Moving lines down
-    {
-      for (int line = lastLine - dy; line >= y; line--) {
-        if (line < 0) {
-          logger.error("Attempt to scroll line from above top of screen:" + line);
-          continue;
-        }
-        if (line + dy + 1 > myHeight) {
-          logger.error("Attempt to scroll line off bottom of screen:" + (line + dy));
-          continue;
-        }
-        System.arraycopy(myBuf, line * myWidth, myBuf, (line + dy) * myWidth, myWidth);
-        System.arraycopy(myStyleBuf, line * myWidth, myStyleBuf, (line + dy) * myWidth, myWidth);
-        Util.bitsetCopy(myDamage, line * myWidth, myDamage, (line + dy) * myWidth, myWidth);
-        //damage.set( (line + dy) * width, (line + dy + 1) * width );
-      }
-    }
-    else
-    // Moving lines up
-    {
-      for (int line = y + dy + 1; line < lastLine; line++) {
-        if (line > myHeight - 1) {
-          logger.error("Attempt to scroll line from below bottom of screen:" + line);
-          continue;
-        }
-        if (line + dy < 0) {
-          logger.error("Attempt to scroll to line off top of screen" + (line + dy));
-          continue;
-        }
+    myTextBuffer.removeTopLines(y);
+    processBufferRows(y - 1, -dy, myScrollBuffer);
 
-        System.arraycopy(myBuf, line * myWidth, myBuf, (line + dy) * myWidth, myWidth);
-        System.arraycopy(myStyleBuf, line * myWidth, myStyleBuf, (line + dy) * myWidth, myWidth);
-        Util.bitsetCopy(myDamage, line * myWidth, myDamage, (line + dy) * myWidth, myWidth);
-        //damage.set( (line + dy) * width, (line + dy + 1) * width );
+    final int lastLine = y + h;
+    if (dy > 0) {
+      moveLinesDown(y, dy, lastLine);
+    }
+    else {
+      moveLinesUp(y, dy, lastLine);
+    }
+  }
+
+  private void moveLinesUp(int y, int dy, int lastLine) {
+    for (int line = y + dy + 1; line < lastLine; line++) {
+      if (line > myHeight - 1) {
+        logger.error("Attempt to scroll line from below bottom of screen:" + line);
+        continue;
       }
+      if (line + dy < 0) {
+        logger.error("Attempt to scroll to line off top of screen" + (line + dy));
+        continue;
+      }
+
+      System.arraycopy(myBuf, line * myWidth, myBuf, (line + dy) * myWidth, myWidth);
+      System.arraycopy(myStyleBuf, line * myWidth, myStyleBuf, (line + dy) * myWidth, myWidth);
+      Util.bitsetCopy(myDamage, line * myWidth, myDamage, (line + dy) * myWidth, myWidth);
+      //damage.set( (line + dy) * width, (line + dy + 1) * width );
+    }
+  }
+
+  private void moveLinesDown(int y, int dy, int lastLine) {
+    for (int line = lastLine - dy; line >= y; line--) {
+      if (line < 0) {
+        logger.error("Attempt to scroll line from above top of screen:" + line);
+        continue;
+      }
+      if (line + dy + 1 > myHeight) {
+        logger.error("Attempt to scroll line off bottom of screen:" + (line + dy));
+        continue;
+      }
+      System.arraycopy(myBuf, line * myWidth, myBuf, (line + dy) * myWidth, myWidth);
+      System.arraycopy(myStyleBuf, line * myWidth, myStyleBuf, (line + dy) * myWidth, myWidth);
+      Util.bitsetCopy(myDamage, line * myWidth, myDamage, (line + dy) * myWidth, myWidth);
+      //damage.set( (line + dy) * width, (line + dy + 1) * width );
     }
   }
 
@@ -261,15 +299,15 @@ public class BackBuffer implements StyledTextConsumer {
     }
   }
 
-  public void processBufferRuns(final int startRow, final int height, final StyledTextConsumer consumer) {
-    processBufferRuns(0, startRow, myWidth, height, consumer);
+  public void processBufferRows(final int startRow, final int height, final StyledTextConsumer consumer) {
+    processBufferCells(0, startRow, myWidth, height, consumer);
   }
 
-  public void processBufferRuns(final int startCol,
-                                final int startRow,
-                                final int width,
-                                final int height,
-                                final StyledTextConsumer consumer) {
+  public void processBufferCells(final int startCol,
+                                 final int startRow,
+                                 final int width,
+                                 final int height,
+                                 final StyledTextConsumer consumer) {
 
     final int endRow = startRow + height;
     final int endCol = startCol + width;
@@ -319,11 +357,11 @@ public class BackBuffer implements StyledTextConsumer {
   }
 
   /**
-   * Run is a styled block of text
+   * Cell is a styled block of text
    *
    * @param consumer
    */
-  public void processDamagedRuns(final StyledTextConsumer consumer) {
+  public void processDamagedCells(final StyledTextConsumer consumer) {
     final int startRow = 0;
     final int endRow = myHeight;
     final int startCol = 0;
@@ -402,7 +440,19 @@ public class BackBuffer implements StyledTextConsumer {
     int len = Math.min(myWidth - x, characters.getLen());
 
     if (len > 0) {
-      drawString(x, y + myHeight, new String(characters.getBuf(), characters.getStart(), len), style);
+      drawString(x, y + myTextLinesCount + 1, new String(characters.getBuf(), characters.getStart(), len), style);
     }
+  }
+
+  public int getCursorY() {
+    return myCursorY;
+  }
+
+  public int getWidth() {
+    return myWidth;
+  }
+
+  public int getHeight() {
+    return myHeight;
   }
 }

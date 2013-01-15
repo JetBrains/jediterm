@@ -10,8 +10,8 @@ import java.util.EnumSet;
 
 import org.apache.log4j.Logger;
 
-public class BackBufferTerminalWriter implements TerminalWriter {
-  private static final Logger logger = Logger.getLogger(BackBufferTerminalWriter.class);
+public class BufferedTerminalWriter implements TerminalWriter {
+  private static final Logger logger = Logger.getLogger(BufferedTerminalWriter.class);
   private final static int TAB = 8;
 
   private int scrollRegionTop;
@@ -28,7 +28,7 @@ public class BackBufferTerminalWriter implements TerminalWriter {
 
   private final EnumSet<TerminalMode> modes = EnumSet.of(TerminalMode.ANSI);
 
-  public BackBufferTerminalWriter(final TerminalDisplay term, final BackBuffer buf, final StyleState styleState) {
+  public BufferedTerminalWriter(final TerminalDisplay term, final BackBuffer buf, final StyleState styleState) {
     myDisplay = term;
     myBackBuffer = buf;
     myStyleState = styleState;
@@ -62,10 +62,15 @@ public class BackBufferTerminalWriter implements TerminalWriter {
     }
   }
 
+  @Override
+  public void disconnected() {
+    myDisplay.setShouldDrawCursor(false);
+  }
+
   private void wrapLines() {
     if (cursorX >= termWidth) {
       cursorX = 0;
-      cursorY += 1;
+      moveLine();
     }
   }
 
@@ -140,11 +145,15 @@ public class BackBufferTerminalWriter implements TerminalWriter {
   }
 
   public void newLine() {
-    myBackBuffer.moveToTextBuffer(cursorY);
-    cursorY += 1;
+    moveLine();
     myDisplay.setCursor(cursorX, cursorY);
 
     scrollY();
+  }
+
+  private void moveLine() {
+    myBackBuffer.moveToTextBuffer(cursorY);
+    cursorY += 1;
   }
 
   public void backspace() {
@@ -394,14 +403,16 @@ public class BackBufferTerminalWriter implements TerminalWriter {
 
   public Dimension resize(final Dimension pendingResize, final RequestOrigin origin) {
     final int oldHeight = myTerminalHeight;
-    final Dimension pixelSize = myDisplay.doResize(pendingResize, origin);
+    if (pendingResize.width <= cursorX+1) {
+      pendingResize.setSize(cursorX+2, pendingResize.height);
+    }
+    final Dimension pixelSize = myDisplay.requestResize(pendingResize, origin, cursorY);
 
     termWidth = myDisplay.getColumnCount();
     myTerminalHeight = myDisplay.getRowCount();
 
     scrollRegionBottom += myTerminalHeight - oldHeight;
-    cursorY += myTerminalHeight - oldHeight;
-    cursorY = Math.max(1, cursorY);
+    cursorY = myBackBuffer.getCursorY();
     return pixelSize;
   }
 
@@ -424,5 +435,9 @@ public class BackBufferTerminalWriter implements TerminalWriter {
   @Override
   public int getTerminalHeight() {
     return myTerminalHeight;
+  }
+
+  public int getCursorY() {
+    return cursorY;
   }
 }

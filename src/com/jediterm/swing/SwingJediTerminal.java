@@ -12,7 +12,7 @@ public class SwingJediTerminal extends JPanel {
   private static final Logger logger = Logger.getLogger(SwingJediTerminal.class);
   private static final long serialVersionUID = -8213232075937432833L;
   protected SwingTerminalPanel termPanel;
-  protected BackBufferTerminalWriter terminalWriter;
+  protected BufferedTerminalWriter terminalWriter;
   protected AtomicBoolean sessionRunning = new AtomicBoolean();
   protected PreConnectHandler preconnectHandler;
   private Tty tty;
@@ -30,9 +30,9 @@ public class SwingJediTerminal extends JPanel {
 
 
     termPanel = createTerminalPanel(styleState, backBuffer, scrollBuffer);
-    terminalWriter = new BackBufferTerminalWriter(termPanel, backBuffer, styleState);
+    terminalWriter = new BufferedTerminalWriter(termPanel, backBuffer, styleState);
     preconnectHandler = new PreConnectHandler(terminalWriter);
-    termPanel.setKeyHandler(preconnectHandler);
+    termPanel.setKeyListener(preconnectHandler);
     JScrollBar scrollBar = new JScrollBar();
 
     add(termPanel, BorderLayout.CENTER);
@@ -140,7 +140,7 @@ public class SwingJediTerminal extends JPanel {
           Thread.currentThread().setName(tty.getName());
           SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-              termPanel.setKeyHandler(new ConnectedKeyHandler(emulator));
+              termPanel.setKeyListener(new ConnectedKeyHandler(emulator));
               termPanel.requestFocusInWindow();
             }
           });
@@ -154,7 +154,7 @@ public class SwingJediTerminal extends JPanel {
         catch (Exception e) {
         }
         sessionRunning.set(false);
-        termPanel.setKeyHandler(preconnectHandler);
+        termPanel.setKeyListener(preconnectHandler);
       }
     }
   }

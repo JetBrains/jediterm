@@ -56,6 +56,15 @@ public class LinesBuffer implements StyledTextConsumer {
     return myTotalLines;
   }
 
+  public void removeTopLines(int count) {
+    iterateLines(0, count, new TextEntryProcessor() {
+      @Override
+      public boolean process(int x, int y, TextEntry entry) {
+        return true;
+      }
+    });
+  }
+
 
   interface TextEntryProcessor {
     /**
@@ -65,10 +74,11 @@ public class LinesBuffer implements StyledTextConsumer {
   }
 
   public synchronized void processLines(final int firstLine, final int count, final StyledTextConsumer consumer) {
+    final int lines = myTotalLines;
     iterateLines(myTotalLines + firstLine, count, new TextEntryProcessor() {
       @Override
       public boolean process(int x, int y, TextEntry entry) {
-        consumer.consume(x, y-myTotalLines, entry.getStyle(), entry.getText());
+        consumer.consume(x, y - lines, entry.getStyle(), entry.getText());
         return false;
       }
     });
@@ -136,10 +146,9 @@ public class LinesBuffer implements StyledTextConsumer {
       }
     });
 
-    for (TextEntryWithPosition entry: Lists.reverse(entries)) {
+    for (TextEntryWithPosition entry : Lists.reverse(entries)) {
       buffer.addToBufferFirst(entry.myEntry.getStyle(), entry.myEntry.getText(), entry.x == 0);
     }
-
   }
 
   private static class TextEntry {

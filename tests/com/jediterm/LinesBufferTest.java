@@ -1,5 +1,6 @@
 package com.jediterm;
 
+import com.jediterm.util.CharBufferUtil;
 import junit.framework.TestCase;
 
 /**
@@ -60,4 +61,23 @@ public class LinesBufferTest extends TestCase {
                  "Line 3\n" +
                  "Line 4", text.getLines());
   }
+
+
+  public void testRemoveFirstLines() {
+    TextStyle style = new TextStyle();
+    LinesBuffer text = new LinesBuffer();
+    text.addToBuffer(style, CharBufferUtil.create(LINE_1), true);
+    text.addToBuffer(style, CharBufferUtil.create(LINE_2), true);
+    text.addToBuffer(style, CharBufferUtil.create(LINE_3), true);
+    text.addToBuffer(style, CharBufferUtil.create(LINE_4), true);
+
+    text.removeTopLines(3);
+
+    assertEquals(1, text.getLineCount());
+
+    assertEquals("\n" +
+                 "Line 4"
+      , text.getLines());
+  }
+
 }

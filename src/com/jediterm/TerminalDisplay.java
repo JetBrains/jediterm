@@ -22,20 +22,23 @@
 
 package com.jediterm;
 
+import com.jediterm.swing.SwingTerminalPanel;
+
 import java.awt.Dimension;
 
 public interface TerminalDisplay {
-	// Size information
-	int getRowCount();
+  // Size information
+  int getRowCount();
 
-	int getColumnCount();
-	
-	void setCursor(int x, int y);
-	
-	void beep();
+  int getColumnCount();
 
-	Dimension doResize(Dimension pendingResize, RequestOrigin origin);
+  void setCursor(int x, int y);
 
-	void scrollArea(final int y, final int h, int dy);
-	
+  void beep();
+
+  Dimension requestResize(Dimension pendingResize, RequestOrigin origin, int cursorY);
+
+  void scrollArea(final int y, final int h, int dy);
+
+  void setShouldDrawCursor(boolean shouldDrawCursor);
 }

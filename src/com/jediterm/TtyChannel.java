@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package com.jediterm;
 
@@ -7,88 +7,91 @@ import java.awt.Dimension;
 import java.io.IOException;
 
 public class TtyChannel {
-	private Tty tty;
-	
-	byte[] buf = new byte[1024];
+  private Tty tty;
 
-	int offset = 0;
+  byte[] buf = new byte[1024];
 
-	int length = 0;
+  int offset = 0;
 
-	int serial;
+  int length = 0;
 
-	public TtyChannel(final Tty tty) {
-		this.tty = tty;
-		serial = 0;
-	}
+  int serial;
 
-	public byte getChar() throws IOException {
-		if (length == 0)
-			fillBuf();
-		length--;
+  public TtyChannel(final Tty tty) {
+    this.tty = tty;
+    serial = 0;
+  }
 
-		return buf[offset++];
-	}
+  public byte getChar() throws IOException {
+    if (length == 0) {
+      fillBuf();
+    }
+    length--;
 
-	public void appendBuf(final StringBuffer sb, final int begin, final int length) {
-		CharacterUtils.appendBuf(sb, buf, begin, length);
-	}
+    return buf[offset++];
+  }
 
-	private void fillBuf() throws IOException {
-		length = offset = 0;
-		length = tty.read(buf, offset, buf.length - offset);
-		serial++;
+  public void appendBuf(final StringBuffer sb, final int begin, final int length) {
+    CharacterUtils.appendBuf(sb, buf, begin, length);
+  }
 
-		if (length <= 0) {
-			length = 0;
-			throw new IOException("fillBuf");
-		}
-	}
+  private void fillBuf() throws IOException {
+    offset = 0;
+    length = tty.read(buf, offset, buf.length);
+    serial++;
 
-	public void pushChar(final byte b) throws IOException {
-		if(offset == 0){
-			// Pushed back too many... shift it up to the end.
-			offset = buf.length - length;
-			System.arraycopy(buf, 0, buf, offset, length);
-		}
-		
-		length++;
-		buf[--offset] = b;
-	}
+    if (length <= 0) {
+      length = 0;
+      throw new IOException("Connection lost.");
+    }
+  }
 
-	int advanceThroughASCII(int toLineEnd) throws IOException {
-		if (length == 0)
-			fillBuf();
+  public void pushChar(final byte b) throws IOException {
+    if (offset == 0) {
+      // Pushed back too many... shift it up to the end.
+      offset = buf.length - length;
+      System.arraycopy(buf, 0, buf, offset, length);
+    }
 
-		int len = toLineEnd > length ? length : toLineEnd;
-		
-		final int origLen = len;
-		byte tmp;
-		while (len > 0) {
-			tmp = buf[offset++];
-			if (0x20 <= tmp && tmp <= 0x7f) {
-				length--;
-				len--;
-				continue;
-			}
-			offset--;
-			break;
-		}		
-		return origLen - len;
-	}
+    length++;
+    buf[--offset] = b;
+  }
 
-	public void sendBytes(final byte[] bytes) throws IOException {
-		tty.write(bytes);
-	}
+  int advanceThroughASCII(int toLineEnd) throws IOException {
+    if (length == 0) {
+      fillBuf();
+    }
 
-	public void postResize(final Dimension termSize, final Dimension pixelSize) {
-		tty.resize(termSize, pixelSize);
-	}
+    int len = toLineEnd > length ? length : toLineEnd;
 
-	public void pushBackBuffer(final byte[] bytes, final int len) throws IOException {
-		for(int i = len - 1; i >= 0; i--)
-			pushChar(bytes[i]);
-	}
+    final int origLen = len;
+    byte tmp;
+    while (len > 0) {
+      tmp = buf[offset++];
+      if (0x20 <= tmp && tmp <= 0x7f) {
+        length--;
+        len--;
+        continue;
+      }
+      offset--;
+      break;
+    }
+    return origLen - len;
+  }
+
+  public void sendBytes(final byte[] bytes) throws IOException {
+    tty.write(bytes);
+  }
+
+  public void postResize(final Dimension termSize, final Dimension pixelSize) {
+    tty.resize(termSize, pixelSize);
+  }
+
+  public void pushBackBuffer(final byte[] bytes, final int len) throws IOException {
+    for (int i = len - 1; i >= 0; i--) {
+      pushChar(bytes[i]);
+    }
+  }
 
   public boolean isConnected() {
     return tty.isConnected();

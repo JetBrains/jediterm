@@ -60,4 +60,6 @@ public interface TerminalWriter {
   void setMode(TerminalMode mode);
 
   void unsetMode(TerminalMode mode);
+
+  void disconnected();
 }

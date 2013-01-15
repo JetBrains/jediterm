@@ -33,8 +33,8 @@ import org.apache.log4j.Logger;
 
 public class Emulator {
   private static final Logger logger = Logger.getLogger(Emulator.class);
-  private final TerminalWriter tw;
-  final protected TtyChannel channel;
+  private final TerminalWriter myTerminalWriter;
+  final protected TtyChannel myTtyChannel;
 
   /*
    * Character Attributes
@@ -52,13 +52,13 @@ public class Emulator {
   private final static Color[] COLORS = {Color.BLACK, Color.RED, Color.GREEN,
     Color.YELLOW, Color.BLUE, Color.MAGENTA, Color.CYAN, Color.WHITE};
 
-  public Emulator(final TerminalWriter tw, final TtyChannel channel) {
-    this.channel = channel;
-    this.tw = tw;
+  public Emulator(final TerminalWriter terminalWriter, final TtyChannel channel) {
+    myTtyChannel = channel;
+    myTerminalWriter = terminalWriter;
   }
 
   public void sendBytes(final byte[] bytes) throws IOException {
-    channel.sendBytes(bytes);
+    myTtyChannel.sendBytes(bytes);
   }
 
   public void start() {
@@ -79,7 +79,8 @@ public class Emulator {
       logger.info("Terminal exiting");
     }
     catch (final Exception e) {
-      if (!channel.isConnected()) {
+      if (!myTtyChannel.isConnected()) {
+        myTerminalWriter.disconnected();
         return;
       }
       logger.error("Caught exception in terminal thread", e);
@@ -88,39 +89,39 @@ public class Emulator {
 
   public void postResize(final Dimension dimension, final RequestOrigin origin) {
     Dimension pixelSize;
-    synchronized (tw) {
-      pixelSize = tw.resize(dimension, origin);
+    synchronized (myTerminalWriter) {
+      pixelSize = myTerminalWriter.resize(dimension, origin);
     }
-    channel.postResize(dimension, pixelSize);
+    myTtyChannel.postResize(dimension, pixelSize);
   }
 
   void singleIteration() throws IOException {
-    byte b = channel.getChar();
+    byte b = myTtyChannel.getChar();
 
     switch (b) {
       case 0:
         break;
       case ESC: // ESC
-        b = channel.getChar();
+        b = myTtyChannel.getChar();
         handleESC(b);
         break;
       case BEL:
-        tw.beep();
+        myTerminalWriter.beep();
         break;
       case BS:
-        tw.backspace();
+        myTerminalWriter.backspace();
         break;
       case TAB: // ht(^I) TAB
-        tw.horizontalTab();
+        myTerminalWriter.horizontalTab();
         break;
       case CR:
-        tw.carriageReturn();
+        myTerminalWriter.carriageReturn();
         break;
       case FF:
       case VT:
       case LF:
         // '\n'
-        tw.newLine();
+        myTerminalWriter.newLine();
         break;
       default:
         if (b <= CharacterUtils.US) {
@@ -134,13 +135,14 @@ public class Emulator {
           //TODO: double byte character.. this is crap
           final byte[] bytesOfChar = new byte[2];
           bytesOfChar[0] = b;
-          bytesOfChar[1] = channel.getChar();
-          tw.writeDoubleByte(bytesOfChar);
+          bytesOfChar[1] = myTtyChannel.getChar();
+          myTerminalWriter.writeDoubleByte(bytesOfChar);
         }
         else {
-          channel.pushChar(b);
-          final int availableChars = channel.advanceThroughASCII(tw.distanceToLineEnd());
-          tw.writeASCII(channel.buf, channel.offset - availableChars, availableChars);
+          myTtyChannel.pushChar(b);
+          final int availableChars = myTtyChannel.advanceThroughASCII(myTerminalWriter.distanceToLineEnd());
+
+          myTerminalWriter.writeASCII(myTtyChannel.buf, myTtyChannel.offset - availableChars, availableChars);
         }
         break;
     }
@@ -157,28 +159,28 @@ public class Emulator {
       while (b >= 0x20 && b <= 0x2F) {
         intCount++;
         intermediate[intCount - 1] = b;
-        b = channel.getChar();
+        b = myTtyChannel.getChar();
       }
       if (b >= 0x30 && b <= 0x7E) {
-        synchronized (tw) {
+        synchronized (myTerminalWriter) {
           switch (b) {
             case 'M':
               // Reverse index ESC M
-              tw.reverseIndex();
+              myTerminalWriter.reverseIndex();
               break;
             case 'D':
               // Index ESC D
-              tw.index();
+              myTerminalWriter.index();
               break;
             case 'E':
-              tw.nextLine();
+              myTerminalWriter.nextLine();
               break;
             case '7':
               saveCursor();
               break;
             case '8':
               if (intCount > 0 && intermediate[0] == '#') {
-                tw.fillScreen('E');
+                myTerminalWriter.fillScreen('E');
               }
               else {
                 restoreCursor();
@@ -202,9 +204,9 @@ public class Emulator {
         // Push backwards
         for (int i = intCount - 1; i >= 0; i--) {
           final byte ib = intermediate[i];
-          channel.pushChar(ib);
+          myTtyChannel.pushChar(ib);
         }
-        channel.pushChar(b);
+        myTtyChannel.pushChar(b);
       }
     }
   }
@@ -216,17 +218,17 @@ public class Emulator {
     if (storedCursor == null) {
       storedCursor = new StoredCursor();
     }
-    tw.storeCursor(storedCursor);
+    myTerminalWriter.storeCursor(storedCursor);
   }
 
   private void restoreCursor() {
-    tw.restoreCursor(storedCursor);
+    myTerminalWriter.restoreCursor(storedCursor);
   }
 
-  private String escapeSequenceToString(final byte[] intermediate,
-                                        final int intCount, final byte b) {
+  private static String escapeSequenceToString(final byte[] intermediate,
+                                               final int intCount, final byte b) {
 
-    StringBuffer sb = new StringBuffer("ESC ");
+    StringBuilder sb = new StringBuilder("ESC ");
 
     for (int i = 0; i < intCount; i++) {
       final byte ib = intermediate[i];
@@ -239,7 +241,7 @@ public class Emulator {
   }
 
   private void doControlSequence() throws IOException {
-    final ControlSequence args = new ControlSequence(channel);
+    final ControlSequence args = new ControlSequence(myTtyChannel);
 
     if (logger.isDebugEnabled()) {
       StringBuffer sb = new StringBuffer();
@@ -248,12 +250,12 @@ public class Emulator {
       args.appendToBuffer(sb);
       sb.append('\n');
       sb.append("bytes read                    :ESC[");
-      args.appendActualBytesRead(sb, channel);
+      args.appendActualBytesRead(sb, myTtyChannel);
       logger.debug(sb.toString());
     }
-    if (args.pushBackReordered(channel)) return;
+    if (args.pushBackReordered(myTtyChannel)) return;
 
-    synchronized (tw) {
+    synchronized (myTerminalWriter) {
 
       switch (args.getFinalChar()) {
         case 'm':
@@ -297,7 +299,7 @@ public class Emulator {
           if (logger.isDebugEnabled()) {
             logger.debug("Identifying to remote system as VT102");
           }
-          channel.sendBytes(deviceAttributesResponse);
+          myTtyChannel.sendBytes(deviceAttributesResponse);
           break;
         default:
           if (logger.isInfoEnabled()) {
@@ -307,7 +309,7 @@ public class Emulator {
             args.appendToBuffer(sb);
             sb.append('\n');
             sb.append("bytes read                    :ESC[");
-            args.appendActualBytesRead(sb, channel);
+            args.appendActualBytesRead(sb, myTtyChannel);
             logger.info(sb.toString());
           }
           break;
@@ -318,54 +320,54 @@ public class Emulator {
   private void eraseInDisplay(ControlSequence args) {
     // ESC [ Ps J
     final int arg = args.getArg(0, 0);
-    tw.eraseInDisplay(arg);
+    myTerminalWriter.eraseInDisplay(arg);
   }
 
   private void eraseInLine(ControlSequence args) {
     // ESC [ Ps K
     final int arg = args.getArg(0, 0);
 
-    tw.eraseInLine(arg);
+    myTerminalWriter.eraseInLine(arg);
   }
 
   private void cursorBackward(ControlSequence args) {
     int dx = args.getArg(0, 1);
     dx = dx == 0 ? 1 : dx;
 
-    tw.cursorBackward(dx);
+    myTerminalWriter.cursorBackward(dx);
   }
 
   private void setScrollingRegion(ControlSequence args) {
     final int top = args.getArg(0, 1);
-    final int bottom = args.getArg(1, tw.getTerminalHeight());
+    final int bottom = args.getArg(1, myTerminalWriter.getTerminalHeight());
 
-    tw.setScrollingRegion(top, bottom);
+    myTerminalWriter.setScrollingRegion(top, bottom);
   }
 
   private void cursorForward(ControlSequence args) {
     int countX = args.getArg(0, 1);
     countX = countX == 0 ? 1 : countX;
 
-    tw.cursorForward(countX);
+    myTerminalWriter.cursorForward(countX);
   }
 
   private void cursorDown(ControlSequence cs) {
     int countY = cs.getArg(0, 0);
     countY = countY == 0 ? 1 : countY;
-    tw.cursorDown(countY);
+    myTerminalWriter.cursorDown(countY);
   }
 
   private void cursorPosition(ControlSequence cs) {
     final int argy = cs.getArg(0, 1);
     final int argx = cs.getArg(1, 1);
 
-    tw.cursorPosition(argx, argy);
+    myTerminalWriter.cursorPosition(argx, argy);
   }
 
   public void setCharacterAttributes(final ControlSequence args) {
     StyleState styleState = createStyleState(args);
 
-    tw.setCharacterAttributes(styleState);
+    myTerminalWriter.setCharacterAttributes(styleState);
   }
 
   private static StyleState createStyleState(ControlSequence args) {
@@ -423,7 +425,7 @@ public class Emulator {
   private void cursorUp(ControlSequence cs) {
     int arg = cs.getArg(0, 0);
     arg = arg == 0 ? 1 : arg;
-    tw.cursorUp(arg);
+    myTerminalWriter.cursorUp(arg);
   }
 
   private void setModes(final ControlSequence args, final boolean on) throws IOException {
@@ -441,14 +443,12 @@ public class Emulator {
       }
       else if (on) {
         if (logger.isInfoEnabled()) logger.info("Modes: adding " + mode);
-        tw.setMode(mode);
+        myTerminalWriter.setMode(mode);
       }
       else {
         if (logger.isInfoEnabled()) logger.info("Modes: removing " + mode);
-        tw.unsetMode(mode);
+        myTerminalWriter.unsetMode(mode);
       }
     }
   }
-
-
 }

@@ -3,16 +3,16 @@ package com.jediterm.swing;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 
-import com.jediterm.BackBufferTerminalWriter;
+import com.jediterm.BufferedTerminalWriter;
 import com.jediterm.Questioner;
 
 public class PreConnectHandler implements Questioner, KeyListener {
 	private Object sync = new Object();
-	private BackBufferTerminalWriter tw;
+	private BufferedTerminalWriter tw;
 	private StringBuffer answer;
 	private boolean visible;
 	
-	public PreConnectHandler(BackBufferTerminalWriter tw){
+	public PreConnectHandler(BufferedTerminalWriter tw){
 		this.tw = tw;
 		this.visible = true;
 	}

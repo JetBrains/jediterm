@@ -359,7 +359,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     Graphics2D gfx = (Graphics2D)g;
     if (myImage != null) {
       gfx.drawImage(myImage, 0, 0, myTerminalPanel);
-      drawMargin(gfx, myImage.getHeight());
+      drawMargin(gfx, myImage.getWidth(), myImage.getHeight());
       drawCursor(gfx);
       drawSelection(gfx);
     }
@@ -566,9 +566,9 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     }
   }
 
-  private void drawMargin(Graphics2D gfx, int height) {
+  private void drawMargin(Graphics2D gfx, int width, int height) {
     gfx.setColor(getBackground());
-    gfx.fillRect(0, height, getWidth(), getHeight() - height);
+    gfx.fillRect(0, height, width, getHeight() - height);
   }
 
   public void scrollArea(final int y, final int h, int dy) {

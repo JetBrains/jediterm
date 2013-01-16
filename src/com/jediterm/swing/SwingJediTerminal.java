@@ -33,7 +33,7 @@ public class SwingJediTerminal extends JPanel {
     terminalWriter = new BufferedTerminalWriter(termPanel, backBuffer, styleState);
     preconnectHandler = new PreConnectHandler(terminalWriter);
     termPanel.setKeyListener(preconnectHandler);
-    JScrollBar scrollBar = new JScrollBar();
+    JScrollBar scrollBar = createScrollBar();
 
     add(termPanel, BorderLayout.CENTER);
     add(scrollBar, BorderLayout.EAST);
@@ -43,6 +43,9 @@ public class SwingJediTerminal extends JPanel {
     termPanel.init();
   }
 
+  protected JScrollBar createScrollBar() {
+    return new JScrollBar();
+  }
 
   protected StyleState createDefaultStyle() {
     StyleState styleState = new StyleState();

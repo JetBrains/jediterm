@@ -272,8 +272,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     int width = getPixelWidth();
     int height = getPixelHeight();
     if (width > 0 && height > 0) {
-      myImage = new BufferedImage(width, height,
-                                  BufferedImage.TYPE_INT_RGB);
+      myImage = createBufferedImage(width, height);
       myGfx = myImage.createGraphics();
 
       myGfx.setColor(getBackground());
@@ -285,6 +284,11 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
                         oldImage.getWidth(), oldImage.getHeight(), myTerminalPanel);
       }
     }
+  }
+
+  protected BufferedImage createBufferedImage(int width, int height) {
+    return new BufferedImage(width, height,
+                                BufferedImage.TYPE_INT_RGB);
   }
 
   private void sizeTerminalFromComponent() {
@@ -337,7 +341,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   }
 
   private void establishFontMetrics() {
-    final BufferedImage img = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
+    final BufferedImage img = createBufferedImage(1, 1);
     final Graphics2D graphics = img.createGraphics();
     graphics.setFont(myNormalFont);
 

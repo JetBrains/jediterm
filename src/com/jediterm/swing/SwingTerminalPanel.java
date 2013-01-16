@@ -139,6 +139,14 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       }
     });
 
+    addMouseWheelListener(new MouseWheelListener() {
+      @Override
+      public void mouseWheelMoved(MouseWheelEvent e) {
+        int notches = e.getWheelRotation();
+        myBoundedRangeModel.setValue(myBoundedRangeModel.getValue() + notches);
+      }
+    });
+
     addMouseListener(new MouseAdapter() {
       @Override
       public void mouseReleased(final MouseEvent e) {
@@ -288,7 +296,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
   protected BufferedImage createBufferedImage(int width, int height) {
     return new BufferedImage(width, height,
-                                BufferedImage.TYPE_INT_RGB);
+                             BufferedImage.TYPE_INT_RGB);
   }
 
   private void sizeTerminalFromComponent() {
@@ -313,7 +321,10 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     this.myKeyListener = keyListener;
   }
 
-  public Dimension requestResize(final Dimension newSize, final RequestOrigin origin, int cursorY, BufferedTerminalWriter.ResizeHandler resizeHandler) {
+  public Dimension requestResize(final Dimension newSize,
+                                 final RequestOrigin origin,
+                                 int cursorY,
+                                 BufferedTerminalWriter.ResizeHandler resizeHandler) {
     if (!newSize.equals(myTermSize)) {
       myBackBuffer.lock();
       try {

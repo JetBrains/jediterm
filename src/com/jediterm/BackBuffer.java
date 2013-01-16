@@ -60,6 +60,8 @@ public class BackBuffer implements StyledTextConsumer {
 
     boolean textBufferUpdated = false;
 
+    myCursorY = cursorY;
+
     if (newHeight < cursorY) {
       //we need to move lines from text buffer to the scroll buffer
       int count = cursorY - newHeight;

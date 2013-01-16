@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 public class BufferedTerminalWriter implements TerminalWriter {
   private static final Logger logger = Logger.getLogger(BufferedTerminalWriter.class);
   private final static int TAB = 8;
+  private static final int MIN_WIDTH = 5;
 
   private int scrollRegionTop;
   private int scrollRegionBottom;
@@ -410,8 +411,8 @@ public class BufferedTerminalWriter implements TerminalWriter {
 
   public Dimension resize(final Dimension pendingResize, final RequestOrigin origin) {
     final int oldHeight = myTerminalHeight;
-    if (pendingResize.width <= cursorX + 1) {
-      pendingResize.setSize(cursorX + 2, pendingResize.height);
+    if (pendingResize.width <= MIN_WIDTH) {
+      pendingResize.setSize(MIN_WIDTH, pendingResize.height);
     }
     final Dimension pixelSize = myDisplay.requestResize(pendingResize, origin, myCursorY, new ResizeHandler() {
       @Override

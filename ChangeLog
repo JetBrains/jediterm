@@ -2,6 +2,12 @@ ChangeLog of JediTerm
 
 ==============================
 
+15/01/2013 0.02
+
+-Fixed a bunch of resize and scrolling problems
+-Added encodings support
+-Added cycle buffer
+
 
 10/01/2013
 
@@ -10,7 +16,7 @@ Refactored a bit. Added ability to change font and colors.
 
 
 
-History before:
+Previous incarnations:
 ===============================
 Gritty
 

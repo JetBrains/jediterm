@@ -36,7 +36,6 @@ import java.awt.datatransfer.ClipboardOwner;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
-import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -310,11 +309,11 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     this.myKeyListener = keyListener;
   }
 
-  public Dimension requestResize(final Dimension newSize, final RequestOrigin origin, int cursorY) {
+  public Dimension requestResize(final Dimension newSize, final RequestOrigin origin, int cursorY, BufferedTerminalWriter.ResizeHandler resizeHandler) {
     if (!newSize.equals(myTermSize)) {
       myBackBuffer.lock();
       try {
-        myBackBuffer.resize(newSize, origin, cursorY);
+        myBackBuffer.resize(newSize, origin, cursorY, resizeHandler);
         myTermSize = (Dimension)newSize.clone();
         // resize images..
         setUpImages();

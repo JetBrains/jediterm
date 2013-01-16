@@ -34,7 +34,7 @@ public interface TerminalDisplay {
 
   void beep();
 
-  Dimension requestResize(Dimension pendingResize, RequestOrigin origin, int cursorY);
+  Dimension requestResize(Dimension pendingResize, RequestOrigin origin, int cursorY, BufferedTerminalWriter.ResizeHandler resizeHandler);
 
   void scrollArea(final int y, final int h, int dy);
 

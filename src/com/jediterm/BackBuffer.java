@@ -24,7 +24,6 @@ public class BackBuffer implements StyledTextConsumer {
 
   private int myWidth;
   private int myHeight;
-  private int myCursorY;
 
   private final Lock myLock = new ReentrantLock();
   private int myTextLinesCount;
@@ -48,7 +47,10 @@ public class BackBuffer implements StyledTextConsumer {
     myDamage = new BitSet(myWidth * myHeight);
   }
 
-  public Dimension resize(final Dimension pendingResize, final RequestOrigin origin, int cursorY) {
+  public Dimension resize(final Dimension pendingResize,
+                          final RequestOrigin origin,
+                          final int cursorY,
+                          BufferedTerminalWriter.ResizeHandler resizeHandler) {
     final char[] oldBuf = myBuf;
     final TextStyle[] oldStyleBuf = myStyleBuf;
     final int oldHeight = myHeight;
@@ -56,13 +58,12 @@ public class BackBuffer implements StyledTextConsumer {
 
     final int newWidth = pendingResize.width;
     final int newHeight = pendingResize.height;
-    final int scrollLinesCount = myScrollBuffer.getLineCount();
+    final int scrollLinesCountOld = myScrollBuffer.getLineCount();
+    final int textLinesCountOld = myTextBuffer.getLineCount();
 
     boolean textBufferUpdated = false;
 
-    myCursorY = cursorY;
-
-    if (newHeight < cursorY) {
+    if (newHeight <= cursorY) {
       //we need to move lines from text buffer to the scroll buffer
       int count = cursorY - newHeight;
       myTextBuffer.moveTopLinesTo(count, myScrollBuffer);
@@ -90,15 +91,11 @@ public class BackBuffer implements StyledTextConsumer {
     if (myHeight > oldHeight) {
       oldStart = 0;
 
-      start = Math.min(myHeight - copyHeight, scrollLinesCount);
-
-      myCursorY = cursorY + start;
+      start = Math.min(myHeight - copyHeight, scrollLinesCountOld);
     }
     else {
       oldStart = Math.max(0, cursorY - myHeight);
       start = 0;
-
-      myCursorY = cursorY - oldStart;
     }
 
     // copying lines...
@@ -109,12 +106,19 @@ public class BackBuffer implements StyledTextConsumer {
 
     if (myWidth > oldWidth || textBufferUpdated) {
       //we need to fill new space with data from the text buffer
-      int linesToUpdate = myTextBuffer.getLineCount();
       myTextLinesCount = myTextBuffer.getLineCount();
-      myTextBuffer.processLines(-linesToUpdate, linesToUpdate, this);
+      myTextBuffer.processLines(-myTextLinesCount, myTextLinesCount, this);
     }
 
+    if (myTextBuffer.getLineCount() >= myHeight) {
+      myTextBuffer.moveTopLinesTo(myTextBuffer.getLineCount() - myHeight, myScrollBuffer);
+    }
+
+    int myCursorY = cursorY + (myTextBuffer.getLineCount() - textLinesCountOld);
+
     myDamage.set(0, myWidth * myHeight - 1, true);
+
+    resizeHandler.sizeUpdated(myWidth, myHeight, myCursorY);
 
     return pendingResize;
   }
@@ -263,7 +267,7 @@ public class BackBuffer implements StyledTextConsumer {
   public String getLines() {
     myLock.lock();
     try {
-      final StringBuffer sb = new StringBuffer();
+      final StringBuilder sb = new StringBuilder();
       for (int row = 0; row < myHeight; row++) {
         sb.append(myBuf, row * myWidth, myWidth);
         sb.append('\n');
@@ -278,7 +282,7 @@ public class BackBuffer implements StyledTextConsumer {
   public String getDamageLines() {
     myLock.lock();
     try {
-      final StringBuffer sb = new StringBuffer();
+      final StringBuilder sb = new StringBuilder();
       for (int row = 0; row < myHeight; row++) {
         for (int col = 0; col < myWidth; col++) {
           boolean isDamaged = myDamage.get(row * myWidth + col);
@@ -446,10 +450,6 @@ public class BackBuffer implements StyledTextConsumer {
     if (len > 0) {
       drawString(x, y + myTextLinesCount + 1, new String(characters.getBuf(), characters.getStart(), len), style);
     }
-  }
-
-  public int getCursorY() {
-    return myCursorY;
   }
 
   public int getWidth() {

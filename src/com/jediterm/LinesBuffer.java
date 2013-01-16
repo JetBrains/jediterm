@@ -121,7 +121,7 @@ public class LinesBuffer implements StyledTextConsumer {
   }
 
 
-  public void moveTopLinesTo(int count, final LinesBuffer buffer) {
+  public void moveTopLinesTo(final int count, final LinesBuffer buffer) {
     iterateLines(0, count, new TextEntryProcessor() {
       @Override
       public boolean process(int x, int y, TextEntry entry) {

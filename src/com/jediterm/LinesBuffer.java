@@ -64,7 +64,11 @@ public class LinesBuffer implements StyledTextConsumer {
   }
 
   public void removeTopLines(int count) {
-    iterateLines(0, count, new TextEntryProcessor() {
+    removeLines(0, count+1);
+  }
+
+  public void removeLines(int from, int to) {
+    iterateLines(from, to, new TextEntryProcessor() {
       @Override
       public boolean process(int x, int y, TextEntry entry) {
         return true;

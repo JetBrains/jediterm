@@ -152,7 +152,9 @@ public class BufferedTerminalWriter implements TerminalWriter {
   }
 
   private void moveLine() {
-    myBackBuffer.moveToTextBuffer(myCursorY);
+    if (myCursorY < myTerminalHeight) {
+      myBackBuffer.moveToTextBuffer(myCursorY);
+    }
     myCursorY += 1;
   }
 
@@ -226,7 +228,7 @@ public class BufferedTerminalWriter implements TerminalWriter {
   public void clearLines(final int beginY, final int endY) {
     myBackBuffer.lock();
     try {
-      myBackBuffer.clearArea(0, beginY, myTerminalWidth, endY);
+      myBackBuffer.clearLines(beginY, endY);
     }
     finally {
       myBackBuffer.unlock();
@@ -238,6 +240,7 @@ public class BufferedTerminalWriter implements TerminalWriter {
   }
 
   public void eraseInLine(int arg) {
+
     myBackBuffer.lock();
     try {
       switch (arg) {

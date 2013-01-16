@@ -340,7 +340,7 @@ public class BackBuffer implements StyledTextConsumer {
     int beginRun = startCol;
     for (int col = startCol; col < endCol; col++) {
       final int location = row * myWidth + col;
-      if (location < 0 || location > myStyleBuf.length) {
+      if (location < 0 || location >= myStyleBuf.length) {
         throw new IllegalStateException("Can't pump a char at " + row + "x" + col);
       }
       final TextStyle cellStyle = myStyleBuf[location];
@@ -440,6 +440,9 @@ public class BackBuffer implements StyledTextConsumer {
   }
 
   public void moveToTextBuffer(int cursorY) {
+    if (myTextBuffer.getLineCount()>cursorY) {
+      myTextBuffer.removeLines(cursorY - 1, myTextBuffer.getLineCount());
+    }
     processBufferRow(cursorY - 1, myTextBuffer);
   }
 
@@ -458,5 +461,10 @@ public class BackBuffer implements StyledTextConsumer {
 
   public int getHeight() {
     return myHeight;
+  }
+
+  public void clearLines(int startRow, int endRow) {
+    myTextBuffer.removeLines(startRow, endRow); //TODO: when we remove lines from the middle of text buffer possibly we need to insert empty lines
+    clearArea(0, startRow, myWidth, endRow);
   }
 }

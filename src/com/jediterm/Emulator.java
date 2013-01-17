@@ -299,7 +299,7 @@ public class Emulator {
           if (logger.isDebugEnabled()) {
             logger.debug("Identifying to remote system as VT102");
           }
-          myTtyChannel.sendBytes(deviceAttributesResponse);
+          myTtyChannel.sendBytes(DEVICE_ATTRIBUTES_RESPONSE);
           break;
         default:
           if (logger.isInfoEnabled()) {

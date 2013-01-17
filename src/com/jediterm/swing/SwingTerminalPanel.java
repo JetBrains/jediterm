@@ -22,15 +22,7 @@
 
 package com.jediterm.swing;
 
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.FontMetrics;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Point;
-import java.awt.RenderingHints;
-import java.awt.Toolkit;
+import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.ClipboardOwner;
 import java.awt.datatransfer.DataFlavor;
@@ -52,7 +44,7 @@ import com.jediterm.TextStyle;
 public class SwingTerminalPanel extends JComponent implements TerminalDisplay, ClipboardOwner, StyledTextConsumer {
   private static final Logger logger = Logger.getLogger(SwingTerminalPanel.class);
   private static final long serialVersionUID = -1048763516632093014L;
-  private static final double FPS = 20;
+  private static final double FPS = 50;
 
   private BufferedImage myImage;
 
@@ -72,8 +64,6 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
   Dimension myTermSize = new Dimension(80, 24);
 
-  protected Point myCursor = new Point();
-
   private boolean myAntialiasing = true;
 
   private Emulator myEmulator = null;
@@ -92,12 +82,16 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   final private LinesBuffer myScrollBuffer;
   final private StyleState myStyleState;
 
+  final private Cursor myCursor = new Cursor();
+
   private final BoundedRangeModel myBoundedRangeModel = new DefaultBoundedRangeModel(0, 80, 0, 80);
 
   protected int myClientScrollOrigin;
   protected int newClientScrollOrigin;
-  protected boolean myShouldDrawCursor = true;
   private KeyListener myKeyListener;
+  private long myLastCursorChange;
+  private boolean myCursorIsShown;
+  private long myLastResize;
 
 
   public SwingTerminalPanel(BackBuffer backBuffer, LinesBuffer scrollBuffer, StyleState styleState) {
@@ -169,6 +163,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     addComponentListener(new ComponentAdapter() {
       @Override
       public void componentResized(final ComponentEvent e) {
+        myLastResize = System.currentTimeMillis();
         sizeTerminalFromComponent();
       }
     });
@@ -181,7 +176,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
     Timer redrawTimer = new Timer((int)(1000 / FPS), new ActionListener() {
       public void actionPerformed(ActionEvent e) {
-        redrawFromDamage();
+        redraw();
       }
     });
     setDoubleBuffered(true);
@@ -371,9 +366,9 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     Graphics2D gfx = (Graphics2D)g;
     if (myImage != null) {
       gfx.drawImage(myImage, 0, 0, myTerminalPanel);
-      drawMargin(gfx, myImage.getWidth(), myImage.getHeight());
-      drawCursor(gfx);
+      drawMargins(gfx, myImage.getWidth(), myImage.getHeight());
       drawSelection(gfx);
+      myCursor.drawCursor(gfx);
     }
   }
 
@@ -409,16 +404,87 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     return myTermSize.height;
   }
 
-  public void drawCursor(Graphics2D g) {
-    if (myShouldDrawCursor) {
-      final int y = (myCursor.y - 1 - myClientScrollOrigin);
-      if (y >= 0 && y < myTermSize.height) {
-        TextStyle current = myStyleState.getCurrent();
-        g.setColor(current.getForeground());
-        g.setXORMode(current.getBackground());
-        g.fillRect(myCursor.x * myCharSize.width, y * myCharSize.height,
-                   myCharSize.width, myCharSize.height);
+
+  private class Cursor {
+    private static final long CURSOR_BLINK_PERIOD = 505;
+
+
+    private boolean myCursorHasChanged;
+
+    protected Point myCursorCoordinates = new Point();
+    private boolean myShouldDrawCursor = true;
+
+    private boolean calculateIsCursorShown(long currentTime) {
+      if (myCursorHasChanged) {
+        return true;
       }
+      if (cursorShouldChageBlinkState(currentTime)) {
+        return !myCursorIsShown;
+      }
+      else {
+        return myCursorIsShown;
+      }
+    }
+
+    private boolean cursorShouldChageBlinkState(long currentTime) {
+      return currentTime - myLastCursorChange > CURSOR_BLINK_PERIOD;
+    }
+
+    public void drawCursor(Graphics2D g) {
+      if (needsRepaint()) {
+        final int y = (myCursorCoordinates.y - 1 - myClientScrollOrigin);
+
+        if (y >= 0 && y < myTermSize.height) {
+          TextStyle current = myStyleState.getCurrent();
+
+          boolean isCursorShown = calculateIsCursorShown(System.currentTimeMillis());
+
+          if (isCursorShown) {
+            g.setColor(current.getForeground());
+          }
+          else {
+            g.setColor(current.getBackground());
+          }
+          g.fillRect(myCursorCoordinates.x * myCharSize.width, y * myCharSize.height,
+                     myCharSize.width, myCharSize.height);
+
+
+          myCursorIsShown = isCursorShown;
+          myLastCursorChange = System.currentTimeMillis();
+
+          myCursorHasChanged = false;
+        }
+      }
+    }
+
+    public boolean needsRepaint() {
+      long currentTime = System.currentTimeMillis();
+      return isShouldDrawCursor() &&
+             isFocusOwner() &&
+             noRecentResize(currentTime) &&
+             (myCursorHasChanged || cursorShouldChageBlinkState(currentTime));
+    }
+
+    public void setX(int x) {
+      myCursorCoordinates.x = x;
+      myCursorHasChanged = true;
+    }
+
+    public void setY(int y) {
+      myCursorCoordinates.y = y;
+      myCursorHasChanged = true;
+    }
+
+    public void setShouldDrawCursor(boolean shouldDrawCursor) {
+      myShouldDrawCursor = shouldDrawCursor;
+    }
+
+    public boolean isShouldDrawCursor() {
+      return myShouldDrawCursor;
+    }
+
+    private boolean noRecentResize(long time) {
+      return time - myLastResize > CURSOR_BLINK_PERIOD;
     }
   }
 
@@ -529,24 +595,34 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     }
   }
 
-  int noDamage = 0;
-  int framesSkipped = 0;
-  private boolean cursorChanged;
+  int myNoDamage = 0;
+  int myFramesSkipped = 0;
 
-  public void redrawFromDamage() {
+  public void redraw() {
+    if (tryRedrawDamagedPartFromBuffer() || myCursor.needsRepaint()) {
+      repaint();
+    }
+  }
 
+  /**
+   * This method tries to get a lock for back buffer. If it fails it increments skippedFrames counter and tries next time.
+   * After 5 attempts it locks buffer anyway.
+   *
+   * @return true if was successfully redrawn and there is anything to repaint
+   */
+  private boolean tryRedrawDamagedPartFromBuffer() {
     final int newOrigin = newClientScrollOrigin;
     if (!myBackBuffer.tryLock()) {
-      if (framesSkipped >= 5) {
+      if (myFramesSkipped >= 5) {
         myBackBuffer.lock();
       }
       else {
-        framesSkipped++;
-        return;
+        myFramesSkipped++;
+        return false;
       }
     }
     try {
-      framesSkipped = 0;
+      myFramesSkipped = 0;
 
       boolean serverScroll = pendingScrolls.enact(myGfx, getPixelWidth(), myCharSize.height);
 
@@ -559,28 +635,26 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
       boolean hasDamage = myBackBuffer.hasDamage();
       if (hasDamage) {
-        noDamage = 0;
+        myNoDamage = 0;
 
         myBackBuffer.processDamagedCells(this);
         myBackBuffer.resetDamage();
       }
       else {
-        noDamage++;
+        myNoDamage++;
       }
 
-      if (serverScroll || clientScroll || hasDamage || cursorChanged) {
-        repaint();
-        cursorChanged = false;
-      }
+      return serverScroll || clientScroll || hasDamage;
     }
     finally {
       myBackBuffer.unlock();
     }
   }
 
-  private void drawMargin(Graphics2D gfx, int width, int height) {
+  private void drawMargins(Graphics2D gfx, int width, int height) {
     gfx.setColor(getBackground());
-    gfx.fillRect(0, height, width, getHeight() - height);
+    gfx.fillRect(0, height, getWidth(), getHeight() - height);
+    gfx.fillRect(width, 0, getWidth() - width, getHeight());
   }
 
   public void scrollArea(final int y, final int h, int dy) {
@@ -645,9 +719,8 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   final PendingScrolls pendingScrolls = new PendingScrolls();
 
   public void setCursor(final int x, final int y) {
-    myCursor.x = x;
-    myCursor.y = y;
-    cursorChanged = true;
+    myCursor.setX(x);
+    myCursor.setY(y);
   }
 
   public void beep() {
@@ -692,7 +765,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
   @Override
   public void setShouldDrawCursor(boolean shouldDrawCursor) {
-    myShouldDrawCursor = shouldDrawCursor;
+    myCursor.setShouldDrawCursor(shouldDrawCursor);
   }
 
 

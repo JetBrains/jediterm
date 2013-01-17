@@ -58,7 +58,7 @@ public class Main {
   private AbstractAction drawDamage = new AbstractAction("Draw from damage") {
     public void actionPerformed(final ActionEvent e) {
       if (termPanel != null) {
-        termPanel.redrawFromDamage();
+        termPanel.redraw();
       }
     }
   };

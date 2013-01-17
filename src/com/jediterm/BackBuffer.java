@@ -63,7 +63,7 @@ public class BackBuffer implements StyledTextConsumer {
 
     boolean textBufferUpdated = false;
 
-    if (newHeight <= cursorY) {
+    if (newHeight < cursorY) {
       //we need to move lines from text buffer to the scroll buffer
       int count = cursorY - newHeight;
       myTextBuffer.moveTopLinesTo(count, myScrollBuffer);
@@ -464,7 +464,7 @@ public class BackBuffer implements StyledTextConsumer {
   }
 
   public void clearLines(int startRow, int endRow) {
-    myTextBuffer.removeLines(startRow, endRow); //TODO: when we remove lines from the middle of text buffer possibly we need to insert empty lines
+    myTextBuffer.removeLines(startRow, endRow); //TODO: when we remove lines from the mi possibly we need to insert empty lines
     clearArea(0, startRow, myWidth, endRow);
   }
 }

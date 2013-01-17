@@ -167,4 +167,56 @@ public class BufferResizeTest extends TestCase {
 
     assertEquals(4, writer.getCursorY());
   }
+
+
+  public void testTypeOnLastLineAndResizeWidth() {
+    StyleState state = new StyleState();
+
+    LinesBuffer scrollBuffer = new LinesBuffer();
+
+    BackBuffer backBuffer = new BackBuffer(6, 5, state, scrollBuffer);
+
+    BufferedTerminalWriter writer = new BufferedTerminalWriter(new BackBufferDisplay(backBuffer), backBuffer, state);
+
+    writer.writeString(">line1");
+    writer.newLine();
+    writer.carriageReturn();
+    writer.writeString(">line2");
+    writer.newLine();
+    writer.carriageReturn();
+    writer.writeString(">line3");
+    writer.newLine();
+    writer.carriageReturn();
+    writer.writeString(">line4");
+    writer.newLine();
+    writer.carriageReturn();
+    writer.writeString(">line5");
+    writer.newLine();
+    writer.carriageReturn();
+    writer.writeString(">");
+
+    assertEquals(">line2\n" +
+                 ">line3\n" +
+                 ">line4\n" +
+                 ">line5\n" +
+                 ">     \n", backBuffer.getLines());
+
+    writer.resize(new Dimension(3, 5), RequestOrigin.User);
+
+    assertEquals(">line\n" +         //minimum width is 5
+                 ">line\n" +
+                 ">line\n" +
+                 ">line\n" +
+                 ">    \n", backBuffer.getLines());
+
+    writer.resize(new Dimension(6, 5), RequestOrigin.User);
+
+    assertEquals(">line2\n" +
+                 ">line3\n" +
+                 ">line4\n" +
+                 ">line5\n" +
+                 ">     \n", backBuffer.getLines());
+
+
+  }
 }

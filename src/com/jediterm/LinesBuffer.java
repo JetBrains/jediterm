@@ -64,7 +64,7 @@ public class LinesBuffer implements StyledTextConsumer {
   }
 
   public void removeTopLines(int count) {
-    removeLines(0, count+1);
+    removeLines(0, count);
   }
 
   public void removeLines(int from, int to) {

@@ -418,7 +418,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       if (myCursorHasChanged) {
         return true;
       }
-      if (cursorShouldChageBlinkState(currentTime)) {
+      if (cursorShouldChangeBlinkState(currentTime)) {
         return !myCursorIsShown;
       }
       else {
@@ -426,7 +426,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       }
     }
 
-    private boolean cursorShouldChageBlinkState(long currentTime) {
+    private boolean cursorShouldChangeBlinkState(long currentTime) {
       return currentTime - myLastCursorChange > CURSOR_BLINK_PERIOD;
     }
 
@@ -462,7 +462,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       return isShouldDrawCursor() &&
              isFocusOwner() &&
              noRecentResize(currentTime) &&
-             (myCursorHasChanged || cursorShouldChageBlinkState(currentTime));
+             (myCursorHasChanged || cursorShouldChangeBlinkState(currentTime));
     }
 
     public void setX(int x) {

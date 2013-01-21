@@ -15,7 +15,7 @@ public class SwingJediTerminal extends JPanel {
   protected BufferedTerminalWriter terminalWriter;
   protected AtomicBoolean sessionRunning = new AtomicBoolean();
   protected PreConnectHandler preconnectHandler;
-  private Tty tty;
+  private TtyConnector myTtyConnector;
   private TtyChannel ttyChannel;
   private Emulator emulator;
   private Thread emuThread;
@@ -61,9 +61,9 @@ public class SwingJediTerminal extends JPanel {
     return termPanel;
   }
 
-  public void setTty(Tty tty) {
-    this.tty = tty;
-    ttyChannel = new TtyChannel(tty);
+  public void setTtyConnector(TtyConnector ttyConnector) {
+    this.myTtyConnector = ttyConnector;
+    ttyChannel = new TtyChannel(ttyConnector);
 
     emulator = new Emulator(terminalWriter, ttyChannel);
     this.termPanel.setEmulator(emulator);
@@ -138,9 +138,9 @@ public class SwingJediTerminal extends JPanel {
     public void run() {
       try {
         sessionRunning.set(true);
-        Thread.currentThread().setName(tty.getName());
-        if (tty.init(preconnectHandler)) {
-          Thread.currentThread().setName(tty.getName());
+        Thread.currentThread().setName(myTtyConnector.getName());
+        if (myTtyConnector.init(preconnectHandler)) {
+          Thread.currentThread().setName(myTtyConnector.getName());
           SwingUtilities.invokeLater(new Runnable() {
             public void run() {
               termPanel.setKeyListener(new ConnectedKeyHandler(emulator));
@@ -152,7 +152,7 @@ public class SwingJediTerminal extends JPanel {
       }
       finally {
         try {
-          tty.close();
+          myTtyConnector.close();
         }
         catch (Exception e) {
         }

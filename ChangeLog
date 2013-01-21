@@ -7,6 +7,7 @@ ChangeLog of JediTerm
 -Fixed a bunch of resize and scrolling problems
 -Added encodings support
 -Added cycle buffer
+-Blinking cursor
 
 
 10/01/2013

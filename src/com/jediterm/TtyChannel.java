@@ -7,7 +7,7 @@ import java.awt.Dimension;
 import java.io.IOException;
 
 public class TtyChannel {
-  private Tty tty;
+  private TtyConnector myTtyConnector;
 
   char[] buf = new char[1024];
 
@@ -17,8 +17,8 @@ public class TtyChannel {
 
   int serial;
 
-  public TtyChannel(final Tty tty) {
-    this.tty = tty;
+  public TtyChannel(final TtyConnector ttyConnector) {
+    this.myTtyConnector = ttyConnector;
     serial = 0;
   }
 
@@ -37,7 +37,7 @@ public class TtyChannel {
 
   private void fillBuf() throws IOException {
     offset = 0;
-    length = tty.read(buf, offset, buf.length);
+    length = myTtyConnector.read(buf, offset, buf.length);
     serial++;
 
     if (length <= 0) {
@@ -80,11 +80,11 @@ public class TtyChannel {
   }
 
   public void sendBytes(final byte[] bytes) throws IOException {
-    tty.write(bytes);
+    myTtyConnector.write(bytes);
   }
 
   public void postResize(final Dimension termSize, final Dimension pixelSize) {
-    tty.resize(termSize, pixelSize);
+    myTtyConnector.resize(termSize, pixelSize);
   }
 
   public void pushBackBuffer(final char[] bytes, final int len) throws IOException {
@@ -94,10 +94,10 @@ public class TtyChannel {
   }
 
   public boolean isConnected() {
-    return tty.isConnected();
+    return myTtyConnector.isConnected();
   }
 
   public void sendString(String string) throws IOException {
-    tty.write(string);
+    myTtyConnector.write(string);
   }
 }

@@ -8,16 +8,13 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.jediterm.Questioner;
-import com.jediterm.Tty;
+import com.jediterm.TtyConnector;
 import com.jediterm.swing.standalone.Main;
 
 import java.awt.*;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
+import java.io.*;
 
-public class JSchTty implements Tty {
+public class JSchTtyConnector implements TtyConnector {
   private InputStream in = null;
   private OutputStream out = null;
   private Session session;
@@ -31,13 +28,14 @@ public class JSchTty implements Tty {
   private Dimension pendingTermSize;
   private Dimension pendingPixelSize;
   private InputStreamReader inReader;
+  private OutputStreamWriter outWriter;
 
 
-  public JSchTty() {
+  public JSchTtyConnector() {
 
   }
 
-  public JSchTty(String host, String user, String password) {
+  public JSchTtyConnector(String host, String user, String password) {
     this.host = host;
     this.user = user;
     this.password = password;
@@ -77,7 +75,7 @@ public class JSchTty implements Tty {
       channel = (ChannelShell)session.openChannel("shell");
       in = channel.getInputStream();
       out = channel.getOutputStream();
-      inReader = new InputStreamReader(in, "EUC-JP");
+      inReader = new InputStreamReader(in, "utf-8");
       channel.connect();
       resizeImmediately();
       return true;
@@ -176,6 +174,6 @@ public class JSchTty implements Tty {
 
   @Override
   public void write(String string) throws IOException {
-    write(string.getBytes("EUC-JP")); //TODO: fix
+    write(string.getBytes("utf-8")); //TODO: fix
   }
 }

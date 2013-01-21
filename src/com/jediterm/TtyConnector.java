@@ -3,7 +3,7 @@ package com.jediterm;
 import java.awt.Dimension;
 import java.io.IOException;
 
-public interface Tty {
+public interface TtyConnector {
   boolean init(Questioner q);
 
   void close();

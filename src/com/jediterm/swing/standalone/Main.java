@@ -12,6 +12,7 @@ import javax.swing.JMenuBar;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
+import com.jediterm.jsch.JSchTtyConnector;
 import com.jediterm.swing.SwingJediTerminal;
 import com.jediterm.swing.SwingTerminalPanel;
 import org.apache.log4j.BasicConfigurator;
@@ -20,7 +21,6 @@ import org.apache.log4j.Logger;
 
 import com.jediterm.RequestOrigin;
 import com.jediterm.ResizePanelDelegate;
-import com.jediterm.jsch.JSchTty;
 
 
 public class Main {
@@ -81,7 +81,7 @@ public class Main {
 
   public void openSession() {
     if (!terminal.isSessionRunning()) {
-      terminal.setTty(new JSchTty());
+      terminal.setTtyConnector(new JSchTtyConnector());
       terminal.start();
     }
   }

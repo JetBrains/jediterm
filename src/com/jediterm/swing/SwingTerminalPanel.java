@@ -23,11 +23,7 @@
 package com.jediterm.swing;
 
 import java.awt.*;
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.ClipboardOwner;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.StringSelection;
-import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -153,7 +149,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       public void mouseClicked(final MouseEvent e) {
         requestFocusInWindow();
         if (e.getButton() == MouseEvent.BUTTON3) {
-          JPopupMenu popup = createPopupMenu(mySelectionStart, mySelectionEnd, getClipboardContent());
+          JPopupMenu popup = createPopupMenu(mySelectionStart, mySelectionEnd, getClipboardString());
           popup.show(e.getComponent(), e.getX(), e.getY());
         }
         repaint();
@@ -237,7 +233,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     if (selectionText.length() != 0) {
 
       try {
-        myClipboard.setContents(new StringSelection(selectionText.toString()), this);
+        setCopyContents(new StringSelection(selectionText.toString()));
       }
       catch (final IllegalStateException e) {
         logger.error("Could not set clipboard:", e);
@@ -245,17 +241,32 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     }
   }
 
-  void pasteSelection() {
+  protected void setCopyContents(StringSelection selection) {
+    myClipboard.setContents(selection, this);
+  }
+
+  private void pasteSelection() {
+    final String selection = getClipboardString();
+
     try {
-      final String selection = getClipboardContent();
       myEmulator.sendString(selection);
     }
-    catch (final IOException e) {
+    catch (IOException e) {
       logger.info(e);
     }
   }
 
-  private String getClipboardContent() {
+  private String getClipboardString() {
+    try {
+      return getClipboardContent();
+    }
+    catch (final Exception e) {
+      logger.info(e);
+    }
+    return null;
+  }
+
+  protected String getClipboardContent() throws IOException, UnsupportedFlavorException {
     try {
       return (String)myClipboard.getData(DataFlavor.stringFlavor);
     }
@@ -359,6 +370,26 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
     img.flush();
     graphics.dispose();
+  }
+
+  protected void setupAntialiasing(Graphics graphics, boolean antialiasing) {
+    myAntialiasing = antialiasing;
+    if (graphics instanceof Graphics2D) {
+      Graphics2D myGfx = (Graphics2D)graphics;
+      final Object mode = antialiasing ? RenderingHints.VALUE_TEXT_ANTIALIAS_ON
+                                       : RenderingHints.VALUE_TEXT_ANTIALIAS_OFF;
+      final RenderingHints hints = new RenderingHints(
+        RenderingHints.KEY_TEXT_ANTIALIASING, mode);
+      myGfx.setRenderingHints(hints);
+    }
+  }
+
+
+  @Override
+  public void paint(Graphics g) {
+    setupAntialiasing(g, myAntialiasing);
+
+    super.paint(g);
   }
 
   @Override
@@ -731,16 +762,11 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     myLineSpace = foo;
   }
 
-  public void setAntiAliasing(final boolean foo) {
+  public void setAntiAliasing(final boolean antialiasing) {
     if (myGfx == null) {
       return;
     }
-    myAntialiasing = foo;
-    final Object mode = foo ? RenderingHints.VALUE_TEXT_ANTIALIAS_ON
-                            : RenderingHints.VALUE_TEXT_ANTIALIAS_OFF;
-    final RenderingHints hints = new RenderingHints(
-      RenderingHints.KEY_TEXT_ANTIALIASING, mode);
-    myGfx.setRenderingHints(hints);
+    setupAntialiasing(myGfx, antialiasing);
   }
 
   public BoundedRangeModel getBoundedRangeModel() {

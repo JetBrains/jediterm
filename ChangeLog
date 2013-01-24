@@ -2,12 +2,13 @@ ChangeLog of JediTerm
 
 ==============================
 
-15/01/2013 0.02
+24/01/2013 0.02
 
 -Fixed a bunch of resize and scrolling problems
 -Added encodings support
 -Added cycle buffer
 -Blinking cursor
+-Copy-paste context menu
 
 
 10/01/2013

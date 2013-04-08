@@ -338,6 +338,8 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
         myTermSize = (Dimension)newSize.clone();
         // resize images..
         setUpImages();
+        // reinstall AA for the new image
+        setAntiAliasing(myAntialiasing);
 
         final Dimension pixelDimension = new Dimension(getPixelWidth(), getPixelHeight());
 

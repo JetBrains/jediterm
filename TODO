@@ -1,3 +1,6 @@
+* Better fonts rendering under Linux
+* ncurses support (doesn't work in Midnight Commander now)
+* Mouse support
 * Encodings settings support
 * Clear page after VIM
 * Find in text

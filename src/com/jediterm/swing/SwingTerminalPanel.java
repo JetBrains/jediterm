@@ -384,6 +384,15 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     }
   }
 
+  @Override
+  public Color getBackground() {
+    return myStyleState.getCurrent().getDefaultBackground();
+  }
+
+  @Override
+  public Color getForeground() {
+    return myStyleState.getCurrent().getDefaultForeground();
+  }
 
   @Override
   public void paint(Graphics g) {

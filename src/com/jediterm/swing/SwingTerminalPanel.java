@@ -105,7 +105,6 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
     setUpImages();
     setUpClipboard();
-    setAntiAliasing(myAntialiasing);
 
     setPreferredSize(new Dimension(getPixelWidth(), getPixelHeight()));
 
@@ -288,6 +287,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     if (width > 0 && height > 0) {
       myImage = createBufferedImage(width, height);
       myGfx = myImage.createGraphics();
+      setupAntialiasing(myGfx, myAntialiasing);
 
       myGfx.setColor(getBackground());
 
@@ -338,8 +338,6 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
         myTermSize = (Dimension)newSize.clone();
         // resize images..
         setUpImages();
-        // reinstall AA for the new image
-        setAntiAliasing(myAntialiasing);
 
         final Dimension pixelDimension = new Dimension(getPixelWidth(), getPixelHeight());
 
@@ -385,7 +383,6 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       myGfx.setRenderingHints(hints);
     }
   }
-
 
   @Override
   public void paint(Graphics g) {

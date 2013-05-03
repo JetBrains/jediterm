@@ -103,7 +103,7 @@ public class Emulator {
         break;
       case ESC: // ESC
         b = myTtyChannel.getChar();
-        handleESC(b);
+        processEscSequence(b);
         break;
       case BEL:
         myTerminalWriter.beep();
@@ -125,11 +125,9 @@ public class Emulator {
         break;
       default:
         if (b <= US) {
-          if (logger.isInfoEnabled()) {
-            StringBuffer sb = new StringBuffer("Unhandled control character:");
-            appendChar(sb, CharacterType.NONE, b);
-            logger.error(sb.toString());
-          }
+          StringBuffer sb = new StringBuffer("Unhandled control character:");
+          appendChar(sb, CharacterType.NONE, b);
+          logger.error(sb.toString());
         }
         else {
           myTtyChannel.pushChar(b);
@@ -141,10 +139,10 @@ public class Emulator {
     }
   }
 
-  private void handleESC(char initByte) throws IOException {
+  private void processEscSequence(char initByte) throws IOException {
     char b = initByte;
     if (b == '[') {
-      doControlSequence();
+      processControlSequence();
     }
     else {
       final char[] intermediate = new char[10];
@@ -180,20 +178,13 @@ public class Emulator {
               }
               break;
             default:
-              if (logger.isDebugEnabled()) {
-                logger.debug("Unhandled escape sequence : " +
-
-                             escapeSequenceToString(intermediate, intCount, b));
-              }
+              logger.error("Unhandled escape sequence : " + escapeSequenceToString(intermediate, intCount, b));
           }
         }
       }
       else {
-        if (logger.isDebugEnabled()) {
-          logger.debug("Malformed escape sequence, pushing back to buffer: " +
+        logger.error("Malformed escape sequence, pushing back to buffer: " + escapeSequenceToString(intermediate, intCount, b));
 
-                       escapeSequenceToString(intermediate, intCount, b));
-        }
         // Push backwards
         for (int i = intCount - 1; i >= 0; i--) {
           final char ib = intermediate[i];
@@ -233,7 +224,7 @@ public class Emulator {
     return sb.toString();
   }
 
-  private void doControlSequence() throws IOException {
+  private void processControlSequence() throws IOException {
     final ControlSequence args = new ControlSequence(myTtyChannel);
 
     if (logger.isDebugEnabled()) {
@@ -295,16 +286,14 @@ public class Emulator {
           myTtyChannel.sendBytes(DEVICE_ATTRIBUTES_RESPONSE);
           break;
         default:
-          if (logger.isInfoEnabled()) {
-            StringBuffer sb = new StringBuffer();
-            sb.append("Unhandled Control sequence\n");
-            sb.append("parsed                        :");
-            args.appendToBuffer(sb);
-            sb.append('\n');
-            sb.append("bytes read                    :ESC[");
-            args.appendActualBytesRead(sb, myTtyChannel);
-            logger.info(sb.toString());
-          }
+          StringBuffer sb = new StringBuffer();
+          sb.append("Unhandled Control sequence\n");
+          sb.append("parsed                        :");
+          args.appendToBuffer(sb);
+          sb.append('\n');
+          sb.append("bytes read                    :ESC[");
+          args.appendActualBytesRead(sb, myTtyChannel);
+          logger.error(sb.toString());
           break;
       }
     }
@@ -432,7 +421,7 @@ public class Emulator {
       }
 
       if (mode == null) {
-        if (logger.isInfoEnabled()) logger.info("Unknown mode " + num);
+        logger.error("Unknown mode " + num);
       }
       else if (on) {
         if (logger.isInfoEnabled()) logger.info("Modes: adding " + mode);

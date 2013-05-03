@@ -24,11 +24,11 @@ public class ControlSequence {
 
   private int bufferVersion;
 
-  private static TerminalMode[] normalModes = {
+  private static TerminalMode[] NORMAL_MODES = {
 
   };
 
-  private static TerminalMode[] questionMarkModes = {TerminalMode.Null,
+  private static TerminalMode[] QUESTION_MARK_MODES = {TerminalMode.Null,
     TerminalMode.CursorKey, TerminalMode.ANSI,
     TerminalMode.WideColumn, TerminalMode.SmoothScroll, TerminalMode.ReverseScreen,
     TerminalMode.RelativeOrigin, TerminalMode.WrapAround, TerminalMode.AutoRepeat,
@@ -39,7 +39,7 @@ public class ControlSequence {
   ControlSequence(final TtyChannel channel) throws IOException {
     argv = new int[10];
     argc = 0;
-    modeTable = normalModes;
+    modeTable = NORMAL_MODES;
     readControlSequence(channel);
   }
 
@@ -57,7 +57,7 @@ public class ControlSequence {
       final char b = channel.getChar();
       pos++;
       if (b == '?' && pos == 0) {
-        modeTable = questionMarkModes;
+        modeTable = QUESTION_MARK_MODES;
       }
       else if (b == ';') {
         if (digit > 0) {
@@ -109,7 +109,7 @@ public class ControlSequence {
     bytes[i++] = (byte)CharacterUtils.ESC;
     bytes[i++] = (byte)'[';
 
-    if (modeTable == questionMarkModes) {
+    if (modeTable == QUESTION_MARK_MODES) {
       bytes[i++] = (byte)'?';
     }
     for (int argi = 0; argi < argc; argi++) {
@@ -137,7 +137,7 @@ public class ControlSequence {
 
   public final void appendToBuffer(final StringBuffer sb) {
     sb.append("ESC[");
-    if (modeTable == questionMarkModes) {
+    if (modeTable == QUESTION_MARK_MODES) {
       sb.append("?");
     }
 
@@ -147,7 +147,7 @@ public class ControlSequence {
       sb.append(argv[i]);
       sep = ";";
     }
-    sb.append((char)finalChar);
+    sb.append(finalChar);
 
     if (unhandledChars != null) {
       sb.append(" Unhandled:");

@@ -62,14 +62,6 @@ public class Emulator {
   }
 
   public void start() {
-    go();
-  }
-
-  public byte[] getCode(final int key) {
-    return CharacterUtils.getCode(key);
-  }
-
-  void go() {
     try {
       while (!Thread.currentThread().isInterrupted()) {
         singleIteration();
@@ -85,6 +77,10 @@ public class Emulator {
       }
       logger.error("Caught exception in terminal thread", e);
     }
+  }
+
+  public byte[] getCode(final int key) {
+    return CharacterUtils.getCode(key);
   }
 
   public void postResize(final Dimension dimension, final RequestOrigin origin) {
@@ -217,10 +213,10 @@ public class Emulator {
     for (int i = 0; i < intCount; i++) {
       final char ib = intermediate[i];
       sb.append(' ');
-      sb.append((char)ib);
+      sb.append(ib);
     }
     sb.append(' ');
-    sb.append((char)b);
+    sb.append(b);
     return sb.toString();
   }
 

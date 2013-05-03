@@ -105,7 +105,6 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
     setUpImages();
     setUpClipboard();
-    setAntiAliasing(myAntialiasing);
 
     setPreferredSize(new Dimension(getPixelWidth(), getPixelHeight()));
 
@@ -288,6 +287,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     if (width > 0 && height > 0) {
       myImage = createBufferedImage(width, height);
       myGfx = myImage.createGraphics();
+      setupAntialiasing(myGfx, myAntialiasing);
 
       myGfx.setColor(getBackground());
 
@@ -392,13 +392,6 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   @Override
   public Color getForeground() {
     return myStyleState.getCurrent().getDefaultForeground();
-  }
-
-  @Override
-  public void paint(Graphics g) {
-    setupAntialiasing(g, myAntialiasing);
-
-    super.paint(g);
   }
 
   @Override

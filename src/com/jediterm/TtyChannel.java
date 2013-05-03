@@ -68,7 +68,7 @@ public class TtyChannel {
     char tmp;
     while (len > 0) {
       tmp = buf[offset++];
-      if (0x20 <= tmp && tmp <= 0x7f) {
+      if (0x20 <= tmp) { //stop when we reach control chars
         length--;
         len--;
         continue;

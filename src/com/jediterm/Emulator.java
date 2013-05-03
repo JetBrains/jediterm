@@ -127,16 +127,9 @@ public class Emulator {
         if (b <= US) {
           if (logger.isInfoEnabled()) {
             StringBuffer sb = new StringBuffer("Unhandled control character:");
-            appendChar(sb, CharacterType.NONE, (char)b);
-            logger.info(sb.toString());
+            appendChar(sb, CharacterType.NONE, b);
+            logger.error(sb.toString());
           }
-        }
-        else if (b > DEL) {
-          //TODO: double byte character.. this is crap
-          final char[] bytesOfChar = new char[2];
-          bytesOfChar[0] = b;
-          bytesOfChar[1] = myTtyChannel.getChar();
-          myTerminalWriter.writeDoubleByte(bytesOfChar);
         }
         else {
           myTtyChannel.pushChar(b);

@@ -395,13 +395,6 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   }
 
   @Override
-  public void paint(Graphics g) {
-    setupAntialiasing(g, myAntialiasing);
-
-    super.paint(g);
-  }
-
-  @Override
   public void paintComponent(final Graphics g) {
     Graphics2D gfx = (Graphics2D)g;
     if (myImage != null) {

@@ -1,4 +1,4 @@
-package com.jediterm.localterm;
+package com.jediterm.pty;
 
 import com.google.common.base.Joiner;
 import jpty.JPty;

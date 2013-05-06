@@ -1,4 +1,4 @@
-package com.jediterm.localterm;
+package com.jediterm.pty;
 
 import java.io.IOException;
 import java.io.InputStream;

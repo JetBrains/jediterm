@@ -1,4 +1,4 @@
-package com.jediterm.localterm;
+package com.jediterm.pty;
 
 import com.jediterm.emulator.ProcessTtyConnector;
 import jpty.WinSize;

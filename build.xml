@@ -1,0 +1,88 @@
+<project name="JediTerm" default="all-jars">
+  <property name="src-emulator" value="src-emulator"/>
+  <property name="src-pty" value="src-pty"/>
+  <property name="src-ssh" value="src-ssh"/>
+
+  <loadfile property="version" srcfile="VERSION"/>
+
+  <property name="classes" value="classes"/>
+
+  <path id="common-jars">
+    <fileset dir="lib">
+      <include name="guava*.jar"/>
+      <include name="log4*.jar"/>
+    </fileset>
+  </path>
+
+  <path id="ssh-jars">
+    <fileset dir="lib">
+      <include name="jsch*.jar"/>
+      <include name="jzlib*.jar"/>
+    </fileset>
+  </path>
+
+  <path id="pty-jars">
+    <fileset dir="lib">
+      <include name="JPty*.jar"/>
+      <include name="jsch*.jar"/>
+      <include name="purejavacomm*.jar"/>
+    </fileset>
+  </path>
+
+
+  <target name="clean">
+    <delete>
+      <fileset dir="${classes}">
+        <include name="**/*.class"/>
+      </fileset>
+    </delete>
+  </target>
+
+
+  <target name="build-jediterm-ssh" depends="clean">
+    <property name="jediterm-ssh-classes" value="${classes}/jediterm-ssh"/>
+    <mkdir dir="${jediterm-ssh-classes}"/>
+    <javac destdir="${jediterm-ssh-classes}" source="1.5" target="1.5">
+      <src path="${src-emulator}"/>
+      <src path="${src-ssh}"/>
+      <classpath refid="common-jars"/>
+      <classpath refid="ssh-jars"/>
+    </javac>
+  </target>
+
+  <target name="jediterm-ssh.jar" depends="build-jediterm-ssh">
+    <jar destfile="build/jediterm-ssh-${version}.jar"
+         basedir="${jediterm-ssh-classes}"
+         excludes="**/Test.class">
+      <manifest>
+        <attribute name="Main-Class" value="com.jediterm.ssh.Main"/>
+      </manifest>
+    </jar>
+  </target>
+
+
+  <target name="build-jediterm-pty" depends="clean">
+    <property name="jediterm-pty-classes" value="${classes}/jediterm-pty"/>
+    <mkdir dir="${jediterm-pty-classes}"/>
+    <javac destdir="${jediterm-pty-classes}" source="1.5" target="1.5">
+      <src path="${src-emulator}"/>
+      <src path="${src-pty}"/>
+      <classpath refid="common-jars"/>
+      <classpath refid="pty-jars"/>
+    </javac>
+  </target>
+
+  <target name="jediterm-pty.jar" depends="build-jediterm-pty">
+    <jar destfile="build/jediterm-pty-${version}.jar"
+         basedir="${jediterm-pty-classes}"
+         excludes="**/Test.class">
+      <manifest>
+        <attribute name="Main-Class" value="com.tutorialspoint.util.FaxUtil"/>
+        <!--TODO: make main class-->
+      </manifest>
+    </jar>
+  </target>
+
+  <target name="all-jars" depends="jediterm-ssh.jar,jediterm-pty.jar">
+  </target>
+</project>

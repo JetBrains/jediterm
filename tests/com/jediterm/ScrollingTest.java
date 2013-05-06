@@ -1,5 +1,9 @@
 package com.jediterm;
 
+import com.jediterm.emulator.display.BackBuffer;
+import com.jediterm.emulator.display.BufferedTerminalWriter;
+import com.jediterm.emulator.display.LinesBuffer;
+import com.jediterm.emulator.display.StyleState;
 import com.jediterm.util.BackBufferDisplay;
 import junit.framework.TestCase;
 

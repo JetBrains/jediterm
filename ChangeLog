@@ -1,6 +1,12 @@
 ChangeLog of JediTerm
 
 ==============================
+06/05/2013 0.03
+
+-Fixed anti-aliasing problem on resize(thanks to Clément Poulain)
+-Fixed entering 2 byte characters
+-Project split to 3 parts: Emulator, Ssh Terminal and Local Pty Terminal
+
 
 24/01/2013 0.02
 

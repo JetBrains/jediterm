@@ -341,7 +341,12 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
         setPreferredSize(pixelDimension);
         if (myResizePanelDelegate != null) myResizePanelDelegate.resizedPanel(pixelDimension, origin);
-        myBoundedRangeModel.setRangeProperties(0, myTermSize.height, -myScrollBuffer.getLineCount(), myTermSize.height, false);
+        SwingUtilities.invokeLater(new Runnable() {
+          @Override
+          public void run() {
+            myBoundedRangeModel.setRangeProperties(0, myTermSize.height, -myScrollBuffer.getLineCount(), myTermSize.height, false);
+          }
+        });
       }
       finally {
         myBackBuffer.unlock();

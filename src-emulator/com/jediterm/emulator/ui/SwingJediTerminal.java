@@ -38,7 +38,7 @@ public class SwingJediTerminal extends JPanel {
 
     termPanel = createTerminalPanel(styleState, backBuffer, scrollBuffer);
     terminalWriter = new BufferedTerminalWriter(termPanel, backBuffer, styleState);
-    preconnectHandler = new PreConnectHandler(terminalWriter);
+    preconnectHandler = createPreConnectHandler(terminalWriter);
     termPanel.setKeyListener(preconnectHandler);
     JScrollBar scrollBar = createScrollBar();
 
@@ -62,6 +62,10 @@ public class SwingJediTerminal extends JPanel {
 
   protected SwingTerminalPanel createTerminalPanel(StyleState styleState, BackBuffer backBuffer, LinesBuffer scrollBuffer) {
     return new SwingTerminalPanel(backBuffer, scrollBuffer, styleState);
+  }
+
+  protected PreConnectHandler createPreConnectHandler(BufferedTerminalWriter writer) {
+    return new PreConnectHandler(writer);
   }
 
   public SwingTerminalPanel getTermPanel() {

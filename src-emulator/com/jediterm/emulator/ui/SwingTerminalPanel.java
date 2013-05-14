@@ -92,6 +92,8 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     myScrollBuffer = scrollBuffer;
     myBackBuffer = backBuffer;
     myStyleState = styleState;
+    myTermSize.width = backBuffer.getWidth();
+    myTermSize.height = backBuffer.getHeight();
     myBoundedRangeModel.setRangeProperties(0, myTermSize.height, -scrollBuffer.getLineCount(), myTermSize.height, false);
   }
 

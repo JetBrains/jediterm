@@ -28,13 +28,20 @@ public class SwingJediTerminal extends JPanel {
   private Thread emuThread;
 
   public SwingJediTerminal() {
+    this(80, 24);
+  }
+
+  public SwingJediTerminal(Dimension dimension) {
+    this(dimension.width, dimension.height);
+  }
+
+  public SwingJediTerminal(int columns, int lines) {
     super(new BorderLayout());
 
     StyleState styleState = createDefaultStyle();
 
     LinesBuffer scrollBuffer = new LinesBuffer();
-    BackBuffer backBuffer = new BackBuffer(80, 24, styleState, scrollBuffer);
-
+    BackBuffer backBuffer = new BackBuffer(columns, lines, styleState, scrollBuffer);
 
     termPanel = createTerminalPanel(styleState, backBuffer, scrollBuffer);
     terminalWriter = new BufferedTerminalWriter(termPanel, backBuffer, styleState);

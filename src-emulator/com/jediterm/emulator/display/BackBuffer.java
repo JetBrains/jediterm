@@ -392,12 +392,12 @@ public class BackBuffer implements StyledTextConsumer {
             if (lastStyle != null) { //flush previous run
               flushStyledText(consumer, row, lastStyle, beginRun, col);
             }
-            beginRun = col;
             lastStyle = null;
           }
           else {
             if (lastStyle == null) {
               //begin a new run
+              beginRun = col;
               lastStyle = cellStyle;
             }
             else if (!cellStyle.equals(lastStyle)) {

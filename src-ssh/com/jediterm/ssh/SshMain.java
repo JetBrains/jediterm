@@ -14,10 +14,8 @@ public class SshMain extends AbstractTerminalFrame {
 
   @Override
   public void openSession(SwingJediTerminal terminal) {
-    if (!terminal.isSessionRunning()) {
       terminal.setTtyConnector(new JSchTtyConnector());
       terminal.start();
-    }
   }
 
   public static void main(final String[] arg) {

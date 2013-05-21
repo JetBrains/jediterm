@@ -23,7 +23,7 @@ public abstract class AbstractTerminalFrame {
 
   private AbstractAction openAction = new AbstractAction("Open SHELL Session...") {
     public void actionPerformed(final ActionEvent e) {
-      openSession(terminal);
+      openSession();
     }
   };
 
@@ -67,6 +67,12 @@ public abstract class AbstractTerminalFrame {
     return mb;
   }
 
+  private void openSession() {
+    if (!terminal.isSessionRunning()) {
+      openSession(terminal);
+    }
+  }
+
   public abstract void openSession(SwingJediTerminal terminal);
 
   protected AbstractTerminalFrame() {
@@ -99,6 +105,8 @@ public abstract class AbstractTerminalFrame {
         }
       }
     });
+
+    openSession();
   }
 
   private void sizeFrameForTerm(final JFrame frame) {
@@ -109,7 +117,7 @@ public abstract class AbstractTerminalFrame {
     frame.setSize(d);
   }
 
-private void showBuffers() {
+  private void showBuffers() {
     SwingUtilities.invokeLater(new Runnable() {
       public void run() {
         bufferFrame = new JFrame("buffers");

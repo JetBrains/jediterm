@@ -90,6 +90,8 @@ public class BufferedTerminalWriter implements TerminalWriter {
     myBackBuffer.lock();
     try {
       wrapLines();
+      scrollY();
+
       if (length != 0) {
         myBackBuffer.clearArea(myCursorX, myCursorY - 1, myCursorX + length, myCursorY);
         myBackBuffer.drawBytes(myCursorX, myCursorY, chosenBuffer, start, length);
@@ -110,6 +112,8 @@ public class BufferedTerminalWriter implements TerminalWriter {
     myBackBuffer.lock();
     try {
       wrapLines();
+      scrollY();
+
       myBackBuffer.clearArea(myCursorX, myCursorY - 1, myCursorX + string.length(), myCursorY);
       myBackBuffer.drawString(myCursorX, myCursorY, string);
       myCursorX += string.length();

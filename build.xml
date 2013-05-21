@@ -55,7 +55,7 @@
          basedir="${jediterm-ssh-classes}"
          excludes="**/Test.class">
       <manifest>
-        <attribute name="Main-Class" value="com.jediterm.ssh.Main"/>
+        <attribute name="Main-Class" value="com.jediterm.ssh.SshMain"/>
       </manifest>
     </jar>
   </target>
@@ -77,8 +77,7 @@
          basedir="${jediterm-pty-classes}"
          excludes="**/Test.class">
       <manifest>
-        <attribute name="Main-Class" value="com.tutorialspoint.util.FaxUtil"/>
-        <!--TODO: make main class-->
+        <attribute name="Main-Class" value="com.jediterm.pty.PtyMain"/>
       </manifest>
     </jar>
   </target>

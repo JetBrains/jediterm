@@ -1,32 +1,19 @@
-package com.jediterm.ssh;
+package com.jediterm.emulator.ui;
 
-import java.awt.Dimension;
+import com.jediterm.emulator.RequestOrigin;
+import org.apache.log4j.Logger;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
-import javax.swing.AbstractAction;
-import javax.swing.JFrame;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
 
-import com.jediterm.ssh.jsch.*;
-import com.jediterm.emulator.ui.SwingJediTerminal;
-import com.jediterm.emulator.ui.SwingTerminalPanel;
-import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-
-import com.jediterm.emulator.RequestOrigin;
-import com.jediterm.emulator.ui.ResizePanelDelegate;
+public abstract class AbstractTerminalFrame {
 
 
-public class Main {
-
-
-  public static final Logger LOG = Logger.getLogger(Main.class);
+  public static final Logger LOG = Logger.getLogger(AbstractTerminalFrame.class);
 
   JFrame bufferFrame;
 
@@ -36,7 +23,7 @@ public class Main {
 
   private AbstractAction openAction = new AbstractAction("Open SHELL Session...") {
     public void actionPerformed(final ActionEvent e) {
-      openSession();
+      openSession(terminal);
     }
   };
 
@@ -80,17 +67,12 @@ public class Main {
     return mb;
   }
 
-  public void openSession() {
-    if (!terminal.isSessionRunning()) {
-      terminal.setTtyConnector(new JSchTtyConnector());
-      terminal.start();
-    }
-  }
+  public abstract void openSession(SwingJediTerminal terminal);
 
-  Main() {
+  protected AbstractTerminalFrame() {
     terminal = new SwingJediTerminal();
     termPanel = terminal.getTermPanel();
-    final JFrame frame = new JFrame("Gritty");
+    final JFrame frame = new JFrame("JediTerm");
 
     frame.addWindowListener(new WindowAdapter() {
       @Override
@@ -127,13 +109,7 @@ public class Main {
     frame.setSize(d);
   }
 
-  public static void main(final String[] arg) {
-    BasicConfigurator.configure();
-    Logger.getRootLogger().setLevel(Level.INFO);
-    new Main();
-  }
-
-  private void showBuffers() {
+private void showBuffers() {
     SwingUtilities.invokeLater(new Runnable() {
       public void run() {
         bufferFrame = new JFrame("buffers");

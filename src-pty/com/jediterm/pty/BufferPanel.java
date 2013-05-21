@@ -1,7 +1,7 @@
 /**
  * 
  */
-package com.jediterm.ssh;
+package com.jediterm.pty;
 
 import com.jediterm.emulator.ui.SwingJediTerminal;
 

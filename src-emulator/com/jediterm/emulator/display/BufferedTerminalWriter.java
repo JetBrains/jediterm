@@ -382,8 +382,8 @@ public class BufferedTerminalWriter implements TerminalWriter {
   }
 
   public void setScrollingRegion(int top, int bottom) {
-    myScrollRegionTop = top;
-    myScrollRegionBottom = bottom;
+    myScrollRegionTop = Math.max(1, top);
+    myScrollRegionBottom = Math.min(myTerminalHeight, bottom);
   }
 
   public void setCharacterAttributes(final StyleState styleState) {

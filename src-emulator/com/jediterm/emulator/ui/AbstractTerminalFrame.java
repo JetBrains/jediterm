@@ -1,32 +1,19 @@
-package com.jediterm.ssh;
+package com.jediterm.emulator.ui;
 
-import java.awt.Dimension;
+import com.jediterm.emulator.RequestOrigin;
+import org.apache.log4j.Logger;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
-import javax.swing.AbstractAction;
-import javax.swing.JFrame;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
 
-import com.jediterm.ssh.jsch.*;
-import com.jediterm.emulator.ui.SwingJediTerminal;
-import com.jediterm.emulator.ui.SwingTerminalPanel;
-import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-
-import com.jediterm.emulator.RequestOrigin;
-import com.jediterm.emulator.ui.ResizePanelDelegate;
+public abstract class AbstractTerminalFrame {
 
 
-public class Main {
-
-
-  public static final Logger LOG = Logger.getLogger(Main.class);
+  public static final Logger LOG = Logger.getLogger(AbstractTerminalFrame.class);
 
   JFrame bufferFrame;
 
@@ -80,17 +67,18 @@ public class Main {
     return mb;
   }
 
-  public void openSession() {
+  private void openSession() {
     if (!terminal.isSessionRunning()) {
-      terminal.setTtyConnector(new JSchTtyConnector());
-      terminal.start();
+      openSession(terminal);
     }
   }
 
-  Main() {
+  public abstract void openSession(SwingJediTerminal terminal);
+
+  protected AbstractTerminalFrame() {
     terminal = new SwingJediTerminal();
     termPanel = terminal.getTermPanel();
-    final JFrame frame = new JFrame("Gritty");
+    final JFrame frame = new JFrame("JediTerm");
 
     frame.addWindowListener(new WindowAdapter() {
       @Override
@@ -117,6 +105,8 @@ public class Main {
         }
       }
     });
+
+    openSession();
   }
 
   private void sizeFrameForTerm(final JFrame frame) {
@@ -125,12 +115,6 @@ public class Main {
     d.width += frame.getWidth() - frame.getContentPane().getWidth();
     d.height += frame.getHeight() - frame.getContentPane().getHeight();
     frame.setSize(d);
-  }
-
-  public static void main(final String[] arg) {
-    BasicConfigurator.configure();
-    Logger.getRootLogger().setLevel(Level.INFO);
-    new Main();
   }
 
   private void showBuffers() {

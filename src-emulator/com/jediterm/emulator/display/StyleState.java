@@ -9,7 +9,11 @@ public class StyleState {
   private TextStyle myDefaultStyle = TextStyle.EMPTY;
 
   public StyleState() {
-    myCurrentStyle = TextStyle.EMPTY;
+    this(TextStyle.EMPTY);
+  }
+
+  public StyleState(TextStyle textStyle) {
+    myCurrentStyle = textStyle;
   }
 
   public TextStyle getCurrent() {

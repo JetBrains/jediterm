@@ -69,8 +69,8 @@ public class ScrollingTest extends TestCase {
 
     assertEquals("line3\n" +
                  "line4\n" +
-                 "44\n", backBuffer.getLines());
+                 "44   \n", backBuffer.getLines());
 
-    assertEquals(4, writer.getCursorY());
+    assertEquals(3, writer.getCursorY());
   }
 }

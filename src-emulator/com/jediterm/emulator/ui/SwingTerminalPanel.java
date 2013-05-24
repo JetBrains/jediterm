@@ -469,7 +469,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
     public void drawCursor(Graphics2D g) {
       if (needsRepaint()) {
-        final int y = (myCursorCoordinates.y - 1 - myClientScrollOrigin);
+        final int y = getCoordY();
 
         if (y >= 0 && y < myTermSize.height) {
           TextStyle current = myStyleState.getCurrent();
@@ -512,12 +512,12 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       myCursorHasChanged = true;
     }
 
-    public int getX() {
+    public int getCoordX() {
       return myCursorCoordinates.x;
     }
 
-    public int getY() {
-      return myCursorCoordinates.y;
+    public int getCoordY() {
+      return myCursorCoordinates.y - 1 - myClientScrollOrigin;
     }
 
     public void setShouldDrawCursor(boolean shouldDrawCursor) {

@@ -1,0 +1,4 @@
+[1;25r set Scroll Region from line 1 to 25
+[24;01H this line should not be duplicated
+this line should be displayed
+this one too

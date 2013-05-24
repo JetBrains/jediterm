@@ -130,9 +130,9 @@ public class BackBuffer implements StyledTextConsumer {
     }
     for (int y = topY; y < bottomY; y++) {
       if (y > myHeight - 1 || y < 0) {
-        logger.error("attempt to clear line" + y + "\n" +
+        logger.error("attempt to clear line " + y + "\n" +
                      "args were x1:" + leftX + " y1:" + topY + " x2:"
-                     + rightX + "y2:" + bottomY);
+                     + rightX + " y2:" + bottomY);
       }
       else if (leftX > rightX) {
         logger.error("Attempt to clear backwards area: left:" + leftX + " > right:" + rightX);

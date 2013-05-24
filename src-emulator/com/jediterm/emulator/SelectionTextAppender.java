@@ -10,27 +10,27 @@ import java.awt.*;
 
 public class SelectionTextAppender implements StyledTextConsumer {
   private static final Logger logger = Logger.getLogger(SelectionTextAppender.class);
-  private final StringBuilder selection;
-  private final Point begin;
-  private final Point end;
+  private final StringBuilder mySelection;
+  private final Point myBegin;
+  private final Point myEnd;
 
   boolean first = true;
 
   public SelectionTextAppender(final StringBuilder selectionText, final Point begin, final Point end) {
-    this.selection = selectionText;
-    this.end = end;
-    this.begin = begin;
+    mySelection = selectionText;
+    myEnd = end;
+    myBegin = begin;
   }
 
   public void consume(final int x, final int y, final TextStyle style, final CharBuffer characters) {
     int startPos = characters.getStart();
     int extent = characters.getLen();
 
-    if (y == end.y) {
-      extent = Math.min(end.x - x, extent);
+    if (y == myEnd.y) {
+      extent = Math.min(myEnd.x - x, extent);
     }
-    if (y == begin.y) {
-      final int xAdj = Math.max(0, begin.x - x);
+    if (y == myBegin.y) {
+      final int xAdj = Math.max(0, myBegin.x - x);
       startPos += xAdj;
       extent -= xAdj;
       if (extent < 0) return;
@@ -38,7 +38,7 @@ public class SelectionTextAppender implements StyledTextConsumer {
     if (extent < 0) return; // The run is off the left edge of the selection on the first line,
     //  or off the right edge on the last line.
     if (characters.getLen() > 0) {
-      if (!first && x == 0) selection.append('\n');
+      if (!first && x == 0) mySelection.append('\n');
       first = false;
       if (startPos < 0) {
         logger.error("Attempt to copy to selection from before start of buffer");
@@ -47,7 +47,7 @@ public class SelectionTextAppender implements StyledTextConsumer {
         logger.error("Attempt to copy to selection from after end of buffer");
       }
       else {
-        selection.append(characters.getBuf(), startPos, extent);
+        mySelection.append(characters.getBuf(), startPos, extent);
       }
     }
   }

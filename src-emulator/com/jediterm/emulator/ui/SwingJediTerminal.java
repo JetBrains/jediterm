@@ -12,20 +12,22 @@ import org.apache.log4j.Logger;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.KeyListener;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SwingJediTerminal extends JPanel {
-  private static final Logger logger = Logger.getLogger(SwingJediTerminal.class);
-  private static final long serialVersionUID = -8213232075937432833L;
-  protected SwingTerminalPanel termPanel;
-  protected BufferedTerminalWriter terminalWriter;
-  protected AtomicBoolean sessionRunning = new AtomicBoolean();
-  protected PreConnectHandler preconnectHandler;
+  private static final Logger LOG = Logger.getLogger(SwingJediTerminal.class);
+  private static final long SERIAL_VERSION_UID = -8213232075937432833L;
+
+  protected SwingTerminalPanel myTerminalPanel;
+  protected BufferedTerminalWriter myTerminalWriter;
+  protected AtomicBoolean mySessionRunning = new AtomicBoolean();
+  protected PreConnectHandler myPreConnectHandler;
   private TtyConnector myTtyConnector;
-  private TtyChannel ttyChannel;
-  private Emulator emulator;
-  private Thread emuThread;
+  private TtyChannel myTtyChannel;
+  private Emulator myEmulator;
+  private Thread myEmuThread;
 
   public SwingJediTerminal() {
     this(80, 24);
@@ -43,18 +45,18 @@ public class SwingJediTerminal extends JPanel {
     LinesBuffer scrollBuffer = new LinesBuffer();
     BackBuffer backBuffer = new BackBuffer(columns, lines, styleState, scrollBuffer);
 
-    termPanel = createTerminalPanel(styleState, backBuffer, scrollBuffer);
-    terminalWriter = new BufferedTerminalWriter(termPanel, backBuffer, styleState);
-    preconnectHandler = createPreConnectHandler(terminalWriter);
-    termPanel.setKeyListener(preconnectHandler);
+    myTerminalPanel = createTerminalPanel(styleState, backBuffer, scrollBuffer);
+    myTerminalWriter = new BufferedTerminalWriter(myTerminalPanel, backBuffer, styleState);
+    myPreConnectHandler = createPreConnectHandler(myTerminalWriter);
+    myTerminalPanel.setKeyListener(myPreConnectHandler);
     JScrollBar scrollBar = createScrollBar();
 
-    add(termPanel, BorderLayout.CENTER);
+    add(myTerminalPanel, BorderLayout.CENTER);
     add(scrollBar, BorderLayout.EAST);
-    scrollBar.setModel(termPanel.getBoundedRangeModel());
-    sessionRunning.set(false);
+    scrollBar.setModel(myTerminalPanel.getBoundedRangeModel());
+    mySessionRunning.set(false);
 
-    termPanel.init();
+    myTerminalPanel.init();
   }
 
   protected JScrollBar createScrollBar() {
@@ -75,36 +77,36 @@ public class SwingJediTerminal extends JPanel {
     return new PreConnectHandler(writer);
   }
 
-  public SwingTerminalPanel getTermPanel() {
-    return termPanel;
+  public SwingTerminalPanel getTerminalPanel() {
+    return myTerminalPanel;
   }
 
   public void setTtyConnector(TtyConnector ttyConnector) {
     this.myTtyConnector = ttyConnector;
-    ttyChannel = new TtyChannel(ttyConnector);
+    myTtyChannel = new TtyChannel(ttyConnector);
 
-    emulator = new Emulator(terminalWriter, ttyChannel);
-    this.termPanel.setEmulator(emulator);
+    myEmulator = new Emulator(myTerminalWriter, myTtyChannel);
+    this.myTerminalPanel.setEmulator(myEmulator);
   }
 
   public void start() {
-    if (!sessionRunning.get()) {
-      emuThread = new Thread(new EmulatorTask());
-      emuThread.start();
+    if (!mySessionRunning.get()) {
+      myEmuThread = new Thread(new EmulatorTask());
+      myEmuThread.start();
     }
     else {
-      logger.error("Should not try to start session again at this point... ");
+      LOG.error("Should not try to start session again at this point... ");
     }
   }
 
   public void stop() {
-    if (sessionRunning.get() && emuThread != null) {
-      emuThread.interrupt();
+    if (mySessionRunning.get() && myEmuThread != null) {
+      myEmuThread.interrupt();
     }
   }
 
-  public boolean isSessionRunning() {
-    return sessionRunning.get();
+  public boolean getSessionRunning() {
+    return mySessionRunning.get();
   }
 
   public String getBufferText(BufferType type) {
@@ -112,8 +114,8 @@ public class SwingJediTerminal extends JPanel {
   }
 
   public void sendCommand(String string) throws IOException {
-    if (sessionRunning.get()) {
-      ttyChannel.sendBytes(string.getBytes());
+    if (mySessionRunning.get()) {
+      myTtyChannel.sendBytes(string.getBytes());
     }
   }
 
@@ -121,7 +123,7 @@ public class SwingJediTerminal extends JPanel {
   public boolean requestFocusInWindow() {
     SwingUtilities.invokeLater(new Runnable() {
       public void run() {
-        termPanel.requestFocusInWindow();
+        myTerminalPanel.requestFocusInWindow();
       }
     });
     return super.requestFocusInWindow();
@@ -130,22 +132,22 @@ public class SwingJediTerminal extends JPanel {
   public static enum BufferType {
     Back() {
       String getValue(SwingJediTerminal term) {
-        return term.getTermPanel().getBackBuffer().getLines();
+        return term.getTerminalPanel().getBackBuffer().getLines();
       }
     },
     BackStyle() {
       String getValue(SwingJediTerminal term) {
-        return term.getTermPanel().getBackBuffer().getStyleLines();
+        return term.getTerminalPanel().getBackBuffer().getStyleLines();
       }
     },
     Damage() {
       String getValue(SwingJediTerminal term) {
-        return term.getTermPanel().getBackBuffer().getDamageLines();
+        return term.getTerminalPanel().getBackBuffer().getDamageLines();
       }
     },
     Scroll() {
       String getValue(SwingJediTerminal term) {
-        return term.getTermPanel().getScrollBuffer().getLines();
+        return term.getTerminalPanel().getScrollBuffer().getLines();
       }
     };
 
@@ -155,17 +157,17 @@ public class SwingJediTerminal extends JPanel {
   class EmulatorTask implements Runnable {
     public void run() {
       try {
-        sessionRunning.set(true);
+        mySessionRunning.set(true);
         Thread.currentThread().setName(myTtyConnector.getName());
-        if (myTtyConnector.init(preconnectHandler)) {
+        if (myTtyConnector.init(myPreConnectHandler)) {
           Thread.currentThread().setName(myTtyConnector.getName());
           SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-              termPanel.setKeyListener(new ConnectedKeyHandler(emulator));
-              termPanel.requestFocusInWindow();
+              myTerminalPanel.setKeyListener(createEmulatorKeyHandler());
+              myTerminalPanel.requestFocusInWindow();
             }
           });
-          emulator.start();
+          myEmulator.start();
         }
       }
       finally {
@@ -174,9 +176,17 @@ public class SwingJediTerminal extends JPanel {
         }
         catch (Exception e) {
         }
-        sessionRunning.set(false);
-        termPanel.setKeyListener(preconnectHandler);
+        mySessionRunning.set(false);
+        myTerminalPanel.setKeyListener(myPreConnectHandler);
       }
     }
+  }
+
+  protected KeyListener createEmulatorKeyHandler() {
+    return new TerminalEmulatorKeyHandler(myEmulator);
+  }
+
+  public Emulator getEmulator() {
+    return myEmulator;
   }
 }

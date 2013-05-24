@@ -1,12 +1,16 @@
 package com.jediterm.pty;
 
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import jpty.JPty;
 import jpty.Pty;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author traff
@@ -18,11 +22,28 @@ public class PtyProcess extends Process {
   private String[] myArguments;
 
   public PtyProcess(String command, String[] arguments) {
+    this(command, arguments, new String[0]);
+  }
+
+  public PtyProcess(String command, String[] arguments, Map<String, String> environment) {
+    this(command, arguments, toStringArray(environment));
+  }
+
+  private static String[] toStringArray(Map<String, String> environment) {
+    List<String> list = Lists.transform(Lists.newArrayList(environment.entrySet()), new Function<Map.Entry<String, String>, String>() {
+      @Override
+      public String apply(Map.Entry<String, String> entry) {
+        return entry.getKey() + "=" + entry.getValue();
+      }
+    });
+    return list.toArray(new String[list.size()]);
+  }
+
+  public PtyProcess(String command, String[] arguments, String[] environment) {
     myArguments = arguments;
-    myPty = JPty.execInPTY(command, arguments);
+    myPty = JPty.execInPTY(command, arguments, environment);
 
     new Thread(new Runnable() {
-
       @Override
       public void run() {
         try {

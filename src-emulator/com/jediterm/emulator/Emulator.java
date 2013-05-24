@@ -32,7 +32,8 @@ import java.io.InterruptedIOException;
 
 
 public class Emulator {
-  private static final Logger logger = Logger.getLogger(Emulator.class);
+  private static final Logger LOG = Logger.getLogger(Emulator.class);
+
   private final TerminalWriter myTerminalWriter;
   final protected TtyChannel myTtyChannel;
 
@@ -68,14 +69,14 @@ public class Emulator {
       }
     }
     catch (final InterruptedIOException e) {
-      logger.info("Terminal exiting");
+      LOG.info("Terminal exiting");
     }
     catch (final Exception e) {
       if (!myTtyChannel.isConnected()) {
         myTerminalWriter.disconnected();
         return;
       }
-      logger.error("Caught exception in terminal thread", e);
+      LOG.error("Caught exception in terminal thread", e);
     }
   }
 
@@ -123,13 +124,13 @@ public class Emulator {
         if (b <= CharacterUtils.US) {
           StringBuffer sb = new StringBuffer("Unhandled control character:");
           CharacterUtils.appendChar(sb, CharacterUtils.CharacterType.NONE, b);
-          logger.error(sb.toString());
+          LOG.error(sb.toString());
         }
         else {
           myTtyChannel.pushChar(b);
           final int availableChars = myTtyChannel.advanceThroughASCII(myTerminalWriter.distanceToLineEnd());
 
-          myTerminalWriter.writeASCII(myTtyChannel.buf, myTtyChannel.offset - availableChars, availableChars);
+          myTerminalWriter.writeASCII(myTtyChannel.myBuf, myTtyChannel.myOffset - availableChars, availableChars);
         }
         break;
     }
@@ -174,12 +175,12 @@ public class Emulator {
               }
               break;
             default:
-              logger.error("Unhandled escape sequence : " + escapeSequenceToString(intermediate, intCount, b));
+              LOG.error("Unhandled escape sequence : " + escapeSequenceToString(intermediate, intCount, b));
           }
         }
       }
       else {
-        logger.error("Malformed escape sequence, pushing back to buffer: " + escapeSequenceToString(intermediate, intCount, b));
+        LOG.error("Malformed escape sequence, pushing back to buffer: " + escapeSequenceToString(intermediate, intCount, b));
 
         // Push backwards
         for (int i = intCount - 1; i >= 0; i--) {
@@ -223,7 +224,7 @@ public class Emulator {
   private void processControlSequence() throws IOException {
     final ControlSequence args = new ControlSequence(myTtyChannel);
 
-    if (logger.isDebugEnabled()) {
+    if (LOG.isDebugEnabled()) {
       StringBuffer sb = new StringBuffer();
       sb.append("Control sequence\n");
       sb.append("parsed                        :");
@@ -231,7 +232,7 @@ public class Emulator {
       sb.append('\n');
       sb.append("bytes read                    :ESC[");
       args.appendActualBytesRead(sb, myTtyChannel);
-      logger.debug(sb.toString());
+      LOG.debug(sb.toString());
     }
     if (args.pushBackReordered(myTtyChannel)) return;
 
@@ -276,8 +277,8 @@ public class Emulator {
           // What are you
           // ESC [ c or ESC [ 0 c
           // Response is ESC [ ? 6 c
-          if (logger.isDebugEnabled()) {
-            logger.debug("Identifying to remote system as VT102");
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Identifying to remote system as VT102");
           }
           myTtyChannel.sendBytes(CharacterUtils.DEVICE_ATTRIBUTES_RESPONSE);
           break;
@@ -289,7 +290,7 @@ public class Emulator {
           sb.append('\n');
           sb.append("bytes read                    :ESC[");
           args.appendActualBytesRead(sb, myTtyChannel);
-          logger.error(sb.toString());
+          LOG.error(sb.toString());
           break;
       }
     }
@@ -359,7 +360,7 @@ public class Emulator {
     for (int i = 0; i < argCount; i++) {
       final int arg = args.getArg(i, -1);
       if (arg == -1) {
-        logger.error("Error in processing char attributes, arg " + i);
+        LOG.error("Error in processing char attributes, arg " + i);
         continue;
       }
 
@@ -393,7 +394,7 @@ public class Emulator {
             styleState.setCurrentBackground(COLORS[arg - 40]);
           }
           else {
-            logger.error("Unknown character attribute:" + arg);
+            LOG.error("Unknown character attribute:" + arg);
           }
       }
     }
@@ -417,14 +418,14 @@ public class Emulator {
       }
 
       if (mode == null) {
-        logger.error("Unknown mode " + num);
+        LOG.error("Unknown mode " + num);
       }
       else if (on) {
-        if (logger.isInfoEnabled()) logger.info("Modes: adding " + mode);
+        if (LOG.isInfoEnabled()) LOG.info("Modes: adding " + mode);
         myTerminalWriter.setMode(mode);
       }
       else {
-        if (logger.isInfoEnabled()) logger.info("Modes: removing " + mode);
+        if (LOG.isInfoEnabled()) LOG.info("Modes: removing " + mode);
         myTerminalWriter.unsetMode(mode);
       }
     }

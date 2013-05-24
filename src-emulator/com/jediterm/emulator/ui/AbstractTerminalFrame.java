@@ -15,38 +15,38 @@ public abstract class AbstractTerminalFrame {
 
   public static final Logger LOG = Logger.getLogger(AbstractTerminalFrame.class);
 
-  JFrame bufferFrame;
+  JFrame myBufferFrame;
 
-  private SwingTerminalPanel termPanel;
+  private SwingTerminalPanel myTerminalPanel;
 
-  private SwingJediTerminal terminal;
+  private SwingJediTerminal myTerminal;
 
-  private AbstractAction openAction = new AbstractAction("Open SHELL Session...") {
+  private AbstractAction myOpenAction = new AbstractAction("Open SHELL Session...") {
     public void actionPerformed(final ActionEvent e) {
       openSession();
     }
   };
 
-  private AbstractAction showBuffersAction = new AbstractAction("Show buffers") {
+  private AbstractAction myShowBuffersAction = new AbstractAction("Show buffers") {
     public void actionPerformed(final ActionEvent e) {
-      if (bufferFrame == null) {
+      if (myBufferFrame == null) {
         showBuffers();
       }
     }
   };
 
-  private AbstractAction resetDamage = new AbstractAction("Reset damage") {
+  private AbstractAction myResetDamage = new AbstractAction("Reset damage") {
     public void actionPerformed(final ActionEvent e) {
-      if (termPanel != null) {
-        termPanel.getBackBuffer().resetDamage();
+      if (myTerminalPanel != null) {
+        myTerminalPanel.getBackBuffer().resetDamage();
       }
     }
   };
 
-  private AbstractAction drawDamage = new AbstractAction("Draw from damage") {
+  private AbstractAction myDrawDamage = new AbstractAction("Draw from damage") {
     public void actionPerformed(final ActionEvent e) {
-      if (termPanel != null) {
-        termPanel.redraw();
+      if (myTerminalPanel != null) {
+        myTerminalPanel.redraw();
       }
     }
   };
@@ -55,29 +55,29 @@ public abstract class AbstractTerminalFrame {
     final JMenuBar mb = new JMenuBar();
     final JMenu m = new JMenu("File");
 
-    m.add(openAction);
+    m.add(myOpenAction);
     mb.add(m);
     final JMenu dm = new JMenu("Debug");
 
-    dm.add(showBuffersAction);
-    dm.add(resetDamage);
-    dm.add(drawDamage);
+    dm.add(myShowBuffersAction);
+    dm.add(myResetDamage);
+    dm.add(myDrawDamage);
     mb.add(dm);
 
     return mb;
   }
 
   private void openSession() {
-    if (!terminal.isSessionRunning()) {
-      openSession(terminal);
+    if (!myTerminal.getSessionRunning()) {
+      openSession(myTerminal);
     }
   }
 
   public abstract void openSession(SwingJediTerminal terminal);
 
   protected AbstractTerminalFrame() {
-    terminal = new SwingJediTerminal();
-    termPanel = terminal.getTermPanel();
+    myTerminal = new SwingJediTerminal();
+    myTerminalPanel = myTerminal.getTerminalPanel();
     final JFrame frame = new JFrame("JediTerm");
 
     frame.addWindowListener(new WindowAdapter() {
@@ -90,15 +90,15 @@ public abstract class AbstractTerminalFrame {
     final JMenuBar mb = getJMenuBar();
     frame.setJMenuBar(mb);
     sizeFrameForTerm(frame);
-    frame.getContentPane().add("Center", terminal);
+    frame.getContentPane().add("Center", myTerminal);
 
     frame.pack();
-    termPanel.setVisible(true);
+    myTerminalPanel.setVisible(true);
     frame.setVisible(true);
 
     frame.setResizable(true);
 
-    termPanel.setResizePanelDelegate(new ResizePanelDelegate() {
+    myTerminalPanel.setResizePanelDelegate(new ResizePanelDelegate() {
       public void resizedPanel(final Dimension pixelDimension, final RequestOrigin origin) {
         if (origin == RequestOrigin.Remote) {
           sizeFrameForTerm(frame);
@@ -110,7 +110,7 @@ public abstract class AbstractTerminalFrame {
   }
 
   private void sizeFrameForTerm(final JFrame frame) {
-    Dimension d = terminal.getPreferredSize();
+    Dimension d = myTerminal.getPreferredSize();
 
     d.width += frame.getWidth() - frame.getContentPane().getWidth();
     d.height += frame.getHeight() - frame.getContentPane().getHeight();
@@ -120,18 +120,18 @@ public abstract class AbstractTerminalFrame {
   private void showBuffers() {
     SwingUtilities.invokeLater(new Runnable() {
       public void run() {
-        bufferFrame = new JFrame("buffers");
-        final JPanel panel = new BufferPanel(terminal);
+        myBufferFrame = new JFrame("buffers");
+        final JPanel panel = new BufferPanel(myTerminal);
 
-        bufferFrame.getContentPane().add(panel);
-        bufferFrame.pack();
-        bufferFrame.setVisible(true);
-        bufferFrame.setSize(800, 600);
+        myBufferFrame.getContentPane().add(panel);
+        myBufferFrame.pack();
+        myBufferFrame.setVisible(true);
+        myBufferFrame.setSize(800, 600);
 
-        bufferFrame.addWindowListener(new WindowAdapter() {
+        myBufferFrame.addWindowListener(new WindowAdapter() {
           @Override
           public void windowClosing(final WindowEvent e) {
-            bufferFrame = null;
+            myBufferFrame = null;
           }
         });
       }

@@ -49,8 +49,8 @@ public class ControlSequence {
     int seenDigit = 0;
     int pos = -1;
 
-    bufferVersion = channel.serial;
-    startInBuf = channel.offset;
+    bufferVersion = channel.mySerial;
+    startInBuf = channel.myOffset;
 
     while (true) {
       final char b = channel.getChar();
@@ -82,8 +82,8 @@ public class ControlSequence {
         addUnhandled(b);
       }
     }
-    if (bufferVersion == channel.serial) {
-      lengthInBuf = channel.offset - startInBuf;
+    if (bufferVersion == channel.mySerial) {
+      lengthInBuf = channel.myOffset - startInBuf;
     }
     else {
       lengthInBuf = -1;
@@ -162,7 +162,7 @@ public class ControlSequence {
     if (lengthInBuf == -1) {
       sb.append("TermIOBuffer filled in reading");
     }
-    else if (bufferVersion != buffer.serial) {
+    else if (bufferVersion != buffer.mySerial) {
       sb.append("TermIOBuffer filled after reading");
     }
     else {

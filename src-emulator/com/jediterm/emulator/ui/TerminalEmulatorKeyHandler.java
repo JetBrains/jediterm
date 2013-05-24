@@ -7,11 +7,11 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.IOException;
 
-public class ConnectedKeyHandler implements KeyListener {
-  private static Logger logger = Logger.getLogger(ConnectedKeyHandler.class);
+public class TerminalEmulatorKeyHandler implements KeyListener {
+  private static Logger logger = Logger.getLogger(TerminalEmulatorKeyHandler.class);
   private final Emulator myEmulator;
 
-  public ConnectedKeyHandler(Emulator emu) {
+  public TerminalEmulatorKeyHandler(Emulator emu) {
     myEmulator = emu;
   }
 

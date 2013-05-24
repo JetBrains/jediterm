@@ -9,71 +9,71 @@ import java.io.IOException;
 public class TtyChannel {
   private TtyConnector myTtyConnector;
 
-  char[] buf = new char[1024];
+  char[] myBuf = new char[1024];
 
-  int offset = 0;
+  int myOffset = 0;
 
-  int length = 0;
+  int myLength = 0;
 
-  int serial;
+  int mySerial;
 
   public TtyChannel(final TtyConnector ttyConnector) {
-    this.myTtyConnector = ttyConnector;
-    serial = 0;
+    myTtyConnector = ttyConnector;
+    mySerial = 0;
   }
 
   public char getChar() throws IOException {
-    if (length == 0) {
+    if (myLength == 0) {
       fillBuf();
     }
-    length--;
+    myLength--;
 
-    return buf[offset++];
+    return myBuf[myOffset++];
   }
 
   public void appendBuf(final StringBuffer sb, final int begin, final int length) {
-    CharacterUtils.appendBuf(sb, buf, begin, length);
+    CharacterUtils.appendBuf(sb, myBuf, begin, length);
   }
 
   private void fillBuf() throws IOException {
-    offset = 0;
-    length = myTtyConnector.read(buf, offset, buf.length);
-    serial++;
+    myOffset = 0;
+    myLength = myTtyConnector.read(myBuf, myOffset, myBuf.length);
+    mySerial++;
 
-    if (length <= 0) {
-      length = 0;
+    if (myLength <= 0) {
+      myLength = 0;
       throw new IOException("Connection lost.");
     }
   }
 
   public void pushChar(final char b) throws IOException {
-    if (offset == 0) {
+    if (myOffset == 0) {
       // Pushed back too many... shift it up to the end.
-      offset = buf.length - length;
-      System.arraycopy(buf, 0, buf, offset, length);
+      myOffset = myBuf.length - myLength;
+      System.arraycopy(myBuf, 0, myBuf, myOffset, myLength);
     }
 
-    length++;
-    buf[--offset] = b;
+    myLength++;
+    myBuf[--myOffset] = b;
   }
 
   int advanceThroughASCII(int toLineEnd) throws IOException {
-    if (length == 0) {
+    if (myLength == 0) {
       fillBuf();
     }
 
-    int len = toLineEnd > length ? length : toLineEnd;
+    int len = toLineEnd > myLength ? myLength : toLineEnd;
 
     final int origLen = len;
     char tmp;
     while (len > 0) {
-      tmp = buf[offset++];
+      tmp = myBuf[myOffset++];
       if (0x20 <= tmp) { //stop when we reach control chars
-        length--;
+        myLength--;
         len--;
         continue;
       }
-      offset--;
+      myOffset--;
       break;
     }
     return origLen - len;

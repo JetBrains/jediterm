@@ -42,7 +42,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
   private BufferedImage myImage;
 
-  private Graphics2D myGfx;
+  protected Graphics2D myGfx;
 
   private final Component myTerminalPanel = this;
 
@@ -54,9 +54,9 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
   private int myLineSpace = 0;
 
-  Dimension myCharSize = new Dimension();
+  protected Dimension myCharSize = new Dimension();
 
-  Dimension myTermSize = new Dimension(80, 24);
+  protected Dimension myTermSize = new Dimension(80, 24);
 
   private boolean myAntialiasing = true;
 
@@ -76,7 +76,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   final private LinesBuffer myScrollBuffer;
   final private StyleState myStyleState;
 
-  final private Cursor myCursor = new Cursor();
+  final private TerminalCursor myCursor = new TerminalCursor();
 
   private final BoundedRangeModel myBoundedRangeModel = new DefaultBoundedRangeModel(0, 80, 0, 80);
 
@@ -443,9 +443,8 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   }
 
 
-  private class Cursor {
+  public class TerminalCursor {
     private static final long CURSOR_BLINK_PERIOD = 505;
-
 
     private boolean myCursorHasChanged;
 
@@ -511,6 +510,14 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     public void setY(int y) {
       myCursorCoordinates.y = y;
       myCursorHasChanged = true;
+    }
+
+    public int getX() {
+      return myCursorCoordinates.x;
+    }
+
+    public int getY() {
+      return myCursorCoordinates.y;
     }
 
     public void setShouldDrawCursor(boolean shouldDrawCursor) {
@@ -801,6 +808,9 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     myCursor.setShouldDrawCursor(shouldDrawCursor);
   }
 
+  public TerminalCursor getTerminalCursor() {
+    return myCursor;
+  }
 
   protected JPopupMenu createPopupMenu(final Point selectionStart, final Point selectionEnd, String content) {
     JPopupMenu popup = new JPopupMenu();

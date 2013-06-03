@@ -103,7 +103,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
     establishFontMetrics();
 
-    setUpImages();
+    setupImages();
     setUpClipboard();
 
     setPreferredSize(new Dimension(getPixelWidth(), getPixelHeight()));
@@ -150,7 +150,8 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
         if (e.getButton() == MouseEvent.BUTTON3) {
           JPopupMenu popup = createPopupMenu(mySelectionStart, mySelectionEnd, getClipboardString());
           popup.show(e.getComponent(), e.getX(), e.getY());
-        } else {
+        }
+        else {
           mySelectionStart = null;
           mySelectionEnd = null;
         }
@@ -283,13 +284,17 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   public void lostOwnership(final Clipboard clipboard, final Transferable contents) {
   }
 
-  private void setUpImages() {
+  private void setupImages() {
     final BufferedImage oldImage = myImage;
     int width = getPixelWidth();
     int height = getPixelHeight();
     if (width > 0 && height > 0) {
       myImage = createBufferedImage(width, height);
       myGfx = myImage.createGraphics();
+
+      if (UIUtil.scaleFactor != null) {
+        myGfx.scale(UIUtil.scaleFactor, UIUtil.scaleFactor);
+      }
       setupAntialiasing(myGfx, myAntialiasing);
 
       myGfx.setColor(getBackground());
@@ -340,7 +345,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
         myBackBuffer.resize(newSize, origin, cursorY, resizeHandler);
         myTermSize = (Dimension)newSize.clone();
         // resize images..
-        setUpImages();
+        setupImages();
 
         final Dimension pixelDimension = new Dimension(getPixelWidth(), getPixelHeight());
 

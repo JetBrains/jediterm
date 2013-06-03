@@ -5,21 +5,26 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import jpty.JPty;
 import jpty.Pty;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Semaphore;
 
 /**
  * @author traff
  */
 public class PtyProcess extends Process {
+  private static final Logger LOG = Logger.getLogger(PtyProcess.class);
+
   private final Pty myPty;
   private int myExitCode;
   private boolean myFinished = false;
   private String[] myArguments;
+  private Semaphore myWaitForSemaphore = new Semaphore(0);
 
   public PtyProcess(String command, String[] arguments) {
     this(command, arguments, new String[0]);
@@ -43,18 +48,24 @@ public class PtyProcess extends Process {
     myArguments = arguments;
     myPty = JPty.execInPTY(command, arguments, environment);
 
-    new Thread(new Runnable() {
+    startThread(new Runnable() {
       @Override
       public void run() {
         try {
           myExitCode = myPty.waitFor();
         }
         catch (InterruptedException e) {
+          LOG.info("WaitFor thread interrupted: " + e.getMessage(), e);
           myExitCode = -1;
         }
         myFinished = true;
+        myWaitForSemaphore.release();
       }
-    }).start();
+    });
+  }
+
+  protected void startThread(Runnable runnable) {
+    new Thread(runnable).start();
   }
 
   @Override
@@ -74,7 +85,8 @@ public class PtyProcess extends Process {
 
   @Override
   public int waitFor() throws InterruptedException {
-    return myPty.waitFor();
+    myWaitForSemaphore.acquire();
+    return exitValue();
   }
 
   @Override

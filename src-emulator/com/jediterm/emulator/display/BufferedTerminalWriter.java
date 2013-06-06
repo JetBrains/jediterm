@@ -163,7 +163,7 @@ public class BufferedTerminalWriter implements TerminalWriter {
 
   private void moveLine() {
     if (myCursorY <= myTerminalHeight) {
-      myBackBuffer.moveToTextBuffer(myCursorY);
+      myBackBuffer.moveToTextBuffer(myCursorX, myCursorY);
     }
     myCursorY += 1;
   }

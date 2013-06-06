@@ -38,7 +38,7 @@ public class LinesBuffer implements StyledTextConsumer {
   }
 
   @Override
-  public void consume(int x, int y, TextStyle style, CharBuffer characters) {
+  public void consume(int x, int y, TextStyle style, CharBuffer characters, int startRaw) {
     addToBuffer(style, characters, x == 0);
   }
 
@@ -69,13 +69,25 @@ public class LinesBuffer implements StyledTextConsumer {
     removeLines(0, count);
   }
 
-  public void removeLines(int from, int to) {
-    iterateLines(from, to, new TextEntryProcessor() {
+  public void removeLines(int from, int count) {
+    iterateLines(from, count, new TextEntryProcessor() {
       @Override
       public boolean process(int x, int y, TextEntry entry) {
         return true;
       }
     });
+  }
+
+  public String getLine(int row) {
+    final StringBuilder result = new StringBuilder();
+    iterateLines(row, 1, new TextEntryProcessor() {
+      @Override
+      public boolean process(int x, int y, TextEntry entry) {
+        result.append(entry.getText());
+        return false;
+      }
+    });
+    return result.toString();
   }
 
 
@@ -87,11 +99,11 @@ public class LinesBuffer implements StyledTextConsumer {
   }
 
   public synchronized void processLines(final int firstLine, final int count, final StyledTextConsumer consumer) {
-    final int lines = myTotalLines;
+    final int linesShift = myTotalLines;
     iterateLines(myTotalLines + firstLine, count, new TextEntryProcessor() {
       @Override
       public boolean process(int x, int y, TextEntry entry) {
-        consumer.consume(x, y - lines, entry.getStyle(), entry.getText());
+        consumer.consume(x, y - linesShift, entry.getStyle(), entry.getText(), -myTotalLines); //TODO: first line as a parameter
         return false;
       }
     });
@@ -131,7 +143,7 @@ public class LinesBuffer implements StyledTextConsumer {
     iterateLines(0, count, new TextEntryProcessor() {
       @Override
       public boolean process(int x, int y, TextEntry entry) {
-        buffer.consume(x, y, entry.getStyle(), entry.getText());
+        buffer.consume(x, y, entry.getStyle(), entry.getText(), 0);
         return true;
       }
     });

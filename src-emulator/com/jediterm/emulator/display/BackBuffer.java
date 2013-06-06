@@ -10,7 +10,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class BackBuffer implements StyledTextConsumer {
-  private static final Logger logger = Logger.getLogger(BackBuffer.class);
+  private static final Logger LOG = Logger.getLogger(BackBuffer.class);
+
   private static final char EMPTY_CHAR = ' '; // (char) 0x0;
 
   private char[] myBuf;
@@ -26,7 +27,6 @@ public class BackBuffer implements StyledTextConsumer {
   private int myHeight;
 
   private final Lock myLock = new ReentrantLock();
-  private int myTextLinesCount;
 
   public BackBuffer(final int width, final int height, StyleState styleState, LinesBuffer scrollBuffer) {
     myStyleState = styleState;
@@ -106,8 +106,7 @@ public class BackBuffer implements StyledTextConsumer {
 
     if (myWidth > oldWidth || textBufferUpdated) {
       //we need to fill new space with data from the text buffer
-      myTextLinesCount = myTextBuffer.getLineCount();
-      myTextBuffer.processLines(-myTextLinesCount, myTextLinesCount, this);
+      myTextBuffer.processLines(-getTextBufferLinesCount(), getTextBufferLinesCount(), this);
     }
 
     if (myTextBuffer.getLineCount() >= myHeight) {
@@ -125,17 +124,17 @@ public class BackBuffer implements StyledTextConsumer {
 
   public void clearArea(final int leftX, final int topY, final int rightX, final int bottomY) {
     if (topY > bottomY) {
-      logger.error("Attempt to clear upside down area: top:" + topY + " > bottom:" + bottomY);
+      LOG.error("Attempt to clear upside down area: top:" + topY + " > bottom:" + bottomY);
       return;
     }
     for (int y = topY; y < bottomY; y++) {
       if (y > myHeight - 1 || y < 0) {
-        logger.error("attempt to clear line " + y + "\n" +
-                     "args were x1:" + leftX + " y1:" + topY + " x2:"
-                     + rightX + " y2:" + bottomY);
+        LOG.error("attempt to clear line " + y + "\n" +
+                  "args were x1:" + leftX + " y1:" + topY + " x2:"
+                  + rightX + " y2:" + bottomY);
       }
       else if (leftX > rightX) {
-        logger.error("Attempt to clear backwards area: left:" + leftX + " > right:" + rightX);
+        LOG.error("Attempt to clear backwards area: left:" + leftX + " > right:" + rightX);
       }
       else {
         Arrays.fill(myBuf,
@@ -157,13 +156,13 @@ public class BackBuffer implements StyledTextConsumer {
   public void drawBytes(final int x, final int y, final char[] bytes, final int start, final int len) {
     final int adjY = y - 1;
     if (adjY >= myHeight || adjY < 0) {
-      if (logger.isDebugEnabled()) {
+      if (LOG.isDebugEnabled()) {
         StringBuffer sb = new StringBuffer("Attempt to draw line ")
           .append(adjY).append(" at (").append(x).append(",")
           .append(y).append(")");
 
         CharacterUtils.appendBuf(sb, bytes, start, len);
-        logger.debug(sb);
+        LOG.debug(sb);
       }
       return;
     }
@@ -184,8 +183,8 @@ public class BackBuffer implements StyledTextConsumer {
   private void drawString(int x, int y, String str, TextStyle style) {
     final int adjY = y - 1;
     if (adjY >= myHeight || adjY < 0) {
-      if (logger.isDebugEnabled()) {
-        logger.debug("Attempt to draw line out of bounds: " + adjY + " at (" + x + "," + y + ")");
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Attempt to draw line out of bounds: " + adjY + " at (" + x + "," + y + ")");
       }
       return;
     }
@@ -213,11 +212,11 @@ public class BackBuffer implements StyledTextConsumer {
   private void moveLinesUp(int y, int dy, int lastLine) {
     for (int line = y + dy + 1; line < lastLine; line++) {
       if (line > myHeight - 1) {
-        logger.error("Attempt to scroll line from below bottom of screen:" + line);
+        LOG.error("Attempt to scroll line from below bottom of screen:" + line);
         continue;
       }
       if (line + dy < 0) {
-        logger.error("Attempt to scroll to line off top of screen" + (line + dy));
+        LOG.error("Attempt to scroll to line off top of screen" + (line + dy));
         continue;
       }
 
@@ -231,11 +230,11 @@ public class BackBuffer implements StyledTextConsumer {
   private void moveLinesDown(int y, int dy, int lastLine) {
     for (int line = lastLine - dy; line >= y; line--) {
       if (line < 0) {
-        logger.error("Attempt to scroll line from above top of screen:" + line);
+        LOG.error("Attempt to scroll line from above top of screen:" + line);
         continue;
       }
       if (line + dy + 1 > myHeight) {
-        logger.error("Attempt to scroll line off bottom of screen:" + (line + dy));
+        LOG.error("Attempt to scroll line off bottom of screen:" + (line + dy));
         continue;
       }
       System.arraycopy(myBuf, line * myWidth, myBuf, (line + dy) * myWidth, myWidth);
@@ -252,7 +251,7 @@ public class BackBuffer implements StyledTextConsumer {
       for (int row = 0; row < myHeight; row++) {
         for (int col = 0; col < myWidth; col++) {
           final TextStyle style = myStyleBuf[row * myWidth + col];
-          int styleNum = style == null ? styleNum = 0 : style.getNumber();
+          int styleNum = style == null ? 0 : style.getNumber();
           sb.append(String.format("%03d ", styleNum));
         }
         sb.append("\n");
@@ -307,6 +306,10 @@ public class BackBuffer implements StyledTextConsumer {
     }
   }
 
+  public void processTextBuffer(final int startRow, final int height, final StyledTextConsumer consumer) {
+    myTextBuffer.processLines(startRow - getTextBufferLinesCount(), Math.min(height, myTextBuffer.getLineCount()), consumer);
+  }
+
   public void processBufferRows(final int startRow, final int height, final StyledTextConsumer consumer) {
     processBufferCells(0, startRow, myWidth, height, consumer);
   }
@@ -350,17 +353,17 @@ public class BackBuffer implements StyledTextConsumer {
       }
       else if (!cellStyle.equals(lastStyle)) {
         //start of new run
-        consumer.consume(beginRun, row, lastStyle, new CharBuffer(myBuf, row * myWidth + beginRun, col - beginRun));
+        consumer.consume(beginRun, row, lastStyle, new CharBuffer(myBuf, row * myWidth + beginRun, col - beginRun), 0);
         beginRun = col;
         lastStyle = cellStyle;
       }
     }
     //end row
     if (lastStyle == null) {
-      logger.error("Style is null for run supposed to be from " + beginRun + " to " + endCol + "on row " + row);
+      LOG.error("Style is null for run supposed to be from " + beginRun + " to " + endCol + "on row " + row);
     }
     else {
-      consumer.consume(beginRun, row, lastStyle, new CharBuffer(myBuf, row * myWidth + beginRun, endCol - beginRun));
+      consumer.consume(beginRun, row, lastStyle, new CharBuffer(myBuf, row * myWidth + beginRun, endCol - beginRun), 0);
     }
   }
 
@@ -383,7 +386,7 @@ public class BackBuffer implements StyledTextConsumer {
         for (int col = startCol; col < endCol; col++) {
           final int location = row * myWidth + col;
           if (location < 0 || location > myStyleBuf.length) {
-            logger.error("Requested out of bounds runs: pumpFromDamage");
+            LOG.error("Requested out of bounds runs: pumpFromDamage");
             continue;
           }
           final TextStyle cellStyle = myStyleBuf[location];
@@ -420,7 +423,7 @@ public class BackBuffer implements StyledTextConsumer {
   }
 
   private void flushStyledText(StyledTextConsumer consumer, int row, TextStyle lastStyle, int beginRun, int col) {
-    consumer.consume(beginRun, row, lastStyle, new CharBuffer(myBuf, row * myWidth + beginRun, col - beginRun));
+    consumer.consume(beginRun, row, lastStyle, new CharBuffer(myBuf, row * myWidth + beginRun, col - beginRun), 0);
   }
 
   public boolean hasDamage() {
@@ -439,19 +442,25 @@ public class BackBuffer implements StyledTextConsumer {
     return myLock.tryLock();
   }
 
-  public void moveToTextBuffer(int cursorY) {
-    if (myTextBuffer.getLineCount()>cursorY) {
+  public void moveToTextBuffer(int cursorX, int cursorY) {
+    if (myTextBuffer.getLineCount() > cursorY) {
       myTextBuffer.removeLines(cursorY - 1, myTextBuffer.getLineCount());
     }
-    processBufferRow(cursorY - 1, myTextBuffer);
+    processBufferRow(cursorY - 1, 0, Math.max(getLineTrimTrailing(cursorY - 1).length(), cursorX), myTextBuffer);
+  }
+
+  private String getLineTrimTrailing(int row) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(myBuf, row * myWidth, myWidth);
+    return Util.trimTrailing(sb.toString());
   }
 
   @Override
-  public void consume(int x, int y, TextStyle style, CharBuffer characters) {
+  public void consume(int x, int y, TextStyle style, CharBuffer characters, int startRaw) {
     int len = Math.min(myWidth - x, characters.getLen());
 
     if (len > 0) {
-      drawString(x, y + myTextLinesCount + 1, new String(characters.getBuf(), characters.getStart(), len), style);
+      drawString(x, y - startRaw, new String(characters.getBuf(), characters.getStart(), len), style);
     }
   }
 
@@ -466,5 +475,17 @@ public class BackBuffer implements StyledTextConsumer {
   public void clearLines(int startRow, int endRow) {
     myTextBuffer.removeLines(startRow, endRow); //TODO: when we remove lines from the mi possibly we need to insert empty lines
     clearArea(0, startRow, myWidth, endRow);
+  }
+
+  public int getTextBufferLinesCount() {
+    return myTextBuffer.getLineCount();
+  }
+
+  public String getTextBufferLines() {
+    return myTextBuffer.getLines();
+  }
+
+  public boolean checkTextBufferIsValid(int row) {
+    return myTextBuffer.getLine(row).contains(getLineTrimTrailing(row));//in a raw back buffer is always a prefix of text buffer
   }
 }

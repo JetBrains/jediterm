@@ -149,7 +149,13 @@ public class SwingJediTerminal extends JPanel {
       String getValue(SwingJediTerminal term) {
         return term.getTerminalPanel().getScrollBuffer().getLines();
       }
+    },
+    Text() {
+      String getValue(SwingJediTerminal term) {
+        return term.getTerminalPanel().getBackBuffer().getTextBufferLines();
+      }
     };
+
 
     abstract String getValue(SwingJediTerminal term);
   }

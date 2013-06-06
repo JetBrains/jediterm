@@ -561,7 +561,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   }
 
   @Override
-  public void consume(int x, int y, TextStyle style, CharBuffer buf) {
+  public void consume(int x, int y, TextStyle style, CharBuffer buf, int startRaw) {
     if (myGfx != null) {
       myGfx.setColor(myStyleState.getBackground(style.getBackgroundForRun()));
       myGfx

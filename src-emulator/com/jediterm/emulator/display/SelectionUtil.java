@@ -1,6 +1,7 @@
 package com.jediterm.emulator.display;
 
 import com.jediterm.emulator.SelectionTextAppender;
+import org.apache.log4j.Logger;
 
 import java.awt.*;
 
@@ -8,9 +9,11 @@ import java.awt.*;
  * @author traff
  */
 public class SelectionUtil {
-  public static String getSelectionText(Point selectionStart,
-                                        Point selectionEnd,
-                                        LinesBuffer scrollBuffer, BackBuffer backBuffer) {
+  private static final Logger LOG = Logger.getLogger(SelectionUtil.class);
+
+  public static String getSelectionText(final Point selectionStart,
+                                        final Point selectionEnd,
+                                        final LinesBuffer scrollBuffer, final BackBuffer backBuffer) {
     Point top;
     Point bottom;
     int terminalWidth = backBuffer.getWidth();
@@ -30,7 +33,7 @@ public class SelectionUtil {
 
     final StringBuilder selectionText = new StringBuilder();
 
-    if (top.y < 0) {
+    if (top.y < 0) {  //add lines from scroll buffer
       final Point scrollEnd = bottom.y >= 0 ? new Point(terminalWidth, -1) : bottom;
       SelectionTextAppender scrollText = new SelectionTextAppender(top, scrollEnd);
       scrollBuffer.processLines(top.y, scrollEnd.y - top.y,
@@ -41,13 +44,24 @@ public class SelectionUtil {
     if (bottom.y >= 0) {
       final Point backBegin = top.y < 0 ? new Point(0, 0) : top;
       SelectionTextAppender bufferText = new SelectionTextAppender(backBegin, bottom);
-      backBuffer.processBufferCells(0, backBegin.y, terminalWidth, bottom.y - backBegin.y + 1,
-                                    bufferText);
+      for (int y = backBegin.y; y < bottom.y; y++) {
+        if (backBuffer.checkTextBufferIsValid(y)) {
+          backBuffer.processTextBuffer(y, 1, bufferText);
+        }
+        else {
+          LOG.error("Text buffer has invalid content");
+          backBuffer.processBufferRow(y, bufferText);
+        }
+      }
+      backBuffer.processBufferRow(bottom.y, 0, bottom.x, bufferText); //process the last line
+
       if (selectionText.length() > 0) {
         selectionText.append("\n");
       }
       selectionText.append(bufferText.getText());
     }
+
+
     return selectionText.toString();
   }
 }

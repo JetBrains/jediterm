@@ -22,10 +22,10 @@ public class StyleState {
 
   private static TextStyle merge(TextStyle style, TextStyle defaultStyle) {
     TextStyle newStyle = style;
-    if (newStyle.getBackground() == null) {
+    if (newStyle.getBackground() == null && defaultStyle.getBackground() != null) {
       newStyle = newStyle.setBackground(defaultStyle.getBackground());
     }
-    if (newStyle.getForeground() == null) {
+    if (newStyle.getForeground() == null && defaultStyle.getForeground() != null) {
       newStyle = newStyle.setForeground(defaultStyle.getForeground());
     }
     return newStyle;

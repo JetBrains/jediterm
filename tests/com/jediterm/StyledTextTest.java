@@ -6,6 +6,7 @@ import com.jediterm.emulator.display.BufferedTerminalWriter;
 import com.jediterm.emulator.display.LinesBuffer;
 import com.jediterm.emulator.display.StyleState;
 import com.jediterm.util.BackBufferDisplay;
+import com.jediterm.util.TestStyle;
 import junit.framework.TestCase;
 
 import java.awt.*;
@@ -14,8 +15,8 @@ import java.awt.*;
  * @author traff
  */
 public class StyledTextTest extends TestCase {
-  private static final TextStyle GREEN = new TextStyle(Color.GREEN, null);
-  private static final TextStyle BLACK = new TextStyle(Color.BLACK, null);
+  private static final TextStyle GREEN = new TestStyle(6, Color.GREEN, null);
+  private static final TextStyle BLACK = new TestStyle(4, Color.BLACK, null);
 
 
   public void testStyledTest1() {

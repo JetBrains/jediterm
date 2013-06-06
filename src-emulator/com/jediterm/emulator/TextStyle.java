@@ -82,7 +82,7 @@ public class TextStyle implements Cloneable {
   private final Color myForeground;
   private final Color myBackground;
   private EnumSet<Option> myOptions;
-  private int number;
+  protected int myNumber;
 
   public TextStyle() {
     this(null, null, NO_OPTIONS);
@@ -93,10 +93,10 @@ public class TextStyle implements Cloneable {
   }
 
   public TextStyle(final Color foreground, final Color background, final EnumSet<Option> options) {
-    number = COUNT++;
-    this.myForeground = foreground;
-    this.myBackground = background;
-    this.myOptions = options.clone();
+    myNumber = COUNT++;
+    myForeground = foreground;
+    myBackground = background;
+    myOptions = options.clone();
   }
 
 
@@ -118,7 +118,7 @@ public class TextStyle implements Cloneable {
   }
 
   public int getNumber() {
-    return number;
+    return myNumber;
   }
 
   public boolean hasOption(final Option bold) {

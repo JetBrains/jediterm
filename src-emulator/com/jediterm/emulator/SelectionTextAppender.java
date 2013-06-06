@@ -11,13 +11,15 @@ import java.awt.*;
 public class SelectionTextAppender implements StyledTextConsumer {
   private static final Logger logger = Logger.getLogger(SelectionTextAppender.class);
   private final StringBuilder mySelection;
+  private final StringBuilder myLastLine;
   private final Point myBegin;
   private final Point myEnd;
 
   boolean first = true;
 
-  public SelectionTextAppender(final StringBuilder selectionText, final Point begin, final Point end) {
-    mySelection = selectionText;
+  public SelectionTextAppender(final Point begin, final Point end) {
+    mySelection = new StringBuilder();
+    myLastLine = new StringBuilder();
     myEnd = end;
     myBegin = begin;
   }
@@ -38,7 +40,11 @@ public class SelectionTextAppender implements StyledTextConsumer {
     if (extent < 0) return; // The run is off the left edge of the selection on the first line,
     //  or off the right edge on the last line.
     if (characters.getLen() > 0) {
-      if (!first && x == 0) mySelection.append('\n');
+      if (!first && x == 0) {
+        appendLastLineWithTrimming();
+        myLastLine.setLength(0);
+        myLastLine.append('\n');
+      }
       first = false;
       if (startPos < 0) {
         logger.error("Attempt to copy to selection from before start of buffer");
@@ -47,8 +53,16 @@ public class SelectionTextAppender implements StyledTextConsumer {
         logger.error("Attempt to copy to selection from after end of buffer");
       }
       else {
-        mySelection.append(characters.getBuf(), startPos, extent);
+        myLastLine.append(characters.getBuf(), startPos, extent);
       }
     }
+  }
+
+  public String getText() {
+    return mySelection.append(myLastLine).toString();
+  }
+
+  private StringBuilder appendLastLineWithTrimming() {
+    return mySelection.append(Util.trimTrailing(myLastLine.toString()));
   }
 }

@@ -203,40 +203,12 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       return;
     }
 
-    Point top;
-    Point bottom;
-
-    if (selectionStart.y == selectionEnd.y) {                        /* same line */
-      top = selectionStart.x < selectionEnd.x ? selectionStart
-                                              : selectionEnd;
-      bottom = selectionStart.x >= selectionEnd.x ? selectionStart
-                                                  : selectionEnd;
-    }
-    else {
-      top = selectionStart.y < selectionEnd.y ? selectionStart
-                                              : selectionEnd;
-      bottom = selectionStart.y > selectionEnd.y ? selectionStart
-                                                 : selectionEnd;
-    }
-
-    final StringBuilder selectionText = new StringBuilder();
-
-    if (top.y < 0) {
-      final Point scrollEnd = bottom.y >= 0 ? new Point(myTermSize.width, -1) : bottom;
-      myScrollBuffer.processLines(top.y, scrollEnd.y - top.y,
-                                  new SelectionTextAppender(selectionText, top, scrollEnd));
-    }
-
-    if (bottom.y >= 0) {
-      final Point backBegin = top.y < 0 ? new Point(0, 0) : top;
-      myBackBuffer.processBufferCells(0, backBegin.y, myTermSize.width, bottom.y - backBegin.y + 1,
-                                      new SelectionTextAppender(selectionText, backBegin, bottom));
-    }
+    final String selectionText = SelectionUtil
+      .getSelectionText(selectionStart, selectionEnd, myScrollBuffer, myBackBuffer);
 
     if (selectionText.length() != 0) {
-
       try {
-        setCopyContents(new StringSelection(selectionText.toString()));
+        setCopyContents(new StringSelection(selectionText));
       }
       catch (final IllegalStateException e) {
         logger.error("Could not set clipboard:", e);

@@ -5,7 +5,7 @@ The main purpose of the project is to provide a pure Java terminal widget ready
 to embed into IDE. From this comes the name
 J(from `Java`)edi(reversed `IDE`)Term(obviously from `terminal`)
 
-Project Contact: Dmitry Trofimov <dmitry.trofimov at jetbrains dot com>
+Project Contact: Dmitry Trofimov < dmitry.trofimov at jetbrains dot com >
 
 
 License

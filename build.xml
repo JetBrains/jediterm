@@ -31,6 +31,8 @@
 
 
   <target name="clean">
+    <delete dir="${classses}"/>
+    <mkdir dir="${classes}"/>
     <delete>
       <fileset dir="${classes}">
         <include name="**/*.class"/>
@@ -84,4 +86,54 @@
 
   <target name="all-jars" depends="jediterm-ssh.jar,jediterm-pty.jar">
   </target>
+
+  <!-- Contrbuted by Alexis Vincent - alexisjohnvincent@gmail.com -->
+  <!-- This target makes a single distributable JAR :) -->
+   <target name="jedit-pty-package" depends="jediterm-pty.jar">
+        <!-- OK, so to bundle your app in a single JAR we do the following. First we're
+             going to set some properties. Edit these so that they fit your situation/environment
+        -->
+        
+        <!-- The name of your final JAR, minus the .jar extension. It should not have spaces. 
+             <property name="store.jar.name" value="MyJarName"/> 
+        -->
+        <property name="destination.jar.name" value="jedit-pty"/>
+        
+        <!-- The directory that will contain the finished product. Minus the / character.
+             <property name="store.dir" value="releaseDirectory"/> 
+        -->
+        <property name="destination.dir" value="distributables"/>
+        
+        <!-- Your Main class.
+             <property name="application.main-class" value="package.Class"/> 
+        -->
+        <property name="application.main-class" value="com.jediterm.pty.PtyMain"/>
+        
+        
+        <!-- don't edit below this line!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! 
+             Unless you know what you're doing ofcourse ;) 
+        -->
+        <property name="destination.jar" value="${destination.dir}/${destination.jar.name}.jar"/>
+        
+        <echo message="Packaging your JARS into a single JAR at ${destination.jar}"/>
+        
+        <delete dir="${destination.dir}"/>
+        <mkdir dir="${destination.dir}"/>
+        
+        <jar destfile="${destination.dir}/temp_final.jar" filesetmanifest="skip">
+            <!-- Packages the following jars -->
+            <zipgroupfileset dir="build" includes="jediterm-pty-0.04.jar"/>
+            <zipgroupfileset dir="lib" includes="JPty.jar,guava-12.0.jar,jna.jar,jsch-0.1.50.jar,jzlib-1.07.jar,log4j-1.2.14.jar,purejavacomm-0.0.16.jar"/>
+            <manifest>
+                <attribute name="Main-Class" value="${application.main-class}"/>
+            </manifest>
+        </jar>
+        
+        <zip destfile="${destination.jar}">
+            <zipfileset src="${destination.dir}/temp_final.jar"
+                        excludes="META-INF/*.SF, META-INF/*.DSA, META-INF/*.RSA"/>
+        </zip>
+        
+        <delete file="${destination.dir}/temp_final.jar"/>
+    </target>
 </project>

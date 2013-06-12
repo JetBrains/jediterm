@@ -29,6 +29,9 @@ import org.apache.log4j.Logger;
 import java.awt.*;
 import java.io.IOException;
 import java.io.InterruptedIOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 
 public class Emulator {
@@ -36,6 +39,8 @@ public class Emulator {
 
   private final TerminalWriter myTerminalWriter;
   final protected TtyChannel myTtyChannel;
+
+  private final ExecutorService myEmulatorExecutor = Executors.newFixedThreadPool(1);
 
   /*
    * Character Attributes
@@ -58,8 +63,22 @@ public class Emulator {
     myTerminalWriter = terminalWriter;
   }
 
-  public void sendBytes(final byte[] bytes) throws IOException {
-    myTtyChannel.sendBytes(bytes);
+  public void sendBytes(final byte[] bytes) {
+    execute(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          myTtyChannel.sendBytes(bytes);
+        }
+        catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    });
+  }
+
+  private void execute(Runnable runnable) {
+    myEmulatorExecutor.execute(runnable);
   }
 
   public void start() {
@@ -236,63 +255,60 @@ public class Emulator {
     }
     if (args.pushBackReordered(myTtyChannel)) return;
 
-    synchronized (myTerminalWriter) {
-
-      switch (args.getFinalChar()) {
-        case 'm':
-          setCharacterAttributes(args);
-          break;
-        case 'r':
-          setScrollingRegion(args);
-          break;
-        case 'A':
-          cursorUp(args);
-          break;
-        case 'B':
-          cursorDown(args);
-          break;
-        case 'C':
-          cursorForward(args);
-          break;
-        case 'D':
-          cursorBackward(args);
-          break;
-        case 'f':
-        case 'H':
-          cursorPosition(args);
-          break;
-        case 'K':
-          eraseInLine(args);
-          break;
-        case 'J':
-          eraseInDisplay(args);
-          break;
-        case 'h':
-          setModes(args, true);
-          break;
-        case 'l':
-          setModes(args, false);
-          break;
-        case 'c':
-          // What are you
-          // ESC [ c or ESC [ 0 c
-          // Response is ESC [ ? 6 c
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("Identifying to remote system as VT102");
-          }
-          myTtyChannel.sendBytes(CharacterUtils.DEVICE_ATTRIBUTES_RESPONSE);
-          break;
-        default:
-          StringBuffer sb = new StringBuffer();
-          sb.append("Unhandled Control sequence\n");
-          sb.append("parsed                        :");
-          args.appendToBuffer(sb);
-          sb.append('\n');
-          sb.append("bytes read                    :ESC[");
-          args.appendActualBytesRead(sb, myTtyChannel);
-          LOG.error(sb.toString());
-          break;
-      }
+    switch (args.getFinalChar()) {
+      case 'm':
+        setCharacterAttributes(args);
+        break;
+      case 'r':
+        setScrollingRegion(args);
+        break;
+      case 'A':
+        cursorUp(args);
+        break;
+      case 'B':
+        cursorDown(args);
+        break;
+      case 'C':
+        cursorForward(args);
+        break;
+      case 'D':
+        cursorBackward(args);
+        break;
+      case 'f':
+      case 'H':
+        cursorPosition(args);
+        break;
+      case 'K':
+        eraseInLine(args);
+        break;
+      case 'J':
+        eraseInDisplay(args);
+        break;
+      case 'h':
+        setModes(args, true);
+        break;
+      case 'l':
+        setModes(args, false);
+        break;
+      case 'c':
+        // What are you
+        // ESC [ c or ESC [ 0 c
+        // Response is ESC [ ? 6 c
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Identifying to remote system as VT102");
+        }
+        myTtyChannel.sendBytes(CharacterUtils.DEVICE_ATTRIBUTES_RESPONSE);
+        break;
+      default:
+        StringBuffer sb = new StringBuffer();
+        sb.append("Unhandled Control sequence\n");
+        sb.append("parsed                        :");
+        args.appendToBuffer(sb);
+        sb.append('\n');
+        sb.append("bytes read                    :ESC[");
+        args.appendActualBytesRead(sb, myTtyChannel);
+        LOG.error(sb.toString());
+        break;
     }
   }
 
@@ -431,7 +447,17 @@ public class Emulator {
     }
   }
 
-  public void sendString(String string) throws IOException {
-    myTtyChannel.sendString(string);
+  public void sendString(final String string) {
+    execute(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          myTtyChannel.sendString(string);
+        }
+        catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    });
   }
 }

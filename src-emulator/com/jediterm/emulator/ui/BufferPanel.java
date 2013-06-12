@@ -17,7 +17,7 @@ class BufferPanel extends JPanel {
 		final JTextArea area = new JTextArea();
 		add(area, BorderLayout.NORTH);
 		
-		final SwingJediTerminal.BufferType[] choices = SwingJediTerminal.BufferType.values();
+		final DebugBufferType[] choices = DebugBufferType.values();
 		
 		final JComboBox chooser = new JComboBox(choices);
 		add(chooser, BorderLayout.NORTH);
@@ -27,7 +27,7 @@ class BufferPanel extends JPanel {
 		
 		class Updater implements ActionListener, ItemListener{
 			void update(){
-				final SwingJediTerminal.BufferType type = (SwingJediTerminal.BufferType) chooser.getSelectedItem();
+				final DebugBufferType type = (DebugBufferType) chooser.getSelectedItem();
 				final String text = terminal.getBufferText(type);
 				area.setText(text);
 			}

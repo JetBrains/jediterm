@@ -27,14 +27,6 @@ public abstract class AbstractTerminalFrame {
     }
   };
 
-  private AbstractAction myShowBuffersAction = new AbstractAction("Show buffers") {
-    public void actionPerformed(final ActionEvent e) {
-      if (myBufferFrame == null) {
-        showBuffers();
-      }
-    }
-  };
-
   private AbstractAction myResetDamage = new AbstractAction("Reset damage") {
     public void actionPerformed(final ActionEvent e) {
       if (myTerminalPanel != null) {
@@ -47,6 +39,14 @@ public abstract class AbstractTerminalFrame {
     public void actionPerformed(final ActionEvent e) {
       if (myTerminalPanel != null) {
         myTerminalPanel.redraw();
+      }
+    }
+  };
+
+  private AbstractAction myShowBuffersAction = new AbstractAction("Show buffers") {
+    public void actionPerformed(final ActionEvent e) {
+      if (myBufferFrame == null) {
+        showBuffers();
       }
     }
   };

@@ -81,12 +81,16 @@ public class SwingJediTerminal extends JPanel {
     return myTerminalPanel;
   }
 
-  public void setTtyConnector(TtyConnector ttyConnector) {
-    this.myTtyConnector = ttyConnector;
+  public void setTtyConnectorAndInitEmulator(TtyConnector ttyConnector) {
+    myTtyConnector = ttyConnector;
     myTtyChannel = new TtyChannel(ttyConnector);
 
     myEmulator = new Emulator(myTerminalWriter, myTtyChannel);
-    this.myTerminalPanel.setEmulator(myEmulator);
+    myTerminalPanel.setEmulator(myEmulator);
+  }
+
+  public TtyConnector getTtyConnector() {
+    return myTtyConnector;
   }
 
   public void start() {
@@ -109,7 +113,7 @@ public class SwingJediTerminal extends JPanel {
     return mySessionRunning.get();
   }
 
-  public String getBufferText(BufferType type) {
+  public String getBufferText(DebugBufferType type) {
     return type.getValue(this);
   }
 
@@ -127,37 +131,6 @@ public class SwingJediTerminal extends JPanel {
       }
     });
     return super.requestFocusInWindow();
-  }
-
-  public static enum BufferType {
-    Back() {
-      String getValue(SwingJediTerminal term) {
-        return term.getTerminalPanel().getBackBuffer().getLines();
-      }
-    },
-    BackStyle() {
-      String getValue(SwingJediTerminal term) {
-        return term.getTerminalPanel().getBackBuffer().getStyleLines();
-      }
-    },
-    Damage() {
-      String getValue(SwingJediTerminal term) {
-        return term.getTerminalPanel().getBackBuffer().getDamageLines();
-      }
-    },
-    Scroll() {
-      String getValue(SwingJediTerminal term) {
-        return term.getTerminalPanel().getScrollBuffer().getLines();
-      }
-    },
-    Text() {
-      String getValue(SwingJediTerminal term) {
-        return term.getTerminalPanel().getBackBuffer().getTextBufferLines();
-      }
-    };
-
-
-    abstract String getValue(SwingJediTerminal term);
   }
 
   class EmulatorTask implements Runnable {

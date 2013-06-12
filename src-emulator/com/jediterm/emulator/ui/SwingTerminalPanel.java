@@ -226,7 +226,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     try {
       myEmulator.sendString(selection);
     }
-    catch (IOException e) {
+    catch (RuntimeException e) {
       logger.info(e);
     }
   }
@@ -561,7 +561,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   }
 
   @Override
-  public void consume(int x, int y, TextStyle style, CharBuffer buf, int startRaw) {
+  public void consume(int x, int y, TextStyle style, CharBuffer buf, int startRow) {
     if (myGfx != null) {
       myGfx.setColor(myStyleState.getBackground(style.getBackgroundForRun()));
       myGfx

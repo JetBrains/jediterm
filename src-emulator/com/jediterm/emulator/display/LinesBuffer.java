@@ -38,7 +38,7 @@ public class LinesBuffer implements StyledTextConsumer {
   }
 
   @Override
-  public void consume(int x, int y, TextStyle style, CharBuffer characters, int startRaw) {
+  public void consume(int x, int y, TextStyle style, CharBuffer characters, int startRow) {
     addToBuffer(style, characters, x == 0);
   }
 

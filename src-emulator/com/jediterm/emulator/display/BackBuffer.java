@@ -456,11 +456,11 @@ public class BackBuffer implements StyledTextConsumer {
   }
 
   @Override
-  public void consume(int x, int y, TextStyle style, CharBuffer characters, int startRaw) {
+  public void consume(int x, int y, TextStyle style, CharBuffer characters, int startRow) {
     int len = Math.min(myWidth - x, characters.getLen());
 
     if (len > 0) {
-      drawString(x, y - startRaw, new String(characters.getBuf(), characters.getStart(), len), style);
+      drawString(x, y - startRow, new String(characters.getBuf(), characters.getStart(), len), style);
     }
   }
 

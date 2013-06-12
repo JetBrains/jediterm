@@ -4,6 +4,7 @@ import com.jediterm.emulator.Emulator;
 import com.jediterm.emulator.TextStyle;
 import com.jediterm.emulator.TtyChannel;
 import com.jediterm.emulator.TtyConnector;
+import com.jediterm.emulator.debug.DebugBufferType;
 import com.jediterm.emulator.display.BackBuffer;
 import com.jediterm.emulator.display.BufferedTerminalWriter;
 import com.jediterm.emulator.display.LinesBuffer;

@@ -1,6 +1,7 @@
 package com.jediterm.emulator.ui;
 
 import com.jediterm.emulator.RequestOrigin;
+import com.jediterm.emulator.debug.BufferPanel;
 import org.apache.log4j.Logger;
 
 import javax.swing.*;

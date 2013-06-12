@@ -1,6 +1,6 @@
-package com.jediterm.emulator.ui;
+package com.jediterm.emulator.debug;
 
-import com.jediterm.emulator.ControlSequenceVisualiser;
+import com.jediterm.emulator.ui.SwingJediTerminal;
 import com.jediterm.pty.PtyMain;
 
 /**
@@ -8,27 +8,27 @@ import com.jediterm.pty.PtyMain;
  */
 public enum DebugBufferType {
   Back() {
-    String getValue(SwingJediTerminal term) {
+    public String getValue(SwingJediTerminal term) {
       return term.getTerminalPanel().getBackBuffer().getLines();
     }
   },
   BackStyle() {
-    String getValue(SwingJediTerminal term) {
+    public String getValue(SwingJediTerminal term) {
       return term.getTerminalPanel().getBackBuffer().getStyleLines();
     }
   },
   Damage() {
-    String getValue(SwingJediTerminal term) {
+    public String getValue(SwingJediTerminal term) {
       return term.getTerminalPanel().getBackBuffer().getDamageLines();
     }
   },
   Scroll() {
-    String getValue(SwingJediTerminal term) {
+    public String getValue(SwingJediTerminal term) {
       return term.getTerminalPanel().getScrollBuffer().getLines();
     }
   },
   Text() {
-    String getValue(SwingJediTerminal term) {
+    public String getValue(SwingJediTerminal term) {
       return term.getTerminalPanel().getBackBuffer().getTextBufferLines();
     }
   },
@@ -36,7 +36,7 @@ public enum DebugBufferType {
   ControlSequences() {
     private ControlSequenceVisualiser myVisualiser = new ControlSequenceVisualiser();
 
-    String getValue(SwingJediTerminal term) {
+    public String getValue(SwingJediTerminal term) {
       if (term.getTtyConnector() instanceof PtyMain.LoggingPtyProcessTtyConnector) {
         return myVisualiser.getVisualizedString(((PtyMain.LoggingPtyProcessTtyConnector)term.getTtyConnector()).getChunks());
       }
@@ -47,5 +47,5 @@ public enum DebugBufferType {
   };
 
 
-  abstract String getValue(SwingJediTerminal term);
+  public abstract String getValue(SwingJediTerminal term);
 }

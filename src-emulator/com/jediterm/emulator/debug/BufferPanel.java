@@ -1,7 +1,9 @@
 /**
  * 
  */
-package com.jediterm.emulator.ui;
+package com.jediterm.emulator.debug;
+
+import com.jediterm.emulator.ui.SwingJediTerminal;
 
 import javax.swing.*;
 import java.awt.*;
@@ -11,7 +13,7 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 
 
-class BufferPanel extends JPanel {
+public class BufferPanel extends JPanel {
 	public BufferPanel(final SwingJediTerminal terminal){
 		super(new BorderLayout());
 		final JTextArea area = new JTextArea();

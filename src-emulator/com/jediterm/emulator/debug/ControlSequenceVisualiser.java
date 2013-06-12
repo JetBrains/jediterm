@@ -1,4 +1,4 @@
-package com.jediterm.emulator;
+package com.jediterm.emulator.debug;
 
 import org.apache.log4j.Logger;
 

@@ -31,7 +31,7 @@ public class TerminalEmulatorKeyHandler implements KeyListener {
         }
       }
     }
-    catch (final IOException ex) {
+    catch (final Exception ex) {
       logger.error("Error sending key to emulator", ex);
     }
   }
@@ -44,7 +44,7 @@ public class TerminalEmulatorKeyHandler implements KeyListener {
       try {
         myEmulator.sendString(new String(foo));
       }
-      catch (final IOException ex) {
+      catch (final RuntimeException ex) {
         logger.error("Error sending key to emulator", ex);
       }
     }

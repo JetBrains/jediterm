@@ -82,7 +82,7 @@ public class SwingJediTerminal extends JPanel {
     return myTerminalPanel;
   }
 
-  public void setTtyConnectorAndInitEmulator(TtyConnector ttyConnector) {
+  public void setTtyConnector(TtyConnector ttyConnector) {
     myTtyConnector = ttyConnector;
     myTtyChannel = new TtyChannel(ttyConnector);
 

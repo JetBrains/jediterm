@@ -3,17 +3,18 @@ package com.jediterm.emulator.debug;
 import org.apache.log4j.Logger;
 
 import java.io.*;
+import java.nio.CharBuffer;
 import java.util.List;
 
 /**
  * @author traff
  */
-public class ControlSequenceVisualiser {
-  private static final Logger LOG = Logger.getLogger(ControlSequenceVisualiser.class);
+public class ControlSequenceVisualizer {
+  private static final Logger LOG = Logger.getLogger(ControlSequenceVisualizer.class);
 
   private File myTempFile;
 
-  public ControlSequenceVisualiser() {
+  public ControlSequenceVisualizer() {
     myTempFile = null;
     try {
       myTempFile = File.createTempFile("jeditermData", ".txt");
@@ -31,20 +32,20 @@ public class ControlSequenceVisualiser {
       return readOutput("teseq " + myTempFile.getAbsolutePath());
     }
     catch (IOException e) {
-      return "Control sequence visualizer teseq is not installed.\nSee http://www.gnu.org/software/teseq/\nNow printing characters as is:\n\n" +
-             joinChunks(chunks);
+      return
+        "Control sequence visualizer teseq is not installed.\nSee http://www.gnu.org/software/teseq/\nNow printing characters as is:\n\n" +
+        joinChunks(chunks);
     }
   }
 
   private static String joinChunks(List<char[]> chunks) {
     StringBuilder sb = new StringBuilder();
 
-    for (char[] ch: chunks) {
+    for (char[] ch : chunks) {
       sb.append(ch);
     }
 
     return sb.toString();
-
   }
 
   private void writeChunksToFile(List<char[]> chunks) throws IOException {
@@ -67,7 +68,17 @@ public class ControlSequenceVisualiser {
     BufferedReader in = new BufferedReader(inStreamReader);
 
     StringBuilder sb = new StringBuilder();
+    int i = 0;
+    String lastNum = null;
     while ((line = in.readLine()) != null) {
+      if (!line.startsWith("&") && !line.startsWith("\"")) {
+        lastNum = String.format("%3d ", i++);
+        sb.append(lastNum);
+      } else {
+        if (lastNum != null) {
+          sb.append(CharBuffer.allocate(lastNum.length()).toString().replace('\0', ' '));
+        }
+      }
       sb.append(line);
       sb.append("\n");
     }

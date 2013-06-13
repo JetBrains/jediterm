@@ -34,11 +34,11 @@ public enum DebugBufferType {
   },
 
   ControlSequences() {
-    private ControlSequenceVisualiser myVisualiser = new ControlSequenceVisualiser();
+    private ControlSequenceVisualizer myVisualizer = new ControlSequenceVisualizer();
 
     public String getValue(SwingJediTerminal term) {
       if (term.getTtyConnector() instanceof PtyMain.LoggingPtyProcessTtyConnector) {
-        return myVisualiser.getVisualizedString(((PtyMain.LoggingPtyProcessTtyConnector)term.getTtyConnector()).getChunks());
+        return myVisualizer.getVisualizedString(((PtyMain.LoggingPtyProcessTtyConnector)term.getTtyConnector()).getChunks());
       }
       else {
         return "Control sequences aren't logged";

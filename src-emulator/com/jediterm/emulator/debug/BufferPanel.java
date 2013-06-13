@@ -17,6 +17,8 @@ public class BufferPanel extends JPanel {
   public BufferPanel(final SwingJediTerminal terminal) {
     super(new BorderLayout());
     final JTextArea area = new JTextArea();
+    area.setEditable(false);
+
     add(area, BorderLayout.NORTH);
 
     final DebugBufferType[] choices = DebugBufferType.values();

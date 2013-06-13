@@ -26,6 +26,15 @@ public class EmulatorTest extends TestCase {
                  "   \n");
   }
 
+  public void testTooLargeScrollRegion() throws IOException {
+    doTest(80, 24);
+  }
+
+  private void doTest(int width, int height) throws IOException {
+    doTest(width, height, FileUtil.loadFileLines(new File(TestPathsManager.getTestDataPath() + getName() + ".after.txt")));
+
+  }
+
   private void doTest(int width, int height, String expected) throws IOException {
     StyleState state = new StyleState();
 

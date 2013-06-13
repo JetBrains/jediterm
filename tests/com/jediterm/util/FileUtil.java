@@ -1,6 +1,7 @@
 package com.jediterm.util;
 
 import java.io.*;
+import java.util.Scanner;
 
 /**
  * @author traff
@@ -34,5 +35,17 @@ public class FileUtil {
       System.arraycopy(chars, 0, newChars, 0, count);
       return newChars;
     }
+  }
+
+  public static String loadFileLines(File file) throws FileNotFoundException {
+    Scanner s = new Scanner(file);
+    StringBuilder sb = new StringBuilder();
+
+    while (s.hasNextLine()) {
+      sb.append(s.nextLine()).append("\n");
+    }
+
+    s.close();
+    return sb.toString();
   }
 }

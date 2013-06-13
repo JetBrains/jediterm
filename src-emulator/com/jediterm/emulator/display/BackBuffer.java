@@ -460,7 +460,7 @@ public class BackBuffer implements StyledTextConsumer {
     int len = Math.min(myWidth - x, characters.getLen());
 
     if (len > 0) {
-      drawString(x, y - startRow, new String(characters.getBuf(), characters.getStart(), len), style);
+      drawString(x, y - startRow + 1, new String(characters.getBuf(), characters.getStart(), len), style);
     }
   }
 

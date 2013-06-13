@@ -20,16 +20,24 @@ import java.io.IOException;
  */
 public class EmulatorTest extends TestCase {
   public void testSetCursorPosition() throws IOException {
+    doTest(3, 4, "X00\n" +  //X wins
+                 "0X \n" +
+                 "X X\n" +
+                 "   \n");
+  }
+
+  private void doTest(int width, int height, String expected) throws IOException {
     StyleState state = new StyleState();
 
     LinesBuffer scrollBuffer = new LinesBuffer();
 
-    BackBuffer backBuffer = new BackBuffer(3, 4, state, scrollBuffer);
+    BackBuffer backBuffer = new BackBuffer(width, height, state, scrollBuffer);
 
     Terminal terminal = new BackBufferTerminal(backBuffer, state);
 
-    ArrayTerminalDataStream fileStream = new ArrayTerminalDataStream(FileUtil.loadFileText(new File(TestPathsManager.getTestDataPath() + getName() + ".txt"),
-                                                                                           "UTF-8"));
+    ArrayTerminalDataStream
+      fileStream = new ArrayTerminalDataStream(FileUtil.loadFileText(new File(TestPathsManager.getTestDataPath() + getName() + ".txt"),
+                                                                     "UTF-8"));
 
     Emulator emulator = new Emulator(fileStream, terminal);
 
@@ -37,14 +45,11 @@ public class EmulatorTest extends TestCase {
       try {
         emulator.processNextChar();
       }
-      catch (TerminalDataStream.DisconnectedException e) {
+      catch (TerminalDataStream.EOF e) {
         break;
       }
     }
 
-    assertEquals("X00\n" +  //X wins
-                 "0X \n" +
-                 "X X\n" +
-                 "   \n", backBuffer.getLines());
+    assertEquals(expected, backBuffer.getLines());
   }
 }

@@ -20,7 +20,7 @@ public class TtyChannel extends ArrayTerminalDataStream {
 
     if (myLength <= 0) {
       myLength = 0;
-      throw new DisconnectedException();
+      throw new EOF();
     }
   }
 

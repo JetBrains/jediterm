@@ -22,7 +22,7 @@ public class ArrayTerminalDataStream implements TerminalDataStream {
 
   public char getChar() throws IOException {
     if (myLength == 0) {
-      throw new DisconnectedException();
+      throw new EOF();
     }
 
     myLength--;
@@ -30,7 +30,7 @@ public class ArrayTerminalDataStream implements TerminalDataStream {
     return myBuf[myOffset++];
   }
 
-  public void pushChar(final char b) throws DisconnectedException {
+  public void pushChar(final char b) throws EOF {
     if (myOffset == 0) {
       // Pushed back too many... shift it up to the end.
       myOffset = myBuf.length - myLength;
@@ -50,7 +50,7 @@ public class ArrayTerminalDataStream implements TerminalDataStream {
     return charArraySlice;
   }
 
-  public void pushBackBuffer(final char[] bytes, final int len) throws DisconnectedException {
+  public void pushBackBuffer(final char[] bytes, final int len) throws EOF {
     for (int i = len - 1; i >= 0; i--) {
       pushChar(bytes[i]);
     }

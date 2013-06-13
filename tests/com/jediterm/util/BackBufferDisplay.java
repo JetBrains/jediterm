@@ -3,7 +3,7 @@ package com.jediterm.util;
 import com.jediterm.emulator.RequestOrigin;
 import com.jediterm.emulator.TerminalDisplay;
 import com.jediterm.emulator.display.BackBuffer;
-import com.jediterm.emulator.display.BufferedTerminalWriter;
+import com.jediterm.emulator.display.BufferedDisplayTerminal;
 
 import java.awt.*;
 
@@ -38,7 +38,7 @@ public class BackBufferDisplay implements TerminalDisplay {
   }
 
   @Override
-  public Dimension requestResize(Dimension pendingResize, RequestOrigin origin, int cursorY, BufferedTerminalWriter.ResizeHandler resizeHandler) {
+  public Dimension requestResize(Dimension pendingResize, RequestOrigin origin, int cursorY, BufferedDisplayTerminal.ResizeHandler resizeHandler) {
     return myBackBuffer.resize(pendingResize, origin, cursorY, resizeHandler);
   }
 

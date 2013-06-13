@@ -2,7 +2,7 @@ package com.jediterm;
 
 import com.jediterm.emulator.TextStyle;
 import com.jediterm.emulator.display.BackBuffer;
-import com.jediterm.emulator.display.BufferedTerminalWriter;
+import com.jediterm.emulator.display.BufferedDisplayTerminal;
 import com.jediterm.emulator.display.LinesBuffer;
 import com.jediterm.emulator.display.StyleState;
 import com.jediterm.util.BackBufferDisplay;
@@ -30,21 +30,20 @@ public class StyledTextTest extends TestCase {
 
     BackBuffer backBuffer = new BackBuffer(width, height, state, scrollBuffer);
 
-    BufferedTerminalWriter writer = new BufferedTerminalWriter(new BackBufferDisplay(backBuffer), backBuffer, state);
+    BufferedDisplayTerminal terminal = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
     BackBuffer backBuffer2 = new BackBuffer(width, height, state, new LinesBuffer());
 
-
-    writer.setCharacterAttributes(new StyleState(BLACK));
-    writer.writeString("def ");
-    writer.setCharacterAttributes(new StyleState(GREEN));
-    writer.writeString("foo");
+    terminal.setCharacterAttributes(new StyleState(BLACK));
+    terminal.writeString("def ");
+    terminal.setCharacterAttributes(new StyleState(GREEN));
+    terminal.writeString("foo");
 
     backBuffer.processDamagedCells(backBuffer2);
     backBuffer.resetDamage();
 
-    writer.setCharacterAttributes(new StyleState(BLACK));
-    writer.writeString("(x):");
+    terminal.setCharacterAttributes(new StyleState(BLACK));
+    terminal.writeString("(x):");
 
 
     assertEquals(colors, backBuffer.getStyleLines());

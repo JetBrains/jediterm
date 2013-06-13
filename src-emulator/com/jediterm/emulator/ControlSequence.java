@@ -17,12 +17,6 @@ public class ControlSequence {
 
   private char finalChar;
 
-  private int startInBuf;
-
-  private int lengthInBuf;
-
-  private int bufferVersion;
-
   private static TerminalMode[] NORMAL_MODES = {
 
   };
@@ -35,22 +29,19 @@ public class ControlSequence {
 
   private ArrayList<Character> unhandledChars;
 
-  ControlSequence(final TtyChannel channel) throws IOException {
+  ControlSequence(final TerminalDataStream channel) throws IOException {
     argv = new int[10];
     argc = 0;
     modeTable = NORMAL_MODES;
     readControlSequence(channel);
   }
 
-  private void readControlSequence(final TtyChannel channel) throws IOException {
+  private void readControlSequence(final TerminalDataStream channel) throws IOException {
     argc = 0;
     // Read integer arguments
     int digit = 0;
     int seenDigit = 0;
     int pos = -1;
-
-    bufferVersion = channel.mySerial;
-    startInBuf = channel.myOffset;
 
     while (true) {
       final char b = channel.getChar();
@@ -82,12 +73,6 @@ public class ControlSequence {
         addUnhandled(b);
       }
     }
-    if (bufferVersion == channel.mySerial) {
-      lengthInBuf = channel.myOffset - startInBuf;
-    }
-    else {
-      lengthInBuf = -1;
-    }
     argc += seenDigit;
   }
 
@@ -98,7 +83,7 @@ public class ControlSequence {
     unhandledChars.add(b);
   }
 
-  public boolean pushBackReordered(final TtyChannel channel) throws IOException {
+  public boolean pushBackReordered(final TerminalDataStream channel) throws IOException {
     if (unhandledChars == null) return false;
     final char[] bytes = new char[1024]; // can't be more than the whole buffer...
     int i = 0;
@@ -154,19 +139,6 @@ public class ControlSequence {
       for (final char b : unhandledChars) {
         last = CharacterUtils.appendChar(sb, last, (char)b);
       }
-    }
-  }
-
-  public final void appendActualBytesRead(final StringBuffer sb,
-                                          final TtyChannel buffer) {
-    if (lengthInBuf == -1) {
-      sb.append("TermIOBuffer filled in reading");
-    }
-    else if (bufferVersion != buffer.mySerial) {
-      sb.append("TermIOBuffer filled after reading");
-    }
-    else {
-      buffer.appendBuf(sb, startInBuf, lengthInBuf);
     }
   }
 

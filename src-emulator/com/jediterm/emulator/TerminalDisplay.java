@@ -22,7 +22,7 @@
 
 package com.jediterm.emulator;
 
-import com.jediterm.emulator.display.BufferedTerminalWriter;
+import com.jediterm.emulator.display.BufferedDisplayTerminal;
 
 import java.awt.*;
 
@@ -36,7 +36,7 @@ public interface TerminalDisplay {
 
   void beep();
 
-  Dimension requestResize(Dimension pendingResize, RequestOrigin origin, int cursorY, BufferedTerminalWriter.ResizeHandler resizeHandler);
+  Dimension requestResize(Dimension pendingResize, RequestOrigin origin, int cursorY, BufferedDisplayTerminal.ResizeHandler resizeHandler);
 
   void scrollArea(final int y, final int h, int dy);
 

@@ -1,7 +1,7 @@
 package com.jediterm;
 
 import com.jediterm.emulator.display.BackBuffer;
-import com.jediterm.emulator.display.BufferedTerminalWriter;
+import com.jediterm.emulator.display.BufferedDisplayTerminal;
 import com.jediterm.emulator.display.LinesBuffer;
 import com.jediterm.emulator.display.StyleState;
 import com.jediterm.util.BackBufferDisplay;
@@ -19,18 +19,18 @@ public class ScrollingTest extends TestCase {
 
     BackBuffer backBuffer = new BackBuffer(5, 3, state, scrollBuffer);
 
-    BufferedTerminalWriter writer = new BufferedTerminalWriter(new BackBufferDisplay(backBuffer), backBuffer, state);
+    BufferedDisplayTerminal terminal = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
-    writer.writeString("line");
-    writer.newLine();
-    writer.carriageReturn();
-    writer.writeString("line2");
-    writer.newLine();
-    writer.carriageReturn();
-    writer.writeString("line3");
-    writer.newLine();
-    writer.carriageReturn();
-    writer.writeString("line4");
+    terminal.writeString("line");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString("line2");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString("line3");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString("line4");
 
     assertEquals(1, scrollBuffer.getLineCount());
 
@@ -38,7 +38,7 @@ public class ScrollingTest extends TestCase {
                  "line3\n" +
                  "line4\n", backBuffer.getLines());
 
-    assertEquals(3, writer.getCursorY());
+    assertEquals(3, terminal.getCursorY());
   }
 
 
@@ -50,7 +50,7 @@ public class ScrollingTest extends TestCase {
 
     BackBuffer backBuffer = new BackBuffer(5, 3, state, scrollBuffer);
 
-    BufferedTerminalWriter writer = new BufferedTerminalWriter(new BackBufferDisplay(backBuffer), backBuffer, state);
+    BufferedDisplayTerminal writer = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
     writer.writeString("line");
     writer.newLine();

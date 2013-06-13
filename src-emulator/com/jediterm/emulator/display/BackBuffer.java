@@ -50,7 +50,7 @@ public class BackBuffer implements StyledTextConsumer {
   public Dimension resize(final Dimension pendingResize,
                           final RequestOrigin origin,
                           final int cursorY,
-                          BufferedTerminalWriter.ResizeHandler resizeHandler) {
+                          BufferedDisplayTerminal.ResizeHandler resizeHandler) {
     final char[] oldBuf = myBuf;
     final TextStyle[] oldStyleBuf = myStyleBuf;
     final int oldHeight = myHeight;

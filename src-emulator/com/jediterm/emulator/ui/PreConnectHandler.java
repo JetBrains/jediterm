@@ -1,18 +1,18 @@
 package com.jediterm.emulator.ui;
 
 import com.jediterm.emulator.Questioner;
-import com.jediterm.emulator.display.BufferedTerminalWriter;
+import com.jediterm.emulator.display.BufferedDisplayTerminal;
 
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 
 public class PreConnectHandler implements Questioner, KeyListener {
 	private Object sync = new Object();
-	private BufferedTerminalWriter tw;
+	private BufferedDisplayTerminal tw;
 	private StringBuffer answer;
 	private boolean visible;
 	
-	public PreConnectHandler(BufferedTerminalWriter tw){
+	public PreConnectHandler(BufferedDisplayTerminal tw){
 		this.tw = tw;
 		this.visible = true;
 	}

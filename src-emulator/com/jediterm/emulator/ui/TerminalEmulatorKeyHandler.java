@@ -1,33 +1,32 @@
 package com.jediterm.emulator.ui;
 
-import com.jediterm.emulator.Emulator;
+import com.jediterm.emulator.TerminalProcessor;
 import org.apache.log4j.Logger;
 
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.io.IOException;
 
 public class TerminalEmulatorKeyHandler implements KeyListener {
   private static Logger logger = Logger.getLogger(TerminalEmulatorKeyHandler.class);
-  private final Emulator myEmulator;
+  private final TerminalProcessor myTerminalProcessor;
 
-  public TerminalEmulatorKeyHandler(Emulator emu) {
-    myEmulator = emu;
+  public TerminalEmulatorKeyHandler(TerminalProcessor emu) {
+    myTerminalProcessor = emu;
   }
 
   public void keyPressed(final KeyEvent e) {
     try {
       final int keycode = e.getKeyCode();
-      final byte[] code = myEmulator.getCode(keycode);
+      final byte[] code = myTerminalProcessor.getCode(keycode);
       if (code != null) {
-        myEmulator.sendBytes(code);
+        myTerminalProcessor.sendBytes(code);
       }
       else {
         final char keychar = e.getKeyChar();
         final byte[] obuffer = new byte[1];
         if ((keychar & 0xff00) == 0) {
           obuffer[0] = (byte)e.getKeyChar();
-          myEmulator.sendBytes(obuffer);
+          myTerminalProcessor.sendBytes(obuffer);
         }
       }
     }
@@ -42,7 +41,7 @@ public class TerminalEmulatorKeyHandler implements KeyListener {
       final char[] foo = new char[1];
       foo[0] = keychar;
       try {
-        myEmulator.sendString(new String(foo));
+        myTerminalProcessor.sendString(new String(foo));
       }
       catch (final RuntimeException ex) {
         logger.error("Error sending key to emulator", ex);

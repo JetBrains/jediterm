@@ -1,25 +1,3 @@
-/* -*-mode:java; c-basic-offset:2; -*- */
-/* JCTerm
- * Copyright (C) 2002 ymnk, JCraft,Inc.
- *  
- * Written by: 2002 ymnk<ymnk@jcaft.com>
- *   
- *   
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Library General Public License
- * as published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Library General Public License for more details.
- * 
- * You should have received a copy of the GNU Library General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- */
-
 package com.jediterm.emulator;
 
 import com.jediterm.emulator.display.StoredCursor;
@@ -28,21 +6,15 @@ import org.apache.log4j.Logger;
 
 import java.awt.*;
 import java.io.IOException;
-import java.io.InterruptedIOException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
 
+/**
+ * @author traff
+ */
 
 public class Emulator {
-  private static final Logger LOG = Logger.getLogger(Emulator.class);
+  private static final Logger LOG = Logger.getLogger(TerminalProcessor.class);
 
-  private final TerminalWriter myTerminalWriter;
-  final protected TtyChannel myTtyChannel;
-
-  private final ExecutorService myEmulatorExecutor = Executors.newFixedThreadPool(1);
-
-  /*
+    /*
    * Character Attributes
    *
    * ESC [ Ps;Ps;Ps;...;Ps m
@@ -55,89 +27,46 @@ public class Emulator {
    * Any other parameter values are ignored.
    */
 
+  @SuppressWarnings("UseJBColor")
   private final static Color[] COLORS = {Color.BLACK, Color.RED, Color.GREEN,
     Color.YELLOW, Color.BLUE, Color.MAGENTA, Color.CYAN, Color.WHITE};
 
-  public Emulator(final TerminalWriter terminalWriter, final TtyChannel channel) {
-    myTtyChannel = channel;
-    myTerminalWriter = terminalWriter;
+
+  private final TerminalDataStream myDataStream;
+  private final Terminal myTerminal;
+
+  public Emulator(TerminalDataStream stream, Terminal terminal) {
+    myDataStream = stream;
+    myTerminal = terminal;
   }
 
-  public void sendBytes(final byte[] bytes) {
-    execute(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          myTtyChannel.sendBytes(bytes);
-        }
-        catch (IOException e) {
-          throw new RuntimeException(e);
-        }
-      }
-    });
-  }
-
-  private void execute(Runnable runnable) {
-    myEmulatorExecutor.execute(runnable);
-  }
-
-  public void start() {
-    try {
-      while (!Thread.currentThread().isInterrupted()) {
-        singleIteration();
-      }
-    }
-    catch (final InterruptedIOException e) {
-      LOG.info("Terminal exiting");
-    }
-    catch (final Exception e) {
-      if (!myTtyChannel.isConnected()) {
-        myTerminalWriter.disconnected();
-        return;
-      }
-      LOG.error("Caught exception in terminal thread", e);
-    }
-  }
-
-  public byte[] getCode(final int key) {
-    return CharacterUtils.getCode(key);
-  }
-
-  public void postResize(final Dimension dimension, final RequestOrigin origin) {
-    Dimension pixelSize;
-    synchronized (myTerminalWriter) {
-      pixelSize = myTerminalWriter.resize(dimension, origin);
-    }
-    myTtyChannel.postResize(dimension, pixelSize);
-  }
-
-  void singleIteration() throws IOException {
-    char b = myTtyChannel.getChar();
+  public void processNextChar() throws IOException {
+    char b = myDataStream.getChar();
 
     switch (b) {
       case 0:
         break;
       case CharacterUtils.ESC: // ESC
-        b = myTtyChannel.getChar();
+        b = myDataStream.getChar();
         processEscSequence(b);
         break;
       case CharacterUtils.BEL:
-        myTerminalWriter.beep();
+        myTerminal.beep();
         break;
       case CharacterUtils.BS:
-        myTerminalWriter.backspace();
+        myTerminal.backspace();
         break;
       case CharacterUtils.TAB: // ht(^I) TAB
-        myTerminalWriter.horizontalTab();
+        myTerminal.horizontalTab();
         break;
       case CharacterUtils.CR:
-        myTerminalWriter.carriageReturn();
+        myTerminal.carriageReturn();
         break;
       case CharacterUtils.FF:
       case CharacterUtils.VT:
       case CharacterUtils.LF:
         // '\n'
-        myTerminalWriter.newLine();
+        myTerminal.newLine();
         break;
       default:
         if (b <= CharacterUtils.US) {
@@ -146,10 +75,10 @@ public class Emulator {
           LOG.error(sb.toString());
         }
         else {
-          myTtyChannel.pushChar(b);
-          final int availableChars = myTtyChannel.advanceThroughASCII(myTerminalWriter.distanceToLineEnd());
+          myDataStream.pushChar(b);
+          CharacterUtils.CharArraySlice charArraySlice = myDataStream.advanceThroughASCII(myTerminal.distanceToLineEnd());
 
-          myTerminalWriter.writeASCII(myTtyChannel.myBuf, myTtyChannel.myOffset - availableChars, availableChars);
+          myTerminal.writeASCII(charArraySlice.buffer, charArraySlice.offset, charArraySlice.length);
         }
         break;
     }
@@ -166,28 +95,28 @@ public class Emulator {
       while (b >= 0x20 && b <= 0x2F) {
         intCount++;
         intermediate[intCount - 1] = b;
-        b = myTtyChannel.getChar();
+        b = myDataStream.getChar();
       }
       if (b >= 0x30 && b <= 0x7E) {
-        synchronized (myTerminalWriter) {
+        synchronized (myTerminal) {
           switch (b) {
             case 'M':
               // Reverse index ESC M
-              myTerminalWriter.reverseIndex();
+              myTerminal.reverseIndex();
               break;
             case 'D':
               // Index ESC D
-              myTerminalWriter.index();
+              myTerminal.index();
               break;
             case 'E':
-              myTerminalWriter.nextLine();
+              myTerminal.nextLine();
               break;
             case '7':
               saveCursor();
               break;
             case '8':
               if (intCount > 0 && intermediate[0] == '#') {
-                myTerminalWriter.fillScreen('E');
+                myTerminal.fillScreen('E');
               }
               else {
                 restoreCursor();
@@ -204,9 +133,9 @@ public class Emulator {
         // Push backwards
         for (int i = intCount - 1; i >= 0; i--) {
           final char ib = intermediate[i];
-          myTtyChannel.pushChar(ib);
+          myDataStream.pushChar(ib);
         }
-        myTtyChannel.pushChar(b);
+        myDataStream.pushChar(b);
       }
     }
   }
@@ -218,11 +147,11 @@ public class Emulator {
     if (storedCursor == null) {
       storedCursor = new StoredCursor();
     }
-    myTerminalWriter.storeCursor(storedCursor);
+    myTerminal.storeCursor(storedCursor);
   }
 
   private void restoreCursor() {
-    myTerminalWriter.restoreCursor(storedCursor);
+    myTerminal.restoreCursor(storedCursor);
   }
 
   private static String escapeSequenceToString(final char[] intermediate,
@@ -241,19 +170,16 @@ public class Emulator {
   }
 
   private void processControlSequence() throws IOException {
-    final ControlSequence args = new ControlSequence(myTtyChannel);
+    final ControlSequence args = new ControlSequence(myDataStream);
 
     if (LOG.isDebugEnabled()) {
       StringBuffer sb = new StringBuffer();
       sb.append("Control sequence\n");
       sb.append("parsed                        :");
       args.appendToBuffer(sb);
-      sb.append('\n');
-      sb.append("bytes read                    :ESC[");
-      args.appendActualBytesRead(sb, myTtyChannel);
       LOG.debug(sb.toString());
     }
-    if (args.pushBackReordered(myTtyChannel)) return;
+    if (args.pushBackReordered(myDataStream)) return;
 
     switch (args.getFinalChar()) {
       case 'm':
@@ -297,7 +223,7 @@ public class Emulator {
         if (LOG.isDebugEnabled()) {
           LOG.debug("Identifying to remote system as VT102");
         }
-        myTtyChannel.sendBytes(CharacterUtils.DEVICE_ATTRIBUTES_RESPONSE);
+        myDataStream.sendBytes(CharacterUtils.DEVICE_ATTRIBUTES_RESPONSE);
         break;
       default:
         StringBuffer sb = new StringBuffer();
@@ -306,7 +232,6 @@ public class Emulator {
         args.appendToBuffer(sb);
         sb.append('\n');
         sb.append("bytes read                    :ESC[");
-        args.appendActualBytesRead(sb, myTtyChannel);
         LOG.error(sb.toString());
         break;
     }
@@ -315,54 +240,54 @@ public class Emulator {
   private void eraseInDisplay(ControlSequence args) {
     // ESC [ Ps J
     final int arg = args.getArg(0, 0);
-    myTerminalWriter.eraseInDisplay(arg);
+    myTerminal.eraseInDisplay(arg);
   }
 
   private void eraseInLine(ControlSequence args) {
     // ESC [ Ps K
     final int arg = args.getArg(0, 0);
 
-    myTerminalWriter.eraseInLine(arg);
+    myTerminal.eraseInLine(arg);
   }
 
   private void cursorBackward(ControlSequence args) {
     int dx = args.getArg(0, 1);
     dx = dx == 0 ? 1 : dx;
 
-    myTerminalWriter.cursorBackward(dx);
+    myTerminal.cursorBackward(dx);
   }
 
   private void setScrollingRegion(ControlSequence args) {
     final int top = args.getArg(0, 1);
-    final int bottom = args.getArg(1, myTerminalWriter.getTerminalHeight());
+    final int bottom = args.getArg(1, myTerminal.getTerminalHeight());
 
-    myTerminalWriter.setScrollingRegion(top, bottom);
+    myTerminal.setScrollingRegion(top, bottom);
   }
 
   private void cursorForward(ControlSequence args) {
     int countX = args.getArg(0, 1);
     countX = countX == 0 ? 1 : countX;
 
-    myTerminalWriter.cursorForward(countX);
+    myTerminal.cursorForward(countX);
   }
 
   private void cursorDown(ControlSequence cs) {
     int countY = cs.getArg(0, 0);
     countY = countY == 0 ? 1 : countY;
-    myTerminalWriter.cursorDown(countY);
+    myTerminal.cursorDown(countY);
   }
 
   private void cursorPosition(ControlSequence cs) {
     final int argy = cs.getArg(0, 1);
     final int argx = cs.getArg(1, 1);
 
-    myTerminalWriter.cursorPosition(argx, argy);
+    myTerminal.cursorPosition(argx, argy);
   }
 
   public void setCharacterAttributes(final ControlSequence args) {
     StyleState styleState = createStyleState(args);
 
-    myTerminalWriter.setCharacterAttributes(styleState);
+    myTerminal.setCharacterAttributes(styleState);
   }
 
   private static StyleState createStyleState(ControlSequence args) {
@@ -420,7 +345,7 @@ public class Emulator {
   private void cursorUp(ControlSequence cs) {
     int arg = cs.getArg(0, 0);
     arg = arg == 0 ? 1 : arg;
-    myTerminalWriter.cursorUp(arg);
+    myTerminal.cursorUp(arg);
   }
 
   private void setModes(final ControlSequence args, final boolean on) throws IOException {
@@ -438,26 +363,12 @@ public class Emulator {
       }
       else if (on) {
         if (LOG.isInfoEnabled()) LOG.info("Modes: adding " + mode);
-        myTerminalWriter.setMode(mode);
+        myTerminal.setMode(mode);
       }
       else {
         if (LOG.isInfoEnabled()) LOG.info("Modes: removing " + mode);
-        myTerminalWriter.unsetMode(mode);
+        myTerminal.unsetMode(mode);
       }
     }
-  }
-
-  public void sendString(final String string) {
-    execute(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          myTtyChannel.sendString(string);
-        }
-        catch (IOException e) {
-          throw new RuntimeException(e);
-        }
-      }
-    });
   }
 }

@@ -1,12 +1,12 @@
 package com.jediterm.emulator.ui;
 
-import com.jediterm.emulator.Emulator;
+import com.jediterm.emulator.TerminalProcessor;
 import com.jediterm.emulator.TextStyle;
 import com.jediterm.emulator.TtyChannel;
 import com.jediterm.emulator.TtyConnector;
 import com.jediterm.emulator.debug.DebugBufferType;
 import com.jediterm.emulator.display.BackBuffer;
-import com.jediterm.emulator.display.BufferedTerminalWriter;
+import com.jediterm.emulator.display.BufferedDisplayTerminal;
 import com.jediterm.emulator.display.LinesBuffer;
 import com.jediterm.emulator.display.StyleState;
 import org.apache.log4j.Logger;
@@ -22,12 +22,12 @@ public class SwingJediTerminal extends JPanel {
   private static final long SERIAL_VERSION_UID = -8213232075937432833L;
 
   protected SwingTerminalPanel myTerminalPanel;
-  protected BufferedTerminalWriter myTerminalWriter;
+  protected BufferedDisplayTerminal myTerminalWriter;
   protected AtomicBoolean mySessionRunning = new AtomicBoolean();
   protected PreConnectHandler myPreConnectHandler;
   private TtyConnector myTtyConnector;
   private TtyChannel myTtyChannel;
-  private Emulator myEmulator;
+  private TerminalProcessor myTerminalProcessor;
   private Thread myEmuThread;
 
   public SwingJediTerminal() {
@@ -47,7 +47,7 @@ public class SwingJediTerminal extends JPanel {
     BackBuffer backBuffer = new BackBuffer(columns, lines, styleState, scrollBuffer);
 
     myTerminalPanel = createTerminalPanel(styleState, backBuffer, scrollBuffer);
-    myTerminalWriter = new BufferedTerminalWriter(myTerminalPanel, backBuffer, styleState);
+    myTerminalWriter = new BufferedDisplayTerminal(myTerminalPanel, backBuffer, styleState);
     myPreConnectHandler = createPreConnectHandler(myTerminalWriter);
     myTerminalPanel.setKeyListener(myPreConnectHandler);
     JScrollBar scrollBar = createScrollBar();
@@ -74,7 +74,7 @@ public class SwingJediTerminal extends JPanel {
     return new SwingTerminalPanel(backBuffer, scrollBuffer, styleState);
   }
 
-  protected PreConnectHandler createPreConnectHandler(BufferedTerminalWriter writer) {
+  protected PreConnectHandler createPreConnectHandler(BufferedDisplayTerminal writer) {
     return new PreConnectHandler(writer);
   }
 
@@ -86,8 +86,8 @@ public class SwingJediTerminal extends JPanel {
     myTtyConnector = ttyConnector;
     myTtyChannel = new TtyChannel(ttyConnector);
 
-    myEmulator = new Emulator(myTerminalWriter, myTtyChannel);
-    myTerminalPanel.setEmulator(myEmulator);
+    myTerminalProcessor = new TerminalProcessor(myTerminalWriter, myTtyChannel);
+    myTerminalPanel.setTerminalProcessor(myTerminalProcessor);
   }
 
   public TtyConnector getTtyConnector() {
@@ -147,7 +147,7 @@ public class SwingJediTerminal extends JPanel {
               myTerminalPanel.requestFocusInWindow();
             }
           });
-          myEmulator.start();
+          myTerminalProcessor.start();
         }
       }
       finally {
@@ -163,10 +163,10 @@ public class SwingJediTerminal extends JPanel {
   }
 
   protected KeyListener createEmulatorKeyHandler() {
-    return new TerminalEmulatorKeyHandler(myEmulator);
+    return new TerminalEmulatorKeyHandler(myTerminalProcessor);
   }
 
-  public Emulator getEmulator() {
-    return myEmulator;
+  public TerminalProcessor getTerminalProcessor() {
+    return myTerminalProcessor;
   }
 }

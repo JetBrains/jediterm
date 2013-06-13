@@ -74,6 +74,26 @@ public class CharacterUtils {
     //putCode(VK_PAGE_DOWN, ESC, '[', '6', '~');
   }
 
+  public static CharArraySlice getNonControlCharacters(int maxChars, char[] buf, int offset, int charsLength) {
+    int len = maxChars > charsLength ? charsLength : maxChars;
+
+    final int origLen = len;
+    char tmp;
+    while (len > 0) {
+      tmp = buf[offset++];
+      if (0x20 <= tmp) { //stop when we reach control chars
+        len--;
+        continue;
+      }
+      offset--;
+      break;
+    }
+
+    int length = origLen - len;
+
+    return new CharArraySlice(buf, offset - length, length);
+  }
+
   enum CharacterType {
     NONPRINTING,
     PRINTING,
@@ -128,5 +148,17 @@ public class CharacterUtils {
 
   static public byte[] getCode(final int key) {
     return CODES.get(key);
+  }
+
+  public static class CharArraySlice {
+    public final char[] buffer;
+    public final int offset;
+    public final int length;
+
+    public CharArraySlice(char[] buffer, int offset, int length) {
+      this.buffer = buffer;
+      this.offset = offset;
+      this.length = length;
+    }
   }
 }

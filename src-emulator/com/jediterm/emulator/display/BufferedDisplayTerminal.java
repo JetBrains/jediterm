@@ -4,9 +4,9 @@
 package com.jediterm.emulator.display;
 
 import com.jediterm.emulator.RequestOrigin;
+import com.jediterm.emulator.Terminal;
 import com.jediterm.emulator.TerminalDisplay;
 import com.jediterm.emulator.TerminalMode;
-import com.jediterm.emulator.TerminalWriter;
 import org.apache.log4j.Logger;
 
 import java.awt.*;
@@ -14,8 +14,8 @@ import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.EnumSet;
 
-public class BufferedTerminalWriter implements TerminalWriter {
-  private static final Logger LOG = Logger.getLogger(BufferedTerminalWriter.class.getName());
+public class BufferedDisplayTerminal implements Terminal {
+  private static final Logger LOG = Logger.getLogger(BufferedDisplayTerminal.class.getName());
 
   private final static int TAB = 8;
   private static final int MIN_WIDTH = 5;
@@ -34,13 +34,13 @@ public class BufferedTerminalWriter implements TerminalWriter {
 
   private final EnumSet<TerminalMode> myModes = EnumSet.of(TerminalMode.ANSI);
 
-  public BufferedTerminalWriter(final TerminalDisplay term, final BackBuffer buf, final StyleState styleState) {
-    myDisplay = term;
+  public BufferedDisplayTerminal(final TerminalDisplay display, final BackBuffer buf, final StyleState initialStyleState) {
+    myDisplay = display;
     myBackBuffer = buf;
-    myStyleState = styleState;
+    myStyleState = initialStyleState;
 
-    myTerminalWidth = term.getColumnCount();
-    myTerminalHeight = term.getRowCount();
+    myTerminalWidth = display.getColumnCount();
+    myTerminalHeight = display.getRowCount();
 
     myScrollRegionTop = 1;
     myScrollRegionBottom = myTerminalHeight;

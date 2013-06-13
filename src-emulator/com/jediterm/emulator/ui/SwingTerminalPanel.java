@@ -60,7 +60,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
   private boolean myAntialiasing = true;
 
-  private Emulator myEmulator = null;
+  private TerminalProcessor myTerminalProcessor = null;
 
   protected Point mySelectionStart;
 
@@ -224,7 +224,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     final String selection = getClipboardString();
 
     try {
-      myEmulator.sendString(selection);
+      myTerminalProcessor.sendString(selection);
     }
     catch (RuntimeException e) {
       logger.info(e);
@@ -286,20 +286,20 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   }
 
   private void sizeTerminalFromComponent() {
-    if (myEmulator != null) {
+    if (myTerminalProcessor != null) {
       final int newWidth = getWidth() / myCharSize.width;
       final int newHeight = getHeight() / myCharSize.height;
 
       if (newHeight > 0 && newWidth > 0) {
         final Dimension newSize = new Dimension(newWidth, newHeight);
 
-        myEmulator.postResize(newSize, RequestOrigin.User);
+        myTerminalProcessor.postResize(newSize, RequestOrigin.User);
       }
     }
   }
 
-  public void setEmulator(final Emulator emulator) {
-    myEmulator = emulator;
+  public void setTerminalProcessor(final TerminalProcessor terminalProcessor) {
+    myTerminalProcessor = terminalProcessor;
     sizeTerminalFromComponent();
   }
 
@@ -310,7 +310,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   public Dimension requestResize(final Dimension newSize,
                                  final RequestOrigin origin,
                                  int cursorY,
-                                 BufferedTerminalWriter.ResizeHandler resizeHandler) {
+                                 BufferedDisplayTerminal.ResizeHandler resizeHandler) {
     if (!newSize.equals(myTermSize)) {
       myBackBuffer.lock();
       try {

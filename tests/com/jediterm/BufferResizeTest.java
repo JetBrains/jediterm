@@ -2,10 +2,11 @@ package com.jediterm;
 
 import com.jediterm.emulator.RequestOrigin;
 import com.jediterm.emulator.display.BackBuffer;
-import com.jediterm.emulator.display.BufferedTerminalWriter;
+import com.jediterm.emulator.display.BufferedDisplayTerminal;
 import com.jediterm.emulator.display.LinesBuffer;
 import com.jediterm.emulator.display.StyleState;
 import com.jediterm.util.BackBufferDisplay;
+import com.jediterm.util.BackBufferTerminal;
 import com.jediterm.util.CharBufferUtil;
 import junit.framework.TestCase;
 
@@ -22,21 +23,21 @@ public class BufferResizeTest extends TestCase {
 
     BackBuffer backBuffer = new BackBuffer(5, 5, state, scrollBuffer);
 
-    BufferedTerminalWriter writer = new BufferedTerminalWriter(new BackBufferDisplay(backBuffer), backBuffer, state);
+    BufferedDisplayTerminal terminal = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
 
-    writer.writeString("line");
-    writer.newLine();
-    writer.carriageReturn();
-    writer.writeString("line2");
-    writer.newLine();
-    writer.carriageReturn();
-    writer.writeString("line3");
-    writer.newLine();
-    writer.carriageReturn();
-    writer.writeString("li");
+    terminal.writeString("line");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString("line2");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString("line3");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString("li");
 
-    writer.resize(new Dimension(10, 10), RequestOrigin.User);
+    terminal.resize(new Dimension(10, 10), RequestOrigin.User);
 
 
 
@@ -53,7 +54,7 @@ public class BufferResizeTest extends TestCase {
                  "          \n" +
                  "          \n", backBuffer.getLines());
 
-    assertEquals(4, writer.getCursorY());
+    assertEquals(4, terminal.getCursorY());
   }
 
 
@@ -64,7 +65,7 @@ public class BufferResizeTest extends TestCase {
 
     BackBuffer backBuffer = new BackBuffer(5, 5, state, scrollBuffer);
 
-    BufferedTerminalWriter writer = new BufferedTerminalWriter(new BackBufferDisplay(backBuffer), backBuffer, state);
+    BufferedDisplayTerminal writer = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
 
     writer.writeString("line");
@@ -101,7 +102,7 @@ public class BufferResizeTest extends TestCase {
 
     BackBuffer backBuffer = new BackBuffer(5, 5, state, scrollBuffer);
 
-    BufferedTerminalWriter writer = new BufferedTerminalWriter(new BackBufferDisplay(backBuffer), backBuffer, state);
+    BufferedDisplayTerminal writer = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
 
     writer.writeString("line ");
@@ -150,7 +151,7 @@ public class BufferResizeTest extends TestCase {
 
     BackBuffer backBuffer = new BackBuffer(5, 2, state, scrollBuffer);
 
-    BufferedTerminalWriter writer = new BufferedTerminalWriter(new BackBufferDisplay(backBuffer), backBuffer, state);
+    BufferedDisplayTerminal writer = new BackBufferTerminal(backBuffer, state);
 
     scrollBuffer.addToBuffer(state.getCurrent(), CharBufferUtil.create("line"), true);
     scrollBuffer.addToBuffer(state.getCurrent(), CharBufferUtil.create("line2"), true);
@@ -181,7 +182,7 @@ public class BufferResizeTest extends TestCase {
 
     BackBuffer backBuffer = new BackBuffer(6, 5, state, scrollBuffer);
 
-    BufferedTerminalWriter writer = new BufferedTerminalWriter(new BackBufferDisplay(backBuffer), backBuffer, state);
+    BufferedDisplayTerminal writer = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
     writer.writeString(">line1");
     writer.newLine();

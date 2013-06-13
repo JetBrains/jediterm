@@ -18,14 +18,14 @@ public class SelectionTest extends TestCase {
 
     BackBuffer backBuffer = new BackBuffer(15, 5, state, scrollBuffer);
 
-    BufferedTerminalWriter writer = new BufferedTerminalWriter(new BackBufferDisplay(backBuffer), backBuffer, state);
+    BufferedDisplayTerminal terminal = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
-    writer.writeString("  1. line ");
-    writer.newLine();
-    writer.carriageReturn();
-    writer.writeString("  2. line2");
-    writer.newLine();
-    writer.carriageReturn();
+    terminal.writeString("  1. line ");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString("  2. line2");
+    terminal.newLine();
+    terminal.carriageReturn();
 
     assertEquals("line \n" +
                  "  2. line", SelectionUtil.getSelectionText(new Point(5, 0), new Point(9, 1), scrollBuffer, backBuffer));
@@ -39,7 +39,7 @@ public class SelectionTest extends TestCase {
 
     BackBuffer backBuffer = new BackBuffer(15, 5, state, scrollBuffer);
 
-    BufferedTerminalWriter writer = new BufferedTerminalWriter(new BackBufferDisplay(backBuffer), backBuffer, state);
+    BufferedDisplayTerminal writer = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
     writer.writeString("   line   ");
     writer.newLine();
@@ -55,7 +55,7 @@ public class SelectionTest extends TestCase {
 
     BackBuffer backBuffer = new BackBuffer(20, 5, state, scrollBuffer);
 
-    BufferedTerminalWriter writer = new BufferedTerminalWriter(new BackBufferDisplay(backBuffer), backBuffer, state);
+    BufferedDisplayTerminal writer = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
     writer.writeString("text to select ");
     writer.newLine();
@@ -76,7 +76,7 @@ public class SelectionTest extends TestCase {
 
     BackBuffer backBuffer = new BackBuffer(15, 5, state, scrollBuffer);
 
-    BufferedTerminalWriter writer = new BufferedTerminalWriter(new BackBufferDisplay(backBuffer), backBuffer, state);
+    BufferedDisplayTerminal writer = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
     writer.writeString("first line");
     writer.newLine();
@@ -94,7 +94,7 @@ public class SelectionTest extends TestCase {
 
     BackBuffer backBuffer = new BackBuffer(15, 5, state, scrollBuffer);
 
-    BufferedTerminalWriter writer = new BufferedTerminalWriter(new BackBufferDisplay(backBuffer), backBuffer, state);
+    BufferedDisplayTerminal writer = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
     writer.writeString("first line");
     writer.newLine();

@@ -3,6 +3,10 @@ package com.jediterm.emulator;
 import java.io.IOException;
 
 /**
+ * Takes data from underlying char array.
+ *
+ * Doesn't send any data back.
+ *
  * @author traff
  */
 public class ArrayTerminalDataStream implements TerminalDataStream {
@@ -50,8 +54,8 @@ public class ArrayTerminalDataStream implements TerminalDataStream {
     return charArraySlice;
   }
 
-  public void pushBackBuffer(final char[] bytes, final int len) throws EOF {
-    for (int i = len - 1; i >= 0; i--) {
+  public void pushBackBuffer(final char[] bytes, final int length) throws EOF {
+    for (int i = length - 1; i >= 0; i--) {
       pushChar(bytes[i]);
     }
   }

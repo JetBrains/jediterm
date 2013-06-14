@@ -1,6 +1,6 @@
 package com.jediterm.emulator.ui;
 
-import com.jediterm.emulator.TerminalProcessor;
+import com.jediterm.emulator.TerminalStarter;
 import com.jediterm.emulator.TextStyle;
 import com.jediterm.emulator.TtyChannel;
 import com.jediterm.emulator.TtyConnector;
@@ -17,6 +17,11 @@ import java.awt.event.KeyListener;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * JediTerm terminal widget with UI implemented in Swing.
+ *
+ * TODO: needs to be renamed to JediTermWidget or JediTermComponent
+ */
 public class SwingJediTerminal extends JPanel {
   private static final Logger LOG = Logger.getLogger(SwingJediTerminal.class);
   private static final long SERIAL_VERSION_UID = -8213232075937432833L;
@@ -27,7 +32,7 @@ public class SwingJediTerminal extends JPanel {
   protected PreConnectHandler myPreConnectHandler;
   private TtyConnector myTtyConnector;
   private TtyChannel myTtyChannel;
-  private TerminalProcessor myTerminalProcessor;
+  private TerminalStarter myTerminalStarter;
   private Thread myEmuThread;
 
   public SwingJediTerminal() {
@@ -86,8 +91,8 @@ public class SwingJediTerminal extends JPanel {
     myTtyConnector = ttyConnector;
     myTtyChannel = new TtyChannel(ttyConnector);
 
-    myTerminalProcessor = new TerminalProcessor(myTerminalWriter, myTtyChannel);
-    myTerminalPanel.setTerminalProcessor(myTerminalProcessor);
+    myTerminalStarter = new TerminalStarter(myTerminalWriter, myTtyChannel);
+    myTerminalPanel.setTerminalStarter(myTerminalStarter);
   }
 
   public TtyConnector getTtyConnector() {
@@ -147,7 +152,7 @@ public class SwingJediTerminal extends JPanel {
               myTerminalPanel.requestFocusInWindow();
             }
           });
-          myTerminalProcessor.start();
+          myTerminalStarter.start();
         }
       }
       finally {
@@ -163,10 +168,10 @@ public class SwingJediTerminal extends JPanel {
   }
 
   protected KeyListener createEmulatorKeyHandler() {
-    return new TerminalEmulatorKeyHandler(myTerminalProcessor);
+    return new TerminalEmulatorKeyHandler(myTerminalStarter);
   }
 
-  public TerminalProcessor getTerminalProcessor() {
-    return myTerminalProcessor;
+  public TerminalStarter getTerminalStarter() {
+    return myTerminalStarter;
   }
 }

@@ -6,6 +6,9 @@ package com.jediterm.emulator;
 import java.awt.*;
 import java.io.IOException;
 
+/**
+ * Takes data from and sends it back to TTY input and output streams via {@link TtyConnector}
+ */
 public class TtyChannel extends ArrayTerminalDataStream {
   private TtyConnector myTtyConnector;
 

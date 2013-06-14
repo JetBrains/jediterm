@@ -31,8 +31,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 
-public class TerminalProcessor {
-  private static final Logger LOG = Logger.getLogger(TerminalProcessor.class);
+/**
+ * Runs terminal emulator. Manages threads to send response.
+ *
+ * @author traff
+ */
+public class TerminalStarter {
+  private static final Logger LOG = Logger.getLogger(TerminalStarter.class);
 
   private final Emulator myEmulator;
 
@@ -41,7 +46,7 @@ public class TerminalProcessor {
 
   private final ExecutorService myEmulatorExecutor = Executors.newFixedThreadPool(1);
 
-  public TerminalProcessor(final Terminal terminal, final TtyChannel channel) {
+  public TerminalStarter(final Terminal terminal, final TtyChannel channel) {
     myTtyChannel = channel;
     myTerminal = terminal;
     myEmulator = new Emulator(myTtyChannel, terminal);

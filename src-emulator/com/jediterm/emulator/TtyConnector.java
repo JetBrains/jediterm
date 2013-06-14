@@ -3,6 +3,9 @@ package com.jediterm.emulator;
 import java.awt.*;
 import java.io.IOException;
 
+/**
+ * Interface to tty.
+ */
 public interface TtyConnector {
   boolean init(Questioner q);
 

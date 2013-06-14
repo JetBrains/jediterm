@@ -14,6 +14,12 @@ import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.EnumSet;
 
+/**
+ * Terminal that reflects obtained commands and text at {@link TerminalDisplay}(handles change of cursor position, screen size etc)
+ * and  {@link BackBuffer}(stores printed text)
+ *
+ * @author traff
+ */
 public class BufferedDisplayTerminal implements Terminal {
   private static final Logger LOG = Logger.getLogger(BufferedDisplayTerminal.class.getName());
 

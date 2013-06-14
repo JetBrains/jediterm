@@ -1,6 +1,6 @@
 package com.jediterm.emulator.ui;
 
-import com.jediterm.emulator.TerminalProcessor;
+import com.jediterm.emulator.TerminalStarter;
 import org.apache.log4j.Logger;
 
 import java.awt.event.KeyEvent;
@@ -8,25 +8,25 @@ import java.awt.event.KeyListener;
 
 public class TerminalEmulatorKeyHandler implements KeyListener {
   private static Logger logger = Logger.getLogger(TerminalEmulatorKeyHandler.class);
-  private final TerminalProcessor myTerminalProcessor;
+  private final TerminalStarter myTerminalStarter;
 
-  public TerminalEmulatorKeyHandler(TerminalProcessor emu) {
-    myTerminalProcessor = emu;
+  public TerminalEmulatorKeyHandler(TerminalStarter emu) {
+    myTerminalStarter = emu;
   }
 
   public void keyPressed(final KeyEvent e) {
     try {
       final int keycode = e.getKeyCode();
-      final byte[] code = myTerminalProcessor.getCode(keycode);
+      final byte[] code = myTerminalStarter.getCode(keycode);
       if (code != null) {
-        myTerminalProcessor.sendBytes(code);
+        myTerminalStarter.sendBytes(code);
       }
       else {
         final char keychar = e.getKeyChar();
         final byte[] obuffer = new byte[1];
         if ((keychar & 0xff00) == 0) {
           obuffer[0] = (byte)e.getKeyChar();
-          myTerminalProcessor.sendBytes(obuffer);
+          myTerminalStarter.sendBytes(obuffer);
         }
       }
     }
@@ -41,7 +41,7 @@ public class TerminalEmulatorKeyHandler implements KeyListener {
       final char[] foo = new char[1];
       foo[0] = keychar;
       try {
-        myTerminalProcessor.sendString(new String(foo));
+        myTerminalStarter.sendString(new String(foo));
       }
       catch (final RuntimeException ex) {
         logger.error("Error sending key to emulator", ex);

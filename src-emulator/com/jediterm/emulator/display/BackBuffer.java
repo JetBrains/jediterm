@@ -9,6 +9,15 @@ import java.util.BitSet;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * Buffer for storing styled text data.
+ * Stores only text that fit into one screen XxY, but has scrollBuffer to save history lines and textBuffer to restore
+ * screen after resize. ScrollBuffer stores all lines before the first line currently shown on the screen. TextBuffer
+ * stores lines that are shown currently on the screen and they have there(in TextBuffer) their initial length (even if
+ * it doesn't fit to screen width).
+ *
+ * Also handles screen damage (TODO: write about it).
+ */
 public class BackBuffer implements StyledTextConsumer {
   private static final Logger LOG = Logger.getLogger(BackBuffer.class);
 

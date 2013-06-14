@@ -11,7 +11,7 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * Holds characters data.
+ * Holds styled characters lines
  */
 public class LinesBuffer implements StyledTextConsumer {
   private static final Logger logger = Logger.getLogger(LinesBuffer.class);

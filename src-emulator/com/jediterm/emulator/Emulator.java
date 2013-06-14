@@ -8,11 +8,14 @@ import java.awt.*;
 import java.io.IOException;
 
 /**
+ * Obtains data from the  {@link TerminalDataStream}, interprets terminal ANSI escape sequences as commands and directs them
+ * as well as plain data characters to the  {@link Terminal}
+ *
  * @author traff
  */
 
 public class Emulator {
-  private static final Logger LOG = Logger.getLogger(TerminalProcessor.class);
+  private static final Logger LOG = Logger.getLogger(TerminalStarter.class);
 
     /*
    * Character Attributes

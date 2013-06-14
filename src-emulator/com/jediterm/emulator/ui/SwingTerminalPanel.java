@@ -60,7 +60,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
   private boolean myAntialiasing = true;
 
-  private TerminalProcessor myTerminalProcessor = null;
+  private TerminalStarter myTerminalStarter = null;
 
   protected Point mySelectionStart;
 
@@ -224,7 +224,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     final String selection = getClipboardString();
 
     try {
-      myTerminalProcessor.sendString(selection);
+      myTerminalStarter.sendString(selection);
     }
     catch (RuntimeException e) {
       logger.info(e);
@@ -286,20 +286,20 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   }
 
   private void sizeTerminalFromComponent() {
-    if (myTerminalProcessor != null) {
+    if (myTerminalStarter != null) {
       final int newWidth = getWidth() / myCharSize.width;
       final int newHeight = getHeight() / myCharSize.height;
 
       if (newHeight > 0 && newWidth > 0) {
         final Dimension newSize = new Dimension(newWidth, newHeight);
 
-        myTerminalProcessor.postResize(newSize, RequestOrigin.User);
+        myTerminalStarter.postResize(newSize, RequestOrigin.User);
       }
     }
   }
 
-  public void setTerminalProcessor(final TerminalProcessor terminalProcessor) {
-    myTerminalProcessor = terminalProcessor;
+  public void setTerminalStarter(final TerminalStarter terminalStarter) {
+    myTerminalStarter = terminalStarter;
     sizeTerminalFromComponent();
   }
 

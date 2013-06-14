@@ -7,6 +7,8 @@ import java.awt.*;
 import java.io.UnsupportedEncodingException;
 
 /**
+ * Executes terminal commands interpreted by Emulator, receives text
+ *
  * @author traff
  */
 public interface Terminal {

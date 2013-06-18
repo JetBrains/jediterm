@@ -43,13 +43,13 @@ public class ArrayTerminalDataStream implements TerminalDataStream {
     myBuf[--myOffset] = b;
   }
 
-  public CharacterUtils.CharArraySlice advanceThroughASCII(int maxChars) throws IOException {
-    CharacterUtils.CharArraySlice charArraySlice = CharacterUtils.getNonControlCharacters(maxChars, myBuf, myOffset, myLength);
+  public String advanceThroughASCII(int maxChars) throws IOException {
+    String nonControlCharacters = CharacterUtils.getNonControlCharacters(maxChars, myBuf, myOffset, myLength);
 
-    myOffset += charArraySlice.length;
-    myLength -= charArraySlice.length;
+    myOffset += nonControlCharacters.length();
+    myLength -= nonControlCharacters.length();
 
-    return charArraySlice;
+    return nonControlCharacters;
   }
 
   public void pushBackBuffer(final char[] bytes, final int length) throws EOF {

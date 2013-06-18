@@ -38,6 +38,8 @@ public class BufferedDisplayTerminal implements Terminal {
   private final BackBuffer myBackBuffer;
   private final StyleState myStyleState;
 
+  private final StoredCursor myStoredCursor = new StoredCursor();
+
   private final EnumSet<TerminalMode> myModes = EnumSet.of(TerminalMode.ANSI);
 
   public BufferedDisplayTerminal(final TerminalDisplay display, final BackBuffer buf, final StyleState initialStyleState) {
@@ -89,6 +91,11 @@ public class BufferedDisplayTerminal implements Terminal {
   private void finishText() {
     myDisplay.setCursor(myCursorX, myCursorY);
     scrollY();
+  }
+
+  @Override
+  public void writeASCII(String string) {
+    writeASCII(string.toCharArray(), 0, string.length());
   }
 
   public void writeASCII(final char[] chosenBuffer, final int start,
@@ -404,6 +411,16 @@ public class BufferedDisplayTerminal implements Terminal {
     return myTerminalWidth - myCursorX;
   }
 
+  @Override
+  public void storeCursor() {
+    storeCursor(myStoredCursor);
+  }
+
+  @Override
+  public void restoreCursor() {
+    restoreCursor(myStoredCursor);
+  }
+
   public void storeCursor(final StoredCursor storedCursor) {
     storedCursor.x = myCursorX;
     storedCursor.y = myCursorY;
@@ -463,6 +480,12 @@ public class BufferedDisplayTerminal implements Terminal {
     return myTerminalHeight;
   }
 
+  @Override
+  public int getCursorX() {
+    return myCursorX;
+  }
+
+  @Override
   public int getCursorY() {
     return myCursorY;
   }

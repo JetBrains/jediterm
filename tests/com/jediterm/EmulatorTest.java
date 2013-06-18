@@ -2,8 +2,8 @@ package com.jediterm;
 
 import com.jediterm.emulator.ArrayTerminalDataStream;
 import com.jediterm.emulator.Emulator;
+import com.jediterm.emulator.JediEmulator;
 import com.jediterm.emulator.Terminal;
-import com.jediterm.emulator.TerminalDataStream;
 import com.jediterm.emulator.display.BackBuffer;
 import com.jediterm.emulator.display.LinesBuffer;
 import com.jediterm.emulator.display.StyleState;
@@ -52,15 +52,10 @@ public class EmulatorTest extends TestCase {
       fileStream = new ArrayTerminalDataStream(FileUtil.loadFileText(new File(TestPathsManager.getTestDataPath() + getName() + ".txt"),
                                                                      "UTF-8"));
 
-    Emulator emulator = new Emulator(fileStream, new NullTerminalOutputStream(), terminal);
+    Emulator emulator = new JediEmulator(fileStream, new NullTerminalOutputStream(), terminal);
 
-    while (true) {
-      try {
-        emulator.processNextChar();
-      }
-      catch (TerminalDataStream.EOF e) {
-        break;
-      }
+    while (emulator.hasNext()) {
+      emulator.next();
     }
 
     assertEquals(expected, backBuffer.getLines());

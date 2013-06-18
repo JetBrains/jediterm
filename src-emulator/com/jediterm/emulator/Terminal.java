@@ -1,13 +1,12 @@
 package com.jediterm.emulator;
 
-import com.jediterm.emulator.display.StoredCursor;
 import com.jediterm.emulator.display.StyleState;
 
 import java.awt.*;
 import java.io.UnsupportedEncodingException;
 
 /**
- * Executes terminal commands interpreted by Emulator, receives text
+ * Executes terminal commands interpreted by {@link Emulator}, receives text
  *
  * @author traff
  */
@@ -28,6 +27,8 @@ public interface Terminal {
 
   void writeASCII(char[] buf, int offset, int len);
 
+  void writeASCII(String string);
+
   int distanceToLineEnd();
 
   void reverseIndex();
@@ -38,9 +39,9 @@ public interface Terminal {
 
   void fillScreen(char c);
 
-  void storeCursor(StoredCursor cursor);
+  void storeCursor();
 
-  void restoreCursor(StoredCursor cursor);
+  void restoreCursor();
 
   void setCharacterAttributes(StyleState styleState);
 
@@ -67,4 +68,8 @@ public interface Terminal {
   void unsetMode(TerminalMode mode);
 
   void disconnected();
+
+  int getCursorX();
+
+  int getCursorY();
 }

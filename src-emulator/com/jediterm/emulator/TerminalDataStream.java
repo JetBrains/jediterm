@@ -15,7 +15,7 @@ public interface TerminalDataStream {
 
   void pushChar(char c) throws IOException;
 
-  CharacterUtils.CharArraySlice advanceThroughASCII(int maxChars) throws IOException;
+  String advanceThroughASCII(int maxChars) throws IOException;
 
   void pushBackBuffer(char[] bytes, int length) throws IOException;
 

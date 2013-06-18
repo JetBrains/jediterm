@@ -34,7 +34,7 @@ public class TtyChannel extends ArrayTerminalDataStream {
     return super.getChar();
   }
 
-  public CharacterUtils.CharArraySlice advanceThroughASCII(int maxChars) throws IOException {
+  public String advanceThroughASCII(int maxChars) throws IOException {
     if (myLength == 0) {
       fillBuf();
     }

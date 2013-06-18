@@ -49,7 +49,7 @@ public class TerminalStarter implements TerminalOutputStream {
   public TerminalStarter(final Terminal terminal, final TtyChannel channel) {
     myTtyChannel = channel;
     myTerminal = terminal;
-    myEmulator = new Emulator(myTtyChannel, this, terminal);
+    myEmulator = new JediEmulator(myTtyChannel, this, terminal);
   }
 
   private void execute(Runnable runnable) {
@@ -58,8 +58,8 @@ public class TerminalStarter implements TerminalOutputStream {
 
   public void start() {
     try {
-      while (!Thread.currentThread().isInterrupted()) {
-        myEmulator.processNextChar();
+      while (!Thread.currentThread().isInterrupted() && myEmulator.hasNext()) {
+        myEmulator.next();
       }
     }
     catch (final InterruptedIOException e) {

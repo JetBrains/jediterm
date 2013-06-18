@@ -31,7 +31,7 @@ public class EmulatorTest extends TestCase {
     doTest(80, 24);
   }
 
-  public void testNCurses() throws IOException {
+  public void testMidnightCommanderOnVT100() throws IOException { 
     doTest(80, 24);
   }
 

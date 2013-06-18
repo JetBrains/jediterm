@@ -36,10 +36,13 @@ public class Emulator {
 
 
   private final TerminalDataStream myDataStream;
+  private final TerminalOutputStream myOutputStream;
+  
   private final Terminal myTerminal;
 
-  public Emulator(TerminalDataStream stream, Terminal terminal) {
-    myDataStream = stream;
+  public Emulator(TerminalDataStream dataStream, TerminalOutputStream outputStream, Terminal terminal) {
+    myDataStream = dataStream;
+    myOutputStream = outputStream;
     myTerminal = terminal;
   }
 
@@ -226,7 +229,7 @@ public class Emulator {
         if (LOG.isDebugEnabled()) {
           LOG.debug("Identifying to remote system as VT102");
         }
-        myDataStream.sendBytes(CharacterUtils.DEVICE_ATTRIBUTES_RESPONSE);
+        myOutputStream.sendBytes(CharacterUtils.DEVICE_ATTRIBUTES_RESPONSE);
         break;
       default:
         StringBuffer sb = new StringBuffer();

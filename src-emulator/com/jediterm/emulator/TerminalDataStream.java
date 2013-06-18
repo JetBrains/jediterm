@@ -7,7 +7,6 @@ import java.io.IOException;
  * It allows to {@link #getChar()} by one and {@link #pushChar(char)} back as well as requesting a chunk of plain ASCII
  * characters ({@link #advanceThroughASCII(int)} - for faster processing from buffer in the size <=<b>maxChars</b>).
  *
- * Also it can {@link #sendBytes(byte[])} as a response from the terminal emulator.
  *
  * @author traff
  */
@@ -17,8 +16,6 @@ public interface TerminalDataStream {
   void pushChar(char c) throws IOException;
 
   CharacterUtils.CharArraySlice advanceThroughASCII(int maxChars) throws IOException;
-
-  void sendBytes(byte[] response) throws IOException;
 
   void pushBackBuffer(char[] bytes, int length) throws IOException;
 

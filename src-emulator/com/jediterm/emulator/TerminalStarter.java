@@ -36,7 +36,7 @@ import java.util.concurrent.Executors;
  *
  * @author traff
  */
-public class TerminalStarter {
+public class TerminalStarter implements TerminalOutputStream {
   private static final Logger LOG = Logger.getLogger(TerminalStarter.class);
 
   private final Emulator myEmulator;
@@ -49,7 +49,7 @@ public class TerminalStarter {
   public TerminalStarter(final Terminal terminal, final TtyChannel channel) {
     myTtyChannel = channel;
     myTerminal = terminal;
-    myEmulator = new Emulator(myTtyChannel, terminal);
+    myEmulator = new Emulator(myTtyChannel, this, terminal);
   }
 
   private void execute(Runnable runnable) {
@@ -86,6 +86,7 @@ public class TerminalStarter {
     myTtyChannel.postResize(dimension, pixelSize);
   }
 
+  @Override
   public void sendBytes(final byte[] bytes) {
     execute(new Runnable() {
       @Override
@@ -100,6 +101,7 @@ public class TerminalStarter {
     });
   }
 
+  @Override
   public void sendString(final String string) {
     execute(new Runnable() {
       @Override

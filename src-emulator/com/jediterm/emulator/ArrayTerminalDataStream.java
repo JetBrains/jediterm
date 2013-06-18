@@ -5,8 +5,6 @@ import java.io.IOException;
 /**
  * Takes data from underlying char array.
  *
- * Doesn't send any data back.
- *
  * @author traff
  */
 public class ArrayTerminalDataStream implements TerminalDataStream {
@@ -58,9 +56,5 @@ public class ArrayTerminalDataStream implements TerminalDataStream {
     for (int i = length - 1; i >= 0; i--) {
       pushChar(bytes[i]);
     }
-  }
-
-  @Override
-  public void sendBytes(byte[] response) throws IOException {
   }
 }

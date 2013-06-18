@@ -9,6 +9,7 @@ import com.jediterm.emulator.display.LinesBuffer;
 import com.jediterm.emulator.display.StyleState;
 import com.jediterm.util.BackBufferTerminal;
 import com.jediterm.util.FileUtil;
+import com.jediterm.util.NullTerminalOutputStream;
 import junit.framework.TestCase;
 import testData.TestPathsManager;
 
@@ -51,7 +52,7 @@ public class EmulatorTest extends TestCase {
       fileStream = new ArrayTerminalDataStream(FileUtil.loadFileText(new File(TestPathsManager.getTestDataPath() + getName() + ".txt"),
                                                                      "UTF-8"));
 
-    Emulator emulator = new Emulator(fileStream, terminal);
+    Emulator emulator = new Emulator(fileStream, new NullTerminalOutputStream(), terminal);
 
     while (true) {
       try {

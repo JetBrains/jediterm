@@ -278,7 +278,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     myTerminal.cursorPosition(argx, argy);
   }
 
-  public void setCharacterAttributes(final ControlSequence args) {
+  private void setCharacterAttributes(final ControlSequence args) {
     StyleState styleState = createStyleState(args);
 
     myTerminal.setCharacterAttributes(styleState);

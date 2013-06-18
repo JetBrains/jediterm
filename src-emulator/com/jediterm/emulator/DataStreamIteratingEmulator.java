@@ -30,7 +30,6 @@ public abstract class DataStreamIteratingEmulator implements Emulator {
     }
     catch (TerminalDataStream.EOF e) {
       myEof = true;
-      throw e;
     }
   }
 

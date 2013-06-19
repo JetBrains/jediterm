@@ -129,7 +129,37 @@
         </fileset>
       </batchtest>
 
-    </junit>
+		</junit>
 
-  </target>
+	</target>
+
+	<target name="jedit-pty-package" depends="jediterm-pty.jar">
+
+				<property name="destination.jar.name" value="jediterm-pty-package-${version}"/>
+        <property name="destination.dir" value="distributables"/>
+        <property name="application.main-class" value="com.jediterm.pty.PtyMain"/>
+        <property name="destination.jar" value="${destination.dir}/${destination.jar.name}.jar"/>
+        
+        <echo message="Packaging jediterm-pty into a single JAR at ${destination.jar}"/>
+        
+        <delete dir="${destination.dir}"/>
+        <mkdir dir="${destination.dir}"/>
+        
+        <jar destfile="${destination.dir}/temp_final.jar" filesetmanifest="skip">
+            <!-- Packages the following jars -->
+						<zipgroupfileset dir="build" includes="jediterm-pty-${version}.jar"/>
+						<zipgroupfileset dir="lib" includes="*"/>
+            <manifest>
+                <attribute name="Main-Class" value="${application.main-class}"/>
+            </manifest>
+        </jar>
+        
+        <zip destfile="${destination.jar}">
+            <zipfileset src="${destination.dir}/temp_final.jar"
+                        excludes="META-INF/*.SF, META-INF/*.DSA, META-INF/*.RSA"/>
+        </zip>
+        
+        <delete file="${destination.dir}/temp_final.jar"/>
+    </target>
+
 </project>

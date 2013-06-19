@@ -17,20 +17,21 @@ import java.io.*;
 public class JSchTtyConnector implements TtyConnector {
   public static final Logger LOG = Logger.getLogger(JSchTtyConnector.class);
 
-  private InputStream in = null;
-  private OutputStream out = null;
-  private Session session;
-  private ChannelShell channel;
-  private int port = 22;
+  private InputStream myInputStream = null;
+  private OutputStream myOutputStream = null;
+  private Session mySession;
+  private ChannelShell myChannelShell;
+  
+  private int myPort = 22;
 
-  private String user = null;
-  private String host = null;
-  private String password = null;
+  private String myUser = null;
+  private String myHost = null;
+  private String myPassword = null;
 
-  private Dimension pendingTermSize;
-  private Dimension pendingPixelSize;
-  private InputStreamReader inReader;
-  private OutputStreamWriter outWriter;
+  private Dimension myPendingTermSize;
+  private Dimension myPendingPixelSize;
+  private InputStreamReader myInputStreamReader;
+  private OutputStreamWriter myOutputStreamWriter;
 
 
   public JSchTtyConnector() {
@@ -38,33 +39,33 @@ public class JSchTtyConnector implements TtyConnector {
   }
 
   public JSchTtyConnector(String host, String user, String password) {
-    this.host = host;
-    this.user = user;
-    this.password = password;
+    this.myHost = host;
+    this.myUser = user;
+    this.myPassword = password;
   }
 
   public void resize(Dimension termSize, Dimension pixelSize) {
-    pendingTermSize = termSize;
-    pendingPixelSize = pixelSize;
-    if (channel != null) resizeImmediately();
+    myPendingTermSize = termSize;
+    myPendingPixelSize = pixelSize;
+    if (myChannelShell != null) resizeImmediately();
   }
 
   private void resizeImmediately() {
-    if (pendingTermSize != null && pendingPixelSize != null) {
-      channel.setPtySize(pendingTermSize.width, pendingTermSize.height, pendingPixelSize.width, pendingPixelSize.height);
-      pendingTermSize = null;
-      pendingPixelSize = null;
+    if (myPendingTermSize != null && myPendingPixelSize != null) {
+      myChannelShell.setPtySize(myPendingTermSize.width, myPendingTermSize.height, myPendingPixelSize.width, myPendingPixelSize.height);
+      myPendingTermSize = null;
+      myPendingPixelSize = null;
     }
   }
 
 
   public void close() {
-    if (session != null) {
-      session.disconnect();
-      session = null;
-      channel = null;
-      in = null;
-      out = null;
+    if (mySession != null) {
+      mySession.disconnect();
+      mySession = null;
+      myChannelShell = null;
+      myInputStream = null;
+      myOutputStream = null;
     }
   }
 
@@ -73,12 +74,12 @@ public class JSchTtyConnector implements TtyConnector {
     getAuthDetails(q);
 
     try {
-      session = connectSession(q);
-      channel = (ChannelShell)session.openChannel("shell");
-      in = channel.getInputStream();
-      out = channel.getOutputStream();
-      inReader = new InputStreamReader(in, "utf-8");
-      channel.connect();
+      mySession = connectSession(q);
+      myChannelShell = (ChannelShell)mySession.openChannel("shell");
+      myInputStream = myChannelShell.getInputStream();
+      myOutputStream = myChannelShell.getOutputStream();
+      myInputStreamReader = new InputStreamReader(myInputStream, "utf-8");
+      myChannelShell.connect();
       resizeImmediately();
       return true;
     }
@@ -97,12 +98,12 @@ public class JSchTtyConnector implements TtyConnector {
   private Session connectSession(Questioner questioner) throws JSchException {
     JSch jsch = new JSch();
 
-    Session session = jsch.getSession(user, host, port);
+    Session session = jsch.getSession(myUser, myHost, myPort);
 
     final QuestionerUserInfo ui = new QuestionerUserInfo(questioner);
-    if (password != null) {
-      session.setPassword(password);
-      ui.setPassword(password);
+    if (myPassword != null) {
+      session.setPassword(myPassword);
+      ui.setPassword(myPassword);
     }
     session.setUserInfo(ui);
 
@@ -123,28 +124,28 @@ public class JSchTtyConnector implements TtyConnector {
 
   private void getAuthDetails(Questioner q) {
     while (true) {
-      if (host == null) {
-        host = q.questionVisible("host:", "localhost");
+      if (myHost == null) {
+        myHost = q.questionVisible("host:", "localhost");
       }
-      if (host == null || host.length() == 0) {
+      if (myHost == null || myHost.length() == 0) {
         continue;
       }
-      if (host.indexOf(':') != -1) {
-        final String portString = host.substring(host.indexOf(':') + 1);
+      if (myHost.indexOf(':') != -1) {
+        final String portString = myHost.substring(myHost.indexOf(':') + 1);
         try {
-          port = Integer.parseInt(portString);
+          myPort = Integer.parseInt(portString);
         }
         catch (final NumberFormatException eee) {
           q.showMessage("Could not parse port : " + portString);
           continue;
         }
-        host = host.substring(0, host.indexOf(':'));
+        myHost = myHost.substring(0, myHost.indexOf(':'));
       }
 
-      if (user == null) {
-        user = q.questionVisible("user:", System.getProperty("user.name").toLowerCase());
+      if (myUser == null) {
+        myUser = q.questionVisible("user:", System.getProperty("user.name").toLowerCase());
       }
-      if (host == null || host.length() == 0) {
+      if (myHost == null || myHost.length() == 0) {
         continue;
       }
       break;
@@ -157,21 +158,21 @@ public class JSchTtyConnector implements TtyConnector {
 
   @Override
   public int read(char[] buf, int offset, int length) throws IOException {
-    return inReader.read(buf, offset, length);
+    return myInputStreamReader.read(buf, offset, length);
   }
 
   public int read(byte[] buf, int offset, int length) throws IOException {
-    return in.read(buf, offset, length);
+    return myInputStream.read(buf, offset, length);
   }
 
   public void write(byte[] bytes) throws IOException {
-    out.write(bytes);
-    out.flush();
+    myOutputStream.write(bytes);
+    myOutputStream.flush();
   }
 
   @Override
   public boolean isConnected() {
-    return channel.isConnected();
+    return myChannelShell.isConnected();
   }
 
   @Override

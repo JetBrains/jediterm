@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package com.jediterm.ssh.jsch;
 
@@ -7,64 +7,64 @@ import com.jcraft.jsch.UIKeyboardInteractive;
 import com.jcraft.jsch.UserInfo;
 import com.jediterm.terminal.Questioner;
 
-class QuestionerUserInfo implements UserInfo, UIKeyboardInteractive{
-	private Questioner questioner;
-	private String password;
-	private String passPhrase;
-	
-	public QuestionerUserInfo(Questioner questioner){
-		this.questioner = questioner;
-	}
-	
-	public String getPassphrase(){
-		return passPhrase;
-	}
+class QuestionerUserInfo implements UserInfo, UIKeyboardInteractive {
+  private Questioner myQuestioner;
+  private String myPassword;
+  private String myPassPhrase;
 
-	public String getPassword(){
-		return password;
-	}
-	
-	public void setPassword(String password) {
-		this.password = password;
-	}
+  public QuestionerUserInfo(Questioner questioner) {
+    this.myQuestioner = questioner;
+  }
 
-	public boolean promptPassphrase(String message){
-		passPhrase = questioner.questionHidden(message + ":");
-		return true;
-	}
+  public String getPassphrase() {
+    return myPassPhrase;
+  }
 
-	public boolean promptPassword(String message){
-		password = questioner.questionHidden(message + ":");
-		return true;
-	}
+  public String getPassword() {
+    return myPassword;
+  }
 
-	public boolean promptYesNo(String message){
-		String yn = questioner.questionVisible(message + " [Y/N]:" , "Y");
-		String lyn = yn.toLowerCase();
-		if( lyn.equals("y") || lyn.equals("yes") ){
-			return true;
-		}else{
-			return false;
-		}
-	}
+  public void setPassword(String password) {
+    this.myPassword = password;
+  }
 
-	public void showMessage(String message){
-		questioner.showMessage(message);
-	}
+  public boolean promptPassphrase(String message) {
+    myPassPhrase = myQuestioner.questionHidden(message + ":");
+    return true;
+  }
 
-	public String[] promptKeyboardInteractive(final String destination, final String name,
-			final String instruction, final String[] prompt, final boolean[] echo){
-		int len = prompt.length;
-		String [] results = new String[len];
-		if(destination != null && destination.length() > 0 ) questioner.showMessage(destination);
-		if(name != null && name.length() > 0 ) questioner.showMessage(name);
-		questioner.showMessage(instruction);
-		for(int i = 0; i < len ; i++ ){
-			String promptStr = prompt[i];
-			results[i] = echo[i] ? questioner.questionVisible(promptStr, null) :
-								   questioner.questionHidden(promptStr) ;
-		}
-		return results;
-	}
+  public boolean promptPassword(String message) {
+    myPassword = myQuestioner.questionHidden(message + ":");
+    return true;
+  }
 
+  public boolean promptYesNo(String message) {
+    String yn = myQuestioner.questionVisible(message + " [Y/N]:", "Y");
+    String lyn = yn.toLowerCase();
+    if (lyn.equals("y") || lyn.equals("yes")) {
+      return true;
+    }
+    else {
+      return false;
+    }
+  }
+
+  public void showMessage(String message) {
+    myQuestioner.showMessage(message);
+  }
+
+  public String[] promptKeyboardInteractive(final String destination, final String name,
+                                            final String instruction, final String[] prompt, final boolean[] echo) {
+    int len = prompt.length;
+    String[] results = new String[len];
+    if (destination != null && destination.length() > 0) myQuestioner.showMessage(destination);
+    if (name != null && name.length() > 0) myQuestioner.showMessage(name);
+    myQuestioner.showMessage(instruction);
+    for (int i = 0; i < len; i++) {
+      String promptStr = prompt[i];
+      results[i] = echo[i] ? myQuestioner.questionVisible(promptStr, null) :
+                   myQuestioner.questionHidden(promptStr);
+    }
+    return results;
+  }
 }

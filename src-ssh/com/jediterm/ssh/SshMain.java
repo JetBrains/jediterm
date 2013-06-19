@@ -1,8 +1,8 @@
 package com.jediterm.ssh;
 
-import com.jediterm.emulator.ui.AbstractTerminalFrame;
-import com.jediterm.emulator.ui.SwingJediTerminal;
 import com.jediterm.ssh.jsch.JSchTtyConnector;
+import com.jediterm.terminal.ui.AbstractTerminalFrame;
+import com.jediterm.terminal.ui.SwingJediTerminal;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;

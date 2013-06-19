@@ -1,6 +1,6 @@
 package com.jediterm.pty;
 
-import com.jediterm.emulator.ProcessTtyConnector;
+import com.jediterm.terminal.ProcessTtyConnector;
 import jpty.WinSize;
 
 import java.io.IOException;

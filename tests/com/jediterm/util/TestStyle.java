@@ -1,6 +1,6 @@
 package com.jediterm.util;
 
-import com.jediterm.emulator.TextStyle;
+import com.jediterm.terminal.TextStyle;
 
 import java.awt.*;
 

@@ -7,8 +7,8 @@ import com.jcraft.jsch.ChannelShell;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
-import com.jediterm.emulator.Questioner;
-import com.jediterm.emulator.TtyConnector;
+import com.jediterm.terminal.Questioner;
+import com.jediterm.terminal.TtyConnector;
 import org.apache.log4j.Logger;
 
 import java.awt.*;

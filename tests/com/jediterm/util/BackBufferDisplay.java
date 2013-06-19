@@ -1,9 +1,9 @@
 package com.jediterm.util;
 
-import com.jediterm.emulator.RequestOrigin;
-import com.jediterm.emulator.TerminalDisplay;
-import com.jediterm.emulator.display.BackBuffer;
-import com.jediterm.emulator.display.BufferedDisplayTerminal;
+import com.jediterm.terminal.RequestOrigin;
+import com.jediterm.terminal.TerminalDisplay;
+import com.jediterm.terminal.display.BackBuffer;
+import com.jediterm.terminal.display.BufferedDisplayTerminal;
 
 import java.awt.*;
 

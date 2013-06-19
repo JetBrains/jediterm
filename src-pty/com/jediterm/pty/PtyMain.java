@@ -2,8 +2,8 @@ package com.jediterm.pty;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.jediterm.emulator.ui.AbstractTerminalFrame;
-import com.jediterm.emulator.ui.SwingJediTerminal;
+import com.jediterm.terminal.ui.AbstractTerminalFrame;
+import com.jediterm.terminal.ui.SwingJediTerminal;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;

@@ -1,7 +1,7 @@
 package com.jediterm;
 
-import com.jediterm.emulator.RequestOrigin;
-import com.jediterm.emulator.display.*;
+import com.jediterm.terminal.RequestOrigin;
+import com.jediterm.terminal.display.*;
 import com.jediterm.util.BackBufferDisplay;
 import junit.framework.TestCase;
 

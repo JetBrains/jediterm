@@ -31,13 +31,8 @@
 
 
   <target name="clean">
-    <delete>
-      <delete dir="${classses}"/>
+      <delete dir="${classes}"/>
       <mkdir dir="${classes}"/>
-      <fileset dir="${classes}">
-        <include name="**/*.class"/>
-      </fileset>
-    </delete>
   </target>
 
 
@@ -87,7 +82,7 @@
   <target name="all-jars" depends="jediterm-ssh.jar,jediterm-pty.jar">
   </target>
 
-  <target name="jedit-pty-package" depends="jediterm-pty.jar">
+	<target name="jedit-pty-package" depends="jediterm-pty.jar">
         <!-- OK, so to bundle your app in a single JAR we do the following. First we're
              going to set some properties. Edit these so that they fit your situation/environment
         -->
@@ -95,7 +90,7 @@
         <!-- The name of your final JAR, minus the .jar extension. It should not have spaces. 
              <property name="store.jar.name" value="MyJarName"/> 
         -->
-        <property name="destination.jar.name" value="jedit-pty"/>
+				<property name="destination.jar.name" value="jedit-pty-package-${version}"/>
         
         <!-- The directory that will contain the finished product. Minus the / character.
              <property name="store.dir" value="releaseDirectory"/> 
@@ -120,8 +115,8 @@
         
         <jar destfile="${destination.dir}/temp_final.jar" filesetmanifest="skip">
             <!-- Packages the following jars -->
-            <zipgroupfileset dir="build" includes="jediterm-pty-0.04.jar"/>
-            <zipgroupfileset dir="lib" includes="JPty.jar,guava-12.0.jar,jna.jar,jsch-0.1.50.jar,jzlib-1.07.jar,log4j-1.2.14.jar,purejavacomm-0.0.16.jar"/>
+						<zipgroupfileset dir="build" includes="jediterm-pty-${version}.jar"/>
+						<zipgroupfileset dir="lib" includes="*"/>
             <manifest>
                 <attribute name="Main-Class" value="${application.main-class}"/>
             </manifest>

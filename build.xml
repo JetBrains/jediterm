@@ -99,7 +99,7 @@
   <target name="build-tests">
 
     <mkdir dir="${tests-classes}"/>
-    <javac destdir="${tests-classes}" source="1.5" target="1.5" verbose="true">
+    <javac destdir="${tests-classes}" source="1.5" target="1.5">
       <src path="${src-tests}"/>
       <src path="${src-terminal}"/>
 
@@ -116,22 +116,14 @@
 
   <target name="test" depends="build-tests">
 
-    <property name="report-dir" value="tests-report"/>
-    
-    <mkdir dir="${report-dir}"/>
-
-    <junit printsummary="yes" haltonfailure="yes">
+    <junit haltonfailure="yes">
       <classpath refid="junit-jar"/>
       <classpath location="${tests-classes}"/>
       <classpath refid="common-jars"/>
+
+      <formatter type="plain" usefile="false" /> <!-- prints test output to screen -->
       
-
-      <formatter type="plain"/>
-      <formatter type="xml"/>
-
-      
-
-      <batchtest fork="yes" todir="${report-dir}">
+      <batchtest fork="yes">
         <fileset dir="tests">
           <include name="**/*Test.java"/>
         </fileset>

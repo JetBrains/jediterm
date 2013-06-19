@@ -2,6 +2,7 @@ package com.jediterm.pty;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.jediterm.terminal.LoggingTtyConnector;
 import com.jediterm.terminal.ui.AbstractTerminalFrame;
 import com.jediterm.terminal.ui.SwingJediTerminal;
 import org.apache.log4j.BasicConfigurator;
@@ -34,7 +35,7 @@ public class PtyMain extends AbstractTerminalFrame {
   }
 
 
-  public static class LoggingPtyProcessTtyConnector extends PtyProcessTtyConnector {
+  public static class LoggingPtyProcessTtyConnector extends PtyProcessTtyConnector implements LoggingTtyConnector {
     private List<char[]> myDataChunks = Lists.newArrayList();
 
     public LoggingPtyProcessTtyConnector(PtyProcess process, Charset charset) {

@@ -22,7 +22,6 @@
 
 package com.jediterm.terminal;
 
-import com.jediterm.terminal.emulator2.JediEmulator2;
 import org.apache.log4j.Logger;
 
 import java.awt.*;
@@ -50,7 +49,7 @@ public class TerminalStarter implements TerminalOutputStream {
   public TerminalStarter(final Terminal terminal, final TtyChannel channel) {
     myTtyChannel = channel;
     myTerminal = terminal;
-    myEmulator = new JediEmulator2(myTtyChannel, this, terminal);
+    myEmulator = new JediEmulator(myTtyChannel, this, terminal);
   }
 
   private void execute(Runnable runnable) {

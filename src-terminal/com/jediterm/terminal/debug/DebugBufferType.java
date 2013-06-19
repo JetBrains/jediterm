@@ -1,6 +1,6 @@
 package com.jediterm.terminal.debug;
 
-import com.jediterm.pty.PtyMain;
+import com.jediterm.terminal.LoggingTtyConnector;
 import com.jediterm.terminal.ui.SwingJediTerminal;
 
 /**
@@ -37,8 +37,8 @@ public enum DebugBufferType {
     private ControlSequenceVisualizer myVisualizer = new ControlSequenceVisualizer();
 
     public String getValue(SwingJediTerminal term) {
-      if (term.getTtyConnector() instanceof PtyMain.LoggingPtyProcessTtyConnector) {
-        return myVisualizer.getVisualizedString(((PtyMain.LoggingPtyProcessTtyConnector)term.getTtyConnector()).getChunks());
+      if (term.getTtyConnector() instanceof LoggingTtyConnector) {
+        return myVisualizer.getVisualizedString(((LoggingTtyConnector)term.getTtyConnector()).getChunks());
       }
       else {
         return "Control sequences aren't logged";

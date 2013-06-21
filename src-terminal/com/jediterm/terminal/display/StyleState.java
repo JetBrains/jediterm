@@ -28,6 +28,7 @@ public class StyleState {
     if (newStyle.getForeground() == null && defaultStyle.getForeground() != null) {
       newStyle = newStyle.setForeground(defaultStyle.getForeground());
     }
+    
     return newStyle;
   }
 

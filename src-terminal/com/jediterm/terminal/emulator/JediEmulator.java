@@ -5,6 +5,7 @@ import com.jediterm.terminal.*;
 import com.jediterm.terminal.display.StyleState;
 import org.apache.log4j.Logger;
 
+import java.awt.*;
 import java.io.IOException;
 import java.util.Arrays;
 
@@ -99,7 +100,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         }
         if (!args.pushBackReordered(myDataStream)) {
           boolean result = processControlSequence(args);
-          
+
           if (!result) {
             StringBuilder sb = new StringBuilder();
             sb.append("Unhandled Control sequence\n");
@@ -366,13 +367,13 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   private boolean linePositionAbsolute(ControlSequence args) {
     int y = args.getArg(0, 1);
     myTerminal.linePositionAbsolute(y);
-    
+
     return true;
   }
 
   private boolean restoreDecPrivateModeValues(ControlSequence args) {
     LOG.error("Unsupported: " + args.toString());
-    
+
     return false;
   }
 
@@ -380,10 +381,10 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Sending Device Report Status");
     }
-    
+
     if (args.startsWithQuestionMark()) {
       LOG.error("Don't support DEC-specific Device Report Status");
-      
+
       return false;
     }
     int c = args.getArg(0, 0);
@@ -413,7 +414,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       LOG.debug("Identifying to remote system as VT102");
     }
     myOutputStream.sendBytes(CharacterUtils.VT102_RESPONSE);
-    
+
     return true;
   }
 
@@ -421,7 +422,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     int x = args.getArg(0, 1);
 
     myTerminal.cursorHorizontalAbsolute(x);
-    
+
     return true;
   }
 
@@ -430,7 +431,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     dx = dx == 0 ? 1 : dx;
     myTerminal.cursorDown(dx);
     myTerminal.cursorHorizontalAbsolute(1);
-    
+
     return true;
   }
 
@@ -440,7 +441,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     myTerminal.cursorUp(dx);
 
     myTerminal.cursorHorizontalAbsolute(1);
-    
+
     return true;
   }
 
@@ -450,7 +451,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     Arrays.fill(chars, ' ');
 
     myTerminal.writeCharacters(chars, 0, arg);
-    
+
     return true;
   }
 
@@ -464,7 +465,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     }
 
     myTerminal.eraseInDisplay(arg);
-    
+
     return true;
   }
 
@@ -476,9 +477,9 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       //TODO: support ESC [ ? Ps K - Selective Erase (DECSEL)
       return false;
     }
-    
+
     myTerminal.eraseInLine(arg);
-    
+
     return true;
   }
 
@@ -487,7 +488,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     dx = dx == 0 ? 1 : dx;
 
     myTerminal.cursorBackward(dx);
-    
+
     return true;
   }
 
@@ -496,7 +497,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     final int bottom = args.getArg(1, myTerminal.getTerminalHeight());
 
     myTerminal.setScrollingRegion(top, bottom);
-    
+
     return true;
   }
 
@@ -505,7 +506,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     countX = countX == 0 ? 1 : countX;
 
     myTerminal.cursorForward(countX);
-    
+
     return true;
   }
 
@@ -521,7 +522,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     final int argx = cs.getArg(1, 1);
 
     myTerminal.cursorPosition(argx, argy);
-    
+
     return true;
   }
 
@@ -529,7 +530,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     StyleState styleState = createStyleState(args);
 
     myTerminal.characterAttributes(styleState);
-    
+
     return true;
   }
 
@@ -565,24 +566,113 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           styleState.setOption(TextStyle.Option.BLINK, true);
           break;
         case 7:// Inverse 
-          styleState.setOption(TextStyle.Option.REVERSE, true);
+          styleState.setOption(TextStyle.Option.INVERSE, true);
           break;
         case 8: // Invisible (hidden)  
           styleState.setOption(TextStyle.Option.HIDDEN, true);
           break;
+        case 22: //Normal (neither bold nor faint)
+          styleState.setOption(TextStyle.Option.BOLD, false);
+          styleState.setOption(TextStyle.Option.DIM, false);
+          break;
+        case 24: // Not underlined
+          styleState.setOption(TextStyle.Option.UNDERLINED, false);
+        case 25: //Steady (not blinking)
+          styleState.setOption(TextStyle.Option.BLINK, false);
+        case 27: //Positive (not inverse)
+          styleState.setOption(TextStyle.Option.INVERSE, false);
+        case 28: //Visible, i.e. not hidden
+          styleState.setOption(TextStyle.Option.HIDDEN, false);
+        case 30:
+        case 31:
+        case 32:
+        case 33:
+        case 34:
+        case 35:
+        case 36:
+        case 37:
+          styleState.setCurrentForeground(ColorPalette.getCurrentColorSettings()[arg - 30]);
+          break;
+        case 38: // Set xterm-256 text color
+          Color color256 = getColor256(args);
+          if (color256 != null) {
+            styleState.setCurrentForeground(color256);
+          }
+        case 39: // Default (original) foreground
+          styleState.setCurrentForeground(null);
+          break;
+        case 40:
+        case 41:
+        case 42:
+        case 43:
+        case 44:
+        case 45:
+        case 46:
+        case 47:
+          styleState.setCurrentBackground(ColorPalette.getCurrentColorSettings()[arg - 40]);
+          break;
+        case 48: // Set xterm-256 background color
+          Color bgColor256 = getColor256(args);
+          if (bgColor256 != null) {
+            styleState.setCurrentBackground(bgColor256);
+          }
+        case 49: //Default (original) foreground
+          styleState.setCurrentBackground(null);
+          break;
+        case 90:
+        case 91:
+        case 92:
+        case 93:
+        case 94:
+        case 95:
+        case 96:
+        case 97:
+          //Bright versions of the ISO colors for foreground
+          styleState.setCurrentForeground(ColorPalette.getIndexedColor(arg-82));
+          break;
+        case 100:
+        case 101:
+        case 102:
+        case 103:
+        case 104:
+        case 105:
+        case 106:
+        case 107:
+          //Bright versions of the ISO colors for background
+          styleState.setCurrentBackground(ColorPalette.getIndexedColor(arg-92));
         default:
-          if (arg >= 30 && arg <= 37) {
-            styleState.setCurrentForeground(ColorPalette.getCurrentColorSettings()[arg - 30]);
-          }
-          else if (arg >= 40 && arg <= 47) {
-            styleState.setCurrentBackground(ColorPalette.getCurrentColorSettings()[arg - 40]);
-          }
-          else {
-            LOG.error("Unknown character attribute:" + arg);
-          }
+          LOG.error("Unknown character attribute:" + arg);
       }
     }
     return styleState;
+  }
+
+  private static Color getColor256(ControlSequence args) {
+    int code = args.getArg(1, 0);
+
+    if (code == 2) {
+      /* direct color in rgb space */
+      int val0 = args.getArg(2, -1);
+      int val1 = args.getArg(3, -1);
+      int val2 = args.getArg(4, -1);
+      if ((val0 >= 0 && val0 < 256) &&
+          (val1 >= 0 && val1 < 256) &&
+          (val2 >= 0 && val2 < 256)) {
+        return new Color(val0, val1, val2);
+      }
+      else {
+        LOG.error("Bogus color setting " + args.toString());
+        return null;
+      }
+    }
+    else if (code == 5) {
+      /* indexed color */
+      return ColorPalette.getIndexedColor(args.getArg(2, 0));
+    }
+    else {
+      LOG.error("Unsupported code for color attribute " + args.toString());
+      return null;
+    }
   }
 
   private boolean cursorUp(ControlSequence cs) {
@@ -603,3 +693,4 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     }
   }
 }
+

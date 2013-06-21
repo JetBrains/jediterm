@@ -47,7 +47,7 @@ public class TextStyle implements Cloneable {
     BOLD,
     BLINK,
     DIM,
-    REVERSE,
+    INVERSE,
     UNDERLINED,
     HIDDEN;
 
@@ -175,11 +175,11 @@ public class TextStyle implements Cloneable {
   }
 
   public Color getBackgroundForRun() {
-    return myOptions.contains(Option.REVERSE) ? myForeground : myBackground;
+    return myOptions.contains(Option.INVERSE) ? myForeground : myBackground;
   }
 
   public Color getForegroundForRun() {
-    return myOptions.contains(Option.REVERSE) ? myBackground : myForeground;
+    return myOptions.contains(Option.INVERSE) ? myBackground : myForeground;
   }
 
   public void clearOptions() {

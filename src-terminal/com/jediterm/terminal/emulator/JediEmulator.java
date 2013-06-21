@@ -344,8 +344,13 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       case 'h':
         //setModeEnabled(args, true);
         return false;
-      case 'm': //Character Attributes (SGR)
-        return characterAttributes(args);
+      case 'm': 
+        if (args.startsWithMoreMark()) { //Set or reset resource-values used by xterm 
+          // to decide whether to construct escape sequences holding information about 
+          // the modifiers pressed with a given key
+          return false;
+        }
+        return characterAttributes(args); //Character Attributes (SGR)
       case 'n':
         return deviceStatusReport(args); // DSR
       case 'r':
@@ -628,7 +633,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 96:
         case 97:
           //Bright versions of the ISO colors for foreground
-          styleState.setCurrentForeground(ColorPalette.getIndexedColor(arg-82));
+          styleState.setCurrentForeground(ColorPalette.getIndexedColor(arg - 82));
           break;
         case 100:
         case 101:
@@ -639,7 +644,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 106:
         case 107:
           //Bright versions of the ISO colors for background
-          styleState.setCurrentBackground(ColorPalette.getIndexedColor(arg-92));
+          styleState.setCurrentBackground(ColorPalette.getIndexedColor(arg - 92));
         default:
           LOG.error("Unknown character attribute:" + arg);
       }

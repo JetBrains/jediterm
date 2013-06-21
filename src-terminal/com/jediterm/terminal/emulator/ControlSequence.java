@@ -16,12 +16,14 @@ public class ControlSequence {
   private int[] myArgv;
 
   private char myFinalChar;
-  
+
   private ArrayList<Character> myUnhandledChars;
-  
-  private boolean myStartsWithQuestionMark = false;
-  
+
+  private boolean myStartsWithQuestionMark = false; // true when CSI ?
+  private boolean myStartsWithMoreMark = false; // true when CSI >
+
   private final StringBuilder mySequenceString = new StringBuilder();
+
 
   ControlSequence(final TerminalDataStream channel) throws IOException {
     myArgv = new int[10];
@@ -43,6 +45,9 @@ public class ControlSequence {
       pos++;
       if (b == '?' && pos == 0) {
         myStartsWithQuestionMark = true;
+      }
+      else if (b == '>' && pos == 0) {
+        myStartsWithMoreMark = true;
       }
       else if (b == ';') {
         if (digit > 0) {
@@ -90,6 +95,11 @@ public class ControlSequence {
     if (myStartsWithQuestionMark) {
       bytes[i++] = (byte)'?';
     }
+    
+    if (myStartsWithMoreMark) {
+      bytes[i++] = (byte)'>';
+    }
+
     for (int argi = 0; argi < myArgc; argi++) {
       if (argi != 0) bytes[i++] = ';';
       String s = Integer.toString(myArgv[argi]);
@@ -112,7 +122,7 @@ public class ControlSequence {
     }
     return myArgv[index];
   }
-  
+
   public String appendTo(final String str) {
     StringBuilder sb = new StringBuilder(str);
     appendToBuffer(sb);
@@ -121,9 +131,13 @@ public class ControlSequence {
 
   public final void appendToBuffer(final StringBuilder sb) {
     sb.append("ESC[");
-    
+
     if (myStartsWithQuestionMark) {
       sb.append("?");
+    }
+
+    if (myStartsWithMoreMark) {
+      sb.append(">");
     }
 
     String sep = "";
@@ -156,6 +170,10 @@ public class ControlSequence {
 
   public boolean startsWithQuestionMark() {
     return myStartsWithQuestionMark;
+  }
+
+  public boolean startsWithMoreMark() {
+    return myStartsWithMoreMark;
   }
 
   public String getSequenceString() {

@@ -62,7 +62,7 @@ public class ColorPalette {
     // black and white
     for (int gray = 0; gray < 24; ++gray) {
       int level = 10 * gray + 8;
-      COL_RES_256[232 + gray] = new Color(level, level, level);
+      COL_RES_256[216 + gray] = new Color(level, level, level);
     }
   }
 }

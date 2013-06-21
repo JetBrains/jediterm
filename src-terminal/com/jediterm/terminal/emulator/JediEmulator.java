@@ -111,6 +111,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
             LOG.error(sb.toString());
           }
         }
+        break;
       case 'D': // Index (IND)
         terminal.index();
         break;

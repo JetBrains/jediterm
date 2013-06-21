@@ -19,19 +19,6 @@ import java.util.Arrays;
 public class JediEmulator extends DataStreamIteratingEmulator {
   private static final Logger LOG = Logger.getLogger(JediEmulator.class);
 
-    /*
-   * Character Attributes
-   *
-   * ESC [ Ps;Ps;Ps;...;Ps m
-   *
-   * Ps refers to a selective parameter. Multiple parameters are separated by
-   * the semicolon character (0738). The parameters are executed in order and
-   * have the following meanings: 0 or None All Attributes Off 1 Bold on 4
-   * Underscore on 5 Blink on 7 Reverse video on
-   *
-   * Any other parameter values are ignored.
-   */
-
   private final TerminalOutputStream myOutputStream;
 
   public JediEmulator(TerminalDataStream dataStream, TerminalOutputStream outputStream, Terminal terminal) {
@@ -71,11 +58,11 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       case Ascii.HT: // Horizontal Tab (HT) (Ctrl-I)
         terminal.horizontalTab();
         break;
-      case CharacterUtils.ESC: // ESC
+      case Ascii.ESC: // ESC
         processEscapeSequence(myDataStream.getChar(), myTerminal);
         break;
       default:
-        if (ch <= CharacterUtils.US) {
+        if (ch <= Ascii.US) {
           StringBuilder sb = new StringBuilder("Unhandled control character:");
           CharacterUtils.appendChar(sb, CharacterUtils.CharacterType.NONE, ch);
           LOG.error(sb.toString());

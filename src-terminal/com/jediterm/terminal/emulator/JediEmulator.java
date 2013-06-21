@@ -143,8 +143,8 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       case '>':
         unsupported("Normal Keypad (DECKPNM)");
         break;
-      case 'F':
-        unsupported("Cursor to lower left corner of the screen");
+      case 'F': //Cursor to lower left corner of the screen
+        terminal.cursorPosition(1, terminal.getTerminalHeight());
         break;
       case 'c': //Full Reset (RIS)
         terminal.reset();

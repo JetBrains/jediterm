@@ -71,8 +71,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         terminal.horizontalTab();
         break;
       case CharacterUtils.ESC: // ESC
-        ch = myDataStream.getChar();
-        processEscapeSequence(ch, myTerminal);
+        processEscapeSequence(myDataStream.getChar(), myTerminal);
         break;
       default:
         if (ch <= CharacterUtils.US) {
@@ -93,8 +92,24 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   private void processEscapeSequence(char ch, Terminal terminal) throws IOException {
     switch (ch) {
       case '[': // Control Sequence Introducer (CSI)
-        processControlSequence();
-        break;
+        final ControlSequence args = new ControlSequence(myDataStream);
+
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(args.appendTo("Control sequence\nparsed                        :"));
+        }
+        if (!args.pushBackReordered(myDataStream)) {
+          boolean result = processControlSequence(args);
+          
+          if (!result) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("Unhandled Control sequence\n");
+            sb.append("parsed                        :");
+            args.appendToBuffer(sb);
+            sb.append('\n');
+            sb.append("bytes read                    :ESC[");
+            LOG.error(sb.toString());
+          }
+        }
       case 'D': // Index (IND)
         terminal.index();
         break;
@@ -115,10 +130,10 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         break;
       case ']': // Operating System Command (OSC)
         // xterm uses it to set parameters like windows title
-        final SystemCommandSequence args = new SystemCommandSequence(myDataStream);
+        final SystemCommandSequence command = new SystemCommandSequence(myDataStream);
 
-        if (!operatingSystemCommand(args)) {
-          LOG.error("Error processing OSC " + args.getSequenceString());
+        if (!operatingSystemCommand(command)) {
+          LOG.error("Error processing OSC " + command.getSequenceString());
         }
 
       case '6':
@@ -205,7 +220,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           //About ANSI conformance levels: http://www.vt100.net/docs/vt510-rm/ANSI
           case 'L': //Set ANSI conformance level 1
           case 'M': //Set ANSI conformance level 2
-          case 'N': //Set ANSI conformance level 2
+          case 'N': //Set ANSI conformance level 3
             unsupported("Settings conformance level: " + escapeSequenceToString(ch, secondCh));
             break;
 
@@ -292,226 +307,230 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     return sb.toString();
   }
 
-  private void processControlSequence() throws IOException {
-    final ControlSequence args = new ControlSequence(myDataStream);
-
-    if (LOG.isDebugEnabled()) {
-      LOG.debug(args.appendTo("Control sequence\nparsed                        :"));
-    }
-    if (args.pushBackReordered(myDataStream)) {
-      return; //when there are unhandled chars in stream
-    }
-
+  private boolean processControlSequence(ControlSequence args) {
     switch (args.getFinalChar()) {
       case '@':
-        insertBlankCharacters(args); // ICH
-        break;
+        return insertBlankCharacters(args); // ICH
       case 'A':
-        cursorUp(args); //CUU
-        break;
+        return cursorUp(args); //CUU
       case 'B':
-        cursorDown(args); //CUD
-        break;
+        return cursorDown(args); //CUD
       case 'C':
-        cursorForward(args); //CUF
-        break;
+        return cursorForward(args); //CUF
       case 'D':
-        cursorBackward(args); //CUB
-        break;
+        return cursorBackward(args); //CUB
       case 'E':
-        cursorNextLine(args); //CNL
+        return cursorNextLine(args); //CNL
       case 'F':
-        cursorPrecedingLine(args); //CPL
+        return cursorPrecedingLine(args); //CPL
       case 'G':
       case '`':
-        cursorHorizontalAbsolute(args); //CHA
+        return cursorHorizontalAbsolute(args); //CHA
       case 'f':
       case 'H': // CUP
-        cursorPosition(args);
-        break;
+        return cursorPosition(args);
       case 'J': // DECSED
-        eraseInDisplay(args);
-        break;
+        return eraseInDisplay(args);
       case 'K': //EL
-        eraseInLine(args);
-        break;
+        return eraseInLine(args);
       case 'L': //IL
-        insertLines(args);
-        break;
-
+        return insertLines(args);
 
       case 'c': //Send Device Attributes (Primary DA)
-        sendDeviceAttributes();
-        break;
+        return sendDeviceAttributes();
       case 'd': // VPA
-        linePositionAbsolute(args);
-        break;
+        return linePositionAbsolute(args);
       case 'h':
         //setModeEnabled(args, true);
-        break;
+        return false;
       case 'm': //Character Attributes (SGR)
-        String mySequence = args.getSequenceString();
-        String midSequence = mySequence.substring(0, mySequence.length() - 1);
-        
-        characterAttributes(args);
-        break;
+        return characterAttributes(args);
       case 'n':
-        deviceStatusReport(args); // DSR
-        break;
+        return deviceStatusReport(args); // DSR
       case 'r':
         if (args.startsWithQuestionMark()) {
-          restoreDecPrivateModeValues(args); //
+          return restoreDecPrivateModeValues(args); //
         }
         else {
-          setScrollingRegion(args);
+          return setScrollingRegion(args);
         }
-        break;
       case 'l':
         //setModeEnabled(args, false);
-        break;
+        return false;
 
       default:
-        StringBuilder sb = new StringBuilder();
-        sb.append("Unhandled Control sequence\n");
-        sb.append("parsed                        :");
-        args.appendToBuffer(sb);
-        sb.append('\n');
-        sb.append("bytes read                    :ESC[");
-        LOG.error(sb.toString());
-        break;
+        return false;
     }
   }
 
-  private void linePositionAbsolute(ControlSequence args) {
+  private boolean linePositionAbsolute(ControlSequence args) {
     int y = args.getArg(0, 1);
     myTerminal.linePositionAbsolute(y);
+    
+    return true;
   }
 
-  private void restoreDecPrivateModeValues(ControlSequence args) {
+  private boolean restoreDecPrivateModeValues(ControlSequence args) {
     LOG.error("Unsupported: " + args.toString());
+    
+    return false;
   }
 
-  private void deviceStatusReport(ControlSequence args) {
+  private boolean deviceStatusReport(ControlSequence args) {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Sending Device Report Status");
     }
+    
     if (args.startsWithQuestionMark()) {
       LOG.error("Don't support DEC-specific Device Report Status");
+      
+      return false;
     }
     int c = args.getArg(0, 0);
     if (c == 5) {
       myOutputStream.sendString(Ascii.ESC + "[0n");
+      return true;
     }
     else if (c == 6) {
       int row = myTerminal.getCursorY();
       int column = myTerminal.getCursorX();
       myOutputStream.sendString(Ascii.ESC + "[" + row + ";" + column + "R");
+      return true;
     }
     else {
       LOG.error("Unsupported parameter: " + args.toString());
+      return false;
     }
   }
 
-  private void insertLines(ControlSequence args) {
+  private boolean insertLines(ControlSequence args) {
     //TODO: implement
+    return false;
   }
 
-  private void sendDeviceAttributes() {
+  private boolean sendDeviceAttributes() {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Identifying to remote system as VT102");
     }
     myOutputStream.sendBytes(CharacterUtils.VT102_RESPONSE);
+    
+    return true;
   }
 
-  private void cursorHorizontalAbsolute(ControlSequence args) {
+  private boolean cursorHorizontalAbsolute(ControlSequence args) {
     int x = args.getArg(0, 1);
 
     myTerminal.cursorHorizontalAbsolute(x);
+    
+    return true;
   }
 
-  private void cursorNextLine(ControlSequence args) {
+  private boolean cursorNextLine(ControlSequence args) {
     int dx = args.getArg(0, 1);
     dx = dx == 0 ? 1 : dx;
     myTerminal.cursorDown(dx);
     myTerminal.cursorHorizontalAbsolute(1);
+    
+    return true;
   }
 
-  private void cursorPrecedingLine(ControlSequence args) {
+  private boolean cursorPrecedingLine(ControlSequence args) {
     int dx = args.getArg(0, 1);
     dx = dx == 0 ? 1 : dx;
     myTerminal.cursorUp(dx);
 
     myTerminal.cursorHorizontalAbsolute(1);
+    
+    return true;
   }
 
-  private void insertBlankCharacters(ControlSequence args) {
+  private boolean insertBlankCharacters(ControlSequence args) {
     final int arg = args.getArg(0, 1);
     char[] chars = new char[arg];
     Arrays.fill(chars, ' ');
 
     myTerminal.writeCharacters(chars, 0, arg);
+    
+    return true;
   }
 
-  private void eraseInDisplay(ControlSequence args) {
+  private boolean eraseInDisplay(ControlSequence args) {
     // ESC [ Ps J
     final int arg = args.getArg(0, 0);
 
     if (args.startsWithQuestionMark()) {
       //TODO: support ESC [ ? Ps J - Selective Erase (DECSED)
+      return false;
     }
 
     myTerminal.eraseInDisplay(arg);
+    
+    return true;
   }
 
-  private void eraseInLine(ControlSequence args) {
+  private boolean eraseInLine(ControlSequence args) {
     // ESC [ Ps K
     final int arg = args.getArg(0, 0);
 
     if (args.startsWithQuestionMark()) {
       //TODO: support ESC [ ? Ps K - Selective Erase (DECSEL)
+      return false;
     }
-
+    
     myTerminal.eraseInLine(arg);
+    
+    return true;
   }
 
-  private void cursorBackward(ControlSequence args) {
+  private boolean cursorBackward(ControlSequence args) {
     int dx = args.getArg(0, 1);
     dx = dx == 0 ? 1 : dx;
 
     myTerminal.cursorBackward(dx);
+    
+    return true;
   }
 
-  private void setScrollingRegion(ControlSequence args) {
+  private boolean setScrollingRegion(ControlSequence args) {
     final int top = args.getArg(0, 1);
     final int bottom = args.getArg(1, myTerminal.getTerminalHeight());
 
     myTerminal.setScrollingRegion(top, bottom);
+    
+    return true;
   }
 
-  private void cursorForward(ControlSequence args) {
+  private boolean cursorForward(ControlSequence args) {
     int countX = args.getArg(0, 1);
     countX = countX == 0 ? 1 : countX;
 
     myTerminal.cursorForward(countX);
+    
+    return true;
   }
 
-  private void cursorDown(ControlSequence cs) {
+  private boolean cursorDown(ControlSequence cs) {
     int countY = cs.getArg(0, 0);
     countY = countY == 0 ? 1 : countY;
     myTerminal.cursorDown(countY);
+    return true;
   }
 
-  private void cursorPosition(ControlSequence cs) {
+  private boolean cursorPosition(ControlSequence cs) {
     final int argy = cs.getArg(0, 1);
     final int argx = cs.getArg(1, 1);
 
     myTerminal.cursorPosition(argx, argy);
+    
+    return true;
   }
 
-  private void characterAttributes(final ControlSequence args) {
+  private boolean characterAttributes(final ControlSequence args) {
     StyleState styleState = createStyleState(args);
 
     myTerminal.characterAttributes(styleState);
+    
+    return true;
   }
 
   private static StyleState createStyleState(ControlSequence args) {
@@ -566,10 +585,11 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     return styleState;
   }
 
-  private void cursorUp(ControlSequence cs) {
+  private boolean cursorUp(ControlSequence cs) {
     int arg = cs.getArg(0, 0);
     arg = arg == 0 ? 1 : arg;
     myTerminal.cursorUp(arg);
+    return true;
   }
 
   private void setModeEnabled(final TerminalMode mode, final boolean on) throws IOException {

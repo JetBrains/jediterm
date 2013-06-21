@@ -1,5 +1,7 @@
 package com.jediterm.terminal;
 
+import com.jediterm.terminal.emulator.Emulator;
+
 import java.io.IOException;
 
 /**
@@ -26,7 +28,9 @@ public abstract class DataStreamIteratingEmulator implements Emulator {
     try {
       char b = myDataStream.getChar();
 
-      processChar(b, myTerminal);
+      synchronized (myTerminal) {
+        processChar(b, myTerminal);
+      }
     }
     catch (TerminalDataStream.EOF e) {
       myEof = true;

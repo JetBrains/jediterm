@@ -34,12 +34,12 @@ public class TtyChannel extends ArrayTerminalDataStream {
     return super.getChar();
   }
 
-  public String advanceThroughASCII(int maxChars) throws IOException {
+  public String readNonControlCharacters(int maxChars) throws IOException {
     if (myLength == 0) {
       fillBuf();
     }
 
-    return super.advanceThroughASCII(maxChars);
+    return super.readNonControlCharacters(maxChars);
   }
 
   public void sendBytes(final byte[] bytes) throws IOException {

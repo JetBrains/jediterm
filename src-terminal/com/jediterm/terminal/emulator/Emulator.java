@@ -1,4 +1,4 @@
-package com.jediterm.terminal;
+package com.jediterm.terminal.emulator;
 
 import java.io.IOException;
 

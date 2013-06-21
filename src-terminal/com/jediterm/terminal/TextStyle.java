@@ -48,7 +48,7 @@ public class TextStyle implements Cloneable {
     BLINK,
     DIM,
     REVERSE,
-    UNDERSCORE,
+    UNDERLINED,
     HIDDEN;
 
     public EnumSet<Option> set(EnumSet<Option> options, boolean val) {

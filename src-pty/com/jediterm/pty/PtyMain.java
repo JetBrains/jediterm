@@ -22,9 +22,9 @@ public class PtyMain extends AbstractTerminalFrame {
   @Override
   public void openSession(final SwingJediTerminal terminal) {
     Map<String,String> envs = Maps.newHashMap(System.getenv());
-    envs.put("TERM", "vt100");
+    envs.put("TERM", "xterm");
     terminal.setTtyConnector(
-      new LoggingPtyProcessTtyConnector(new PtyProcess("/bin/bash", new String[]{"/bin/bash"}, envs), Charset.defaultCharset()));
+      new LoggingPtyProcessTtyConnector(new PtyProcess("/bin/bash", new String[]{"/bin/bash"}, envs), Charset.forName("UTF-8")));
     terminal.start();
   }
 

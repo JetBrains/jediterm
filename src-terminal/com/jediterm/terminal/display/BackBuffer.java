@@ -166,7 +166,7 @@ public class BackBuffer implements StyledTextConsumer {
     final int adjY = y - 1;
     if (adjY >= myHeight || adjY < 0) {
       if (LOG.isDebugEnabled()) {
-        StringBuffer sb = new StringBuffer("Attempt to draw line ")
+        StringBuilder sb = new StringBuilder("Attempt to draw line ")
           .append(adjY).append(" at (").append(x).append(",")
           .append(y).append(")");
 

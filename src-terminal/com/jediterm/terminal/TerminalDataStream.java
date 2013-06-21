@@ -5,7 +5,7 @@ import java.io.IOException;
 /**
  * Represents data communication interface for terminal.
  * It allows to {@link #getChar()} by one and {@link #pushChar(char)} back as well as requesting a chunk of plain ASCII
- * characters ({@link #advanceThroughASCII(int)} - for faster processing from buffer in the size <=<b>maxChars</b>).
+ * characters ({@link #readNonControlCharacters(int)} - for faster processing from buffer in the size <=<b>maxChars</b>).
  *
  *
  * @author traff
@@ -15,7 +15,7 @@ public interface TerminalDataStream {
 
   void pushChar(char c) throws IOException;
 
-  String advanceThroughASCII(int maxChars) throws IOException;
+  String readNonControlCharacters(int maxChars) throws IOException;
 
   void pushBackBuffer(char[] bytes, int length) throws IOException;
 

@@ -22,6 +22,8 @@
 
 package com.jediterm.terminal;
 
+import com.jediterm.terminal.emulator.Emulator;
+import com.jediterm.terminal.emulator.JediEmulator;
 import org.apache.log4j.Logger;
 
 import java.awt.*;

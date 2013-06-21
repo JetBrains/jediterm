@@ -1,12 +1,13 @@
 package com.jediterm.terminal;
 
 import com.jediterm.terminal.display.StyleState;
+import com.jediterm.terminal.emulator.TermCharset;
 
 import java.awt.*;
 import java.io.UnsupportedEncodingException;
 
 /**
- * Executes terminal commands interpreted by {@link Emulator}, receives text
+ * Executes terminal commands interpreted by {@link com.jediterm.terminal.emulator.Emulator}, receives text
  *
  * @author traff
  */
@@ -23,11 +24,15 @@ public interface Terminal {
 
   void newLine();
 
+  void invokeCharacterSet(int num);
+
+  void designateCharacterSet(int tableNumber, TermCharset ch);
+
   void writeDoubleByte(char[] bytes) throws UnsupportedEncodingException;
 
-  void writeASCII(char[] buf, int offset, int len);
+  void writeCharacters(char[] buf, int offset, int len);
 
-  void writeASCII(String string);
+  void writeCharacters(String string);
 
   int distanceToLineEnd();
 
@@ -43,10 +48,16 @@ public interface Terminal {
 
   void restoreCursor();
 
-  void setCharacterAttributes(StyleState styleState);
+  void reset();
+
+  void characterAttributes(StyleState styleState);
 
   void setScrollingRegion(int top, int bottom);
 
+  void cursorHorizontalAbsolute(int x);
+
+  void linePositionAbsolute(int y);
+  
   void cursorPosition(int x, int y);
 
   void cursorUp(int countY);
@@ -72,4 +83,8 @@ public interface Terminal {
   int getCursorX();
 
   int getCursorY();
+
+  void singleShiftSelect(int num);
+
+  void setWindowTitle(String name);
 }

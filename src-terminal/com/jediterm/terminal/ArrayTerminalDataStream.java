@@ -43,7 +43,7 @@ public class ArrayTerminalDataStream implements TerminalDataStream {
     myBuf[--myOffset] = b;
   }
 
-  public String advanceThroughASCII(int maxChars) throws IOException {
+  public String readNonControlCharacters(int maxChars) throws IOException {
     String nonControlCharacters = CharacterUtils.getNonControlCharacters(maxChars, myBuf, myOffset, myLength);
 
     myOffset += nonControlCharacters.length();

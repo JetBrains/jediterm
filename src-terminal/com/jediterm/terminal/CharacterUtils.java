@@ -49,7 +49,7 @@ public class CharacterUtils {
     "DLE", "DC1", "DC2", "DC3", "DC4", "NAK", "SYN", "ETB", "CAN",
     "EM", "SUB", "ESC", "FS", "GS", "RS", "US"};
 
-  public static byte[] DEVICE_ATTRIBUTES_RESPONSE = makeCode(ESC, '[', '?', '6', 'c');
+  public static byte[] VT102_RESPONSE = makeCode(ESC, '[', '?', '6', 'c');
 
   private static final Map<Integer, byte[]> CODES = new HashMap<Integer, byte[]>();
   static {
@@ -94,16 +94,16 @@ public class CharacterUtils {
     return new String(buf, offset - length, length);
   }
 
-  enum CharacterType {
+  public enum CharacterType {
     NONPRINTING,
     PRINTING,
     NONASCII, NONE
   }
 
-  public static CharacterType appendChar(final StringBuffer sb, final CharacterType last, final char c) {
+  public static CharacterType appendChar(final StringBuilder sb, final CharacterType last, final char c) {
     if (c <= 0x1F) {
       sb.append(' ');
-      sb.append(CharacterUtils.NONPRINTING_NAMES[c]);
+      sb.append(NONPRINTING_NAMES[c]);
       return CharacterType.NONPRINTING;
     }
     else if (c == DEL) {
@@ -121,7 +121,7 @@ public class CharacterUtils {
     }
   }
 
-  public static void appendBuf(final StringBuffer sb, final char[] bs, final int begin, final int length) {
+  public static void appendBuf(final StringBuilder sb, final char[] bs, final int begin, final int length) {
     CharacterType last = CharacterType.NONPRINTING;
     final int end = begin + length;
     for (int i = begin; i < end; i++) {

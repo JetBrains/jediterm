@@ -7,6 +7,7 @@ import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.Terminal;
 import com.jediterm.terminal.TerminalDisplay;
 import com.jediterm.terminal.TerminalMode;
+import com.jediterm.terminal.emulator.TermCharset;
 import org.apache.log4j.Logger;
 
 import java.awt.*;
@@ -36,11 +37,17 @@ public class BufferedDisplayTerminal implements Terminal {
 
   private final TerminalDisplay myDisplay;
   private final BackBuffer myBackBuffer;
+
   private final StyleState myStyleState;
 
   private final StoredCursor myStoredCursor = new StoredCursor();
 
   private final EnumSet<TerminalMode> myModes = EnumSet.of(TerminalMode.ANSI);
+
+  private TermCharset[] myG = new TermCharset[4]; //initialized in reset
+  private int myCurrentCharset = 0;
+
+  private int mySingleShift = -1;
 
   public BufferedDisplayTerminal(final TerminalDisplay display, final BackBuffer buf, final StyleState initialStyleState) {
     myDisplay = display;
@@ -52,7 +59,10 @@ public class BufferedDisplayTerminal implements Terminal {
 
     myScrollRegionTop = 1;
     myScrollRegionBottom = myTerminalHeight;
+
+    reset();
   }
+
 
   public void setMode(TerminalMode mode) {
     myModes.add(mode);
@@ -94,12 +104,12 @@ public class BufferedDisplayTerminal implements Terminal {
   }
 
   @Override
-  public void writeASCII(String string) {
-    writeASCII(string.toCharArray(), 0, string.length());
+  public void writeCharacters(String string) {
+    writeCharacters(decode(string).toCharArray(), 0, string.length());
   }
 
-  public void writeASCII(final char[] chosenBuffer, final int start,
-                         final int length) {
+  public void writeCharacters(final char[] chosenBuffer, final int start,
+                              final int length) {
     myBackBuffer.lock();
     try {
       wrapLines();
@@ -122,6 +132,24 @@ public class BufferedDisplayTerminal implements Terminal {
   }
 
   public void writeString(String string) {
+    doWriteString(decode(string));
+  }
+
+  private String decode(String string) {
+    StringBuilder result = new StringBuilder();
+    for (char c : string.toCharArray()) {
+      TermCharset charset = myG[myCurrentCharset];
+      if (mySingleShift != -1) {
+        charset = myG[mySingleShift];
+        mySingleShift = -1;
+      }
+      result.append(charset.decode(c));
+    }
+
+    return result.toString();
+  }
+
+  private void doWriteString(String string) {
     myBackBuffer.lock();
     try {
       wrapLines();
@@ -157,7 +185,7 @@ public class BufferedDisplayTerminal implements Terminal {
         final int dy = myScrollRegionBottom - myCursorY;
         myCursorY = myScrollRegionBottom;
         scrollArea(myScrollRegionTop, myScrollRegionBottom
-                                    - myScrollRegionTop, dy);
+                                      - myScrollRegionTop, dy);
         myBackBuffer.clearArea(0, myCursorY - 1, myTerminalWidth, myCursorY);
         myDisplay.setCursor(myCursorX, myCursorY);
       }
@@ -172,6 +200,27 @@ public class BufferedDisplayTerminal implements Terminal {
     myDisplay.setCursor(myCursorX, myCursorY);
 
     scrollY();
+  }
+
+  @Override
+  public void invokeCharacterSet(int num) {
+    myCurrentCharset = num;
+  }
+
+  @Override
+  public void designateCharacterSet(int tableNumber, TermCharset charset) {
+    myG[tableNumber] = charset;
+  }
+
+  @Override
+  public void singleShiftSelect(int num) {
+    mySingleShift = num;
+  }
+
+  @Override
+  public void setWindowTitle(String name) {
+    //TODO: implement
+    //To change body of implemented methods use File | Settings | File Templates.
   }
 
   private void moveLine() {
@@ -318,7 +367,7 @@ public class BufferedDisplayTerminal implements Terminal {
     try {
       if (myCursorY == myTerminalHeight) {
         scrollArea(myScrollRegionTop, myScrollRegionBottom
-                                    - myScrollRegionTop, -1);
+                                      - myScrollRegionTop, -1);
         myBackBuffer.clearArea(0, myScrollRegionBottom - 1, myTerminalWidth,
                                myScrollRegionBottom);
       }
@@ -344,7 +393,7 @@ public class BufferedDisplayTerminal implements Terminal {
       myCursorX = 0;
       if (myCursorY == myTerminalHeight) {
         scrollArea(myScrollRegionTop, myScrollRegionBottom
-                                    - myScrollRegionTop, -1);
+                                      - myScrollRegionTop, -1);
         myBackBuffer.clearArea(0, myScrollRegionBottom - 1, myTerminalWidth,
                                myScrollRegionBottom);
       }
@@ -363,7 +412,7 @@ public class BufferedDisplayTerminal implements Terminal {
     try {
       if (myCursorY == 1) {
         scrollArea(myScrollRegionTop - 1, myScrollRegionBottom
-                                        - myScrollRegionTop, 1);
+                                          - myScrollRegionTop, 1);
         myBackBuffer.clearArea(myCursorX, myCursorY - 1, myTerminalWidth, myCursorY);
       }
       else {
@@ -388,6 +437,15 @@ public class BufferedDisplayTerminal implements Terminal {
     myDisplay.setCursor(myCursorX, myCursorY);
   }
 
+  public void cursorHorizontalAbsolute(int x) {
+    cursorPosition(x, myCursorY);    
+  }
+
+  public void linePositionAbsolute(int y) {
+    myCursorY = y;
+    myDisplay.setCursor(myCursorX, myCursorY);
+  }
+
   public void cursorPosition(int x, int y) {
     myCursorX = x - 1;
     myCursorY = y;
@@ -399,7 +457,7 @@ public class BufferedDisplayTerminal implements Terminal {
     myScrollRegionBottom = Math.min(myTerminalHeight, bottom);
   }
 
-  public void setCharacterAttributes(final StyleState styleState) {
+  public void characterAttributes(final StyleState styleState) {
     myStyleState.set(styleState);
   }
 
@@ -419,6 +477,17 @@ public class BufferedDisplayTerminal implements Terminal {
   @Override
   public void restoreCursor() {
     restoreCursor(myStoredCursor);
+  }
+
+  @Override
+  public void reset() {
+    invokeCharacterSet(0);
+    designateCharacterSet(0, TermCharset.USASCII);
+    designateCharacterSet(1, TermCharset.SpecialCharacters);
+    designateCharacterSet(2, TermCharset.USASCII);
+    designateCharacterSet(3, TermCharset.USASCII);
+
+    myStyleState.reset();
   }
 
   public void storeCursor(final StoredCursor storedCursor) {

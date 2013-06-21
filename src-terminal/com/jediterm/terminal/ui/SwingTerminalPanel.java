@@ -575,7 +575,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
       myGfx.drawChars(buf.getBuf(), buf.getStart(), buf.getLen(), x * myCharSize.width, baseLine);
 
-      if (style.hasOption(TextStyle.Option.UNDERSCORE)) {
+      if (style.hasOption(TextStyle.Option.UNDERLINED)) {
         myGfx.drawLine(x * myCharSize.width, baseLine + 1, (x + buf.getLen()) * myCharSize.width, baseLine + 1);
       }
     }

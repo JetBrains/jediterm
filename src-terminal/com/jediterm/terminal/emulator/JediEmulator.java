@@ -57,7 +57,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         break;
       case Ascii.FF: //Form Feed or New Page (NP). Ctrl-L treated the same as LF
       case Ascii.LF: //Line Feed or New Line (NL). (LF is Ctrl-J)
-      case Ascii.VT: //Vertical TAb (Ctrl-K). This is treated the sane as LF.
+      case Ascii.VT: //Vertical Tab (Ctrl-K). This is treated the sane as LF.
         // '\n'
         terminal.newLine();
         break;

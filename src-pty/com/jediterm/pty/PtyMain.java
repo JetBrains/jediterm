@@ -30,7 +30,7 @@ public class PtyMain extends AbstractTerminalFrame {
 
   public static void main(final String[] arg) {
     BasicConfigurator.configure();
-    Logger.getRootLogger().setLevel(Level.DEBUG);
+    Logger.getRootLogger().setLevel(Level.INFO);
     new PtyMain();
   }
 

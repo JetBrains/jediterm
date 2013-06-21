@@ -29,6 +29,7 @@ Features
 Links
 -----
  * Terminal protocol description: http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
+ * Terminal Character Set Terminology and Mechanics: http://www.columbia.edu/kermit/k95manual/iso2022.html
  * JPty library: https://github.com/jawi/JPty
  * JSch library: http://www.jcraft.com/jsch
  * UTF8 Demo: http://www.cl.cam.ac.uk/~mgk25/ucs/examples/UTF-8-demo.txt

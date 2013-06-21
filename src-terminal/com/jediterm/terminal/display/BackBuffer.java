@@ -368,8 +368,17 @@ public class BackBuffer implements StyledTextConsumer {
       }
     }
     //end row
-    if (lastStyle == null) {
-      LOG.error("Style is null for run supposed to be from " + beginRun + " to " + endCol + "on row " + row);
+
+    if (endCol == startCol) { // no run occurred : retrieve text style
+      final int location = row * myWidth + startCol;
+      if (location < 0 || location >= myStyleBuf.length) {
+        throw new IllegalStateException("Can't pump a char at " + row + "x" + startCol);
+      }
+      lastStyle = myStyleBuf[location];
+    }
+
+    if(lastStyle == null) {
+      LOG.error("Style is null for run supposed to be from " + beginRun + " to " + endCol + " on row " + row);
     }
     else {
       consumer.consume(beginRun, row, lastStyle, new CharBuffer(myBuf, row * myWidth + beginRun, endCol - beginRun), 0);

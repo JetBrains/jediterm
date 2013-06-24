@@ -2,9 +2,11 @@ package com.jediterm;
 
 import com.jediterm.terminal.ArrayTerminalDataStream;
 import com.jediterm.terminal.Terminal;
+import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.display.BackBuffer;
 import com.jediterm.terminal.display.LinesBuffer;
 import com.jediterm.terminal.display.StyleState;
+import com.jediterm.terminal.emulator.ColorPalette;
 import com.jediterm.terminal.emulator.Emulator;
 import com.jediterm.terminal.emulator.JediEmulator;
 import com.jediterm.util.BackBufferTerminal;
@@ -13,6 +15,7 @@ import com.jediterm.util.NullTerminalOutputStream;
 import junit.framework.TestCase;
 import testData.TestPathsManager;
 
+import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 
@@ -31,19 +34,32 @@ public class EmulatorTest extends TestCase {
   //  doTest(80, 24);
   //}
 
-  public void testMidnightCommanderOnVT100() throws IOException { 
-    doTest(80, 24);
+  public void testMidnightCommanderOnVT100() throws IOException {
+    doTest();
   }
 
   public void testMidnightCommanderOnXTerm() throws IOException {
-    doTest(80, 24);
+    BackBuffer backBuffer = doTest();
+
+    assertColor(backBuffer.getStyleAt(8, 2), ColorPalette.getIndexedColor(3), ColorPalette.getIndexedColor(4));
+    assertColor(backBuffer.getStyleAt(23, 4), ColorPalette.getIndexedColor(7), ColorPalette.getIndexedColor(4));
+    assertColor(backBuffer.getStyleAt(2, 0), ColorPalette.getIndexedColor(0), ColorPalette.getIndexedColor(6));
   }
 
-  private void doTest(int width, int height) throws IOException {
-    doTest(width, height, FileUtil.loadFileLines(new File(TestPathsManager.getTestDataPath() + getName() + ".after.txt")));
+  private static void assertColor(TextStyle style, Color foreground, Color background) {
+    assertEquals(foreground, style.getForeground());
+    assertEquals(background, style.getBackground());
   }
 
-  private void doTest(int width, int height, String expected) throws IOException {
+  private BackBuffer doTest() throws IOException {
+    return doTest(80, 24);
+  }
+
+  private BackBuffer doTest(int width, int height) throws IOException {
+    return doTest(width, height, FileUtil.loadFileLines(new File(TestPathsManager.getTestDataPath() + getName() + ".after.txt")));
+  }
+
+  private BackBuffer doTest(int width, int height, String expected) throws IOException {
     StyleState state = new StyleState();
 
     LinesBuffer scrollBuffer = new LinesBuffer();
@@ -63,5 +79,7 @@ public class EmulatorTest extends TestCase {
     }
 
     assertEquals(expected, backBuffer.getLines());
+    
+    return backBuffer;
   }
 }

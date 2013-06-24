@@ -1,5 +1,19 @@
 ChangeLog of JediTerm
 
+
+==============================
+24/06/2013 0.05
+-xterm compatibility
+-256 colors support
+-DEC Private modes implemented, e.g. switching to Alternate Buffer
+-Fixed a bunch of emulator issues
+
+==============================
+24/05/2013 0.04
+
+-Fixed some redraw issues
+-Fixed scrolling issue(thanks to Clément Poulain)
+
 ==============================
 06/05/2013 0.03
 
@@ -8,6 +22,7 @@ ChangeLog of JediTerm
 -Project split to 3 parts: Emulator, Ssh Terminal and Local Pty Terminal
 
 
+==============================
 24/01/2013 0.02
 
 -Fixed a bunch of resize and scrolling problems
@@ -17,6 +32,7 @@ ChangeLog of JediTerm
 -Copy-paste context menu
 
 
+==============================
 10/01/2013
 
 Gritty was forked to JediTerm

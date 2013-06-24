@@ -784,7 +784,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   }
 
   @Override
-  public void setShouldDrawCursor(boolean shouldDrawCursor) {
+  public void setCursorVisible(boolean shouldDrawCursor) {
     myCursor.setShouldDrawCursor(shouldDrawCursor);
   }
 

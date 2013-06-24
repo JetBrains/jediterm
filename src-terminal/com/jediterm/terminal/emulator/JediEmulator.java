@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.util.Arrays;
 
 /**
+ * The main terminal emulator class.
+ * 
  * Obtains data from the  {@link com.jediterm.terminal.TerminalDataStream}, interprets terminal ANSI escape sequences as commands and directs them
  * as well as plain data characters to the  {@link com.jediterm.terminal.Terminal}
  *
@@ -45,7 +47,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         break;
       case Ascii.FF: //Form Feed or New Page (NP). Ctrl-L treated the same as LF
       case Ascii.LF: //Line Feed or New Line (NL). (LF is Ctrl-J)
-      case Ascii.VT: //Vertical Tab (Ctrl-K). This is treated the sane as LF.
+      case Ascii.VT: //Vertical Tab (Ctrl-K). This is treated the same as LF.
         // '\n'
         terminal.newLine();
         break;
@@ -137,11 +139,11 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       case '9':
         unsupported("Forward Index (DECFI), VT420 and up");
         break;
-      case '=':
-        unsupported("Application Keypad (DECKPAM)");
+      case '=': //Application Keypad (DECKPAM)
+        setModeEnabled(TerminalMode.Keypad, true);
         break;
-      case '>':
-        unsupported("Normal Keypad (DECKPNM)");
+      case '>': //Normal Keypad (DECKPNM)
+        setModeEnabled(TerminalMode.Keypad, false);
         break;
       case 'F': //Cursor to lower left corner of the screen
         terminal.cursorPosition(1, terminal.getTerminalHeight());
@@ -329,9 +331,10 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         return sendDeviceAttributes();
       case 'd': // VPA
         return linePositionAbsolute(args);
-      case 'h':
-        //setModeEnabled(args, true);
-        return false;
+      case 'h': //Set Mode (SM) or DEC Private Mode SEt (DECSET)
+        return setModeOrPrivateMode(args, true);
+      case 'l':
+        return setModeOrPrivateMode(args, false);
       case 'm': 
         if (args.startsWithMoreMark()) { //Set or reset resource-values used by xterm 
           // to decide whether to construct escape sequences holding information about 
@@ -348,12 +351,36 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         else {
           return setScrollingRegion(args);
         }
-      case 'l':
-        //setModeEnabled(args, false);
-        return false;
-
       default:
         return false;
+    }
+  }
+
+  private boolean setModeOrPrivateMode(ControlSequence args, boolean enabled) {
+    if (args.startsWithQuestionMark()) { // DEC Private Mode
+      switch (args.getArg(0, -1)) {
+        case 1: //Cursor Keys Mode (DECCKM)
+          setModeEnabled(TerminalMode.CursorKey, enabled);
+          return true;
+        case 3: //132 Column Mode (DECCOLM)
+          setModeEnabled(TerminalMode.WideColumn, enabled);
+          return true;
+        case 25:
+          setModeEnabled(TerminalMode.CursorVisible, enabled);
+          return true;
+        case 47:
+          setModeEnabled(TerminalMode.AlternateBuffer, enabled);
+          return false;
+        default:
+          return false;
+      }
+
+    } else {
+      switch (args.getArg(0, -1)) {
+        default:
+          return false;
+      }
+      
     }
   }
 
@@ -570,12 +597,16 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           break;
         case 24: // Not underlined
           styleState.setOption(TextStyle.Option.UNDERLINED, false);
+          break;
         case 25: //Steady (not blinking)
           styleState.setOption(TextStyle.Option.BLINK, false);
+          break;
         case 27: //Positive (not inverse)
           styleState.setOption(TextStyle.Option.INVERSE, false);
+          break;
         case 28: //Visible, i.e. not hidden
           styleState.setOption(TextStyle.Option.HIDDEN, false);
+          break;
         case 30:
         case 31:
         case 32:
@@ -591,6 +622,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           if (color256 != null) {
             styleState.setCurrentForeground(color256);
           }
+          break;
         case 39: // Default (original) foreground
           styleState.setCurrentForeground(null);
           break;
@@ -609,6 +641,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           if (bgColor256 != null) {
             styleState.setCurrentBackground(bgColor256);
           }
+          break;
         case 49: //Default (original) foreground
           styleState.setCurrentBackground(null);
           break;
@@ -633,6 +666,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 107:
           //Bright versions of the ISO colors for background
           styleState.setCurrentBackground(ColorPalette.getIndexedColor(arg - 92));
+          break;
         default:
           LOG.error("Unknown character attribute:" + arg);
       }
@@ -675,15 +709,9 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     return true;
   }
 
-  private void setModeEnabled(final TerminalMode mode, final boolean on) throws IOException {
-    if (on) {
-      if (LOG.isInfoEnabled()) LOG.info("Modes: adding " + mode);
-      myTerminal.setMode(mode);
-    }
-    else {
-      if (LOG.isInfoEnabled()) LOG.info("Modes: removing " + mode);
-      myTerminal.unsetMode(mode);
-    }
+  private void setModeEnabled(final TerminalMode mode, final boolean enabled) {
+    if (LOG.isInfoEnabled()) LOG.info("Setting mode " + mode + " enabled = " + enabled);
+    myTerminal.setModeEnabled(mode, enabled);
   }
 }
 

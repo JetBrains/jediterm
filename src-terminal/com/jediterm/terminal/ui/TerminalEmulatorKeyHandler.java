@@ -10,13 +10,14 @@ public class TerminalEmulatorKeyHandler implements KeyListener {
   private static Logger logger = Logger.getLogger(TerminalEmulatorKeyHandler.class);
   private final TerminalStarter myTerminalStarter;
 
-  public TerminalEmulatorKeyHandler(TerminalStarter emu) {
-    myTerminalStarter = emu;
+  public TerminalEmulatorKeyHandler(TerminalStarter terminalStarter) {
+    myTerminalStarter = terminalStarter;
   }
 
   public void keyPressed(final KeyEvent e) {
     try {
       final int keycode = e.getKeyCode();
+      
       final byte[] code = myTerminalStarter.getCode(keycode);
       if (code != null) {
         myTerminalStarter.sendBytes(code);

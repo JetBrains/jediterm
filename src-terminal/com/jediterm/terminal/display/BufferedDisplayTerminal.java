@@ -3,10 +3,7 @@
  */
 package com.jediterm.terminal.display;
 
-import com.jediterm.terminal.RequestOrigin;
-import com.jediterm.terminal.Terminal;
-import com.jediterm.terminal.TerminalDisplay;
-import com.jediterm.terminal.TerminalMode;
+import com.jediterm.terminal.*;
 import com.jediterm.terminal.emulator.TermCharset;
 import org.apache.log4j.Logger;
 
@@ -42,7 +39,9 @@ public class BufferedDisplayTerminal implements Terminal {
 
   private final StoredCursor myStoredCursor = new StoredCursor();
 
-  private final EnumSet<TerminalMode> myModes = EnumSet.of(TerminalMode.ANSI);
+  private final EnumSet<TerminalMode> myModes = EnumSet.noneOf(TerminalMode.class);
+    
+  private final KeyEncoder myKeyEncoder = new KeyEncoder();
 
   private TermCharset[] myG = new TermCharset[4]; //initialized in reset
   private int myCurrentCharset = 0;
@@ -64,31 +63,20 @@ public class BufferedDisplayTerminal implements Terminal {
   }
 
 
-  public void setMode(TerminalMode mode) {
-    myModes.add(mode);
-    switch (mode) {
-      case WideColumn:
-        resize(new Dimension(132, 24), RequestOrigin.Remote);
-        clearScreen();
-        restoreCursor(null);
-        break;
+  @Override
+  public void setModeEnabled(TerminalMode mode, boolean enabled) {
+    if (enabled) {
+      myModes.add(mode);
+    } else {
+      myModes.remove(mode);
     }
-  }
-
-  public void unsetMode(TerminalMode mode) {
-    myModes.remove(mode);
-    switch (mode) {
-      case WideColumn:
-        resize(new Dimension(80, 24), RequestOrigin.Remote);
-        clearScreen();
-        restoreCursor(null);
-        break;
-    }
+    
+    mode.setEnabled(this, enabled);
   }
 
   @Override
   public void disconnected() {
-    myDisplay.setShouldDrawCursor(false);
+    myDisplay.setCursorVisible(false);
   }
 
   private void wrapLines() {
@@ -307,8 +295,42 @@ public class BufferedDisplayTerminal implements Terminal {
     }
   }
 
+  @Override
   public void clearScreen() {
     clearLines(0, myTerminalHeight);
+  }
+
+  @Override
+  public void setCursorVisible(boolean visible) {
+    myDisplay.setCursorVisible(visible);
+  }
+
+  @Override
+  public void useAlternateBuffer(boolean enabled) {
+    
+  }
+
+  @Override
+  public byte[] getCodeForKey(int key) {
+    return myKeyEncoder.getCode(key);
+  }
+
+  @Override
+  public void setApplicationArrowKeys(boolean enabled) {
+    if (enabled) {
+      myKeyEncoder.arrowKeysApplicationSequences();
+    } else {
+      myKeyEncoder.arrowKeysAnsiCursorSequences();
+    }
+  }
+
+  @Override
+  public void setApplicationKeypad(boolean enabled) {
+    if (enabled) {
+      myKeyEncoder.keypadApplicationSequences();
+    } else {
+      myKeyEncoder.normalKeypad();
+    }
   }
 
   public void eraseInLine(int arg) {

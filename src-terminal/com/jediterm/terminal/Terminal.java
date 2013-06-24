@@ -74,10 +74,8 @@ public interface Terminal {
 
   void eraseInDisplay(int arg);
 
-  void setMode(TerminalMode mode);
-
-  void unsetMode(TerminalMode mode);
-
+  void setModeEnabled(TerminalMode mode, boolean enabled);
+  
   void disconnected();
 
   int getCursorX();
@@ -87,4 +85,16 @@ public interface Terminal {
   void singleShiftSelect(int num);
 
   void setWindowTitle(String name);
+
+  void clearScreen();
+
+  void setCursorVisible(boolean visible);
+
+  void useAlternateBuffer(boolean enabled);
+
+  byte[] getCodeForKey(int key);
+
+  void setApplicationArrowKeys(boolean enabled);
+
+  void setApplicationKeypad(boolean enabled);
 }

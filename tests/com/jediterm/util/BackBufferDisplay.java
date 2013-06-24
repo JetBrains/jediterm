@@ -47,6 +47,6 @@ public class BackBufferDisplay implements TerminalDisplay {
   }
 
   @Override
-  public void setShouldDrawCursor(boolean shouldDrawCursor) {
+  public void setCursorVisible(boolean shouldDrawCursor) {
   }
 }

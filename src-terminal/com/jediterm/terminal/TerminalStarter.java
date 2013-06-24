@@ -77,7 +77,7 @@ public class TerminalStarter implements TerminalOutputStream {
   }
 
   public byte[] getCode(final int key) {
-    return CharacterUtils.getCode(key);
+    return myTerminal.getCodeForKey(key);
   }
 
   public void postResize(final Dimension dimension, final RequestOrigin origin) {

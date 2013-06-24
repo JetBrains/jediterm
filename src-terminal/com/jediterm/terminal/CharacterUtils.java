@@ -2,11 +2,6 @@ package com.jediterm.terminal;
 
 import com.google.common.base.Ascii;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import static java.awt.event.KeyEvent.*;
-
 public class CharacterUtils {
 
   public static final int ESC = Ascii.ESC;
@@ -21,29 +16,6 @@ public class CharacterUtils {
     "EM", "SUB", "ESC", "FS", "GS", "RS", "US"};
 
   public static byte[] VT102_RESPONSE = makeCode(ESC, '[', '?', '6', 'c');
-
-  private static final Map<Integer, byte[]> CODES = new HashMap<Integer, byte[]>();
-  static {
-    putCode(VK_ENTER, Ascii.CR);
-    putCode(VK_UP, ESC, 'O', 'A');
-    putCode(VK_DOWN, ESC, 'O', 'B');
-    putCode(VK_RIGHT, ESC, 'O', 'C');
-    putCode(VK_LEFT, ESC, 'O', 'D');
-    putCode(VK_F1, ESC, 'O', 'P');
-    putCode(VK_F2, ESC, 'O', 'Q');
-    putCode(VK_F3, ESC, 'O', 'R');
-    putCode(VK_F4, ESC, 'O', 'S');
-    putCode(VK_F5, ESC, 'O', 't');
-    putCode(VK_F6, ESC, 'O', 'u');
-    putCode(VK_F7, ESC, 'O', 'v');
-    putCode(VK_F8, ESC, 'O', 'I');
-    putCode(VK_F9, ESC, 'O', 'w');
-    putCode(VK_F10, ESC, 'O', 'x');
-    putCode(VK_HOME, ESC, '[', 'H');
-    putCode(VK_END, ESC, '[', 'F');
-    //putCode(VK_PAGE_UP, ESC, '[', '5', '~');  don't work
-    //putCode(VK_PAGE_DOWN, ESC, '[', '6', '~');
-  }
 
   public static String getNonControlCharacters(int maxChars, char[] buf, int offset, int charsLength) {
     int len = maxChars > charsLength ? charsLength : maxChars;
@@ -101,11 +73,8 @@ public class CharacterUtils {
     }
   }
 
-  static void putCode(final int code, final int... bytesAsInt) {
-    CODES.put(code, makeCode(bytesAsInt));
-  }
 
-  private static byte[] makeCode(final int... bytesAsInt) {
+  public static byte[] makeCode(final int... bytesAsInt) {
     final byte[] bytes = new byte[bytesAsInt.length];
     int i = 0;
     for (final int byteAsInt : bytesAsInt) {
@@ -113,11 +82,5 @@ public class CharacterUtils {
       i++;
     }
     return bytes;
-  }
-
-
-
-  static public byte[] getCode(final int key) {
-    return CODES.get(key);
   }
 }

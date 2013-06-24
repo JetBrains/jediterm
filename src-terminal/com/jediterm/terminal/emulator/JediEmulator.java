@@ -547,15 +547,15 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   }
 
   private boolean characterAttributes(final ControlSequence args) {
-    StyleState styleState = createStyleState(args);
+    StyleState styleState = createStyleState(myTerminal.getStyleState(), args);
 
     myTerminal.characterAttributes(styleState);
 
     return true;
   }
 
-  private static StyleState createStyleState(ControlSequence args) {
-    StyleState styleState = new StyleState();
+  private static StyleState createStyleState(StyleState state, ControlSequence args) {
+    StyleState styleState = state.clone();
 
     final int argCount = args.getCount();
     if (argCount == 0) {

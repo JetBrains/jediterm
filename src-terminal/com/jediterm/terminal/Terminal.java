@@ -97,4 +97,6 @@ public interface Terminal {
   void setApplicationArrowKeys(boolean enabled);
 
   void setApplicationKeypad(boolean enabled);
+
+  StyleState getStyleState();
 }

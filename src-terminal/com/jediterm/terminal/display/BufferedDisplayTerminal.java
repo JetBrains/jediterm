@@ -580,4 +580,8 @@ public class BufferedDisplayTerminal implements Terminal {
   public int getCursorY() {
     return myCursorY;
   }
+
+  public StyleState getStyleState() {
+    return myStyleState;
+  }
 }

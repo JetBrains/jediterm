@@ -63,4 +63,8 @@ public class StyleState {
   public Color getForeground(Color color) {
     return color != null ? color : myDefaultStyle.getForeground();
   }
+  
+  public StyleState clone() {
+    return new StyleState(myCurrentStyle);
+  }
 }

@@ -1,7 +1,10 @@
 package com.jediterm;
 
 import com.jediterm.terminal.RequestOrigin;
-import com.jediterm.terminal.display.*;
+import com.jediterm.terminal.display.BackBuffer;
+import com.jediterm.terminal.display.BufferedDisplayTerminal;
+import com.jediterm.terminal.display.SelectionUtil;
+import com.jediterm.terminal.display.StyleState;
 import com.jediterm.util.BackBufferDisplay;
 import junit.framework.TestCase;
 
@@ -14,9 +17,7 @@ public class SelectionTest extends TestCase {
   public void testMultilineSelection() {
     StyleState state = new StyleState();
 
-    LinesBuffer scrollBuffer = new LinesBuffer();
-
-    BackBuffer backBuffer = new BackBuffer(15, 5, state, scrollBuffer);
+    BackBuffer backBuffer = new BackBuffer(15, 5, state);
 
     BufferedDisplayTerminal terminal = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
@@ -28,16 +29,14 @@ public class SelectionTest extends TestCase {
     terminal.carriageReturn();
 
     assertEquals("line \n" +
-                 "  2. line", SelectionUtil.getSelectionText(new Point(5, 0), new Point(9, 1), scrollBuffer, backBuffer));
+                 "  2. line", SelectionUtil.getSelectionText(new Point(5, 0), new Point(9, 1), backBuffer));
 
   }
 
   public void testSingleLineSelection() {
     StyleState state = new StyleState();
 
-    LinesBuffer scrollBuffer = new LinesBuffer();
-
-    BackBuffer backBuffer = new BackBuffer(15, 5, state, scrollBuffer);
+    BackBuffer backBuffer = new BackBuffer(15, 5, state);
 
     BufferedDisplayTerminal writer = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
@@ -45,15 +44,13 @@ public class SelectionTest extends TestCase {
     writer.newLine();
     writer.carriageReturn();
 
-    assertEquals(" line  ", SelectionUtil.getSelectionText(new Point(2, 0), new Point(9, 0), scrollBuffer, backBuffer));
+    assertEquals(" line  ", SelectionUtil.getSelectionText(new Point(2, 0), new Point(9, 0), backBuffer));
   }
 
   public void testSelectionOutOfTheScreen() {
     StyleState state = new StyleState();
 
-    LinesBuffer scrollBuffer = new LinesBuffer();
-
-    BackBuffer backBuffer = new BackBuffer(20, 5, state, scrollBuffer);
+    BackBuffer backBuffer = new BackBuffer(20, 5, state);
 
     BufferedDisplayTerminal writer = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
@@ -66,15 +63,13 @@ public class SelectionTest extends TestCase {
 
     writer.resize(new Dimension(8, 10), RequestOrigin.User);
 
-    assertEquals("text to select \nand copy", SelectionUtil.getSelectionText(new Point(0, 0), new Point(8, 1), scrollBuffer, backBuffer));
+    assertEquals("text to select \nand copy", SelectionUtil.getSelectionText(new Point(0, 0), new Point(8, 1), backBuffer));
   }
 
   public void testSelectionTheLastLine() {
     StyleState state = new StyleState();
 
-    LinesBuffer scrollBuffer = new LinesBuffer();
-
-    BackBuffer backBuffer = new BackBuffer(15, 5, state, scrollBuffer);
+    BackBuffer backBuffer = new BackBuffer(15, 5, state);
 
     BufferedDisplayTerminal writer = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
@@ -84,15 +79,13 @@ public class SelectionTest extends TestCase {
     writer.writeString("last line");
 
 
-    assertEquals("last line", SelectionUtil.getSelectionText(new Point(0, 1), new Point(9, 1), scrollBuffer, backBuffer));
+    assertEquals("last line", SelectionUtil.getSelectionText(new Point(0, 1), new Point(9, 1), backBuffer));
   }
 
   public void testMultilineSelectionWithLastLine() {
     StyleState state = new StyleState();
 
-    LinesBuffer scrollBuffer = new LinesBuffer();
-
-    BackBuffer backBuffer = new BackBuffer(15, 5, state, scrollBuffer);
+    BackBuffer backBuffer = new BackBuffer(15, 5, state);
 
     BufferedDisplayTerminal writer = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
@@ -104,7 +97,7 @@ public class SelectionTest extends TestCase {
     writer.carriageReturn();
     writer.writeString("last line");
 
-    assertEquals("second line\nlast line", SelectionUtil.getSelectionText(new Point(0, 1), new Point(9, 2), scrollBuffer, backBuffer));
+    assertEquals("second line\nlast line", SelectionUtil.getSelectionText(new Point(0, 1), new Point(9, 2), backBuffer));
   }
 
 }

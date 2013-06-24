@@ -28,18 +28,21 @@ public class BackBuffer implements StyledTextConsumer {
   private BitSet myDamage;
 
   private final StyleState myStyleState;
-  private final LinesBuffer myScrollBuffer;
+  
+  private LinesBuffer myScrollBuffer = new LinesBuffer();
 
-  private final LinesBuffer myTextBuffer = new LinesBuffer();
+  private LinesBuffer myTextBuffer = new LinesBuffer();
 
   private int myWidth;
   private int myHeight;
 
   private final Lock myLock = new ReentrantLock();
+  
+  private LinesBuffer myTextBufferBackup; // to store textBuffer after switching to alternate buffer
+  private LinesBuffer myScrollBufferBackup;
 
-  public BackBuffer(final int width, final int height, StyleState styleState, LinesBuffer scrollBuffer) {
+  public BackBuffer(final int width, final int height, StyleState styleState) {
     myStyleState = styleState;
-    myScrollBuffer = scrollBuffer;
     myWidth = width;
     myHeight = height;
 
@@ -115,7 +118,7 @@ public class BackBuffer implements StyledTextConsumer {
 
     if (myWidth > oldWidth || textBufferUpdated) {
       //we need to fill new space with data from the text buffer
-      myTextBuffer.processLines(-getTextBufferLinesCount(), getTextBufferLinesCount(), this);
+      resetFromTextBuffer();
     }
 
     if (myTextBuffer.getLineCount() >= myHeight) {
@@ -129,6 +132,10 @@ public class BackBuffer implements StyledTextConsumer {
     resizeHandler.sizeUpdated(myWidth, myHeight, myCursorY);
 
     return pendingResize;
+  }
+
+  private void resetFromTextBuffer() {
+    myTextBuffer.processLines(-getTextBufferLinesCount(), getTextBufferLinesCount(), this);
   }
 
   public void clearArea(final int leftX, final int topY, final int rightX, final int bottomY) {
@@ -505,5 +512,30 @@ public class BackBuffer implements StyledTextConsumer {
 
   public boolean checkTextBufferIsValid(int row) {
     return myTextBuffer.getLine(row).contains(getLineTrimTrailing(row));//in a raw back buffer is always a prefix of text buffer
+  }
+  
+  public char getCharAt(int x, int y) {
+    return myBuf[x + myWidth * y];
+  }
+
+  public TextStyle getStyleAt(int x, int y) {
+    return myStyleBuf[x + myWidth * y];
+  }
+
+  public void useAlternateBuffer(boolean enabled) {
+    if (enabled) {
+      myTextBufferBackup = myTextBuffer;
+      myScrollBufferBackup = myScrollBuffer;
+      myTextBuffer = new LinesBuffer();
+      myScrollBuffer = new LinesBuffer();
+    } else {
+      myTextBuffer = myTextBufferBackup;
+      myScrollBuffer = myScrollBufferBackup;
+      resetFromTextBuffer();
+    }
+  }
+
+  public LinesBuffer getScrollBuffer() {
+    return myScrollBuffer;
   }
 }

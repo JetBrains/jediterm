@@ -24,7 +24,7 @@ public enum DebugBufferType {
   },
   Scroll() {
     public String getValue(SwingJediTerminal term) {
-      return term.getTerminalPanel().getScrollBuffer().getLines();
+      return term.getTerminalPanel().getBackBuffer().getScrollBuffer().getLines();
     }
   },
   Text() {

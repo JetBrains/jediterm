@@ -64,7 +64,7 @@ public class EmulatorTest extends TestCase {
 
     LinesBuffer scrollBuffer = new LinesBuffer();
 
-    BackBuffer backBuffer = new BackBuffer(width, height, state, scrollBuffer);
+    BackBuffer backBuffer = new BackBuffer(width, height, state);
 
     Terminal terminal = new BackBufferTerminal(backBuffer, state);
 

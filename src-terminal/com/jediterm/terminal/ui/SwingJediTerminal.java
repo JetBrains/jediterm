@@ -7,7 +7,6 @@ import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.debug.DebugBufferType;
 import com.jediterm.terminal.display.BackBuffer;
 import com.jediterm.terminal.display.BufferedDisplayTerminal;
-import com.jediterm.terminal.display.LinesBuffer;
 import com.jediterm.terminal.display.StyleState;
 import org.apache.log4j.Logger;
 
@@ -48,10 +47,9 @@ public class SwingJediTerminal extends JPanel {
 
     StyleState styleState = createDefaultStyle();
 
-    LinesBuffer scrollBuffer = new LinesBuffer();
-    BackBuffer backBuffer = new BackBuffer(columns, lines, styleState, scrollBuffer);
+    BackBuffer backBuffer = new BackBuffer(columns, lines, styleState);
 
-    myTerminalPanel = createTerminalPanel(styleState, backBuffer, scrollBuffer);
+    myTerminalPanel = createTerminalPanel(styleState, backBuffer);
     myTerminalWriter = new BufferedDisplayTerminal(myTerminalPanel, backBuffer, styleState);
     myPreConnectHandler = createPreConnectHandler(myTerminalWriter);
     myTerminalPanel.setKeyListener(myPreConnectHandler);
@@ -75,8 +73,8 @@ public class SwingJediTerminal extends JPanel {
     return styleState;
   }
 
-  protected SwingTerminalPanel createTerminalPanel(StyleState styleState, BackBuffer backBuffer, LinesBuffer scrollBuffer) {
-    return new SwingTerminalPanel(backBuffer, scrollBuffer, styleState);
+  protected SwingTerminalPanel createTerminalPanel(StyleState styleState, BackBuffer backBuffer) {
+    return new SwingTerminalPanel(backBuffer, styleState);
   }
 
   protected PreConnectHandler createPreConnectHandler(BufferedDisplayTerminal writer) {

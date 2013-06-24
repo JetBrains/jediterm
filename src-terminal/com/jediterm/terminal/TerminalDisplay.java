@@ -41,4 +41,6 @@ public interface TerminalDisplay {
   void scrollArea(final int y, final int h, int dy);
 
   void setCursorVisible(boolean shouldDrawCursor);
+  
+  void setScrollingEnabled(boolean enabled);
 }

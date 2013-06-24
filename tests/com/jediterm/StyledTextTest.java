@@ -3,7 +3,6 @@ package com.jediterm;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.display.BackBuffer;
 import com.jediterm.terminal.display.BufferedDisplayTerminal;
-import com.jediterm.terminal.display.LinesBuffer;
 import com.jediterm.terminal.display.StyleState;
 import com.jediterm.util.BackBufferDisplay;
 import com.jediterm.util.TestStyle;
@@ -26,13 +25,11 @@ public class StyledTextTest extends TestCase {
 
     StyleState state = new StyleState();
 
-    LinesBuffer scrollBuffer = new LinesBuffer();
-
-    BackBuffer backBuffer = new BackBuffer(width, height, state, scrollBuffer);
+    BackBuffer backBuffer = new BackBuffer(width, height, state);
 
     BufferedDisplayTerminal terminal = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
-    BackBuffer backBuffer2 = new BackBuffer(width, height, state, new LinesBuffer());
+    BackBuffer backBuffer2 = new BackBuffer(width, height, state);
 
     terminal.characterAttributes(new StyleState(BLACK));
     terminal.writeString("def ");

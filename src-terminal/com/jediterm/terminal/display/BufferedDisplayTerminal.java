@@ -307,7 +307,8 @@ public class BufferedDisplayTerminal implements Terminal {
 
   @Override
   public void useAlternateBuffer(boolean enabled) {
-    
+    myBackBuffer.useAlternateBuffer(enabled);
+    myDisplay.setScrollingEnabled(!enabled);    
   }
 
   @Override

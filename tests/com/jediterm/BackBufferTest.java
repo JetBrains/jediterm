@@ -2,7 +2,10 @@ package com.jediterm;
 
 import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.TextStyle;
-import com.jediterm.terminal.display.*;
+import com.jediterm.terminal.display.BackBuffer;
+import com.jediterm.terminal.display.BufferedDisplayTerminal;
+import com.jediterm.terminal.display.CharBuffer;
+import com.jediterm.terminal.display.StyleState;
 import com.jediterm.util.BackBufferDisplay;
 import junit.framework.TestCase;
 
@@ -13,10 +16,8 @@ public class BackBufferTest extends TestCase {
   public void testEmptyLineTextStyle() {
     StyleState state = new StyleState();
 
-    LinesBuffer scrollBuffer = new LinesBuffer();
-
-    BackBuffer backBuffer = new BackBuffer(15, 10, state, scrollBuffer);
-
+    BackBuffer backBuffer = new BackBuffer(15, 10, state);
+    
     BufferedDisplayTerminal terminal = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
     terminal.writeString("  1. line1");

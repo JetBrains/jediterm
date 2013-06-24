@@ -73,7 +73,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   private ResizePanelDelegate myResizePanelDelegate;
 
   final private BackBuffer myBackBuffer;
-  final private LinesBuffer myScrollBuffer;
+
   final private StyleState myStyleState;
 
   final private TerminalCursor myCursor = new TerminalCursor();
@@ -87,14 +87,16 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   private boolean myCursorIsShown;
   private long myLastResize;
 
+  private boolean myScrollingEnabled = true;
 
-  public SwingTerminalPanel(BackBuffer backBuffer, LinesBuffer scrollBuffer, StyleState styleState) {
-    myScrollBuffer = scrollBuffer;
+
+  public SwingTerminalPanel(BackBuffer backBuffer, StyleState styleState) {
     myBackBuffer = backBuffer;
     myStyleState = styleState;
     myTermSize.width = backBuffer.getWidth();
     myTermSize.height = backBuffer.getHeight();
-    myBoundedRangeModel.setRangeProperties(0, myTermSize.height, -scrollBuffer.getLineCount(), myTermSize.height, false);
+    
+    updateScrolling();
   }
 
   public void init() {
@@ -204,7 +206,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     }
 
     final String selectionText = SelectionUtil
-      .getSelectionText(selectionStart, selectionEnd, myScrollBuffer, myBackBuffer);
+      .getSelectionText(selectionStart, selectionEnd, myBackBuffer);
 
     if (selectionText.length() != 0) {
       try {
@@ -326,7 +328,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
         SwingUtilities.invokeLater(new Runnable() {
           @Override
           public void run() {
-            myBoundedRangeModel.setRangeProperties(0, myTermSize.height, -myScrollBuffer.getLineCount(), myTermSize.height, false);
+            updateScrolling();
           }
         });
       }
@@ -595,7 +597,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       // New area at the top to be filled in - can only be from scroll buffer
       //
 
-      myScrollBuffer.processLines(myClientScrollOrigin, -dy, this);
+      myBackBuffer.getScrollBuffer().processLines(myClientScrollOrigin, -dy, this);
     }
     else {
       //Scrolling down; Copied up
@@ -611,7 +613,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       int portionInBackBuffer = dy - portionInScroll;
 
       if (portionInScroll > 0) {
-        myScrollBuffer.processLines(oldEnd, portionInScroll, this);
+        myBackBuffer.getScrollBuffer().processLines(oldEnd, portionInScroll, this);
       }
 
       if (portionInBackBuffer > 0) {
@@ -691,13 +693,22 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       SwingUtilities.invokeLater(new Runnable() {
         @Override
         public void run() {
-          myBoundedRangeModel.setRangeProperties(0, myTermSize.height, -myScrollBuffer.getLineCount(), myTermSize.height, false);
+          updateScrolling();
         }
       });
     }
     mySelectionStart = null;
     mySelectionEnd = null;
     pendingScrolls.add(y, h, dy);
+  }
+
+  private void updateScrolling() {
+    if (myScrollingEnabled) {
+      myBoundedRangeModel.setRangeProperties(0, myTermSize.height, -myBackBuffer.getScrollBuffer().getLineCount(), myTermSize.height, false);
+    }
+    else {
+      myBoundedRangeModel.setRangeProperties(0, myTermSize.height, 0, myTermSize.height, false);
+    }
   }
 
   private static class PendingScrolls {
@@ -772,7 +783,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   }
 
   public LinesBuffer getScrollBuffer() {
-    return myScrollBuffer;
+    return myBackBuffer.getScrollBuffer();
   }
 
   public void lock() {
@@ -817,5 +828,16 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     popup.add(menuItem);
 
     return popup;
+  }
+
+  public void setScrollingEnabled(boolean scrollingEnabled) {
+    myScrollingEnabled = scrollingEnabled;
+
+    SwingUtilities.invokeLater(new Runnable() {
+      @Override
+      public void run() {
+        updateScrolling();
+      }
+    });
   }
 }

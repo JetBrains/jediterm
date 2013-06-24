@@ -41,11 +41,22 @@ public enum TerminalMode {
   RelativeOrigin,
   WrapAround,
   AutoRepeat,
-  Interlace, 
+  Interlace,
   Keypad {
     @Override
     public void setEnabled(Terminal terminal, boolean enabled) {
       terminal.setApplicationKeypad(enabled);
+    }
+  },
+  StoreCursor {
+    @Override
+    public void setEnabled(Terminal terminal, boolean enabled) {
+      if (enabled) {
+        terminal.storeCursor();
+      }
+      else {
+        terminal.restoreCursor();
+      }
     }
   };
 

@@ -13,7 +13,7 @@ public class SelectionUtil {
 
   public static String getSelectionText(final Point selectionStart,
                                         final Point selectionEnd,
-                                        final LinesBuffer scrollBuffer, final BackBuffer backBuffer) {
+                                        final BackBuffer backBuffer) {
     Point top;
     Point bottom;
     int terminalWidth = backBuffer.getWidth();
@@ -36,7 +36,7 @@ public class SelectionUtil {
     if (top.y < 0) {  //add lines from scroll buffer
       final Point scrollEnd = bottom.y >= 0 ? new Point(terminalWidth, -1) : bottom;
       SelectionTextAppender scrollText = new SelectionTextAppender(top, scrollEnd);
-      scrollBuffer.processLines(top.y, scrollEnd.y - top.y,
+      backBuffer.getScrollBuffer().processLines(top.y, scrollEnd.y - top.y,
                                 scrollText);
       selectionText.append(scrollText.getText());
     }

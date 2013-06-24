@@ -18,9 +18,9 @@ public class BufferResizeTest extends TestCase {
   public void testResizeToBiggerHeight() {
     StyleState state = new StyleState();
 
-    LinesBuffer scrollBuffer = new LinesBuffer();
+    
 
-    BackBuffer backBuffer = new BackBuffer(5, 5, state, scrollBuffer);
+    BackBuffer backBuffer = new BackBuffer(5, 5, state);
 
     BufferedDisplayTerminal terminal = new BackBufferTerminal(backBuffer, state);
 
@@ -39,7 +39,7 @@ public class BufferResizeTest extends TestCase {
     terminal.resize(new Dimension(10, 10), RequestOrigin.User);
 
 
-    assertEquals(0, scrollBuffer.getLineCount());
+    assertEquals(0, backBuffer.getScrollBuffer().getLineCount());
 
     assertEquals("line      \n" +
                  "line2     \n" +
@@ -59,9 +59,7 @@ public class BufferResizeTest extends TestCase {
   public void testResizeToSmallerHeight() {
     StyleState state = new StyleState();
 
-    LinesBuffer scrollBuffer = new LinesBuffer();
-
-    BackBuffer backBuffer = new BackBuffer(5, 5, state, scrollBuffer);
+    BackBuffer backBuffer = new BackBuffer(5, 5, state);
 
     BufferedDisplayTerminal terminal = new BackBufferTerminal(backBuffer, state);
 
@@ -84,7 +82,7 @@ public class BufferResizeTest extends TestCase {
 
     assertEquals("\n" +
                  "line\n" +
-                 "line2", scrollBuffer.getLines());
+                 "line2", backBuffer.getScrollBuffer().getLines());
 
     assertEquals("line3     \n" +
                  "li        \n", backBuffer.getLines());
@@ -96,9 +94,7 @@ public class BufferResizeTest extends TestCase {
   public void testResizeToSmallerHeightAndBack() {
     StyleState state = new StyleState();
 
-    LinesBuffer scrollBuffer = new LinesBuffer();
-
-    BackBuffer backBuffer = new BackBuffer(5, 5, state, scrollBuffer);
+    BackBuffer backBuffer = new BackBuffer(5, 5, state);
 
     BufferedDisplayTerminal terminal = new BackBufferTerminal(backBuffer, state);
 
@@ -125,7 +121,7 @@ public class BufferResizeTest extends TestCase {
     assertEquals("\n" +
                  "line\n" +
                  "line2\n" +
-                 "line3", scrollBuffer.getLines());
+                 "line3", backBuffer.getScrollBuffer().getLines());
 
     assertEquals("line4     \n" +
                  "li        \n", backBuffer.getLines());
@@ -134,7 +130,7 @@ public class BufferResizeTest extends TestCase {
 
     terminal.resize(new Dimension(5, 5), RequestOrigin.User);
 
-    assertEquals(0, scrollBuffer.getLineCount());
+    assertEquals(0, backBuffer.getScrollBuffer().getLineCount());
 
     assertEquals("line \n" +
                  "line2\n" +
@@ -147,12 +143,12 @@ public class BufferResizeTest extends TestCase {
   public void testResizeInHeightWithScrolling() {
     StyleState state = new StyleState();
 
-    LinesBuffer scrollBuffer = new LinesBuffer();
-
-    BackBuffer backBuffer = new BackBuffer(5, 2, state, scrollBuffer);
+    BackBuffer backBuffer = new BackBuffer(5, 2, state);
 
     BufferedDisplayTerminal terminal = new BackBufferTerminal(backBuffer, state);
 
+    LinesBuffer scrollBuffer = backBuffer.getScrollBuffer();
+    
     scrollBuffer.addToBuffer(state.getCurrent(), CharBufferUtil.create("line"), true);
     scrollBuffer.addToBuffer(state.getCurrent(), CharBufferUtil.create("line2"), true);
 
@@ -178,9 +174,7 @@ public class BufferResizeTest extends TestCase {
   public void testTypeOnLastLineAndResizeWidth() {
     StyleState state = new StyleState();
 
-    LinesBuffer scrollBuffer = new LinesBuffer();
-
-    BackBuffer backBuffer = new BackBuffer(6, 5, state, scrollBuffer);
+    BackBuffer backBuffer = new BackBuffer(6, 5, state);
 
     BufferedDisplayTerminal terminal = new BackBufferTerminal(backBuffer, state);
 

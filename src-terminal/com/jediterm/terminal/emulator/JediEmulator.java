@@ -331,9 +331,9 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         return sendDeviceAttributes();
       case 'd': // VPA
         return linePositionAbsolute(args);
-      case 'h': //Set Mode (SM) or DEC Private Mode SEt (DECSET)
+      case 'h': //Set Mode (SM) or DEC Private Mode Set (DECSET)
         return setModeOrPrivateMode(args, true);
-      case 'l':
+      case 'l': //Reset Mode (RM) or DEC Private Mode Reset (DECRST)
         return setModeOrPrivateMode(args, false);
       case 'm': 
         if (args.startsWithMoreMark()) { //Set or reset resource-values used by xterm 
@@ -369,8 +369,16 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           setModeEnabled(TerminalMode.CursorVisible, enabled);
           return true;
         case 47:
+        case 1047:
           setModeEnabled(TerminalMode.AlternateBuffer, enabled);
-          return false;
+          return true;
+        case 1048:
+          setModeEnabled(TerminalMode.StoreCursor, enabled);
+          return true;
+        case 1049: //Save cursor and use Alternate Screen Buffer
+          setModeEnabled(TerminalMode.StoreCursor, enabled);
+          setModeEnabled(TerminalMode.AlternateBuffer, enabled);
+          return true;
         default:
           return false;
       }

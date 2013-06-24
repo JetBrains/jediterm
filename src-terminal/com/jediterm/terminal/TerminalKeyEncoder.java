@@ -10,14 +10,14 @@ import static java.awt.event.KeyEvent.*;
 /**
  * @author traff
  */
-public class KeyEncoder {
+public class TerminalKeyEncoder {
   public static final int ESC = Ascii.ESC;
   public static final int DEL = Ascii.DEL;
 
 
   private final Map<Integer, byte[]> myKeyCodes = new HashMap<Integer, byte[]>();
 
-  public KeyEncoder() {
+  public TerminalKeyEncoder() {
     putCode(VK_ENTER, Ascii.CR);
     arrowKeysApplicationSequences();
     keypadApplicationSequences();
@@ -33,10 +33,15 @@ public class KeyEncoder {
     putCode(VK_F10, ESC, '[', '2', '1', '~');
     putCode(VK_F11, ESC, '[', '2', '3', '~', ESC);
     putCode(VK_F12, ESC, '[', '2', '4', '~', Ascii.BS);
+
+    putCode(VK_INSERT, ESC, '[', '2', '~'); 
+    putCode(VK_DELETE, ESC, '[', '1', '~');
+    
+    putCode(VK_PAGE_UP, ESC, '[', '5', '~');
+    putCode(VK_PAGE_DOWN, ESC, '[', '6', '~');
+    
     putCode(VK_HOME, ESC, '[', 'H');
     putCode(VK_END, ESC, '[', 'F');
-    //putCode(VK_PAGE_UP, ESC, '[', '5', '~');  don't work
-    //putCode(VK_PAGE_DOWN, ESC, '[', '6', '~');
   }
 
   public void arrowKeysApplicationSequences() {

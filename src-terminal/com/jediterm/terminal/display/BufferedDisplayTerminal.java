@@ -41,7 +41,7 @@ public class BufferedDisplayTerminal implements Terminal {
 
   private final EnumSet<TerminalMode> myModes = EnumSet.noneOf(TerminalMode.class);
     
-  private final KeyEncoder myKeyEncoder = new KeyEncoder();
+  private final TerminalKeyEncoder myTerminalKeyEncoder = new TerminalKeyEncoder();
 
   private TermCharset[] myG = new TermCharset[4]; //initialized in reset
   private int myCurrentCharset = 0;
@@ -312,24 +312,24 @@ public class BufferedDisplayTerminal implements Terminal {
 
   @Override
   public byte[] getCodeForKey(int key) {
-    return myKeyEncoder.getCode(key);
+    return myTerminalKeyEncoder.getCode(key);
   }
 
   @Override
   public void setApplicationArrowKeys(boolean enabled) {
     if (enabled) {
-      myKeyEncoder.arrowKeysApplicationSequences();
+      myTerminalKeyEncoder.arrowKeysApplicationSequences();
     } else {
-      myKeyEncoder.arrowKeysAnsiCursorSequences();
+      myTerminalKeyEncoder.arrowKeysAnsiCursorSequences();
     }
   }
 
   @Override
   public void setApplicationKeypad(boolean enabled) {
     if (enabled) {
-      myKeyEncoder.keypadApplicationSequences();
+      myTerminalKeyEncoder.keypadApplicationSequences();
     } else {
-      myKeyEncoder.normalKeypad();
+      myTerminalKeyEncoder.normalKeypad();
     }
   }
 

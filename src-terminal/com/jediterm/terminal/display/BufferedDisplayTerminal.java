@@ -40,7 +40,7 @@ public class BufferedDisplayTerminal implements Terminal {
   private final StoredCursor myStoredCursor = new StoredCursor();
 
   private final EnumSet<TerminalMode> myModes = EnumSet.noneOf(TerminalMode.class);
-    
+
   private final TerminalKeyEncoder myTerminalKeyEncoder = new TerminalKeyEncoder();
 
   private TermCharset[] myG = new TermCharset[4]; //initialized in reset
@@ -67,10 +67,11 @@ public class BufferedDisplayTerminal implements Terminal {
   public void setModeEnabled(TerminalMode mode, boolean enabled) {
     if (enabled) {
       myModes.add(mode);
-    } else {
+    }
+    else {
       myModes.remove(mode);
     }
-    
+
     mode.setEnabled(this, enabled);
   }
 
@@ -105,7 +106,7 @@ public class BufferedDisplayTerminal implements Terminal {
 
       if (length != 0) {
         myBackBuffer.clearArea(myCursorX, myCursorY - 1, myCursorX + length, myCursorY);
-        myBackBuffer.drawBytes(myCursorX, myCursorY, chosenBuffer, start, length);
+        myBackBuffer.writeBytes(myCursorX, myCursorY, chosenBuffer, start, length);
       }
       myCursorX += length;
       finishText();
@@ -144,7 +145,7 @@ public class BufferedDisplayTerminal implements Terminal {
       scrollY();
 
       myBackBuffer.clearArea(myCursorX, myCursorY - 1, myCursorX + string.length(), myCursorY);
-      myBackBuffer.drawString(myCursorX, myCursorY, string);
+      myBackBuffer.writeString(myCursorX, myCursorY, string);
       myCursorX += string.length();
       finishText();
     }
@@ -308,7 +309,7 @@ public class BufferedDisplayTerminal implements Terminal {
   @Override
   public void useAlternateBuffer(boolean enabled) {
     myBackBuffer.useAlternateBuffer(enabled);
-    myDisplay.setScrollingEnabled(!enabled);    
+    myDisplay.setScrollingEnabled(!enabled);
   }
 
   @Override
@@ -320,7 +321,8 @@ public class BufferedDisplayTerminal implements Terminal {
   public void setApplicationArrowKeys(boolean enabled) {
     if (enabled) {
       myTerminalKeyEncoder.arrowKeysApplicationSequences();
-    } else {
+    }
+    else {
       myTerminalKeyEncoder.arrowKeysAnsiCursorSequences();
     }
   }
@@ -329,7 +331,8 @@ public class BufferedDisplayTerminal implements Terminal {
   public void setApplicationKeypad(boolean enabled) {
     if (enabled) {
       myTerminalKeyEncoder.keypadApplicationSequences();
-    } else {
+    }
+    else {
       myTerminalKeyEncoder.normalKeypad();
     }
   }
@@ -355,6 +358,17 @@ public class BufferedDisplayTerminal implements Terminal {
           LOG.error("Unsupported erase in line mode:" + arg);
           break;
       }
+    }
+    finally {
+      myBackBuffer.unlock();
+    }
+  }
+
+  @Override
+  public void insertLines(int num) {
+    myBackBuffer.lock();
+    try {
+      myBackBuffer.insertLines(myCursorY - 1, num);
     }
     finally {
       myBackBuffer.unlock();
@@ -461,7 +475,7 @@ public class BufferedDisplayTerminal implements Terminal {
   }
 
   public void cursorHorizontalAbsolute(int x) {
-    cursorPosition(x, myCursorY);    
+    cursorPosition(x, myCursorY);
   }
 
   public void linePositionAbsolute(int y) {
@@ -559,7 +573,7 @@ public class BufferedDisplayTerminal implements Terminal {
       final String str = new String(chars);
 
       for (int row = 1; row <= myTerminalHeight; row++) {
-        myBackBuffer.drawString(0, row, str);
+        myBackBuffer.writeString(0, row, str);
       }
     }
     finally {

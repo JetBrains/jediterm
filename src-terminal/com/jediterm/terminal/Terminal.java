@@ -99,4 +99,6 @@ public interface Terminal {
   void setApplicationKeypad(boolean enabled);
 
   StyleState getStyleState();
+
+  void insertLines(int num);
 }

@@ -27,9 +27,12 @@ public class LinesBuffer implements StyledTextConsumer {
   public synchronized String getLines() {
     final StringBuilder sb = new StringBuilder();
 
+
     for (TextEntry textEntry : myTextEntries) {
       if (textEntry.isNewLine()) {
-        sb.append("\n");
+        if (sb.length() > 0) {
+          sb.append("\n");
+        }
       }
       sb.append(textEntry.getText());
     }

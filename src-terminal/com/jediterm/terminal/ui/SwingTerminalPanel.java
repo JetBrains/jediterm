@@ -600,7 +600,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       myBackBuffer.getScrollBuffer().processLines(myClientScrollOrigin, -dy, this);
     }
     else {
-      //Scrolling down; Copied up
+      // Scrolling down; Copied up
       // New area at the bottom to be filled - can be from both
 
       int oldEnd = oldOrigin + myTermSize.height;

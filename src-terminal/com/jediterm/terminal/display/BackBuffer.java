@@ -213,8 +213,7 @@ public class BackBuffer implements StyledTextConsumer {
   }
 
   public void scrollArea(final int y, final int h, final int dy) {
-    myTextBuffer.removeTopLines(y);
-    processBufferRows(y - 1, -dy, myScrollBuffer);
+    myTextBuffer.moveTopLinesTo(y, myScrollBuffer);
 
     final int lastLine = y + h;
     if (dy > 0) {

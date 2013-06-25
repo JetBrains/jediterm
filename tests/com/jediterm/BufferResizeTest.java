@@ -80,8 +80,7 @@ public class BufferResizeTest extends TestCase {
     terminal.resize(new Dimension(10, 2), RequestOrigin.User);
 
 
-    assertEquals("\n" +
-                 "line\n" +
+    assertEquals("line\n" +
                  "line2", backBuffer.getScrollBuffer().getLines());
 
     assertEquals("line3     \n" +
@@ -118,8 +117,7 @@ public class BufferResizeTest extends TestCase {
     terminal.resize(new Dimension(10, 2), RequestOrigin.User);
 
 
-    assertEquals("\n" +
-                 "line\n" +
+    assertEquals("line\n" +
                  "line2\n" +
                  "line3", backBuffer.getScrollBuffer().getLines());
 

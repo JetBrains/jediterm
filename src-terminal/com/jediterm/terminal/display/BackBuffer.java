@@ -135,7 +135,12 @@ public class BackBuffer implements StyledTextConsumer {
   }
 
   private void resetFromTextBuffer() {
+    clearArea();
     myTextBuffer.processLines(-getTextBufferLinesCount(), getTextBufferLinesCount(), this);
+  }
+
+  private void clearArea() {
+    clearArea(0, 0, myWidth, myHeight);
   }
 
   public void clearArea(final int leftX, final int topY, final int rightX, final int bottomY) {
@@ -527,6 +532,7 @@ public class BackBuffer implements StyledTextConsumer {
       myScrollBufferBackup = myScrollBuffer;
       myTextBuffer = new LinesBuffer();
       myScrollBuffer = new LinesBuffer();
+      clearArea();
     } else {
       myTextBuffer = myTextBufferBackup;
       myScrollBuffer = myScrollBufferBackup;

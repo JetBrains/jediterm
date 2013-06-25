@@ -47,4 +47,40 @@ public class BackBufferTest extends TestCase {
 
     assertEquals(lines[0], 6);
   }
+
+  public void testAlternateBuffer() {
+    StyleState state = new StyleState();
+
+    BackBuffer backBuffer = new BackBuffer(5, 3, state);
+
+    BufferedDisplayTerminal terminal = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+
+    terminal.writeString("1.");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString("2.");
+    terminal.newLine();
+    terminal.carriageReturn();
+    
+    terminal.useAlternateBuffer(true);
+    
+    assertEquals("     \n" +
+                 "     \n" +
+                 "     \n", backBuffer.getLines());
+
+    terminal.writeString("xxxxx");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString("yyyyy");
+    terminal.newLine();
+    terminal.carriageReturn();
+    
+    terminal.useAlternateBuffer(false);
+
+    assertEquals("1.   \n" +
+                 "2.   \n" +
+                 "     \n", backBuffer.getLines());
+
+
+  }
 }

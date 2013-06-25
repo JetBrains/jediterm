@@ -126,7 +126,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         if (!operatingSystemCommand(command)) {
           LOG.error("Error processing OSC " + command.getSequenceString());
         }
-
+        break;
       case '6':
         unsupported("Back Index (DECBI), VT420 and up");
         break;
@@ -433,8 +433,8 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   }
 
   private boolean insertLines(ControlSequence args) {
-    //TODO: implement
-    return false;
+    myTerminal.insertLines(args.getArg(0, 1));
+    return true;
   }
 
   private boolean sendDeviceAttributes() {

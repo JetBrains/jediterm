@@ -335,7 +335,6 @@ public class BufferedDisplayTerminal implements Terminal {
   }
 
   public void eraseInLine(int arg) {
-
     myBackBuffer.lock();
     try {
       switch (arg) {
@@ -355,6 +354,17 @@ public class BufferedDisplayTerminal implements Terminal {
           LOG.error("Unsupported erase in line mode:" + arg);
           break;
       }
+    }
+    finally {
+      myBackBuffer.unlock();
+    }
+  }
+
+  public void deleteCharacter(int count) {
+    myBackBuffer.lock();
+    try {
+        final int extent = Math.min(count, myTerminalWidth - myCursorX);
+        myBackBuffer.deleteCharacter(myCursorY - 1, myCursorX, extent);
     }
     finally {
       myBackBuffer.unlock();

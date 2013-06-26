@@ -301,7 +301,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   private boolean processControlSequence(ControlSequence args) {
     switch (args.getFinalChar()) {
       case '@':
-        return insertBlankCharacters(args); // ICH
+        return insertBlankCharacters(args); //ICH
       case 'A':
         return cursorUp(args); //CUU
       case 'B':
@@ -318,18 +318,21 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       case '`':
         return cursorHorizontalAbsolute(args); //CHA
       case 'f':
-      case 'H': // CUP
+      case 'H': //CUP
         return cursorPosition(args);
-      case 'J': // DECSED
+      case 'J': //DECSED
         return eraseInDisplay(args);
       case 'K': //EL
         return eraseInLine(args);
       case 'L': //IL
         return insertLines(args);
-
+      case 'M': //DL
+          return deleteLines(args);
+      case 'P': //DCH
+          return deleteCharacter(args);
       case 'c': //Send Device Attributes (Primary DA)
         return sendDeviceAttributes();
-      case 'd': // VPA
+      case 'd': //VPA
         return linePositionAbsolute(args);
       case 'h': //Set Mode (SM) or DEC Private Mode Set (DECSET)
         return setModeOrPrivateMode(args, true);
@@ -343,7 +346,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         }
         return characterAttributes(args); //Character Attributes (SGR)
       case 'n':
-        return deviceStatusReport(args); // DSR
+        return deviceStatusReport(args); //DSR
       case 'r':
         if (args.startsWithQuestionMark()) {
           return restoreDecPrivateModeValues(args); //
@@ -507,6 +510,21 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     }
 
     myTerminal.eraseInLine(arg);
+
+    return true;
+  }
+
+  private boolean deleteLines(ControlSequence args) {
+    // ESC [ Ps M
+    //TODO: implement
+    return false;
+  }
+
+  private boolean deleteCharacter(ControlSequence args) {
+    // ESC [ Ps P
+    final int arg = args.getArg(0, 1);
+
+    myTerminal.deleteCharacter(arg);
 
     return true;
   }

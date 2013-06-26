@@ -598,6 +598,11 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       // New area at the top to be filled in - can only be from scroll buffer
       //
 
+
+      //clear rect before drawing scroll buffer on it
+      myGfx.setColor(getBackground());
+      myGfx.fillRect(0, Math.max(0, dyPix), getPixelWidth(), Math.abs(dyPix)); 
+      
       myBackBuffer.getScrollBuffer().processLines(myClientScrollOrigin, -dy, this);
     }
     else {

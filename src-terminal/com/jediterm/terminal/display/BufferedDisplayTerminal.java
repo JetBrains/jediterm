@@ -21,7 +21,7 @@ import java.util.EnumSet;
 public class BufferedDisplayTerminal implements Terminal {
   private static final Logger LOG = Logger.getLogger(BufferedDisplayTerminal.class.getName());
 
-  private final static int TAB = 8;
+  private final static int TAB = 8; //TODO: move to settings
   private static final int MIN_WIDTH = 5;
 
   private int myScrollRegionTop;
@@ -213,9 +213,6 @@ public class BufferedDisplayTerminal implements Terminal {
   }
 
   private void moveLine() {
-    if (myCursorY <= myTerminalHeight) {
-      myBackBuffer.moveToTextBuffer(myCursorX, myCursorY);
-    }
     myCursorY += 1;
   }
 

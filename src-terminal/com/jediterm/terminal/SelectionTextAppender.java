@@ -26,7 +26,7 @@ public class SelectionTextAppender implements StyledTextConsumer {
     y -= startRow;
 
     int startPos = characters.getStart();
-    int length = characters.getLen();
+    int length = characters.getLength();
 
     if (y < myBegin.y || y > myEnd.y) {
       throw new IllegalStateException("y = " + y + " is not within it's bounds [" + myBegin.y + ", " + myEnd.y + "]");

@@ -4,7 +4,6 @@ import com.jediterm.terminal.ArrayTerminalDataStream;
 import com.jediterm.terminal.Terminal;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.display.BackBuffer;
-import com.jediterm.terminal.display.LinesBuffer;
 import com.jediterm.terminal.display.StyleState;
 import com.jediterm.terminal.emulator.ColorPalette;
 import com.jediterm.terminal.emulator.Emulator;
@@ -61,8 +60,6 @@ public class EmulatorTest extends TestCase {
 
   private BackBuffer doTest(int width, int height, String expected) throws IOException {
     StyleState state = new StyleState();
-
-    LinesBuffer scrollBuffer = new LinesBuffer();
 
     BackBuffer backBuffer = new BackBuffer(width, height, state);
 

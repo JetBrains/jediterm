@@ -10,14 +10,28 @@ import java.util.List;
  * @author traff
  */
 public class CharBuffer implements Iterable<Character>, CharSequence {
+  
+  public final static CharBuffer EMPTY = new CharBuffer(new char[0], 0, 0);
+  
   private final char[] myBuf;
   private final int myStart;
-  private final int myLen;
+  private final int myLength;
 
-  public CharBuffer(char[] buf, int start, int len) {
+  public CharBuffer(char[] buf, int start, int length) {
     myBuf = buf;
     myStart = start;
-    myLen = len;
+    myLength = length;
+  }
+
+  public CharBuffer(char c, int count) {
+    myBuf = new char[count];
+    Arrays.fill(myBuf, c);
+    myStart = 0;
+    myLength = count;
+  }
+
+  public CharBuffer(String str) {
+    this(str.toCharArray(), 0, str.length());
   }
 
   @Override
@@ -27,7 +41,7 @@ public class CharBuffer implements Iterable<Character>, CharSequence {
 
       @Override
       public boolean hasNext() {
-        return myCurPosition < myBuf.length && myCurPosition < myStart + myLen;
+        return myCurPosition < myBuf.length && myCurPosition < myStart + myLength;
       }
 
       @Override
@@ -50,8 +64,8 @@ public class CharBuffer implements Iterable<Character>, CharSequence {
     return myStart;
   }
 
-  public int getLen() {
-    return myLen;
+  public int getLength() {
+    return myLength;
   }
 
   public static CharBuffer adapt(Iterable<Character> characters) {
@@ -71,7 +85,7 @@ public class CharBuffer implements Iterable<Character>, CharSequence {
 
   @Override
   public int length() {
-    return myLen;
+    return myLength;
   }
 
   @Override
@@ -86,12 +100,12 @@ public class CharBuffer implements Iterable<Character>, CharSequence {
 
   @Override
   public String toString() {
-    return new String(myBuf, myStart, myLen);
+    return new String(myBuf, myStart, myLength);
   }
 
   public CharBuffer clone() {
-    char[] newBuf = Arrays.copyOfRange(myBuf, myStart, myStart + myLen);
+    char[] newBuf = Arrays.copyOfRange(myBuf, myStart, myStart + myLength);
 
-    return new CharBuffer(newBuf, 0, myLen);
+    return new CharBuffer(newBuf, 0, myLength);
   }
 }

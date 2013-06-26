@@ -12,6 +12,32 @@ public class TextStyle implements Cloneable {
   public static final EnumSet<Option> NO_OPTIONS = EnumSet.noneOf(Option.class);
   private static int COUNT = 1;
 
+  public static final ChosenColor FOREGROUND = new ChosenColor(Color.BLACK);
+  public static final ChosenColor BACKGROUND = new ChosenColor(Color.WHITE);
+
+  public static final TextStyle EMPTY = new TextStyle();
+  
+  private static final WeakHashMap<TextStyle, WeakReference<TextStyle>> styles = new WeakHashMap<TextStyle, WeakReference<TextStyle>>();
+  
+  public enum Option {
+    BOLD,
+    BLINK,
+    DIM,
+    INVERSE,
+    UNDERLINED,
+    HIDDEN;
+
+    public EnumSet<Option> set(EnumSet<Option> options, boolean val) {
+      if (val) {
+        options.add(this);
+      }
+      else {
+        options.remove(this);
+      }
+      return options;
+    }
+  }
+
   public Color getDefaultForeground() {
     return FOREGROUND;
   }
@@ -39,32 +65,6 @@ public class TextStyle implements Cloneable {
       super(def.getRGB());
     }
   }
-
-  public static final ChosenColor FOREGROUND = new ChosenColor(Color.BLACK);
-  public static final ChosenColor BACKGROUND = new ChosenColor(Color.WHITE);
-
-  public enum Option {
-    BOLD,
-    BLINK,
-    DIM,
-    INVERSE,
-    UNDERLINED,
-    HIDDEN;
-
-    public EnumSet<Option> set(EnumSet<Option> options, boolean val) {
-      if (val) {
-        options.add(this);
-      }
-      else {
-        options.remove(this);
-      }
-      return options;
-    }
-  }
-
-  public static final TextStyle EMPTY = new TextStyle();
-  private static final WeakHashMap<TextStyle, WeakReference<TextStyle>> styles = new WeakHashMap<TextStyle, WeakReference<TextStyle>>();
-
 
   public static TextStyle getCanonicalStyle(TextStyle currentStyle) {
     final WeakReference<TextStyle> canonRef = styles.get(currentStyle);

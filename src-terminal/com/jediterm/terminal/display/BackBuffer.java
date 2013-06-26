@@ -188,12 +188,14 @@ public class BackBuffer implements StyledTextConsumer {
       return;
     }
 
+    TextStyle style = myStyleState.getCurrent();
     for (int i = 0; i < len; i++) {
       final int location = adjY * myWidth + x + i;
       myBuf[location] = bytes[start + i]; // Arraycopy does not convert
 
-      myStyleBuf[location] = myStyleState.getCurrent();
+      myStyleBuf[location] = style;
     }
+    myTextBuffer.writeString(x, adjY, new String(bytes, start, len), style); //TODO: make write bytes method 
     myDamage.set(adjY * myWidth + x, adjY * myWidth + x + len);
   }
 
@@ -202,20 +204,26 @@ public class BackBuffer implements StyledTextConsumer {
   }
 
   private void writeString(int x, int y, String str, TextStyle style) {
+    if (writeToBackBuffer(x, y, str, style)) return;
+
+    myTextBuffer.writeString(x, y - 1, str, style);
+  }
+
+  private boolean writeToBackBuffer(int x, int y, String str, TextStyle style) {
     final int adjY = y - 1;
     if (adjY >= myHeight || adjY < 0) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Attempt to draw line out of bounds: " + adjY + " at (" + x + "," + y + ")");
       }
-      return;
+      return true;
     }
     str.getChars(0, str.length(), myBuf, adjY * myWidth + x);
     for (int i = 0; i < str.length(); i++) {
       final int location = adjY * myWidth + x + i;
       myStyleBuf[location] = style;
     }
-    //myTextBuffer.writeString(x, y, str, style); TODO
     myDamage.set(adjY * myWidth + x, adjY * myWidth + x + str.length());
+    return false;
   }
 
   public void scrollArea(final int y, final int h, final int dy) {
@@ -231,7 +239,7 @@ public class BackBuffer implements StyledTextConsumer {
   }
 
   private void moveLinesUp(int y, int dy, int lastLine) {
-    if (dy>=0) {
+    if (dy >= 0) {
       LOG.error("dy should be negative");
     }
     for (int line = y + dy + 1; line < lastLine; line++) {
@@ -251,7 +259,7 @@ public class BackBuffer implements StyledTextConsumer {
   }
 
   private void moveLinesDown(int y, int dy, int lastLine) {
-    if (dy<=0) {
+    if (dy <= 0) {
       LOG.error("dy should be positive");
     }
     for (int line = lastLine - dy; line >= y; line--) {
@@ -477,13 +485,6 @@ public class BackBuffer implements StyledTextConsumer {
     return myLock.tryLock();
   }
 
-  public void moveToTextBuffer(int cursorX, int cursorY) {
-    if (myTextBuffer.getLineCount() > cursorY) {
-      myTextBuffer.removeLines(cursorY - 1, myTextBuffer.getLineCount());
-    }
-    processBufferRow(cursorY - 1, 0, Math.max(getLineTrimTrailing(cursorY - 1).length(), cursorX), myTextBuffer);
-  }
-
   private String getLineTrimTrailing(int row) {
     StringBuilder sb = new StringBuilder();
     sb.append(myBuf, row * myWidth, myWidth);
@@ -492,10 +493,10 @@ public class BackBuffer implements StyledTextConsumer {
 
   @Override
   public void consume(int x, int y, TextStyle style, CharBuffer characters, int startRow) {
-    int len = Math.min(myWidth - x, characters.getLen());
+    int len = Math.min(myWidth - x, characters.getLength());
 
     if (len > 0) {
-      writeString(x, y - startRow + 1, new String(characters.getBuf(), characters.getStart(), len), style);
+      writeToBackBuffer(x, y - startRow + 1, new String(characters.getBuf(), characters.getStart(), len), style);
     }
   }
 
@@ -508,7 +509,7 @@ public class BackBuffer implements StyledTextConsumer {
   }
 
   public void clearLines(int startRow, int endRow) {
-    myTextBuffer.removeLines(startRow, endRow); //TODO: when we remove lines from the mi possibly we need to insert empty lines
+    myTextBuffer.clearLines(startRow, endRow);
     clearArea(0, startRow, myWidth, endRow);
   }
 
@@ -521,7 +522,7 @@ public class BackBuffer implements StyledTextConsumer {
   }
 
   public boolean checkTextBufferIsValid(int row) {
-    return myTextBuffer.getLine(row).contains(getLineTrimTrailing(row));//in a raw back buffer is always a prefix of text buffer
+    return myTextBuffer.getLineText(row).contains(getLineTrimTrailing(row));//in a raw back buffer is always a prefix of text buffer
   }
 
   public char getCharAt(int x, int y) {
@@ -554,6 +555,6 @@ public class BackBuffer implements StyledTextConsumer {
   public void insertLines(int y, int num) {
     moveLinesDown(y, num, myHeight - 1);
     clearArea(0, y, myWidth, y + num);
-    //myTextBuffer.insertLines(y, num);
+    myTextBuffer.insertLines(y, num);
   }
 }

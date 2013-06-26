@@ -43,22 +43,22 @@ public class SelectionUtil {
 
     if (bottom.y >= 0) {
       final Point backBegin = top.y < 0 ? new Point(0, 0) : top;
-      SelectionTextAppender bufferText = new SelectionTextAppender(backBegin, bottom);
+      SelectionTextAppender selectionTextAppender = new SelectionTextAppender(backBegin, bottom);
       for (int y = backBegin.y; y < bottom.y; y++) {
         if (backBuffer.checkTextBufferIsValid(y)) {
-          backBuffer.processTextBuffer(y, 1, bufferText);
+          backBuffer.processTextBuffer(y, 1, selectionTextAppender);
         }
         else {
           LOG.error("Text buffer has invalid content");
-          backBuffer.processBufferRow(y, bufferText);
+          backBuffer.processBufferRow(y, selectionTextAppender);
         }
       }
-      backBuffer.processBufferRow(bottom.y, 0, bottom.x, bufferText); //process the last line
+      backBuffer.processBufferRow(bottom.y, 0, bottom.x, selectionTextAppender); //process the last line
 
       if (selectionText.length() > 0) {
         selectionText.append("\n");
       }
-      selectionText.append(bufferText.getText());
+      selectionText.append(selectionTextAppender.getText());
     }
 
 

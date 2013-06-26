@@ -35,17 +35,22 @@ public class BackBufferTest extends TestCase {
     terminal.carriageReturn();
     terminal.newLine();
     terminal.carriageReturn();
+    terminal.writeString("  4.");
 
-    final int[] lines = {0};
     backBuffer.processTextBuffer(0, 10, new StyledTextConsumer() {
       @Override
       public void consume(int x, int y, TextStyle style, CharBuffer characters, int startRow) {
         assertNotNull(style);
-        lines[0]++;
       }
     });
 
-    assertEquals(lines[0], 6);
+    assertEquals("  1. line1\n" +
+                 "  2. line2\n" +
+                 "\n" +
+                 "\n" +
+                 "  3. line3\n" +
+                 "\n" +
+                 "  4.", backBuffer.getTextBufferLines());
   }
 
   public void testAlternateBuffer() {

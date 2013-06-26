@@ -5,21 +5,19 @@ import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.TextStyle;
 import org.apache.log4j.Logger;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
 /**
  * Holds styled characters lines
  */
-public class LinesBuffer implements StyledTextConsumer {
-  private static final Logger logger = Logger.getLogger(LinesBuffer.class);
+public class LinesBuffer {
+  private static final Logger LOG = Logger.getLogger(LinesBuffer.class);
 
-  private static final int BUFFER_MAX_SIZE = 10000;
+  private static final int BUFFER_MAX_LINES = 1000;
 
-  private int myTotalLines = 0;
-  private Deque<TextEntry> myTextEntries = new ArrayDeque<TextEntry>();
+  private ArrayList<TerminalLine> myLines = Lists.newArrayList();
 
   public LinesBuffer() {
   }
@@ -27,179 +25,168 @@ public class LinesBuffer implements StyledTextConsumer {
   public synchronized String getLines() {
     final StringBuilder sb = new StringBuilder();
 
+    boolean first = true;
 
-    for (TextEntry textEntry : myTextEntries) {
-      if (textEntry.isNewLine()) {
-        if (sb.length() > 0) {
-          sb.append("\n");
-        }
+    for (TerminalLine line : myLines) {
+      if (!first) {
+        sb.append("\n");
       }
-      sb.append(textEntry.getText());
+
+      sb.append(line.getText());
+      first = false;
     }
 
     return sb.toString();
   }
 
-  @Override
-  public void consume(int x, int y, TextStyle style, CharBuffer characters, int startRow) {
-    addToBuffer(style, characters, x == 0);
-  }
-
-  public synchronized void addToBufferFirst(TextStyle style, CharBuffer characters, boolean isNewLine) {
-    myTextEntries.addFirst(new TextEntry(isNewLine, style, characters));
-
-    if (isNewLine) {
-      myTotalLines++;
-    }
-  }
 
   public synchronized void addToBuffer(TextStyle style, CharBuffer characters, boolean isNewLine) {
-    if (myTextEntries.size() > BUFFER_MAX_SIZE) {
+    if (myLines.size() > BUFFER_MAX_LINES) {
       removeTopLines(1);
     }
-    myTextEntries.add(new TextEntry(isNewLine, style, characters));
 
     if (isNewLine) {
-      myTotalLines++;
+      addNewLine(new TerminalLine.TextEntry(style, characters));
     }
+  }
+
+
+  private void addNewLine(TerminalLine.TextEntry entry) {
+    addLine(new TerminalLine(entry));
+  }
+
+  private void addLine(TerminalLine line) {
+    myLines.add(line);
   }
 
   public int getLineCount() {
-    return myTotalLines;
+    return myLines.size();
   }
 
   public void removeTopLines(int count) {
-    removeLines(0, count);
+    myLines = Lists.newArrayList(myLines.subList(count, myLines.size()));
   }
 
-  public void removeLines(int from, int count) {
-    iterateLines(from, count, new TextEntryProcessor() {
-      @Override
-      public boolean process(int x, int y, TextEntry entry) {
-        return true;
+  public String getLineText(int row) {
+    TerminalLine line = getLine(row);
+    if (line != null) {
+      return line.getText();
+    }
+    else {
+      return "";
+    }
+  }
+
+  public void insertLines(int y, int num) {
+    LinesBuffer head = new LinesBuffer();
+    if (y > 0) {
+      moveTopLinesTo(y - 1, head);
+    }
+    for (int i = 0; i < num; i++) {
+      head.addToBuffer(TextStyle.EMPTY, CharBuffer.EMPTY, true);
+    }
+
+    head.moveBottomLinesTo(head.getLineCount(), this);
+  }
+
+  public void writeString(int x, int y, String str, TextStyle style) {
+    if (y >= getLineCount()) {
+      for (int i = getLineCount(); i <= y; i++) {
+        addLine(TerminalLine.createEmpty());
       }
-    });
+    }
+
+    TerminalLine line = getLine(y);
+
+    line.writeString(x, str, style);
   }
 
-  public String getLine(int row) {
-    final StringBuilder result = new StringBuilder();
-    iterateLines(row, 1, new TextEntryProcessor() {
-      @Override
-      public boolean process(int x, int y, TextEntry entry) {
-        result.append(entry.getText());
-        return false;
+  public void clearLines(int startRow, int endRow) {
+    for (int i = startRow; i <= endRow; i++) {
+      if (i < myLines.size()) {
+        TerminalLine line = myLines.get(i);
+        line.clear();
       }
-    });
-    return result.toString();
+      else {
+        break;
+      }
+    }
   }
-
 
   interface TextEntryProcessor {
     /**
      * @return true to remove entry
      */
-    boolean process(int x, int y, TextEntry entry);
+    void process(int x, int y, TerminalLine.TextEntry entry);
   }
 
   public synchronized void processLines(final int firstLine, final int count, final StyledTextConsumer consumer) {
-    final int linesShift = myTotalLines;
-    iterateLines(myTotalLines + firstLine, count, new TextEntryProcessor() {
+    final int linesShift = getLineCount();
+    iterateLines(getLineCount() + firstLine, count, new TextEntryProcessor() {
       @Override
-      public boolean process(int x, int y, TextEntry entry) {
-        consumer.consume(x, y - linesShift, entry.getStyle(), entry.getText(), -myTotalLines); //TODO: first line as a parameter
-        return false;
+      public void process(int x, int y, TerminalLine.TextEntry entry) {
+        consumer.consume(x, y - linesShift, entry.getStyle(), entry.getText(), -getLineCount()); //TODO: first line as a parameter
       }
     });
   }
 
   public synchronized void iterateLines(final int firstLine, final int count, TextEntryProcessor processor) {
     int y = -1;
-    int x = 0;
-    Iterator<TextEntry> it = myTextEntries.iterator();
-    while (it.hasNext()) {
-      TextEntry textEntry = it.next();
 
-      if (textEntry.isNewLine()) {
-        y++;
-        x = 0;
-      }
-
-      if (y >= firstLine + count) {
-        break;
-      }
-
-      if (y >= firstLine) {
-        if (processor.process(x, y, textEntry)) {
-          it.remove();
-          if (textEntry.isNewLine()) {
-            myTotalLines--;
-          }
-        }
-      }
-
-      x += textEntry.getText().length();
-    }
-  }
-
-
-  public void moveTopLinesTo(final int count, final LinesBuffer buffer) {
-    iterateLines(0, count, new TextEntryProcessor() {
-      @Override
-      public boolean process(int x, int y, TextEntry entry) {
-        buffer.consume(x, y, entry.getStyle(), entry.getText(), 0);
-        return true;
-      }
-    });
-  }
-
-  private static class TextEntryWithPosition {
     int x;
-    int y;
-    TextEntry myEntry;
 
-    private TextEntryWithPosition(int x, int y, TextEntry entry) {
-      this.x = x;
-      this.y = y;
-      myEntry = entry;
+    for (TerminalLine line : myLines) {
+      y++;
+      if (y < firstLine) {
+        continue;
+      }
+
+      x = 0;
+
+      Iterator<TerminalLine.TextEntry> it = line.entriesIterator();
+
+      while (it.hasNext()) {
+        TerminalLine.TextEntry textEntry = it.next();
+
+        if (y >= firstLine + count) {
+          break;
+        }
+
+        processor.process(x, y, textEntry);
+
+        x += textEntry.getText().length();
+      }
     }
+  }
+
+  public void moveTopLinesTo(int count, final LinesBuffer buffer) {
+    count = Math.min(count, getLineCount());
+    buffer.addLines(myLines.subList(0, count));
+    removeTopLines(count);
+  }
+
+  public void addLines(List<TerminalLine> lines) {
+    myLines.addAll(lines);
+  }
+
+  public TerminalLine getLine(int row) {
+    return myLines.get(row);
   }
 
   public void moveBottomLinesTo(int count, final LinesBuffer buffer) {
-    final List<TextEntryWithPosition> entries = Lists.newArrayList();
-    iterateLines(myTotalLines - count, count, new TextEntryProcessor() {
-      @Override
-      public boolean process(int x, int y, TextEntry entry) {
-        entries.add(new TextEntryWithPosition(x, y, entry));
-        return true;
-      }
-    });
+    count = Math.min(count, getLineCount());
+    buffer.addLinesFirst(myLines.subList(getLineCount() - count, getLineCount()));
 
-    for (TextEntryWithPosition entry : Lists.reverse(entries)) {
-      buffer.addToBufferFirst(entry.myEntry.getStyle(), entry.myEntry.getText(), entry.x == 0);
-    }
+    removeBottomLines(count);
   }
 
-  private static class TextEntry {
-    private final boolean myNewLine;
-    private final TextStyle myStyle;
-    private final CharBuffer myText;
+  private void addLinesFirst(List<TerminalLine> lines) {
+    List<TerminalLine> list = Lists.newArrayList(lines);
+    list.addAll(myLines);
+    myLines = Lists.newArrayList(list);
+  }
 
-    private TextEntry(boolean isNewLine, TextStyle style, CharBuffer text) {
-      myNewLine = isNewLine;
-      myStyle = style;
-      myText = text.clone();
-    }
-
-    private boolean isNewLine() {
-      return myNewLine;
-    }
-
-    private TextStyle getStyle() {
-      return myStyle;
-    }
-
-    private CharBuffer getText() {
-      return myText;
-    }
+  private void removeBottomLines(int count) {
+    myLines = Lists.newArrayList(myLines.subList(0, getLineCount() - count));
   }
 }

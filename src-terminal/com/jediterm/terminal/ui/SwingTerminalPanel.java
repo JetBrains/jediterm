@@ -431,6 +431,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     private boolean myCursorHasChanged;
 
     protected Point myCursorCoordinates = new Point();
+    
     private boolean myShouldDrawCursor = true;
 
     private boolean calculateIsCursorShown(long currentTime) {
@@ -567,7 +568,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     if (myGfx != null) {
       myGfx.setColor(myStyleState.getBackground(style.getBackgroundForRun()));
       myGfx
-        .fillRect(x * myCharSize.width, (y - myClientScrollOrigin) * myCharSize.height, buf.getLen() * myCharSize.width, myCharSize.height);
+        .fillRect(x * myCharSize.width, (y - myClientScrollOrigin) * myCharSize.height, buf.getLength() * myCharSize.width, myCharSize.height);
 
       myGfx.setFont(style.hasOption(TextStyle.Option.BOLD) ? myBoldFont : myNormalFont);
       myGfx.setColor(myStyleState.getForeground(style.getForegroundForRun()));
@@ -575,10 +576,10 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       int baseLine = (y + 1 - myClientScrollOrigin) * myCharSize.height - myDescent;
 
 
-      myGfx.drawChars(buf.getBuf(), buf.getStart(), buf.getLen(), x * myCharSize.width, baseLine);
+      myGfx.drawChars(buf.getBuf(), buf.getStart(), buf.getLength(), x * myCharSize.width, baseLine);
 
       if (style.hasOption(TextStyle.Option.UNDERLINED)) {
-        myGfx.drawLine(x * myCharSize.width, baseLine + 1, (x + buf.getLen()) * myCharSize.width, baseLine + 1);
+        myGfx.drawLine(x * myCharSize.width, baseLine + 1, (x + buf.getLength()) * myCharSize.width, baseLine + 1);
       }
     }
   }

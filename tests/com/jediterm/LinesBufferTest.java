@@ -41,11 +41,11 @@ public class LinesBufferTest extends TestCase {
     LinesBuffer scroll = new LinesBuffer();
     scroll.addToBuffer(style, CharBufferUtil.create(LINE_1), true);
     scroll.addToBuffer(style, CharBufferUtil.create(LINE_2), true);
+    scroll.addToBuffer(style, CharBufferUtil.create(LINE_3), true);
     LinesBuffer text = new LinesBuffer();
-    text.addToBuffer(style, CharBufferUtil.create(LINE_3), true);
     text.addToBuffer(style, CharBufferUtil.create(LINE_4), true);
 
-    scroll.moveBottomLinesTo(1, text);
+    scroll.moveBottomLinesTo(2, text);
 
     assertEquals(3, text.getLineCount());
     assertEquals(1, scroll.getLineCount());
@@ -72,6 +72,39 @@ public class LinesBufferTest extends TestCase {
     assertEquals(1, text.getLineCount());
 
     assertEquals("Line 4", text.getLines());
+  }
+  
+  public void testWriteToLineBuffer() {
+    LinesBuffer buf = new LinesBuffer();
+    buf.writeString(3, 2, "Hi!", TextStyle.EMPTY);
+    
+    assertEquals("\n" +
+                 "\n" +
+                 "   Hi!", buf.getLines());
+    
+    buf.writeString(1, 1, "*****", TextStyle.EMPTY);
+
+    assertEquals("\n" +
+                 " *****\n" +
+                 "   Hi!", buf.getLines());
+    
+    buf.writeString(3, 1, "+", TextStyle.EMPTY);
+
+    assertEquals("\n" +
+                 " **+**\n" +
+                 "   Hi!", buf.getLines());
+
+    buf.writeString(4, 1, "***", TextStyle.EMPTY);
+
+    assertEquals("\n" +
+                 " **+***\n" +
+                 "   Hi!", buf.getLines());
+    
+    buf.writeString(8, 1, "=", TextStyle.EMPTY);
+
+    assertEquals("\n" +
+                 " **+*** =\n" +
+                 "   Hi!", buf.getLines());
   }
 
 }

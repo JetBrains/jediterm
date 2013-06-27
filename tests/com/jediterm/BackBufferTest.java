@@ -18,7 +18,7 @@ public class BackBufferTest extends TestCase {
     StyleState state = new StyleState();
 
     BackBuffer backBuffer = new BackBuffer(15, 10, state);
-    
+
     BufferedDisplayTerminal terminal = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
     terminal.writeString("  1. line1");
@@ -144,4 +144,48 @@ public class BackBufferTest extends TestCase {
   }
   
   
+
+  public void testDeleteCharacter() {
+    StyleState state = new StyleState();
+
+    BackBuffer backBuffer = new BackBuffer(15, 3, state);
+
+    BufferedDisplayTerminal terminal = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+
+    terminal.writeString("first line");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString("second line");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString("third line");
+
+    assertEquals("first line     \n" +
+                 "second line    \n" +
+                 "third line     \n", backBuffer.getLines());
+
+    terminal.cursorPosition(1, 1);
+    terminal.deleteCharacter(1);
+    assertEquals("irst line      \n" +
+                 "second line    \n" +
+                 "third line     \n", backBuffer.getLines());
+
+    terminal.cursorPosition(6, 1);
+    terminal.deleteCharacter(2);
+    assertEquals("irst ne        \n" +
+                 "second line    \n" +
+                 "third line     \n", backBuffer.getLines());
+
+    terminal.cursorPosition(7, 2);
+    terminal.deleteCharacter(42);
+    assertEquals("irst ne        \n" +
+                 "second         \n" +
+                 "third line     \n", backBuffer.getLines());
+
+    terminal.cursorPosition(1, 3);
+    terminal.deleteCharacter(6);
+    assertEquals("irst ne        \n" +
+                 "second         \n" +
+                 "line           \n", backBuffer.getLines());
+  }
 }

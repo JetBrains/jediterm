@@ -181,7 +181,32 @@ public class BackBuffer implements StyledTextConsumer {
     }
   }
 
-  public void writeBytes(final int x, final int y, final char[] bytes, final int start, final int len) {
+  public void deleteCharacter(final int y, final int x, final int count) {
+    if (y > myHeight - 1 || y < 0) {
+      LOG.error("attempt to delete in line " + y + "\n" +
+                "args were x:" + x + " count:" + count );
+    }
+    else if (count < 0) {
+      LOG.error("Attempt to delete negative chars number: count:" + count);
+    } 
+    else if (count == 0) { //nothing to do
+      return;
+    } 
+    else {
+      int to = y * myWidth + x;
+      int from = to + count;
+      int remain = myWidth - x - count;
+      LOG.debug("About to delete " + count + " chars on line " + y + ", starting from " + x +
+                " (from : " + from + " to : " + to + " remain : " + remain + ")");
+      System.arraycopy(myBuf, from, myBuf, to, remain);
+      Arrays.fill(myBuf, to + remain, (y + 1) * myWidth, EMPTY_CHAR);
+      System.arraycopy(myStyleBuf, from, myStyleBuf, to, remain);
+      Arrays.fill(myStyleBuf, to + remain, (y + 1) * myWidth, TextStyle.EMPTY);
+      myDamage.set(to, (y + 1) * myWidth, true);
+    }
+  }
+
+  public void drawBytes(final int x, final int y, final char[] bytes, final int start, final int len) {
     final int adjY = y - 1;
     if (adjY >= myHeight || adjY < 0) {
       if (LOG.isDebugEnabled()) {

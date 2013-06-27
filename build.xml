@@ -11,6 +11,7 @@
     <fileset dir="lib">
       <include name="guava*.jar"/>
       <include name="log4*.jar"/>
+      <include name="annotations.jar"/>
     </fileset>
   </path>
 

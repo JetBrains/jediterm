@@ -206,7 +206,7 @@ public class BackBuffer implements StyledTextConsumer {
     }
   }
 
-  public void drawBytes(final int x, final int y, final char[] bytes, final int start, final int len) {
+  public void writeBytes(final int x, final int y, final char[] bytes, final int start, final int len) {
     final int adjY = y - 1;
     if (adjY >= myHeight || adjY < 0) {
       if (LOG.isDebugEnabled()) {

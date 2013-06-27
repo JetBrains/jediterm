@@ -329,7 +329,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       case 'M': //DL
           return deleteLines(args);
       case 'P': //DCH
-          return deleteCharacter(args);
+          return deleteCharacters(args);
       case 'c': //Send Device Attributes (Primary DA)
         return sendDeviceAttributes();
       case 'd': //VPA
@@ -520,11 +520,11 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     return false;
   }
 
-  private boolean deleteCharacter(ControlSequence args) {
+  private boolean deleteCharacters(ControlSequence args) {
     // ESC [ Ps P
     final int arg = args.getArg(0, 1);
 
-    myTerminal.deleteCharacter(arg);
+    myTerminal.deleteCharacters(arg);
 
     return true;
   }

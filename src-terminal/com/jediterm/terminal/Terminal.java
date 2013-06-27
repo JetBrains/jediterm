@@ -70,7 +70,7 @@ public interface Terminal {
 
   void eraseInLine(int arg);
 
-  void deleteCharacter(int count);
+  void deleteCharacters(int count);
 
   int getTerminalHeight();
 

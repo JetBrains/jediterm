@@ -145,7 +145,7 @@ public class BackBufferTest extends TestCase {
   
   
 
-  public void testDeleteCharacter() {
+  public void testDeleteCharacters() {
     StyleState state = new StyleState();
 
     BackBuffer backBuffer = new BackBuffer(15, 3, state);
@@ -165,25 +165,25 @@ public class BackBufferTest extends TestCase {
                  "third line     \n", backBuffer.getLines());
 
     terminal.cursorPosition(1, 1);
-    terminal.deleteCharacter(1);
+    terminal.deleteCharacters(1);
     assertEquals("irst line      \n" +
                  "second line    \n" +
                  "third line     \n", backBuffer.getLines());
 
     terminal.cursorPosition(6, 1);
-    terminal.deleteCharacter(2);
+    terminal.deleteCharacters(2);
     assertEquals("irst ne        \n" +
                  "second line    \n" +
                  "third line     \n", backBuffer.getLines());
 
     terminal.cursorPosition(7, 2);
-    terminal.deleteCharacter(42);
+    terminal.deleteCharacters(42);
     assertEquals("irst ne        \n" +
                  "second         \n" +
                  "third line     \n", backBuffer.getLines());
 
     terminal.cursorPosition(1, 3);
-    terminal.deleteCharacter(6);
+    terminal.deleteCharacters(6);
     assertEquals("irst ne        \n" +
                  "second         \n" +
                  "line           \n", backBuffer.getLines());

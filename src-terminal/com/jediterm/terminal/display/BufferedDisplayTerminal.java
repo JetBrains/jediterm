@@ -360,7 +360,7 @@ public class BufferedDisplayTerminal implements Terminal {
     }
   }
 
-  public void deleteCharacter(int count) {
+  public void deleteCharacters(int count) {
     myBackBuffer.lock();
     try {
         final int extent = Math.min(count, myTerminalWidth - myCursorX);

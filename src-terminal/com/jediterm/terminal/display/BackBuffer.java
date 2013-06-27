@@ -181,7 +181,7 @@ public class BackBuffer implements StyledTextConsumer {
     }
   }
 
-  public void deleteCharacter(final int y, final int x, final int count) {
+  public void deleteCharacters(final int x, final int y, final int count) {
     if (y > myHeight - 1 || y < 0) {
       LOG.error("attempt to delete in line " + y + "\n" +
                 "args were x:" + x + " count:" + count );
@@ -202,6 +202,9 @@ public class BackBuffer implements StyledTextConsumer {
       Arrays.fill(myBuf, to + remain, (y + 1) * myWidth, EMPTY_CHAR);
       System.arraycopy(myStyleBuf, from, myStyleBuf, to, remain);
       Arrays.fill(myStyleBuf, to + remain, (y + 1) * myWidth, TextStyle.EMPTY);
+      
+      myTextBuffer.deleteCharacters(x, y, count);
+      
       myDamage.set(to, (y + 1) * myWidth, true);
     }
   }

@@ -68,12 +68,8 @@ public class LinesBuffer {
 
   public String getLineText(int row) {
     TerminalLine line = getLine(row);
-    if (line != null) {
-      return line.getText();
-    }
-    else {
-      return "";
-    }
+
+    return line.getText();
   }
 
   public void insertLines(int y, int num) {
@@ -89,12 +85,6 @@ public class LinesBuffer {
   }
 
   public void writeString(int x, int y, String str, @NotNull TextStyle style) {
-    if (y >= getLineCount()) {
-      for (int i = getLineCount(); i <= y; i++) {
-        addLine(TerminalLine.createEmpty());
-      }
-    }
-
     TerminalLine line = getLine(y);
 
     line.writeString(x, str, style);
@@ -110,6 +100,11 @@ public class LinesBuffer {
         break;
       }
     }
+  }
+
+  public void deleteCharacters(int x, int y, int count) {
+    TerminalLine line = getLine(y);
+    line.deleteCharacters(x, count);
   }
 
   interface TextEntryProcessor {
@@ -168,7 +163,14 @@ public class LinesBuffer {
     myLines.addAll(lines);
   }
 
+  @NotNull
   public TerminalLine getLine(int row) {
+    if (row >= getLineCount()) {
+      for (int i = getLineCount(); i <= row; i++) {
+        addLine(TerminalLine.createEmpty());
+      }
+    }
+
     return myLines.get(row);
   }
 

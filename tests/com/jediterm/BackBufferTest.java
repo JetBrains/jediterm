@@ -169,6 +169,11 @@ public class BackBufferTest extends TestCase {
     assertEquals("irst line      \n" +
                  "second line    \n" +
                  "third line     \n", backBuffer.getLines());
+    
+    
+    assertEquals("irst line\n" +
+                 "second line\n" +
+                 "third line", backBuffer.getTextBufferLines());
 
     terminal.cursorPosition(6, 1);
     terminal.deleteCharacters(2);
@@ -176,16 +181,28 @@ public class BackBufferTest extends TestCase {
                  "second line    \n" +
                  "third line     \n", backBuffer.getLines());
 
+    assertEquals("irst ne\n" +
+                 "second line\n" +
+                 "third line", backBuffer.getTextBufferLines());
+
     terminal.cursorPosition(7, 2);
     terminal.deleteCharacters(42);
     assertEquals("irst ne        \n" +
                  "second         \n" +
                  "third line     \n", backBuffer.getLines());
 
+    assertEquals("irst ne\n" +
+                 "second\n" +
+                 "third line", backBuffer.getTextBufferLines());
+
     terminal.cursorPosition(1, 3);
     terminal.deleteCharacters(6);
     assertEquals("irst ne        \n" +
                  "second         \n" +
                  "line           \n", backBuffer.getLines());
+
+    assertEquals("irst ne\n" +
+                 "second\n" +
+                 "line", backBuffer.getTextBufferLines());
   }
 }

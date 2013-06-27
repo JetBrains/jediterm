@@ -364,7 +364,7 @@ public class BufferedDisplayTerminal implements Terminal {
     myBackBuffer.lock();
     try {
         final int extent = Math.min(count, myTerminalWidth - myCursorX);
-        myBackBuffer.deleteCharacter(myCursorY - 1, myCursorX, extent);
+        myBackBuffer.deleteCharacters(myCursorX, myCursorY - 1, extent);
     }
     finally {
       myBackBuffer.unlock();

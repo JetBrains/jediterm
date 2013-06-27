@@ -3,21 +3,17 @@ package com.jediterm.terminal.display;
 import com.jediterm.terminal.TextStyle;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.Iterator;
+import java.util.*;
 
 /**
  * @author traff
  */
 public class TerminalLine {
-  private Deque<TextEntry> myTextEntries = new ArrayDeque<TextEntry>();
-
-  private int myLength;
+  
+  private TextEntries myTextEntries = new TextEntries();
 
   public TerminalLine(@NotNull TextEntry entry) {
     myTextEntries.add(entry);
-    myLength = entry.getLength();
   }
 
   public static TerminalLine createEmpty() {
@@ -41,28 +37,24 @@ public class TerminalLine {
 
   public void clear() {
     myTextEntries.clear();
-    myLength = 0;
   }
 
   public void writeString(int x, @NotNull String str, @NotNull TextStyle style) {
-    if (myTextEntries.size() == 1 && myTextEntries.getFirst().getLength() == 0) {
-      myTextEntries.removeFirst(); //Remove empty element      
-    }
+    int len = myTextEntries.length();
     
-    if (x >= myLength) {
-      if (x - myLength > 0) {
-        myTextEntries.add(new TextEntry(TextStyle.EMPTY, new CharBuffer(' ', x - myLength)));
+    if (x >= len) {
+      if (x - len > 0) {
+        myTextEntries.add(new TextEntry(TextStyle.EMPTY, new CharBuffer(' ', x - len)));
       }
       myTextEntries.add(new TextEntry(style, new CharBuffer(str)));
-      myLength = x + str.length();
     }
     else {
-      myLength = Math.max(myLength, x + str.length());
-      myTextEntries = merge(x, str, style, myTextEntries, myLength);
+      len = Math.max(len, x + str.length());
+      myTextEntries = merge(x, str, style, myTextEntries, len);
     }
   }
 
-  private static Deque<TextEntry> merge(int x, String str, @NotNull TextStyle style, @NotNull Deque<TextEntry> entries, int lineLength) {
+  private static TextEntries merge(int x, String str, @NotNull TextStyle style, @NotNull TextEntries entries, int lineLength) {
     char[] buf = new char[lineLength];
     TextStyle[] styles = new TextStyle[lineLength];
 
@@ -83,8 +75,8 @@ public class TerminalLine {
     return collectFromBuffer(buf, styles);
   }
 
-  private static Deque<TextEntry> collectFromBuffer(@NotNull char[] buf, @NotNull TextStyle[] styles) {
-    Deque<TextEntry> result = new ArrayDeque<TextEntry>();
+  private static TextEntries collectFromBuffer(@NotNull char[] buf, @NotNull TextStyle[] styles) {
+    TextEntries result = new TextEntries();
 
     TextStyle curStyle = styles[0];
     int start = 0;
@@ -100,6 +92,36 @@ public class TerminalLine {
     result.add(new TextEntry(curStyle, new CharBuffer(buf, start, buf.length - start)));
 
     return result;
+  }
+
+  public void deleteCharacters(int x, int count) {
+    int p = 0;
+    TextEntries newEntries = new TextEntries();
+    
+    for (TextEntry entry : myTextEntries) {
+      if (count == 0) {
+        newEntries.add(entry);
+      }
+      int len = entry.getLength();
+      if (p + len < x) {
+        p += len;
+        newEntries.add(entry);
+        continue;
+      }
+      if (p < x) {
+        newEntries.add(new TextEntry(entry.getStyle(), entry.getText().subBuffer(0, x - p)));
+      }
+      if (x + count < p + len) {
+        newEntries.add(new TextEntry(entry.getStyle(), entry.getText().subBuffer(x - p + count, len - (x - p + count))));
+        count = 0;
+      }
+      else {
+        count -= (len - (p - x));
+        p = x;
+      }
+    }
+
+    myTextEntries = newEntries;
   }
 
   static class TextEntry {
@@ -123,6 +145,34 @@ public class TerminalLine {
 
     public int getLength() {
       return myText.getLength();
+    }
+  }
+  
+  private static class TextEntries implements Iterable<TextEntry> {
+    private Deque<TextEntry> myTextEntries = new ArrayDeque<TextEntry>();
+
+    private int myLength = 0;
+    
+    public void add(TextEntry entry) {
+      myTextEntries.add(entry);
+      myLength+=entry.getLength();
+    }
+    
+    private Collection<TextEntry> entries() {
+      return Collections.unmodifiableCollection(myTextEntries);
+    }
+
+    public Iterator<TextEntry> iterator() {
+      return entries().iterator();
+    }
+
+    public int length() {
+      return myLength;
+    }
+
+    public void clear() {
+      myTextEntries.clear();
+      myLength = 0;
     }
   }
 }

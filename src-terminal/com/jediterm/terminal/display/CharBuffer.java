@@ -69,19 +69,27 @@ public class CharBuffer implements Iterable<Character>, CharSequence {
     return myLength;
   }
 
+  public CharBuffer subBuffer(int start, int length) {
+    return new CharBuffer(myBuf, start, length);
+  }
+  
   public static CharBuffer adapt(Iterable<Character> characters) {
     if (characters instanceof CharBuffer) {
       return (CharBuffer)characters;
     }
     else {
       List<Character> charList = Lists.newArrayList(characters);
-      char[] buf = new char[charList.size()];
-      int i = 0;
-      for (Character ch : charList) {
-        buf[i++] = ch;
-      }
-      return new CharBuffer(buf, 0, buf.length);
+      return fromCharList(charList);
     }
+  }
+
+  private static CharBuffer fromCharList(List<Character> charList) {
+    char[] buf = new char[charList.size()];
+    int i = 0;
+    for (Character ch : charList) {
+      buf[i++] = ch;
+    }
+    return new CharBuffer(buf, 0, buf.length);
   }
 
   @Override

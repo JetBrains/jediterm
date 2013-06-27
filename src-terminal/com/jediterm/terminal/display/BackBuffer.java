@@ -2,6 +2,7 @@ package com.jediterm.terminal.display;
 
 import com.jediterm.terminal.*;
 import org.apache.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.util.Arrays;
@@ -27,6 +28,7 @@ public class BackBuffer implements StyledTextConsumer {
   private TextStyle[] myStyleBuf;
   private BitSet myDamage;
 
+  @NotNull
   private final StyleState myStyleState;
 
   private LinesBuffer myScrollBuffer = new LinesBuffer();
@@ -41,7 +43,7 @@ public class BackBuffer implements StyledTextConsumer {
   private LinesBuffer myTextBufferBackup; // to store textBuffer after switching to alternate buffer
   private LinesBuffer myScrollBufferBackup;
 
-  public BackBuffer(final int width, final int height, StyleState styleState) {
+  public BackBuffer(final int width, final int height, @NotNull StyleState styleState) {
     myStyleState = styleState;
     myWidth = width;
     myHeight = height;
@@ -59,10 +61,10 @@ public class BackBuffer implements StyledTextConsumer {
     myDamage = new BitSet(myWidth * myHeight);
   }
 
-  public Dimension resize(final Dimension pendingResize,
-                          final RequestOrigin origin,
+  public Dimension resize(@NotNull final Dimension pendingResize,
+                          @NotNull final RequestOrigin origin,
                           final int cursorY,
-                          BufferedDisplayTerminal.ResizeHandler resizeHandler) {
+                          @NotNull BufferedDisplayTerminal.ResizeHandler resizeHandler) {
     final char[] oldBuf = myBuf;
     final TextStyle[] oldStyleBuf = myStyleBuf;
     final int oldHeight = myHeight;
@@ -199,17 +201,17 @@ public class BackBuffer implements StyledTextConsumer {
     myDamage.set(adjY * myWidth + x, adjY * myWidth + x + len);
   }
 
-  public void writeString(final int x, final int y, final String str) {
+  public void writeString(final int x, final int y, @NotNull final String str) {
     writeString(x, y, str, myStyleState.getCurrent());
   }
 
-  private void writeString(int x, int y, String str, TextStyle style) {
+  private void writeString(int x, int y, @NotNull String str, @NotNull TextStyle style) {
     if (writeToBackBuffer(x, y, str, style)) return;
 
     myTextBuffer.writeString(x, y - 1, str, style);
   }
 
-  private boolean writeToBackBuffer(int x, int y, String str, TextStyle style) {
+  private boolean writeToBackBuffer(int x, int y, @NotNull String str, @NotNull TextStyle style) {
     final int adjY = y - 1;
     if (adjY >= myHeight || adjY < 0) {
       if (LOG.isDebugEnabled()) {
@@ -340,7 +342,7 @@ public class BackBuffer implements StyledTextConsumer {
     }
   }
 
-  public void processTextBuffer(final int startRow, final int height, final StyledTextConsumer consumer) {
+  public void processTextBuffer(final int startRow, final int height, @NotNull final StyledTextConsumer consumer) {
     myTextBuffer.processLines(startRow - getTextBufferLinesCount(), Math.min(height, myTextBuffer.getLineCount()), consumer);
   }
 
@@ -492,7 +494,7 @@ public class BackBuffer implements StyledTextConsumer {
   }
 
   @Override
-  public void consume(int x, int y, TextStyle style, CharBuffer characters, int startRow) {
+  public void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
     int len = Math.min(myWidth - x, characters.getLength());
 
     if (len > 0) {

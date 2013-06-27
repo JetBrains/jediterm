@@ -18,11 +18,11 @@ public class LinesBufferTest extends TestCase {
   public void testMoveTopLines() {
     TextStyle style = new TextStyle();
     LinesBuffer scroll = new LinesBuffer();
-    scroll.addToBuffer(style, CharBufferUtil.create(LINE_1), true);
-    scroll.addToBuffer(style, CharBufferUtil.create(LINE_2), true);
+    scroll.addNewLine(style, CharBufferUtil.create(LINE_1));
+    scroll.addNewLine(style, CharBufferUtil.create(LINE_2));
     LinesBuffer text = new LinesBuffer();
-    text.addToBuffer(style, CharBufferUtil.create(LINE_3), true);
-    text.addToBuffer(style, CharBufferUtil.create(LINE_4), true);
+    text.addNewLine(style, CharBufferUtil.create(LINE_3));
+    text.addNewLine(style, CharBufferUtil.create(LINE_4));
 
     text.moveTopLinesTo(1, scroll);
 
@@ -39,11 +39,11 @@ public class LinesBufferTest extends TestCase {
   public void testMoveBottomLines() {
     TextStyle style = new TextStyle();
     LinesBuffer scroll = new LinesBuffer();
-    scroll.addToBuffer(style, CharBufferUtil.create(LINE_1), true);
-    scroll.addToBuffer(style, CharBufferUtil.create(LINE_2), true);
-    scroll.addToBuffer(style, CharBufferUtil.create(LINE_3), true);
+    scroll.addNewLine(style, CharBufferUtil.create(LINE_1));
+    scroll.addNewLine(style, CharBufferUtil.create(LINE_2));
+    scroll.addNewLine(style, CharBufferUtil.create(LINE_3));
     LinesBuffer text = new LinesBuffer();
-    text.addToBuffer(style, CharBufferUtil.create(LINE_4), true);
+    text.addNewLine(style, CharBufferUtil.create(LINE_4));
 
     scroll.moveBottomLinesTo(2, text);
 
@@ -62,10 +62,10 @@ public class LinesBufferTest extends TestCase {
   public void testRemoveFirstLines() {
     TextStyle style = new TextStyle();
     LinesBuffer text = new LinesBuffer();
-    text.addToBuffer(style, CharBufferUtil.create(LINE_1), true);
-    text.addToBuffer(style, CharBufferUtil.create(LINE_2), true);
-    text.addToBuffer(style, CharBufferUtil.create(LINE_3), true);
-    text.addToBuffer(style, CharBufferUtil.create(LINE_4), true);
+    text.addNewLine(style, CharBufferUtil.create(LINE_1));
+    text.addNewLine(style, CharBufferUtil.create(LINE_2));
+    text.addNewLine(style, CharBufferUtil.create(LINE_3));
+    text.addNewLine(style, CharBufferUtil.create(LINE_4));
 
     text.removeTopLines(3);
 

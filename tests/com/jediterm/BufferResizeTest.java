@@ -147,8 +147,8 @@ public class BufferResizeTest extends TestCase {
 
     LinesBuffer scrollBuffer = backBuffer.getScrollBuffer();
     
-    scrollBuffer.addToBuffer(state.getCurrent(), CharBufferUtil.create("line"), true);
-    scrollBuffer.addToBuffer(state.getCurrent(), CharBufferUtil.create("line2"), true);
+    scrollBuffer.addNewLine(state.getCurrent(), CharBufferUtil.create("line"));
+    scrollBuffer.addNewLine(state.getCurrent(), CharBufferUtil.create("line2"));
 
     terminal.writeString("line3");
     terminal.newLine();

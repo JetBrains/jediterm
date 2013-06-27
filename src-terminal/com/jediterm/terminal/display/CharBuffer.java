@@ -1,6 +1,7 @@
 package com.jediterm.terminal.display;
 
 import com.google.common.collect.Lists;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -17,7 +18,7 @@ public class CharBuffer implements Iterable<Character>, CharSequence {
   private final int myStart;
   private final int myLength;
 
-  public CharBuffer(char[] buf, int start, int length) {
+  public CharBuffer(@NotNull char[] buf, int start, int length) {
     myBuf = buf;
     myStart = start;
     myLength = length;
@@ -30,7 +31,7 @@ public class CharBuffer implements Iterable<Character>, CharSequence {
     myLength = count;
   }
 
-  public CharBuffer(String str) {
+  public CharBuffer(@NotNull String str) {
     this(str.toCharArray(), 0, str.length());
   }
 

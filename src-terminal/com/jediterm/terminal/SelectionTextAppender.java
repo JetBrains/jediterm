@@ -5,6 +5,7 @@ package com.jediterm.terminal;
 
 import com.jediterm.terminal.display.CharBuffer;
 import org.apache.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 
@@ -22,7 +23,7 @@ public class SelectionTextAppender implements StyledTextConsumer {
     myBegin = begin;
   }
 
-  public void consume(final int x, int y, final TextStyle style, final CharBuffer characters, int startRow) {
+  public void consume(final int x, int y, @NotNull final TextStyle style, @NotNull final CharBuffer characters, int startRow) {
     y -= startRow;
 
     int startPos = characters.getStart();

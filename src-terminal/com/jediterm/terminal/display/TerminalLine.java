@@ -1,6 +1,7 @@
 package com.jediterm.terminal.display;
 
 import com.jediterm.terminal.TextStyle;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -14,7 +15,7 @@ public class TerminalLine {
 
   private int myLength;
 
-  public TerminalLine(TextEntry entry) {
+  public TerminalLine(@NotNull TextEntry entry) {
     myTextEntries.add(entry);
     myLength = entry.getLength();
   }
@@ -40,9 +41,14 @@ public class TerminalLine {
 
   public void clear() {
     myTextEntries.clear();
+    myLength = 0;
   }
 
-  public void writeString(int x, String str, TextStyle style) {
+  public void writeString(int x, @NotNull String str, @NotNull TextStyle style) {
+    if (myTextEntries.size() == 1 && myTextEntries.getFirst().getLength() == 0) {
+      myTextEntries.removeFirst(); //Remove empty element      
+    }
+    
     if (x >= myLength) {
       if (x - myLength > 0) {
         myTextEntries.add(new TextEntry(TextStyle.EMPTY, new CharBuffer(' ', x - myLength)));
@@ -56,7 +62,7 @@ public class TerminalLine {
     }
   }
 
-  private static Deque<TextEntry> merge(int x, String str, TextStyle style, Deque<TextEntry> entries, int lineLength) {
+  private static Deque<TextEntry> merge(int x, String str, @NotNull TextStyle style, @NotNull Deque<TextEntry> entries, int lineLength) {
     char[] buf = new char[lineLength];
     TextStyle[] styles = new TextStyle[lineLength];
 
@@ -77,7 +83,7 @@ public class TerminalLine {
     return collectFromBuffer(buf, styles);
   }
 
-  private static Deque<TextEntry> collectFromBuffer(char[] buf, TextStyle[] styles) {
+  private static Deque<TextEntry> collectFromBuffer(@NotNull char[] buf, @NotNull TextStyle[] styles) {
     Deque<TextEntry> result = new ArrayDeque<TextEntry>();
 
     TextStyle curStyle = styles[0];
@@ -102,7 +108,7 @@ public class TerminalLine {
     private final TextStyle myStyle;
     private final CharBuffer myText;
 
-    public TextEntry(TextStyle style, CharBuffer text) {
+    public TextEntry(@NotNull TextStyle style, @NotNull CharBuffer text) {
       myStyle = style;
       myText = text.clone();
     }

@@ -25,6 +25,7 @@ package com.jediterm.terminal.ui;
 import com.jediterm.terminal.*;
 import com.jediterm.terminal.display.*;
 import org.apache.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
@@ -564,7 +565,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   }
 
   @Override
-  public void consume(int x, int y, TextStyle style, CharBuffer buf, int startRow) {
+  public void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer buf, int startRow) {
     if (myGfx != null) {
       myGfx.setColor(myStyleState.getBackground(style.getBackgroundForRun()));
       myGfx

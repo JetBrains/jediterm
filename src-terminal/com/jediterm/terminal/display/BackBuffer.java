@@ -42,6 +42,7 @@ public class BackBuffer implements StyledTextConsumer {
 
   private LinesBuffer myTextBufferBackup; // to store textBuffer after switching to alternate buffer
   private LinesBuffer myScrollBufferBackup;
+  private boolean myAlternateBuffer = false;
 
   public BackBuffer(final int width, final int height, @NotNull StyleState styleState) {
     myStyleState = styleState;
@@ -80,12 +81,16 @@ public class BackBuffer implements StyledTextConsumer {
     if (newHeight < cursorY) {
       //we need to move lines from text buffer to the scroll buffer
       int count = cursorY - newHeight;
-      myTextBuffer.moveTopLinesTo(count, myScrollBuffer);
+      if (!myAlternateBuffer) {
+        myTextBuffer.moveTopLinesTo(count, myScrollBuffer);
+      }
     }
     else if (newHeight > cursorY && myScrollBuffer.getLineCount() > 0) {
       //we need to move lines from scroll buffer to the text buffer
-      myScrollBuffer.moveBottomLinesTo(newHeight - cursorY, myTextBuffer);
-      textBufferUpdated = true;
+      if (!myAlternateBuffer) {
+        myScrollBuffer.moveBottomLinesTo(newHeight - cursorY, myTextBuffer);
+        textBufferUpdated = true;
+      }
     }
 
     myWidth = newWidth;
@@ -118,7 +123,7 @@ public class BackBuffer implements StyledTextConsumer {
       System.arraycopy(oldStyleBuf, (oldStart + i) * oldWidth, myStyleBuf, (start + i) * myWidth, copyWidth);
     }
 
-    if (myWidth > oldWidth || textBufferUpdated) {
+    if (!myAlternateBuffer && (myWidth > oldWidth || textBufferUpdated)) {
       //we need to fill new space with data from the text buffer
       resetFromTextBuffer();
     }
@@ -197,7 +202,9 @@ public class BackBuffer implements StyledTextConsumer {
 
       myStyleBuf[location] = style;
     }
-    myTextBuffer.writeString(x, adjY, new String(bytes, start, len), style); //TODO: make write bytes method 
+    if (!myAlternateBuffer) {
+      myTextBuffer.writeString(x, adjY, new String(bytes, start, len), style); //TODO: make write bytes method
+    }
     myDamage.set(adjY * myWidth + x, adjY * myWidth + x + len);
   }
 
@@ -208,7 +215,9 @@ public class BackBuffer implements StyledTextConsumer {
   private void writeString(int x, int y, @NotNull String str, @NotNull TextStyle style) {
     if (writeToBackBuffer(x, y, str, style)) return;
 
-    myTextBuffer.writeString(x, y - 1, str, style);
+    if (!myAlternateBuffer) {
+      myTextBuffer.writeString(x, y - 1, str, style);
+    }
   }
 
   private boolean writeToBackBuffer(int x, int y, @NotNull String str, @NotNull TextStyle style) {
@@ -536,6 +545,7 @@ public class BackBuffer implements StyledTextConsumer {
   }
 
   public void useAlternateBuffer(boolean enabled) {
+    myAlternateBuffer = enabled;
     if (enabled) {
       myTextBufferBackup = myTextBuffer;
       myScrollBufferBackup = myScrollBuffer;

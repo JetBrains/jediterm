@@ -382,6 +382,11 @@ public class BufferedDisplayTerminal implements Terminal {
     }
   }
 
+  @Override
+  public void setBlinkingCursor(boolean enabled) {
+    myDisplay.setBlinkingCursor(enabled);
+  }
+
   public void cursorUp(final int countY) {
     myBackBuffer.lock();
     try {

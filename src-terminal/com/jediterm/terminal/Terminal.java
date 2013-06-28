@@ -103,4 +103,6 @@ public interface Terminal {
   StyleState getStyleState();
 
   void insertLines(int num);
+
+  void setBlinkingCursor(boolean enabled);
 }

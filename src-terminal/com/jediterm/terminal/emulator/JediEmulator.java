@@ -327,10 +327,15 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       case 'L': //IL
         return insertLines(args);
       case 'M': //DL
-          return deleteLines(args);
+        return deleteLines(args);
+      case 'X': //ECH
+        return eraseCharacters(args);
       case 'P': //DCH
-          return deleteCharacters(args);
+        return deleteCharacters(args);
       case 'c': //Send Device Attributes (Primary DA)
+        if (args.startsWithMoreMark()) { //Send Device Attributes (Secondary DA)
+          return false; 
+        }
         return sendDeviceAttributes();
       case 'd': //VPA
         return linePositionAbsolute(args);
@@ -359,6 +364,10 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     }
   }
 
+  private boolean eraseCharacters(ControlSequence args) {
+    return false;  //To change body of created methods use File | Settings | File Templates.
+  }
+
   private boolean setModeOrPrivateMode(ControlSequence args, boolean enabled) {
     if (args.startsWithQuestionMark()) { // DEC Private Mode
       switch (args.getArg(0, -1)) {
@@ -368,6 +377,8 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 3: //132 Column Mode (DECCOLM)
           setModeEnabled(TerminalMode.WideColumn, enabled);
           return true;
+        case 12: //Start Blinking Cursor (att610)
+          setModeEnabled(TerminalMode.CursorBlinking, enabled);
         case 25:
           setModeEnabled(TerminalMode.CursorVisible, enabled);
           return true;

@@ -3,6 +3,8 @@
  */
 package com.jediterm.terminal;
 
+import org.apache.log4j.Logger;
+
 import java.awt.*;
 
 public enum TerminalMode {
@@ -58,10 +60,17 @@ public enum TerminalMode {
         terminal.restoreCursor();
       }
     }
+  }, 
+  CursorBlinking {
+    @Override
+    public void setEnabled(Terminal terminal, boolean enabled) {
+      terminal.setBlinkingCursor(enabled);
+    }
   };
-
-
+  
+  private static final Logger LOG = Logger.getLogger(TerminalMode.class);
+  
   public void setEnabled(Terminal terminal, boolean enabled) {
-    //pass
+    LOG.error("Mode " + name() + " is not implemented");
   }
 }

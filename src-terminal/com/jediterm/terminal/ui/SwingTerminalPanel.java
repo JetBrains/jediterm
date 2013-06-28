@@ -434,6 +434,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     protected Point myCursorCoordinates = new Point();
     
     private boolean myShouldDrawCursor = true;
+    private boolean myBlinking = true;
 
     private boolean calculateIsCursorShown(long currentTime) {
       if (myCursorHasChanged) {
@@ -448,7 +449,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     }
 
     private boolean cursorShouldChangeBlinkState(long currentTime) {
-      return currentTime - myLastCursorChange > CURSOR_BLINK_PERIOD;
+      return myBlinking && (currentTime - myLastCursorChange > CURSOR_BLINK_PERIOD);
     }
 
     public void drawCursor(Graphics2D g) {
@@ -518,6 +519,14 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
     private boolean noRecentResize(long time) {
       return time - myLastResize > CURSOR_BLINK_PERIOD;
+    }
+
+    public void setBlinking(boolean blinking) {
+      myBlinking = blinking;
+    }
+
+    public boolean isBlinking() {
+      return myBlinking;
     }
   }
 
@@ -810,10 +819,6 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     myCursor.setShouldDrawCursor(shouldDrawCursor);
   }
 
-  public TerminalCursor getTerminalCursor() {
-    return myCursor;
-  }
-
   protected JPopupMenu createPopupMenu(final Point selectionStart, final Point selectionEnd, String content) {
     JPopupMenu popup = new JPopupMenu();
 
@@ -850,5 +855,10 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
         updateScrolling();
       }
     });
+  }
+
+  @Override
+  public void setBlinkingCursor(boolean enabled) {
+    myCursor.setBlinking(enabled);
   }
 }

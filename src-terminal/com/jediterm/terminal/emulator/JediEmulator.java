@@ -334,6 +334,10 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         return deleteCharacters(args);
       case 'c': //Send Device Attributes (Primary DA)
         if (args.startsWithMoreMark()) { //Send Device Attributes (Secondary DA)
+          if (args.getArg(0, 0) == 0) { //apply on to VT220 but xterm extends this to VT100
+            sendDeviceAttributes();
+            return true;
+          }
           return false; 
         }
         return sendDeviceAttributes();

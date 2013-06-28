@@ -43,7 +43,7 @@ public class BackBuffer implements StyledTextConsumer {
   private LinesBuffer myTextBufferBackup; // to store textBuffer after switching to alternate buffer
   private LinesBuffer myScrollBufferBackup;
   private boolean myAlternateBuffer = false;
-  
+
   private int myScrollRegionBottom = -1;
   private int myScrollRegionTop = -1;
 
@@ -187,14 +187,14 @@ public class BackBuffer implements StyledTextConsumer {
   public void deleteCharacters(final int x, final int y, final int count) {
     if (y > myHeight - 1 || y < 0) {
       LOG.error("attempt to delete in line " + y + "\n" +
-                "args were x:" + x + " count:" + count );
+                "args were x:" + x + " count:" + count);
     }
     else if (count < 0) {
       LOG.error("Attempt to delete negative chars number: count:" + count);
-    } 
+    }
     else if (count == 0) { //nothing to do
       return;
-    } 
+    }
     else {
       int to = y * myWidth + x;
       int from = to + count;
@@ -205,9 +205,9 @@ public class BackBuffer implements StyledTextConsumer {
       Arrays.fill(myBuf, to + remain, (y + 1) * myWidth, EMPTY_CHAR);
       System.arraycopy(myStyleBuf, from, myStyleBuf, to, remain);
       Arrays.fill(myStyleBuf, to + remain, (y + 1) * myWidth, TextStyle.EMPTY);
-      
+
       myTextBuffer.deleteCharacters(x, y, count);
-      
+
       myDamage.set(to, (y + 1) * myWidth, true);
     }
   }
@@ -596,9 +596,9 @@ public class BackBuffer implements StyledTextConsumer {
   }
 
   public void insertLines(int y, int num) {
-    moveLinesDown(y, num, myScrollRegionBottom-1);
+    moveLinesDown(y, num, myScrollRegionBottom - 1);
     clearArea(0, y, myWidth, y + num);
-    myTextBuffer.insertLines(y, num, myScrollRegionBottom-1);
+    myTextBuffer.insertLines(y, num, myScrollRegionBottom - 1);
   }
 
   public void setScrollRegion(int top, int bottom) {

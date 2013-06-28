@@ -87,9 +87,10 @@ public class LinesBuffer {
       head.addNewLine(TextStyle.EMPTY, CharBuffer.EMPTY);
     }
 
-    removeBottomLines(num);
-
     head.moveBottomLinesTo(head.getLineCount(), this);
+
+    removeBottomLines(num);
+    
     tail.moveTopLinesTo(tail.getLineCount(), this);
   }
 

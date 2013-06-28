@@ -372,10 +372,21 @@ public class BufferedDisplayTerminal implements Terminal {
   }
 
   @Override
-  public void insertLines(int num) {
+  public void insertLines(int count) {
     myBackBuffer.lock();
     try {
-      myBackBuffer.insertLines(myCursorY - 1, num);
+      myBackBuffer.insertLines(myCursorY - 1, count);
+    }
+    finally {
+      myBackBuffer.unlock();
+    }
+  }
+
+  @Override
+  public void deleteLines(int count) {
+    myBackBuffer.lock();
+    try {
+      myBackBuffer.deleteLines(myCursorY - 1, count);
     }
     finally {
       myBackBuffer.unlock();

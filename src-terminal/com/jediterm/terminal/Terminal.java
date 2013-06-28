@@ -102,7 +102,9 @@ public interface Terminal {
 
   StyleState getStyleState();
 
-  void insertLines(int num);
+  void insertLines(int count);
+
+  void deleteLines(int count);
 
   void setBlinkingCursor(boolean enabled);
 }

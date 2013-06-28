@@ -11,7 +11,7 @@ import java.util.Arrays;
 
 /**
  * The main terminal emulator class.
- * 
+ * <p/>
  * Obtains data from the  {@link com.jediterm.terminal.TerminalDataStream}, interprets terminal ANSI escape sequences as commands and directs them
  * as well as plain data characters to the  {@link com.jediterm.terminal.Terminal}
  *
@@ -338,7 +338,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
             sendDeviceAttributes();
             return true;
           }
-          return false; 
+          return false;
         }
         return sendDeviceAttributes();
       case 'd': //VPA
@@ -347,7 +347,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         return setModeOrPrivateMode(args, true);
       case 'l': //Reset Mode (RM) or DEC Private Mode Reset (DECRST)
         return setModeOrPrivateMode(args, false);
-      case 'm': 
+      case 'm':
         if (args.startsWithMoreMark()) { //Set or reset resource-values used by xterm 
           // to decide whether to construct escape sequences holding information about 
           // the modifiers pressed with a given key
@@ -400,13 +400,12 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         default:
           return false;
       }
-
-    } else {
+    }
+    else {
       switch (args.getArg(0, -1)) {
         default:
           return false;
       }
-      
     }
   }
 
@@ -531,8 +530,8 @@ public class JediEmulator extends DataStreamIteratingEmulator {
 
   private boolean deleteLines(ControlSequence args) {
     // ESC [ Ps M
-    //TODO: implement
-    return false;
+    myTerminal.deleteLines(args.getArg(0, 1));
+    return true;
   }
 
   private boolean deleteCharacters(ControlSequence args) {
@@ -751,7 +750,9 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   }
 
   private void setModeEnabled(final TerminalMode mode, final boolean enabled) {
-    if (LOG.isInfoEnabled()) LOG.info("Setting mode " + mode + " enabled = " + enabled);
+    if (LOG.isDebugEnabled()) {
+      LOG.info("Setting mode " + mode + " enabled = " + enabled);
+    }
     myTerminal.setModeEnabled(mode, enabled);
   }
 }

@@ -72,7 +72,7 @@ public class LinesBuffer {
     return line.getText();
   }
 
-  public void insertLines(int y, int num, int lastLine) {
+  public void insertLines(int y, int count, int lastLine) {
     LinesBuffer tail = new LinesBuffer();
 
     if (lastLine < getLineCount() - 1) {
@@ -81,16 +81,42 @@ public class LinesBuffer {
 
     LinesBuffer head = new LinesBuffer();
     if (y > 0) {
-      moveTopLinesTo(y - 1, head);
+      moveTopLinesTo(y, head);
     }
-    for (int i = 0; i < num; i++) {
+    
+    for (int i = 0; i < count; i++) {
       head.addNewLine(TextStyle.EMPTY, CharBuffer.EMPTY);
     }
 
     head.moveBottomLinesTo(head.getLineCount(), this);
 
-    removeBottomLines(num);
+    removeBottomLines(count);
     
+    tail.moveTopLinesTo(tail.getLineCount(), this);
+  }
+
+  public void deleteLines(int y, int count, int lastLine) {
+    LinesBuffer tail = new LinesBuffer();
+
+    if (lastLine < getLineCount() - 1) {
+      moveBottomLinesTo(getLineCount() - lastLine - 1, tail);
+    }
+
+    LinesBuffer head = new LinesBuffer();
+    if (y > 0) {
+      moveTopLinesTo(y, head);
+    }
+
+    int toRemove = Math.min(count, getLineCount());
+    
+    removeTopLines(toRemove);
+
+    head.moveBottomLinesTo(head.getLineCount(), this);
+
+    for (int i = 0; i < toRemove; i++) {
+      addNewLine(TextStyle.EMPTY, CharBuffer.EMPTY);
+    }
+
     tail.moveTopLinesTo(tail.getLineCount(), this);
   }
 

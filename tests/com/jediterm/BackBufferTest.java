@@ -112,6 +112,10 @@ public class BackBufferTest extends TestCase {
     assertEquals("1    \n" +
                  "3    \n" +
                  "2    \n", backBuffer.getLines());
+
+    assertEquals("1\n" +
+                 "3\n" +
+                 "2", backBuffer.getTextBufferLines());
     
   }
 
@@ -141,6 +145,23 @@ public class BackBufferTest extends TestCase {
     assertEquals("3    \n" +
                  "     \n" +
                  "1    \n", backBuffer.getLines());
+
+
+    assertEquals("3\n" +
+                 "\n" +
+                 "1", backBuffer.getTextBufferLines());
+    
+    terminal.insertLines(20);
+
+
+    assertEquals("3    \n" +
+                 "     \n" +
+                 "     \n", backBuffer.getLines());
+
+
+    assertEquals("3\n" +
+                 "\n" +
+                 "", backBuffer.getTextBufferLines());
   }
 
   public void testInsertLineScrollingRegion() {
@@ -174,6 +195,40 @@ public class BackBufferTest extends TestCase {
 
     assertEquals("3\n" +
                  "1\n" +
+                 "=", backBuffer.getTextBufferLines());
+  }
+
+  public void testInsertLineScrollingRegionManyLines() {
+    StyleState state = new StyleState();
+
+    BackBuffer backBuffer = new BackBuffer(5, 3, state);
+
+    BufferedDisplayTerminal terminal = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+
+    terminal.writeString("1");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString("2");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString("=");
+
+    terminal.setScrollingRegion(1, 2);
+
+    terminal.cursorPosition(1, 1);
+
+    terminal.insertLines(20);
+
+    terminal.writeString("3");
+    terminal.newLine();
+    terminal.carriageReturn();
+
+    assertEquals("3    \n" +
+                 "     \n" +
+                 "=    \n", backBuffer.getLines());
+
+    assertEquals("3\n" +
+                 "\n" +
                  "=", backBuffer.getTextBufferLines());
   }
   
@@ -238,5 +293,92 @@ public class BackBufferTest extends TestCase {
     assertEquals("irst ne\n" +
                  "second\n" +
                  "line", backBuffer.getTextBufferLines());
+  }
+  
+  
+  public void testDeleteLines() {
+    StyleState state = new StyleState();
+
+    BackBuffer backBuffer = new BackBuffer(5, 5, state);
+
+    BufferedDisplayTerminal terminal = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+
+    terminal.writeString("1");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString("2");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString("3");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString("4");
+    terminal.newLine();
+    terminal.carriageReturn();
+    
+
+    terminal.setScrollingRegion(1, 3);
+
+    terminal.cursorPosition(1, 2);
+
+    terminal.deleteLines(2);
+
+    assertEquals("1    \n" +
+                 "     \n" +
+                 "     \n" + 
+                 "4    \n" +
+                 "     \n", backBuffer.getLines());
+
+
+    assertEquals("1\n" +
+                 "\n" +
+                 "\n" +
+                 "4", backBuffer.getTextBufferLines());
+
+    
+    
+  }
+
+  public void testDeleteManyLines() {
+    StyleState state = new StyleState();
+
+    BackBuffer backBuffer = new BackBuffer(5, 5, state);
+
+    BufferedDisplayTerminal terminal = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+
+    terminal.writeString("1");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString("2");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString("3");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString("4");
+    terminal.newLine();
+    terminal.carriageReturn();
+
+
+    terminal.setScrollingRegion(1, 3);
+
+    terminal.cursorPosition(1, 2);
+
+    terminal.deleteLines(20);
+
+    assertEquals("1    \n" +
+                 "     \n" +
+                 "     \n" +
+                 "4    \n" +
+                 "     \n", backBuffer.getLines());
+
+
+    assertEquals("1\n" +
+                 "\n" +
+                 "\n" +
+                 "4", backBuffer.getTextBufferLines());
+
+
+
   }
 }

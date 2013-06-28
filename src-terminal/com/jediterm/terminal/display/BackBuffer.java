@@ -271,7 +271,7 @@ public class BackBuffer implements StyledTextConsumer {
   public void scrollArea(final int y, final int h, final int dy) {
     myTextBuffer.moveTopLinesTo(y, myScrollBuffer);
 
-    final int lastLine = y + h;
+    final int lastLine = y + h - 1;
     if (dy > 0) {
       moveLinesDown(y, dy, lastLine);
     }
@@ -284,7 +284,7 @@ public class BackBuffer implements StyledTextConsumer {
     if (dy >= 0) {
       LOG.error("dy should be negative");
     }
-    for (int line = y + dy + 1; line < lastLine; line++) {
+    for (int line = y; line <= lastLine; line++) {
       if (line > myHeight - 1) {
         LOG.error("Attempt to scroll line from below bottom of screen:" + line);
         continue;
@@ -595,10 +595,21 @@ public class BackBuffer implements StyledTextConsumer {
     return myScrollBuffer;
   }
 
-  public void insertLines(int y, int num) {
-    moveLinesDown(y, num, myScrollRegionBottom - 1);
-    clearArea(0, y, myWidth, y + num);
-    myTextBuffer.insertLines(y, num, myScrollRegionBottom - 1);
+  public void insertLines(int y, int count) {
+    moveLinesDown(y, count, getScrollRegionBottom() - 1);
+    clearArea(0, y, myWidth, Math.min(y + count, getScrollRegionBottom()));
+    myTextBuffer.insertLines(y, count, getScrollRegionBottom() - 1);
+  }
+
+  private int getScrollRegionBottom() {
+    return myScrollRegionBottom != -1 ? myScrollRegionBottom : myHeight;
+  }
+
+  public void deleteLines(int y, int count) {
+    moveLinesUp(y + count, -count, getScrollRegionBottom() - 1);
+    clearArea(0, Math.max(y, getScrollRegionBottom() - count), myWidth, getScrollRegionBottom());
+
+    myTextBuffer.deleteLines(y, count, getScrollRegionBottom() - 1);
   }
 
   public void setScrollRegion(int top, int bottom) {

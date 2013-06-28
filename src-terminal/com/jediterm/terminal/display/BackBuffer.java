@@ -43,6 +43,9 @@ public class BackBuffer implements StyledTextConsumer {
   private LinesBuffer myTextBufferBackup; // to store textBuffer after switching to alternate buffer
   private LinesBuffer myScrollBufferBackup;
   private boolean myAlternateBuffer = false;
+  
+  private int myScrollRegionBottom = -1;
+  private int myScrollRegionTop = -1;
 
   public BackBuffer(final int width, final int height, @NotNull StyleState styleState) {
     myStyleState = styleState;
@@ -593,8 +596,13 @@ public class BackBuffer implements StyledTextConsumer {
   }
 
   public void insertLines(int y, int num) {
-    moveLinesDown(y, num, myHeight - 1);
+    moveLinesDown(y, num, myScrollRegionBottom-1);
     clearArea(0, y, myWidth, y + num);
-    myTextBuffer.insertLines(y, num);
+    myTextBuffer.insertLines(y, num, myScrollRegionBottom-1);
+  }
+
+  public void setScrollRegion(int top, int bottom) {
+    myScrollRegionTop = top;
+    myScrollRegionBottom = bottom;
   }
 }

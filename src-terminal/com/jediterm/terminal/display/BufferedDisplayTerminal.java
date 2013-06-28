@@ -504,6 +504,8 @@ public class BufferedDisplayTerminal implements Terminal {
   public void setScrollingRegion(int top, int bottom) {
     myScrollRegionTop = Math.max(1, top);
     myScrollRegionBottom = Math.min(myTerminalHeight, bottom);
+    
+    myBackBuffer.setScrollRegion(myScrollRegionTop, myScrollRegionBottom);
   }
 
   public void characterAttributes(final StyleState styleState) {

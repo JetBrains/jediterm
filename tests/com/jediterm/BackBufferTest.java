@@ -142,6 +142,40 @@ public class BackBufferTest extends TestCase {
                  "     \n" +
                  "1    \n", backBuffer.getLines());
   }
+
+  public void testInsertLineScrollingRegion() {
+    StyleState state = new StyleState();
+
+    BackBuffer backBuffer = new BackBuffer(5, 3, state);
+
+    BufferedDisplayTerminal terminal = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+
+    terminal.writeString("1");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString("2");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString("=");
+    
+    terminal.setScrollingRegion(1, 2);
+
+    terminal.cursorPosition(1, 1);
+
+    terminal.insertLines(1);
+
+    terminal.writeString("3");
+    terminal.newLine();
+    terminal.carriageReturn();
+
+    assertEquals("3    \n" +
+                 "1    \n" +
+                 "=    \n", backBuffer.getLines());
+
+    assertEquals("3\n" +
+                 "1\n" +
+                 "=", backBuffer.getTextBufferLines());
+  }
   
   
 

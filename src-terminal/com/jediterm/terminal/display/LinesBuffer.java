@@ -72,7 +72,13 @@ public class LinesBuffer {
     return line.getText();
   }
 
-  public void insertLines(int y, int num) {
+  public void insertLines(int y, int num, int lastLine) {
+    LinesBuffer tail = new LinesBuffer();
+
+    if (lastLine < getLineCount() - 1) {
+      moveBottomLinesTo(getLineCount() - lastLine - 1, tail);
+    }
+
     LinesBuffer head = new LinesBuffer();
     if (y > 0) {
       moveTopLinesTo(y - 1, head);
@@ -81,7 +87,10 @@ public class LinesBuffer {
       head.addNewLine(TextStyle.EMPTY, CharBuffer.EMPTY);
     }
 
+    removeBottomLines(num);
+
     head.moveBottomLinesTo(head.getLineCount(), this);
+    tail.moveTopLinesTo(tail.getLineCount(), this);
   }
 
   public void writeString(int x, int y, String str, @NotNull TextStyle style) {

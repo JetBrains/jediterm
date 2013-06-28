@@ -267,8 +267,8 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       myImage = createBufferedImage(width, height);
       myGfx = myImage.createGraphics();
 
-      if (UIUtil.scaleFactor != null) {
-        myGfx.scale(UIUtil.scaleFactor, UIUtil.scaleFactor);
+      if (UIUtil.isRetina()) {
+        myGfx.scale(0.5, 0.5);
       }
       setupAntialiasing(myGfx, myAntialiasing);
 
@@ -466,8 +466,12 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
           else {
             g.setColor(current.getBackground());
           }
-          g.fillRect(myCursorCoordinates.x * myCharSize.width, y * myCharSize.height,
-                     myCharSize.width, myCharSize.height);
+          int scale = 1;
+          if (UIUtil.isRetina()) {
+            scale = 2;
+          }
+          g.fillRect(myCursorCoordinates.x * myCharSize.width*scale, y * myCharSize.height*scale,
+                     myCharSize.width*scale, myCharSize.height*scale);
 
 
           myCursorIsShown = isCursorShown;

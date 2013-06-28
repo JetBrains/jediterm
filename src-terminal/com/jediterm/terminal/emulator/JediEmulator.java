@@ -382,7 +382,9 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           setModeEnabled(TerminalMode.WideColumn, enabled);
           return true;
         case 12: //Start Blinking Cursor (att610)
-          setModeEnabled(TerminalMode.CursorBlinking, enabled);
+          //setModeEnabled(TerminalMode.CursorBlinking, enabled);
+          //We want to show blinking cursor always
+          return true; 
         case 25:
           setModeEnabled(TerminalMode.CursorVisible, enabled);
           return true;

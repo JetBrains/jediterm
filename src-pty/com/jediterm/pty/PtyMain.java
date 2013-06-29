@@ -5,6 +5,7 @@ import com.google.common.collect.Maps;
 import com.jediterm.terminal.LoggingTtyConnector;
 import com.jediterm.terminal.ui.AbstractTerminalFrame;
 import com.jediterm.terminal.ui.SwingJediTerminal;
+import com.jediterm.terminal.ui.UIUtil;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -23,8 +24,9 @@ public class PtyMain extends AbstractTerminalFrame {
   public void openSession(final SwingJediTerminal terminal) {
     Map<String,String> envs = Maps.newHashMap(System.getenv());
     envs.put("TERM", "xterm");
+    String[] command = UIUtil.isMac? new String[]{"/bin/bash", "--login"}: new String[]{"/bin/bash"};
     terminal.setTtyConnector(
-      new LoggingPtyProcessTtyConnector(new PtyProcess("/bin/bash", new String[]{"/bin/bash"}, envs), Charset.forName("UTF-8")));
+      new LoggingPtyProcessTtyConnector(new PtyProcess(command[0], command, envs), Charset.forName("UTF-8")));
     terminal.start();
   }
 

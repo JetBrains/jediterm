@@ -381,12 +381,33 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 3: //132 Column Mode (DECCOLM)
           setModeEnabled(TerminalMode.WideColumn, enabled);
           return true;
+        case 4: //Smooth (Slow) Scroll (DECSCLM)
+          setModeEnabled(TerminalMode.SmoothScroll, enabled);
+          return true;
+        case 5: //Reverse Video (DECSCNM)
+          setModeEnabled(TerminalMode.ReverseVideo, enabled);
+          return true;
+        case 6: //Origin Mode (DECOM)
+          setModeEnabled(TerminalMode.OriginMode, enabled);
+          return true;
+        case 7: //Wraparound Mode (DECAWM)
+          setModeEnabled(TerminalMode.WrapAround, enabled);
+          return true;
+        case 8: //Auto-repeat Keys (DECARM)
+          setModeEnabled(TerminalMode.AutoRepeatKeys, enabled);
+          return true;
         case 12: //Start Blinking Cursor (att610)
           //setModeEnabled(TerminalMode.CursorBlinking, enabled);
           //We want to show blinking cursor always
           return true; 
         case 25:
           setModeEnabled(TerminalMode.CursorVisible, enabled);
+          return true;
+        case 40: //Aloow 80->132 Mode
+          setModeEnabled(TerminalMode.AllowWideColumn, enabled);
+          return true;
+        case 45: //Reverse-wraparound Mode
+          setModeEnabled(TerminalMode.ReverseWrapAround, enabled);
           return true;
         case 47:
         case 1047:
@@ -405,6 +426,18 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     }
     else {
       switch (args.getArg(0, -1)) {
+        case 2: //Keyboard Action Mode (AM)
+          setModeEnabled(TerminalMode.KeyboardAction, enabled);
+          return true;
+        case 4: //Insert Mode (IRM)
+          setModeEnabled(TerminalMode.InsertMode, enabled);
+          return true;
+        case 12: //Send/receive (SRM)
+          setModeEnabled(TerminalMode.SendReceive, enabled);
+          return true;
+        case 20:
+          setModeEnabled(TerminalMode.AutoNewLine, enabled);
+          return true;
         default:
           return false;
       }

@@ -39,10 +39,10 @@ public enum TerminalMode {
     }
   },
   SmoothScroll,
-  ReverseScreen,
-  RelativeOrigin,
+  ReverseVideo,
+  OriginMode,
   WrapAround,
-  AutoRepeat,
+  AutoRepeatKeys,
   Interlace,
   Keypad {
     @Override
@@ -66,11 +66,17 @@ public enum TerminalMode {
     public void setEnabled(Terminal terminal, boolean enabled) {
       terminal.setBlinkingCursor(enabled);
     }
-  };
+  }, 
+  AllowWideColumn, 
+  ReverseWrapAround, 
+  AutoNewLine, 
+  KeyboardAction, 
+  InsertMode,
+  SendReceive;
   
   private static final Logger LOG = Logger.getLogger(TerminalMode.class);
   
   public void setEnabled(Terminal terminal, boolean enabled) {
-    LOG.error("Mode " + name() + " is not implemented");
+    LOG.error("Mode " + name() + " is not implemented, setting to " + enabled);
   }
 }

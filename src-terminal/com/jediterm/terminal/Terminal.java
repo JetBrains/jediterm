@@ -110,7 +110,9 @@ public interface Terminal {
 
   void eraseCharacters(int count);
 
-  void clearTab();
+  void clearTabStopAtCursor();
 
-  void clearAllTabs();
+  void clearAllTabStops();
+
+  void setTabStopAtCursor();
 }

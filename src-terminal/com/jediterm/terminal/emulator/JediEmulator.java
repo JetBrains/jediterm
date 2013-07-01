@@ -101,14 +101,14 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           }
         }
         break;
-      case 'D': // Index (IND)
+      case 'D': //Index (IND)
         terminal.index();
         break;
-      case 'E': // Next Line (NEL)
+      case 'E': //Next Line (NEL)
         terminal.nextLine();
         break;
-      case 'H':
-        unsupported("Horizontal Tab Set (HTS)");
+      case 'H': //Horizontal Tab Set (HTS)
+        terminal.setTabStopAtCursor();
         break;
       case 'M': // Reverse Index (RI) 
         terminal.reverseIndex();
@@ -372,11 +372,11 @@ public class JediEmulator extends DataStreamIteratingEmulator {
 
   private boolean tabClear(int mode) {
     if (mode == 0) { //Clear Current Column (default)
-      myTerminal.clearTab();
+      myTerminal.clearTabStopAtCursor();
       return true;
     } else 
     if (mode == 3) {
-      myTerminal.clearAllTabs();
+      myTerminal.clearAllTabStops();
       return true;
     } else {
       return false;

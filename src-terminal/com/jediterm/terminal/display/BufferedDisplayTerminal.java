@@ -386,7 +386,7 @@ public class BufferedDisplayTerminal implements Terminal {
     myBackBuffer.lock();
     try {
       final int extent = Math.min(count, myTerminalWidth - myCursorX);
-      myBackBuffer.clearArea(myCursorX, myCursorY - 1, myCursorX + extent, myCursorY);
+      myBackBuffer.eraseCharacters(myCursorX, myCursorX + extent, myCursorY - 1);
     }
     finally {
       myBackBuffer.unlock();
@@ -394,13 +394,18 @@ public class BufferedDisplayTerminal implements Terminal {
   }
 
   @Override
-  public void clearTab() {
+  public void clearTabStopAtCursor() {
     //TODO
   }
 
   @Override
-  public void clearAllTabs() {
+  public void clearAllTabStops() {
     //TODO
+  }
+
+  @Override
+  public void setTabStopAtCursor() {
+    //myTabStops.add
   }
 
   @Override

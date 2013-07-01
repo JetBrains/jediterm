@@ -32,7 +32,7 @@ public class ArrayTerminalDataStream implements TerminalDataStream {
     return myBuf[myOffset++];
   }
 
-  public void pushChar(final char b) throws EOF {
+  public void pushChar(final char c) throws EOF {
     if (myOffset == 0) {
       // Pushed back too many... shift it up to the end.
       myOffset = myBuf.length - myLength;
@@ -40,7 +40,7 @@ public class ArrayTerminalDataStream implements TerminalDataStream {
     }
 
     myLength++;
-    myBuf[--myOffset] = b;
+    myBuf[--myOffset] = c;
   }
 
   public String readNonControlCharacters(int maxChars) throws IOException {

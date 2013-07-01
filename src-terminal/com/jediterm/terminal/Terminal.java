@@ -107,4 +107,10 @@ public interface Terminal {
   void deleteLines(int count);
 
   void setBlinkingCursor(boolean enabled);
+
+  void eraseCharacters(int count);
+
+  void clearTab();
+
+  void clearAllTabs();
 }

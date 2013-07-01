@@ -97,6 +97,7 @@ public class BufferedDisplayTerminal implements Terminal {
     writeCharacters(decode(string).toCharArray(), 0, string.length());
   }
 
+  @Override
   public void writeCharacters(final char[] chosenBuffer, final int start,
                               final int length) {
     myBackBuffer.lock();
@@ -116,6 +117,7 @@ public class BufferedDisplayTerminal implements Terminal {
     }
   }
 
+  @Override
   public void writeDoubleByte(final char[] bytesOfChar) throws UnsupportedEncodingException {
     writeString(new String(bytesOfChar, 0, 2));
   }
@@ -184,6 +186,7 @@ public class BufferedDisplayTerminal implements Terminal {
     }
   }
 
+  @Override
   public void newLine() {
     moveLine();
     myDisplay.setCursor(myCursorX, myCursorY);
@@ -216,6 +219,7 @@ public class BufferedDisplayTerminal implements Terminal {
     myCursorY += 1;
   }
 
+  @Override
   public void backspace() {
     myCursorX -= 1;
     if (myCursorX < 0) {
@@ -225,11 +229,13 @@ public class BufferedDisplayTerminal implements Terminal {
     myDisplay.setCursor(myCursorX, myCursorY);
   }
 
+  @Override
   public void carriageReturn() {
     myCursorX = 0;
     myDisplay.setCursor(myCursorX, myCursorY);
   }
 
+  @Override
   public void horizontalTab() {
     myCursorX = (myCursorX / TAB + 1) * TAB;
     if (myCursorX >= myTerminalWidth) {
@@ -239,6 +245,7 @@ public class BufferedDisplayTerminal implements Terminal {
     myDisplay.setCursor(myCursorX, myCursorY);
   }
 
+  @Override
   public void eraseInDisplay(final int arg) {
     myBackBuffer.lock();
     try {
@@ -360,6 +367,7 @@ public class BufferedDisplayTerminal implements Terminal {
     }
   }
 
+  @Override
   public void deleteCharacters(int count) {
     myBackBuffer.lock();
     try {
@@ -369,6 +377,30 @@ public class BufferedDisplayTerminal implements Terminal {
     finally {
       myBackBuffer.unlock();
     }
+  }
+
+  @Override
+  public void eraseCharacters(int count) {
+    //Clear the next n characters on the cursor's line, including the cursor's
+    //position.
+    myBackBuffer.lock();
+    try {
+      final int extent = Math.min(count, myTerminalWidth - myCursorX);
+      myBackBuffer.clearArea(myCursorX, myCursorY - 1, myCursorX + extent, myCursorY);
+    }
+    finally {
+      myBackBuffer.unlock();
+    }
+  }
+
+  @Override
+  public void clearTab() {
+    //TODO
+  }
+
+  @Override
+  public void clearAllTabs() {
+    //TODO
   }
 
   @Override
@@ -398,6 +430,7 @@ public class BufferedDisplayTerminal implements Terminal {
     myDisplay.setBlinkingCursor(enabled);
   }
 
+  @Override
   public void cursorUp(final int countY) {
     myBackBuffer.lock();
     try {
@@ -410,6 +443,7 @@ public class BufferedDisplayTerminal implements Terminal {
     }
   }
 
+  @Override
   public void cursorDown(final int dY) {
     myBackBuffer.lock();
     try {
@@ -422,6 +456,7 @@ public class BufferedDisplayTerminal implements Terminal {
     }
   }
 
+  @Override
   public void index() {
     myBackBuffer.lock();
     try {
@@ -447,6 +482,7 @@ public class BufferedDisplayTerminal implements Terminal {
     myBackBuffer.scrollArea(y, h, dy);
   }
 
+  @Override
   public void nextLine() {
     myBackBuffer.lock();
     try {
@@ -467,6 +503,7 @@ public class BufferedDisplayTerminal implements Terminal {
     }
   }
 
+  @Override
   public void reverseIndex() {
     myBackBuffer.lock();
     try {
@@ -485,33 +522,39 @@ public class BufferedDisplayTerminal implements Terminal {
     }
   }
 
+  @Override
   public void cursorForward(final int dX) {
     myCursorX += dX;
     myCursorX = Math.min(myCursorX, myTerminalWidth - 1);
     myDisplay.setCursor(myCursorX, myCursorY);
   }
 
+  @Override
   public void cursorBackward(final int dX) {
     myCursorX -= dX;
     myCursorX = Math.max(myCursorX, 0);
     myDisplay.setCursor(myCursorX, myCursorY);
   }
 
+  @Override
   public void cursorHorizontalAbsolute(int x) {
     cursorPosition(x, myCursorY);
   }
 
+  @Override
   public void linePositionAbsolute(int y) {
     myCursorY = y;
     myDisplay.setCursor(myCursorX, myCursorY);
   }
-
+  
+  @Override
   public void cursorPosition(int x, int y) {
     myCursorX = x - 1;
     myCursorY = y;
     myDisplay.setCursor(myCursorX, myCursorY);
   }
 
+  @Override
   public void setScrollingRegion(int top, int bottom) {
     myScrollRegionTop = Math.max(1, top);
     myScrollRegionBottom = Math.min(myTerminalHeight, bottom);
@@ -519,14 +562,17 @@ public class BufferedDisplayTerminal implements Terminal {
     myBackBuffer.setScrollRegion(myScrollRegionTop, myScrollRegionBottom);
   }
 
+  @Override
   public void characterAttributes(final StyleState styleState) {
     myStyleState.set(styleState);
   }
 
+  @Override
   public void beep() {
     myDisplay.beep();
   }
 
+  @Override
   public int distanceToLineEnd() {
     return myTerminalWidth - myCursorX;
   }
@@ -590,6 +636,7 @@ public class BufferedDisplayTerminal implements Terminal {
     return pixelSize;
   }
 
+  @Override
   public void fillScreen(final char c) {
     myBackBuffer.lock();
     try {
@@ -621,6 +668,7 @@ public class BufferedDisplayTerminal implements Terminal {
     return myCursorY;
   }
 
+  @Override
   public StyleState getStyleState() {
     return myStyleState;
   }

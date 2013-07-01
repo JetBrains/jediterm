@@ -381,4 +381,32 @@ public class BackBufferTest extends TestCase {
 
 
   }
+  
+  public void testEraseCharacters() {
+    StyleState state = new StyleState();
+
+    BackBuffer backBuffer = new BackBuffer(5, 2, state);
+
+    BufferedDisplayTerminal terminal = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+
+    terminal.writeString("11111");
+    
+    terminal.cursorPosition(2, 1);
+    
+    terminal.eraseCharacters(2);
+
+    assertEquals("1  11\n" +
+                 "     \n", backBuffer.getLines());
+    
+    
+    assertEquals("1  11", backBuffer.getTextBufferLines());
+    
+    terminal.eraseCharacters(10);
+
+    assertEquals("1    \n" +
+                 "     \n", backBuffer.getLines());
+
+    assertEquals("1    ", backBuffer.getTextBufferLines());
+
+  }
 }

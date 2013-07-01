@@ -180,6 +180,8 @@ public class BackBuffer implements StyledTextConsumer {
         myDamage.set(y * myWidth + leftX,
                      y * myWidth + rightX,
                      true);
+
+        myTextBuffer.clearArea(leftX, y, rightX, y + 1);
       }
     }
   }

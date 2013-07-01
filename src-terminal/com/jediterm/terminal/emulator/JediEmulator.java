@@ -343,6 +343,8 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         return sendDeviceAttributes();
       case 'd': //VPA
         return linePositionAbsolute(args);
+      case 'g': // Tab Clear (TBC)
+        return tabClear(args.getArg(0, 0));
       case 'h': //Set Mode (SM) or DEC Private Mode Set (DECSET)
         return setModeOrPrivateMode(args, true);
       case 'l': //Reset Mode (RM) or DEC Private Mode Reset (DECRST)
@@ -368,8 +370,22 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     }
   }
 
+  private boolean tabClear(int mode) {
+    if (mode == 0) { //Clear Current Column (default)
+      myTerminal.clearTab();
+      return true;
+    } else 
+    if (mode == 3) {
+      myTerminal.clearAllTabs();
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   private boolean eraseCharacters(ControlSequence args) {
-    return false;  //To change body of created methods use File | Settings | File Templates.
+    myTerminal.eraseCharacters(args.getArg(0, 1));
+    return true;
   }
 
   private boolean setModeOrPrivateMode(ControlSequence args, boolean enabled) {
@@ -403,7 +419,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 25:
           setModeEnabled(TerminalMode.CursorVisible, enabled);
           return true;
-        case 40: //Aloow 80->132 Mode
+        case 40: //Allow 80->132 Mode
           setModeEnabled(TerminalMode.AllowWideColumn, enabled);
           return true;
         case 45: //Reverse-wraparound Mode

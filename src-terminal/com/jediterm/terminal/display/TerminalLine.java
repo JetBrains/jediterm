@@ -40,21 +40,26 @@ public class TerminalLine {
   }
 
   public void writeString(int x, @NotNull String str, @NotNull TextStyle style) {
+    writeCharacters(x, style, new CharBuffer(str));
+  }
+
+  private void writeCharacters(int x, TextStyle style, CharBuffer characters) {
     int len = myTextEntries.length();
-    
+
     if (x >= len) {
       if (x - len > 0) {
         myTextEntries.add(new TextEntry(TextStyle.EMPTY, new CharBuffer(' ', x - len)));
       }
-      myTextEntries.add(new TextEntry(style, new CharBuffer(str)));
+      
+      myTextEntries.add(new TextEntry(style, characters));
     }
     else {
-      len = Math.max(len, x + str.length());
-      myTextEntries = merge(x, str, style, myTextEntries, len);
+      len = Math.max(len, x + characters.length());
+      myTextEntries = merge(x, characters, style, myTextEntries, len);
     }
   }
 
-  private static TextEntries merge(int x, String str, @NotNull TextStyle style, @NotNull TextEntries entries, int lineLength) {
+  private static TextEntries merge(int x, @NotNull CharBuffer str, @NotNull TextStyle style, @NotNull TextEntries entries, int lineLength) {
     char[] buf = new char[lineLength];
     TextStyle[] styles = new TextStyle[lineLength];
 
@@ -122,6 +127,10 @@ public class TerminalLine {
     }
 
     myTextEntries = newEntries;
+  }
+
+  public void clearArea(int leftX, int rightX) {
+    writeCharacters(leftX, TextStyle.EMPTY, new CharBuffer(' ', rightX - leftX));
   }
 
   static class TextEntry {

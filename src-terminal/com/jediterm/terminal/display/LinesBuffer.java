@@ -143,6 +143,14 @@ public class LinesBuffer {
     line.deleteCharacters(x, count);
   }
 
+  public void clearArea(int leftX, int topY, int rightX, int bottomY) {
+    for (int y = topY; y<bottomY; y++) {
+      TerminalLine line = getLine(y);
+      line.clearArea(leftX, rightX);
+    }
+  }
+
+
   interface TextEntryProcessor {
     /**
      * @return true to remove entry

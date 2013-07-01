@@ -180,8 +180,6 @@ public class BackBuffer implements StyledTextConsumer {
         myDamage.set(y * myWidth + leftX,
                      y * myWidth + rightX,
                      true);
-
-        myTextBuffer.clearArea(leftX, y, rightX, y + 1);
       }
     }
   }
@@ -617,5 +615,10 @@ public class BackBuffer implements StyledTextConsumer {
   public void setScrollRegion(int top, int bottom) {
     myScrollRegionTop = top;
     myScrollRegionBottom = bottom;
+  }
+
+  public void eraseCharacters(int leftX, int rightX, int y) {
+    clearArea(leftX, y, rightX, y+1);
+    myTextBuffer.clearArea(leftX, y, rightX, y+1);
   }
 }

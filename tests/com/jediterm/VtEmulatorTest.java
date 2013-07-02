@@ -52,6 +52,8 @@ public class VtEmulatorTest extends TestCase {
       File file = new File(testFolder + "/" + i + ".txt");
       dataStream.load(file);
 
+      emulator.resetEof();
+      
       while (emulator.hasNext()) {
         emulator.next();
       }

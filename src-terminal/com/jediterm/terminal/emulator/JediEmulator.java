@@ -51,10 +51,10 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         // '\n'
         terminal.newLine();
         break;
-      case Ascii.SI: //Shift In (Ctrl-O) -> Switch to Standard Character Set. This invokes the G0 character set (the default)
+      case Ascii.SI: //Shift In (Ctrl-O) -> Switch to Standard Character Set. This invokes the G0 character setTabStop (the default)
         terminal.invokeCharacterSet(0);
         break;
-      case Ascii.SO: //Shift Out (Ctrl-N) -> Switch to Alternate Character Set. This invokes the G1 character set (the default)
+      case Ascii.SO: //Shift Out (Ctrl-N) -> Switch to Alternate Character Set. This invokes the G1 character setTabStop (the default)
         terminal.invokeCharacterSet(1);
         break;
       case Ascii.HT: // Horizontal Tab (HT) (Ctrl-I)
@@ -120,7 +120,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         terminal.singleShiftSelect(3); //Single Shift Select of G3 Character Set (SS3). This affects next character only.
         break;
       case ']': // Operating System Command (OSC)
-        // xterm uses it to set parameters like windows title
+        // xterm uses it to setTabStop parameters like windows title
         final SystemCommandSequence command = new SystemCommandSequence(myDataStream);
 
         if (!operatingSystemCommand(command)) {
@@ -230,8 +230,8 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         break;
       case '%':
         switch (secondCh) {
-          case '@': // Select default character set. That is ISO 8859-1 
-          case 'G': // Select UTF-8 character set.
+          case '@': // Select default character setTabStop. That is ISO 8859-1
+          case 'G': // Select UTF-8 character setTabStop.
             unsupported("Selecting charset is unsupported: " + escapeSequenceToString(ch, secondCh));
             break;
           default:
@@ -239,25 +239,25 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         }
         break;
       case '(':
-        terminal.designateCharacterSet(0, parseCharacterSet(secondCh)); //Designate G0 Character set (VT100)
+        terminal.designateCharacterSet(0, parseCharacterSet(secondCh)); //Designate G0 Character setTabStop (VT100)
         break;
       case ')':
-        terminal.designateCharacterSet(1, parseCharacterSet(secondCh)); //Designate G1 Character set (VT100)
+        terminal.designateCharacterSet(1, parseCharacterSet(secondCh)); //Designate G1 Character setTabStop (VT100)
         break;
       case '*':
-        terminal.designateCharacterSet(2, parseCharacterSet(secondCh)); //Designate G2 Character set (VT220)
+        terminal.designateCharacterSet(2, parseCharacterSet(secondCh)); //Designate G2 Character setTabStop (VT220)
         break;
       case '+':
-        terminal.designateCharacterSet(3, parseCharacterSet(secondCh)); //Designate G3 Character set (VT220)
+        terminal.designateCharacterSet(3, parseCharacterSet(secondCh)); //Designate G3 Character setTabStop (VT220)
         break;
       case '-':
-        terminal.designateCharacterSet(1, parseCharacterSet(secondCh)); //Designate G1 Character set (VT300)
+        terminal.designateCharacterSet(1, parseCharacterSet(secondCh)); //Designate G1 Character setTabStop (VT300)
         break;
       case '.':
-        terminal.designateCharacterSet(2, parseCharacterSet(secondCh)); //Designate G2 Character set (VT300)
+        terminal.designateCharacterSet(2, parseCharacterSet(secondCh)); //Designate G2 Character setTabStop (VT300)
         break;
       case '/':
-        terminal.designateCharacterSet(3, parseCharacterSet(secondCh)); //Designate G3 Character set (VT300)
+        terminal.designateCharacterSet(3, parseCharacterSet(secondCh)); //Designate G3 Character setTabStop (VT300)
         break;
       case '$':
       case '@':

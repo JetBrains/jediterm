@@ -22,6 +22,11 @@ public abstract class DataStreamIteratingEmulator implements Emulator {
   public boolean hasNext() {
     return !myEof;
   }
+  
+  @Override
+  public void resetEof() {
+    myEof = false;
+  }
 
   @Override
   public void next() throws IOException {

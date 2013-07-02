@@ -69,7 +69,12 @@ public enum TerminalMode {
   }, 
   AllowWideColumn, 
   ReverseWrapAround, 
-  AutoNewLine, 
+  AutoNewLine {
+    @Override
+    public void setEnabled(Terminal terminal, boolean enabled) {
+      //we do nothing just switching the mode
+    }
+  }, 
   KeyboardAction, 
   InsertMode,
   SendReceive;

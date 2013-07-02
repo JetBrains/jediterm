@@ -9,8 +9,7 @@ import org.apache.log4j.Logger;
 
 import java.awt.*;
 import java.io.UnsupportedEncodingException;
-import java.util.Arrays;
-import java.util.EnumSet;
+import java.util.*;
 
 /**
  * Terminal that reflects obtained commands and text at {@link TerminalDisplay}(handles change of cursor position, screen size etc)
@@ -21,7 +20,6 @@ import java.util.EnumSet;
 public class BufferedDisplayTerminal implements Terminal {
   private static final Logger LOG = Logger.getLogger(BufferedDisplayTerminal.class.getName());
 
-  private final static int TAB = 8; //TODO: move to settings
   private static final int MIN_WIDTH = 5;
 
   private int myScrollRegionTop;
@@ -43,6 +41,8 @@ public class BufferedDisplayTerminal implements Terminal {
 
   private final TerminalKeyEncoder myTerminalKeyEncoder = new TerminalKeyEncoder();
 
+  private final Tabulator myTabulator;
+
   private TermCharset[] myG = new TermCharset[4]; //initialized in reset
   private int myCurrentCharset = 0;
 
@@ -58,6 +58,8 @@ public class BufferedDisplayTerminal implements Terminal {
 
     myScrollRegionTop = 1;
     myScrollRegionBottom = myTerminalHeight;
+
+    myTabulator = new DefaultTabulator(myTerminalWidth);
 
     reset();
   }
@@ -192,6 +194,10 @@ public class BufferedDisplayTerminal implements Terminal {
     myDisplay.setCursor(myCursorX, myCursorY);
 
     scrollY();
+    
+    if (isAutoNewLine()) {
+      carriageReturn();
+    }
   }
 
   @Override
@@ -237,7 +243,8 @@ public class BufferedDisplayTerminal implements Terminal {
 
   @Override
   public void horizontalTab() {
-    myCursorX = (myCursorX / TAB + 1) * TAB;
+    myCursorX = myTabulator.nextTab(myCursorX);
+
     if (myCursorX >= myTerminalWidth) {
       myCursorX = 0;
       myCursorY += 1;
@@ -371,8 +378,8 @@ public class BufferedDisplayTerminal implements Terminal {
   public void deleteCharacters(int count) {
     myBackBuffer.lock();
     try {
-        final int extent = Math.min(count, myTerminalWidth - myCursorX);
-        myBackBuffer.deleteCharacters(myCursorX, myCursorY - 1, extent);
+      final int extent = Math.min(count, myTerminalWidth - myCursorX);
+      myBackBuffer.deleteCharacters(myCursorX, myCursorY - 1, extent);
     }
     finally {
       myBackBuffer.unlock();
@@ -395,17 +402,17 @@ public class BufferedDisplayTerminal implements Terminal {
 
   @Override
   public void clearTabStopAtCursor() {
-    //TODO
+    myTabulator.clearTabStop(myCursorX);
   }
 
   @Override
   public void clearAllTabStops() {
-    //TODO
+    myTabulator.clearAllTabStops();
   }
 
   @Override
   public void setTabStopAtCursor() {
-    //myTabStops.add
+    myTabulator.setTabStop(myCursorX);
   }
 
   @Override
@@ -551,7 +558,7 @@ public class BufferedDisplayTerminal implements Terminal {
     myCursorY = y;
     myDisplay.setCursor(myCursorX, myCursorY);
   }
-  
+
   @Override
   public void cursorPosition(int x, int y) {
     myCursorX = x - 1;
@@ -563,7 +570,7 @@ public class BufferedDisplayTerminal implements Terminal {
   public void setScrollingRegion(int top, int bottom) {
     myScrollRegionTop = Math.max(1, top);
     myScrollRegionBottom = Math.min(myTerminalHeight, bottom);
-    
+
     myBackBuffer.setScrollRegion(myScrollRegionTop, myScrollRegionBottom);
   }
 
@@ -601,6 +608,13 @@ public class BufferedDisplayTerminal implements Terminal {
     designateCharacterSet(3, TermCharset.USASCII);
 
     myStyleState.reset();
+    
+    initModes();
+  }
+
+  private void initModes() {
+    myModes.clear();
+    myModes.add(TerminalMode.AutoNewLine);
   }
 
   public void storeCursor(final StoredCursor storedCursor) {
@@ -619,6 +633,10 @@ public class BufferedDisplayTerminal implements Terminal {
     myDisplay.setCursor(myCursorX, myCursorY);
   }
 
+  public boolean isAutoNewLine() {
+    return myModes.contains(TerminalMode.AutoNewLine);
+  }
+
   public interface ResizeHandler {
     void sizeUpdated(int termWidth, int termHeight, int cursorY);
   }
@@ -634,6 +652,8 @@ public class BufferedDisplayTerminal implements Terminal {
         myTerminalWidth = termWidth;
         myTerminalHeight = termHeight;
         myCursorY = cursorY;
+
+        myTabulator.resize(myTerminalWidth);
       }
     });
 
@@ -676,5 +696,107 @@ public class BufferedDisplayTerminal implements Terminal {
   @Override
   public StyleState getStyleState() {
     return myStyleState;
+  }
+
+  private static class DefaultTabulator implements Tabulator {
+    private static final int TAB_LENGTH = 8;
+
+    private final SortedSet<Integer> myTabStops;
+
+    private int myWidth;
+    private int myTabLength;
+
+    public DefaultTabulator(int width) {
+      this(width, TAB_LENGTH);
+    }
+
+    public DefaultTabulator(int width, int tabLength) {
+      myTabStops = new TreeSet<Integer>();
+
+      myWidth = width;
+      myTabLength = tabLength;
+
+      initTabStops(width, tabLength);
+    }
+
+    private void initTabStops(int columns, int tabLength) {
+      for (int i = tabLength; i < columns; i += tabLength) {
+        myTabStops.add(i);
+      }
+    }
+
+    public void resize(int columns) {
+      if (columns > myWidth) {
+        for (int i = myTabLength * (myWidth / myTabLength); i < columns; i += myTabLength) {
+          if (i >= myWidth) {
+            myTabStops.add(i);
+          }
+        }
+      }
+      else {
+        Iterator<Integer> it = myTabStops.iterator();
+        while (it.hasNext()) {
+          int i = it.next();
+          if (i > columns) {
+            it.remove();
+          }
+        }
+      }
+
+      myWidth = columns;
+    }
+
+    @Override
+    public void clearTabStop(int position) {
+      myTabStops.remove(Integer.valueOf(position));
+    }
+
+    @Override
+    public void clearAllTabStops() {
+      myTabStops.clear();
+    }
+
+    @Override
+    public int getNextTabWidth(int position) {
+      return nextTab(position) - position;
+    }
+
+    @Override
+    public int getPreviousTabWidth(int position) {
+      return position - previousTab(position);
+    }
+
+    @Override
+    public int nextTab(int position) {
+      int tabStop = Integer.MAX_VALUE;
+
+      // Search for the first tab stop after the given position...
+      SortedSet<Integer> tailSet = myTabStops.tailSet(position + 1);
+      if (!tailSet.isEmpty()) {
+        tabStop = tailSet.first();
+      }
+
+      // Don't go beyond the end of the line...
+      return Math.min(tabStop, (myWidth - 1));
+    }
+
+    @Override
+    public int previousTab(int position) {
+      int tabStop = 0;
+
+      // Search for the first tab stop before the given position...
+      SortedSet<Integer> headSet = myTabStops.headSet(Integer.valueOf(position));
+      if (!headSet.isEmpty()) {
+        tabStop = headSet.last();
+      }
+
+      // Don't go beyond the start of the line...
+      return Math.max(0, tabStop);
+    }
+
+    @Override
+    public void setTabStop(int position) {
+      myTabStops.add(Integer.valueOf(position));
+    }
   }
 }

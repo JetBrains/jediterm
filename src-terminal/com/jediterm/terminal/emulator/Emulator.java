@@ -9,4 +9,6 @@ public interface Emulator {
   boolean hasNext();
 
   void next() throws IOException;
+
+  void resetEof();
 }

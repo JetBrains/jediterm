@@ -46,7 +46,7 @@ public enum TerminalMode {
       terminal.cursorPosition(1, 1);
     }
   },
-  WrapAround,
+  AutoWrap,
   AutoRepeatKeys,
   Interlace,
   Keypad {

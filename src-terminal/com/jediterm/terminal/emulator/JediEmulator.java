@@ -51,11 +51,15 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         // '\n'
         terminal.newLine();
         break;
-      case Ascii.SI: //Shift In (Ctrl-O) -> Switch to Standard Character Set. This invokes the G0 character setTabStop (the default)
-        terminal.invokeCharacterSet(0);
+      case Ascii.SI: //Shift In (Ctrl-O) -> Switch to Standard Character Set. This invokes the G0 character set (the default)
+        //LS0 (locking shift 0) 
+        //Map G0 into GL
+        terminal.mapCharsetToGL(0);
         break;
-      case Ascii.SO: //Shift Out (Ctrl-N) -> Switch to Alternate Character Set. This invokes the G1 character setTabStop (the default)
-        terminal.invokeCharacterSet(1);
+      case Ascii.SO: //Shift Out (Ctrl-N) -> Switch to Alternate Character Set. This invokes the G1 character set (the default)
+        //LS1 (locking shift 1) 
+        //Map G1 into GL
+        terminal.mapCharsetToGL(1);
         break;
       case Ascii.HT: // Horizontal Tab (HT) (Ctrl-I)
         terminal.horizontalTab();
@@ -120,7 +124,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         terminal.singleShiftSelect(3); //Single Shift Select of G3 Character Set (SS3). This affects next character only.
         break;
       case ']': // Operating System Command (OSC)
-        // xterm uses it to setTabStop parameters like windows title
+        // xterm uses it to set parameters like windows title
         final SystemCommandSequence command = new SystemCommandSequence(myDataStream);
 
         if (!operatingSystemCommand(command)) {
@@ -151,14 +155,20 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       case 'c': //Full Reset (RIS)
         terminal.reset();
         break;
-      case 'l':
-      case 'm':
-      case 'n':
-      case 'o':
-      case '|':
-      case '}':
-      case '~':
-        unsupported(escapeSequenceToString(ch));
+      case 'n': //Invoke the G2 Character Set as GL - locking shift 2 (LS2)
+        myTerminal.mapCharsetToGL(2);
+        break;
+      case 'o': //Invoke the G3 Character Set as GL - locking shift 3 (LS3)
+        myTerminal.mapCharsetToGL(3);
+        break;
+      case '|': //Invoke the G3 Character Set as GR - locking shift 3, right (LS3R)
+        myTerminal.mapCharsetToGR(3);
+        break;
+      case '}': //Invoke the G2 Character Set as GR - locking shift 2, right (LS2R)
+        myTerminal.mapCharsetToGR(2);
+        break;
+      case '~': //Invoke the G1 Character Set as GR - locking shift 1, right (LS1R)
+        myTerminal.mapCharsetToGR(1);
         break;
       case '#':
       case '(':
@@ -209,10 +219,12 @@ public class JediEmulator extends DataStreamIteratingEmulator {
             unsupported("Switching ot 8-bit");
             break;
           //About ANSI conformance levels: http://www.vt100.net/docs/vt510-rm/ANSI
-          case 'L': //Set ANSI conformance level 1
-          case 'M': //Set ANSI conformance level 2
+          case 'L': //Set ANSI conformance level 1 and 2
+          case 'M':
+            terminal.setAnsiConformanceLevel(1);
+            break;          
           case 'N': //Set ANSI conformance level 3
-            unsupported("Settings conformance level: " + escapeSequenceToString(ch, secondCh));
+            terminal.setAnsiConformanceLevel(3);
             break;
 
           default:
@@ -230,8 +242,8 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         break;
       case '%':
         switch (secondCh) {
-          case '@': // Select default character setTabStop. That is ISO 8859-1
-          case 'G': // Select UTF-8 character setTabStop.
+          case '@': // Select default character set. That is ISO 8859-1
+          case 'G': // Select UTF-8 character set
             unsupported("Selecting charset is unsupported: " + escapeSequenceToString(ch, secondCh));
             break;
           default:
@@ -239,44 +251,29 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         }
         break;
       case '(':
-        terminal.designateCharacterSet(0, parseCharacterSet(secondCh)); //Designate G0 Character setTabStop (VT100)
+        terminal.designateCharacterSet(0, secondCh); //Designate G0 Character set (VT100)
         break;
       case ')':
-        terminal.designateCharacterSet(1, parseCharacterSet(secondCh)); //Designate G1 Character setTabStop (VT100)
+        terminal.designateCharacterSet(1, secondCh); //Designate G1 Character set (VT100)
         break;
       case '*':
-        terminal.designateCharacterSet(2, parseCharacterSet(secondCh)); //Designate G2 Character setTabStop (VT220)
+        terminal.designateCharacterSet(2, secondCh); //Designate G2 Character set (VT220)
         break;
       case '+':
-        terminal.designateCharacterSet(3, parseCharacterSet(secondCh)); //Designate G3 Character setTabStop (VT220)
+        terminal.designateCharacterSet(3, secondCh); //Designate G3 Character set (VT220)
         break;
       case '-':
-        terminal.designateCharacterSet(1, parseCharacterSet(secondCh)); //Designate G1 Character setTabStop (VT300)
+        terminal.designateCharacterSet(1, secondCh); //Designate G1 Character set (VT300)
         break;
       case '.':
-        terminal.designateCharacterSet(2, parseCharacterSet(secondCh)); //Designate G2 Character setTabStop (VT300)
+        terminal.designateCharacterSet(2, secondCh); //Designate G2 Character set (VT300)
         break;
       case '/':
-        terminal.designateCharacterSet(3, parseCharacterSet(secondCh)); //Designate G3 Character setTabStop (VT300)
+        terminal.designateCharacterSet(3, secondCh); //Designate G3 Character set (VT300)
         break;
       case '$':
       case '@':
         unsupported(ch, secondCh);
-    }
-  }
-
-  private static TermCharset parseCharacterSet(char ch) {
-    switch (ch) {
-      case '0':
-        return TermCharset.SpecialCharacters;
-      case 'A':
-        return TermCharset.UK;
-      case 'B':
-        return TermCharset.USASCII;
-
-      // Other character sets apply to VT220 and up
-      default:
-        return TermCharset.USASCII;
     }
   }
 
@@ -375,11 +372,12 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     if (mode == 0) { //Clear Current Column (default)
       myTerminal.clearTabStopAtCursor();
       return true;
-    } else 
-    if (mode == 3) {
+    }
+    else if (mode == 3) {
       myTerminal.clearAllTabStops();
       return true;
-    } else {
+    }
+    else {
       return false;
     }
   }
@@ -408,7 +406,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           setModeEnabled(TerminalMode.OriginMode, enabled);
           return true;
         case 7: //Wraparound Mode (DECAWM)
-          setModeEnabled(TerminalMode.WrapAround, enabled);
+          setModeEnabled(TerminalMode.AutoWrap, enabled);
           return true;
         case 8: //Auto-repeat Keys (DECARM)
           setModeEnabled(TerminalMode.AutoRepeatKeys, enabled);
@@ -416,7 +414,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 12: //Start Blinking Cursor (att610)
           //setModeEnabled(TerminalMode.CursorBlinking, enabled);
           //We want to show blinking cursor always
-          return true; 
+          return true;
         case 25:
           setModeEnabled(TerminalMode.CursorVisible, enabled);
           return true;
@@ -547,7 +545,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     char[] chars = new char[arg];
     Arrays.fill(chars, ' ');
 
-    myTerminal.writeCharacters(chars, 0, arg);
+    myTerminal.writeCharacters(new String(chars, 0, arg));
 
     return true;
   }
@@ -639,19 +637,17 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   }
 
   private boolean characterAttributes(final ControlSequence args) {
-    StyleState styleState = createStyleState(myTerminal.getStyleState(), args);
+    TextStyle styleState = createStyleState(myTerminal.getStyleState().getCurrent().clone(), args);
 
     myTerminal.characterAttributes(styleState);
 
     return true;
   }
 
-  private static StyleState createStyleState(StyleState state, ControlSequence args) {
-    StyleState styleState = state.clone();
-
+  private static TextStyle createStyleState(TextStyle textStyle, ControlSequence args) {
     final int argCount = args.getCount();
     if (argCount == 0) {
-      styleState.reset();
+      textStyle = new TextStyle();
     }
 
     for (int i = 0; i < argCount; i++) {
@@ -663,41 +659,41 @@ public class JediEmulator extends DataStreamIteratingEmulator {
 
       switch (arg) {
         case 0: //Normal (default)
-          styleState.reset();
+          textStyle = new TextStyle();
           break;
         case 1:// Bold
-          styleState.setOption(TextStyle.Option.BOLD, true);
+          textStyle.setOption(TextStyle.Option.BOLD, true);
           break;
         case 2:// Dim
-          styleState.setOption(TextStyle.Option.DIM, true);
+          textStyle.setOption(TextStyle.Option.DIM, true);
           break;
         case 4:// Underlined
-          styleState.setOption(TextStyle.Option.UNDERLINED, true);
+          textStyle.setOption(TextStyle.Option.UNDERLINED, true);
           break;
         case 5:// Blink (appears as Bold) 
-          styleState.setOption(TextStyle.Option.BLINK, true);
+          textStyle.setOption(TextStyle.Option.BLINK, true);
           break;
         case 7:// Inverse 
-          styleState.setOption(TextStyle.Option.INVERSE, true);
+          textStyle.setOption(TextStyle.Option.INVERSE, true);
           break;
         case 8: // Invisible (hidden)  
-          styleState.setOption(TextStyle.Option.HIDDEN, true);
+          textStyle.setOption(TextStyle.Option.HIDDEN, true);
           break;
         case 22: //Normal (neither bold nor faint)
-          styleState.setOption(TextStyle.Option.BOLD, false);
-          styleState.setOption(TextStyle.Option.DIM, false);
+          textStyle.setOption(TextStyle.Option.BOLD, false);
+          textStyle.setOption(TextStyle.Option.DIM, false);
           break;
         case 24: // Not underlined
-          styleState.setOption(TextStyle.Option.UNDERLINED, false);
+          textStyle.setOption(TextStyle.Option.UNDERLINED, false);
           break;
         case 25: //Steady (not blinking)
-          styleState.setOption(TextStyle.Option.BLINK, false);
+          textStyle.setOption(TextStyle.Option.BLINK, false);
           break;
         case 27: //Positive (not inverse)
-          styleState.setOption(TextStyle.Option.INVERSE, false);
+          textStyle.setOption(TextStyle.Option.INVERSE, false);
           break;
         case 28: //Visible, i.e. not hidden
-          styleState.setOption(TextStyle.Option.HIDDEN, false);
+          textStyle.setOption(TextStyle.Option.HIDDEN, false);
           break;
         case 30:
         case 31:
@@ -707,16 +703,16 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 35:
         case 36:
         case 37:
-          styleState.setCurrentForeground(ColorPalette.getCurrentColorSettings()[arg - 30]);
+          textStyle.setForeground(ColorPalette.getCurrentColorSettings()[arg - 30]);
           break;
         case 38: // Set xterm-256 text color
           Color color256 = getColor256(args);
           if (color256 != null) {
-            styleState.setCurrentForeground(color256);
+            textStyle.setForeground(color256);
           }
           break;
         case 39: // Default (original) foreground
-          styleState.setCurrentForeground(null);
+          textStyle.setForeground(null);
           break;
         case 40:
         case 41:
@@ -726,16 +722,16 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 45:
         case 46:
         case 47:
-          styleState.setCurrentBackground(ColorPalette.getCurrentColorSettings()[arg - 40]);
+          textStyle.setBackground(ColorPalette.getCurrentColorSettings()[arg - 40]);
           break;
         case 48: // Set xterm-256 background color
           Color bgColor256 = getColor256(args);
           if (bgColor256 != null) {
-            styleState.setCurrentBackground(bgColor256);
+            textStyle.setBackground(bgColor256);
           }
           break;
         case 49: //Default (original) foreground
-          styleState.setCurrentBackground(null);
+          textStyle.setBackground(null);
           break;
         case 90:
         case 91:
@@ -746,7 +742,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 96:
         case 97:
           //Bright versions of the ISO colors for foreground
-          styleState.setCurrentForeground(ColorPalette.getIndexedColor(arg - 82));
+          textStyle.setForeground(ColorPalette.getIndexedColor(arg - 82));
           break;
         case 100:
         case 101:
@@ -757,13 +753,13 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 106:
         case 107:
           //Bright versions of the ISO colors for background
-          styleState.setCurrentBackground(ColorPalette.getIndexedColor(arg - 92));
+          textStyle.setBackground(ColorPalette.getIndexedColor(arg - 92));
           break;
         default:
           LOG.error("Unknown character attribute:" + arg);
       }
     }
-    return styleState;
+    return textStyle;
   }
 
   private static Color getColor256(ControlSequence args) {

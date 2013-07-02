@@ -137,6 +137,10 @@ public class LinesBuffer {
       }
     }
   }
+  
+  public void clearAll() {
+    myLines.clear();
+  }
 
   public void deleteCharacters(int x, int y, int count) {
     TerminalLine line = getLine(y);

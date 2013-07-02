@@ -1,11 +1,11 @@
-/**
- *
- */
 package com.jediterm.terminal.display;
 
 import com.jediterm.terminal.*;
-import com.jediterm.terminal.emulator.TermCharset;
+import com.jediterm.terminal.emulator.charset.CharacterSet;
+import com.jediterm.terminal.emulator.charset.GraphicSet;
+import com.jediterm.terminal.emulator.charset.GraphicSetState;
 import org.apache.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.io.UnsupportedEncodingException;
@@ -35,7 +35,7 @@ public class BufferedDisplayTerminal implements Terminal {
 
   private final StyleState myStyleState;
 
-  private final StoredCursor myStoredCursor = new StoredCursor();
+  private StoredCursor myStoredCursor = null;
 
   private final EnumSet<TerminalMode> myModes = EnumSet.noneOf(TerminalMode.class);
 
@@ -43,10 +43,7 @@ public class BufferedDisplayTerminal implements Terminal {
 
   private final Tabulator myTabulator;
 
-  private TermCharset[] myG = new TermCharset[4]; //initialized in reset
-  private int myCurrentCharset = 0;
-
-  private int mySingleShift = -1;
+  private final GraphicSetState myGraphicSetState;
 
   public BufferedDisplayTerminal(final TerminalDisplay display, final BackBuffer buf, final StyleState initialStyleState) {
     myDisplay = display;
@@ -60,6 +57,8 @@ public class BufferedDisplayTerminal implements Terminal {
     myScrollRegionBottom = myTerminalHeight;
 
     myTabulator = new DefaultTabulator(myTerminalWidth);
+
+    myGraphicSetState = new GraphicSetState();
 
     reset();
   }
@@ -99,8 +98,7 @@ public class BufferedDisplayTerminal implements Terminal {
     writeCharacters(decode(string).toCharArray(), 0, string.length());
   }
 
-  @Override
-  public void writeCharacters(final char[] chosenBuffer, final int start,
+  private void writeCharacters(final char[] chosenBuffer, final int start,
                               final int length) {
     myBackBuffer.lock();
     try {
@@ -131,12 +129,7 @@ public class BufferedDisplayTerminal implements Terminal {
   private String decode(String string) {
     StringBuilder result = new StringBuilder();
     for (char c : string.toCharArray()) {
-      TermCharset charset = myG[myCurrentCharset];
-      if (mySingleShift != -1) {
-        charset = myG[mySingleShift];
-        mySingleShift = -1;
-      }
-      result.append(charset.decode(c));
+      result.append(myGraphicSetState.map(c));
     }
 
     return result.toString();
@@ -204,18 +197,40 @@ public class BufferedDisplayTerminal implements Terminal {
   }
 
   @Override
-  public void invokeCharacterSet(int num) {
-    myCurrentCharset = num;
+  public void mapCharsetToGL(int num) {
+    myGraphicSetState.setGL(num);
   }
 
   @Override
-  public void designateCharacterSet(int tableNumber, TermCharset charset) {
-    myG[tableNumber] = charset;
+  public void mapCharsetToGR(int num) {
+    myGraphicSetState.setGR(num);
+  }
+
+  @Override
+  public void designateCharacterSet(int tableNumber, char charset) {
+    GraphicSet gs = myGraphicSetState.getGraphicSet(tableNumber);
+    myGraphicSetState.designateGraphicSet(gs, charset);
   }
 
   @Override
   public void singleShiftSelect(int num) {
-    mySingleShift = num;
+    myGraphicSetState.overrideGL(num);
+  }
+
+  @Override
+  public void setAnsiConformanceLevel(int level) {
+    if (level == 1 || level == 2) {
+      myGraphicSetState.designateGraphicSet(0, CharacterSet.ASCII); //ASCII designated as G0
+      myGraphicSetState.designateGraphicSet(1, CharacterSet.DEC_SUPPLEMENTAL); //TODO: not DEC supplemental, but ISO Latin-1 supplemental designated as G1
+      mapCharsetToGL(0);
+      mapCharsetToGR(1);
+    } else 
+    if (level == 3) {
+      designateCharacterSet(0, 'B'); //ASCII designated as G0
+      mapCharsetToGL(0);
+    } else {
+      throw new IllegalArgumentException();
+    }
   }
 
   @Override
@@ -605,8 +620,8 @@ public class BufferedDisplayTerminal implements Terminal {
   }
 
   @Override
-  public void characterAttributes(final StyleState styleState) {
-    myStyleState.set(styleState);
+  public void characterAttributes(final TextStyle textStyle) {
+    myStyleState.setCurrent(textStyle);
   }
 
   @Override
@@ -621,46 +636,69 @@ public class BufferedDisplayTerminal implements Terminal {
 
   @Override
   public void storeCursor() {
-    storeCursor(myStoredCursor);
+    myStoredCursor = createCursorState();
+  }
+
+  private StoredCursor createCursorState() {
+    return new StoredCursor(myCursorX, myCursorY, myStyleState.getCurrent().clone(),
+                            isAutoWrap(), isOriginMode(), myGraphicSetState);
   }
 
   @Override
   public void restoreCursor() {
-    restoreCursor(myStoredCursor);
+    if (myStoredCursor != null) {
+      restoreCursor(myStoredCursor);
+    } else { //If nothing was saved by DECSC
+      setModeEnabled(TerminalMode.OriginMode, false); //Resets origin mode (DECOM)
+      cursorPosition(1, 1); //Moves the cursor to the home position (upper left of screen).
+      myStyleState.reset(); //Turns all character attributes off (normal setting).
+      
+      myGraphicSetState.designateGraphicSet(0, CharacterSet.ASCII);//Maps the ASCII character set into GL
+      mapCharsetToGL(0);
+      myGraphicSetState.designateGraphicSet(1, CharacterSet.DEC_SUPPLEMENTAL);
+      mapCharsetToGR(1); //and the DEC Supplemental Graphic set into GR
+    }
+    myDisplay.setCursor(myCursorX, myCursorY);
+  }
+  
+  public void restoreCursor(@NotNull StoredCursor storedCursor) {
+    myCursorX = storedCursor.getCursorX();
+    myCursorY = storedCursor.getCursorY();
+
+    myStyleState.setCurrent(storedCursor.getTextStyle());
+    
+    setModeEnabled(TerminalMode.AutoWrap, storedCursor.isAutoWrap());
+    setModeEnabled(TerminalMode.OriginMode, storedCursor.isOriginMode());
+
+    CharacterSet[] designations = storedCursor.getDesignations();
+    for ( int i = 0; i < designations.length; i++ )
+    {
+      myGraphicSetState.designateGraphicSet(i, designations[i]);
+    }
+    myGraphicSetState.setGL(storedCursor.getGLMapping());
+    myGraphicSetState.setGR(storedCursor.getGRMapping());
+
+    if ( storedCursor.getGLOverride() >= 0 ) {
+      myGraphicSetState.overrideGL(storedCursor.getGLOverride());
+    }
   }
 
   @Override
   public void reset() {
-    invokeCharacterSet(0);
-    designateCharacterSet(0, TermCharset.USASCII);
-    designateCharacterSet(1, TermCharset.SpecialCharacters);
-    designateCharacterSet(2, TermCharset.USASCII);
-    designateCharacterSet(3, TermCharset.USASCII);
+    myGraphicSetState.resetState();
 
     myStyleState.reset();
 
+    myBackBuffer.clearAll();
+
     initModes();
+
+    cursorPosition(1, 1);
   }
 
   private void initModes() {
     myModes.clear();
     myModes.add(TerminalMode.AutoNewLine);
-  }
-
-  public void storeCursor(final StoredCursor storedCursor) {
-    storedCursor.x = myCursorX;
-    storedCursor.y = myCursorY;
-  }
-
-  public void restoreCursor(final StoredCursor storedCursor) {
-    myCursorX = 0;
-    myCursorY = 1;
-    if (storedCursor != null) {
-      // TODO: something with origin modes
-      myCursorX = storedCursor.x;
-      myCursorY = storedCursor.y;
-    }
-    myDisplay.setCursor(myCursorX, myCursorY);
   }
 
   public boolean isAutoNewLine() {
@@ -669,6 +707,10 @@ public class BufferedDisplayTerminal implements Terminal {
 
   public boolean isOriginMode() {
     return myModes.contains(TerminalMode.OriginMode);
+  }
+
+  public boolean isAutoWrap() {
+    return myModes.contains(TerminalMode.AutoWrap);
   }
 
   public interface ResizeHandler {

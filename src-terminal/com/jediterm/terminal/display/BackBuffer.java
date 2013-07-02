@@ -621,4 +621,9 @@ public class BackBuffer implements StyledTextConsumer {
     clearArea(leftX, y, rightX, y+1);
     myTextBuffer.clearArea(leftX, y, rightX, y+1);
   }
+
+  public void clearAll() {
+    clearArea();
+    myScrollBuffer.clearAll();
+  }
 }

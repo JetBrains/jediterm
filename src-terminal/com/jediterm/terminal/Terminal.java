@@ -1,7 +1,6 @@
 package com.jediterm.terminal;
 
 import com.jediterm.terminal.display.StyleState;
-import com.jediterm.terminal.emulator.TermCharset;
 
 import java.awt.*;
 import java.io.UnsupportedEncodingException;
@@ -24,13 +23,15 @@ public interface Terminal {
 
   void newLine();
 
-  void invokeCharacterSet(int num);
+  void mapCharsetToGL(int num);
 
-  void designateCharacterSet(int tableNumber, TermCharset ch);
+  void mapCharsetToGR(int num);
 
+  void designateCharacterSet(int tableNumber, char ch);
+
+  void setAnsiConformanceLevel(int level);
+  
   void writeDoubleByte(char[] bytes) throws UnsupportedEncodingException;
-
-  void writeCharacters(char[] buf, int offset, int len);
 
   void writeCharacters(String string);
 
@@ -50,7 +51,7 @@ public interface Terminal {
 
   void reset();
 
-  void characterAttributes(StyleState styleState);
+  void characterAttributes(TextStyle textStyle);
 
   void setScrollingRegion(int top, int bottom);
 

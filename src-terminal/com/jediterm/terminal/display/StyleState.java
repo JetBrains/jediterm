@@ -49,7 +49,7 @@ public class StyleState {
   }
 
   public void set(StyleState styleState) {
-    myCurrentStyle = styleState.getCurrent();
+    setCurrent(styleState.getCurrent());
   }
 
   public void setDefaultStyle(TextStyle defaultStyle) {
@@ -66,5 +66,9 @@ public class StyleState {
   
   public StyleState clone() {
     return new StyleState(myCurrentStyle);
+  }
+
+  public void setCurrent(TextStyle current) {
+    myCurrentStyle = current;
   }
 }

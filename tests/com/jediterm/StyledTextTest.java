@@ -31,15 +31,15 @@ public class StyledTextTest extends TestCase {
 
     BackBuffer backBuffer2 = new BackBuffer(width, height, state);
 
-    terminal.characterAttributes(new StyleState(BLACK));
+    terminal.characterAttributes(BLACK);
     terminal.writeString("def ");
-    terminal.characterAttributes(new StyleState(GREEN));
+    terminal.characterAttributes(GREEN);
     terminal.writeString("foo");
 
     backBuffer.processDamagedCells(backBuffer2);
     backBuffer.resetDamage();
 
-    terminal.characterAttributes(new StyleState(BLACK));
+    terminal.characterAttributes(BLACK);
     terminal.writeString("(x):");
 
 

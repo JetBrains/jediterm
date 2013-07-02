@@ -43,3 +43,6 @@ Origin
 Continued as a fork of Gritty (http://code.google.com/p/gritty) by Robert Wittams
 and Omer Kudat, which was in its own turn a rework of
 JCTerm(http://www.jcraft.com/jcterm) by Atsuhiko Yamanaka
+
+Character sets designation and mapping implementation is based on 
+respective classes from jVT220 (https://github.com/jawi/jVT220, Apache 2.0 licensed) by J.W. Janssen

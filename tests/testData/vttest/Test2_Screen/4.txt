@@ -1,4 +1,4 @@
-[1;24r[2J[24BSoft scroll up region [1..24] size 24 Line 1
+[2J[?6h[?4h[1;24r[2J[24BSoft scroll up region [1..24] size 24 Line 1
 Soft scroll up region [1..24] size 24 Line 2
 Soft scroll up region [1..24] size 24 Line 3
 Soft scroll up region [1..24] size 24 Line 4

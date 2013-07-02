@@ -1,4 +1,4 @@
-[1;24r[2J[24BJump scroll up region [1..24] size 24 Line 1
+[2J[?6h[?4l[1;24r[2J[24BJump scroll up region [1..24] size 24 Line 1
 Jump scroll up region [1..24] size 24 Line 2
 Jump scroll up region [1..24] size 24 Line 3
 Jump scroll up region [1..24] size 24 Line 4

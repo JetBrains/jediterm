@@ -85,7 +85,7 @@ public class BufferedDisplayTerminal implements Terminal {
   private void wrapLines() {
     if (myCursorX >= myTerminalWidth) {
       myCursorX = 0;
-      moveLine();
+      myCursorY += 1;
     }
   }
 
@@ -177,8 +177,7 @@ public class BufferedDisplayTerminal implements Terminal {
       if (myCursorY > myScrollRegionBottom) {
         final int dy = myScrollRegionBottom - myCursorY;
         myCursorY = myScrollRegionBottom;
-        scrollArea(myScrollRegionTop, myScrollRegionBottom
-                                      - myScrollRegionTop, dy);
+        scrollArea(myScrollRegionTop, scrollingRegionSize(), dy);
         myBackBuffer.clearArea(0, myCursorY - 1, myTerminalWidth, myCursorY);
         myDisplay.setCursor(myCursorX, myCursorY);
       }
@@ -190,14 +189,15 @@ public class BufferedDisplayTerminal implements Terminal {
 
   @Override
   public void newLine() {
-    moveLine();
-    myDisplay.setCursor(myCursorX, myCursorY);
+    myCursorY += 1;
 
     scrollY();
-    
+
     if (isAutoNewLine()) {
       carriageReturn();
     }
+
+    myDisplay.setCursor(myCursorX, myCursorY);
   }
 
   @Override
@@ -219,10 +219,6 @@ public class BufferedDisplayTerminal implements Terminal {
   public void setWindowTitle(String name) {
     //TODO: implement
     //To change body of implemented methods use File | Settings | File Templates.
-  }
-
-  private void moveLine() {
-    myCursorY += 1;
   }
 
   @Override
@@ -447,7 +443,7 @@ public class BufferedDisplayTerminal implements Terminal {
     myBackBuffer.lock();
     try {
       myCursorY -= countY;
-      myCursorY = Math.max(myCursorY, 1);
+      myCursorY = Math.max(myCursorY, scrollingRegionTop());
       myDisplay.setCursor(myCursorX, myCursorY);
     }
     finally {
@@ -460,7 +456,7 @@ public class BufferedDisplayTerminal implements Terminal {
     myBackBuffer.lock();
     try {
       myCursorY += dY;
-      myCursorY = Math.min(myCursorY, myTerminalHeight);
+      myCursorY = Math.min(myCursorY, scrollingRegionBottom());
       myDisplay.setCursor(myCursorX, myCursorY);
     }
     finally {
@@ -470,11 +466,13 @@ public class BufferedDisplayTerminal implements Terminal {
 
   @Override
   public void index() {
+    //Moves the cursor down one line in the
+    //same column. If the cursor is at the
+    //bottom margin, the page scrolls up
     myBackBuffer.lock();
     try {
-      if (myCursorY == myTerminalHeight) {
-        scrollArea(myScrollRegionTop, myScrollRegionBottom
-                                      - myScrollRegionTop, -1);
+      if (myCursorY == myScrollRegionBottom) {
+        scrollArea(myScrollRegionTop, scrollingRegionSize(), -1);
         myBackBuffer.clearArea(0, myScrollRegionBottom - 1, myTerminalWidth,
                                myScrollRegionBottom);
       }
@@ -499,9 +497,8 @@ public class BufferedDisplayTerminal implements Terminal {
     myBackBuffer.lock();
     try {
       myCursorX = 0;
-      if (myCursorY == myTerminalHeight) {
-        scrollArea(myScrollRegionTop, myScrollRegionBottom
-                                      - myScrollRegionTop, -1);
+      if (myCursorY == myScrollRegionBottom) {
+        scrollArea(myScrollRegionTop, scrollingRegionSize(), -1);
         myBackBuffer.clearArea(0, myScrollRegionBottom - 1, myTerminalWidth,
                                myScrollRegionBottom);
       }
@@ -515,13 +512,19 @@ public class BufferedDisplayTerminal implements Terminal {
     }
   }
 
+  private int scrollingRegionSize() {
+    return myScrollRegionBottom - myScrollRegionTop + 1;
+  }
+
   @Override
   public void reverseIndex() {
+    //Moves the cursor up one line in the same
+    //column. If the cursor is at the top margin,
+    //the page scrolls down.
     myBackBuffer.lock();
     try {
-      if (myCursorY == 1) {
-        scrollArea(myScrollRegionTop - 1, myScrollRegionBottom
-                                          - myScrollRegionTop, 1);
+      if (myCursorY == myScrollRegionTop) {
+        scrollArea(myScrollRegionTop - 1, scrollingRegionSize(), 1);
         myBackBuffer.clearArea(myCursorX, myCursorY - 1, myTerminalWidth, myCursorY);
       }
       else {
@@ -532,6 +535,14 @@ public class BufferedDisplayTerminal implements Terminal {
     finally {
       myBackBuffer.unlock();
     }
+  }
+
+  private int scrollingRegionTop() {
+    return isOriginMode() ? myScrollRegionTop : 1;
+  }
+
+  private int scrollingRegionBottom() {
+    return isOriginMode() ? myScrollRegionBottom : myTerminalHeight;
   }
 
   @Override
@@ -562,7 +573,17 @@ public class BufferedDisplayTerminal implements Terminal {
   @Override
   public void cursorPosition(int x, int y) {
     myCursorX = x - 1;
-    myCursorY = y;
+    if (isOriginMode()) {
+      myCursorY = y + scrollingRegionTop();
+    }
+    else {
+      myCursorY = y;
+    }
+
+    if (myCursorY > scrollingRegionBottom()) {
+      myCursorY = scrollingRegionBottom();
+    }
+
     myDisplay.setCursor(myCursorX, myCursorY);
   }
 
@@ -608,7 +629,7 @@ public class BufferedDisplayTerminal implements Terminal {
     designateCharacterSet(3, TermCharset.USASCII);
 
     myStyleState.reset();
-    
+
     initModes();
   }
 
@@ -635,6 +656,10 @@ public class BufferedDisplayTerminal implements Terminal {
 
   public boolean isAutoNewLine() {
     return myModes.contains(TerminalMode.AutoNewLine);
+  }
+
+  public boolean isOriginMode() {
+    return myModes.contains(TerminalMode.OriginMode);
   }
 
   public interface ResizeHandler {

@@ -284,8 +284,8 @@ public class BackBuffer implements StyledTextConsumer {
     if (dy >= 0) {
       LOG.error("dy should be negative");
     }
-    for (int line = y; line <= lastLine; line++) {
-      if (line > myHeight - 1) {
+    for (int line = y; line < lastLine; line++) {
+      if (line > myHeight) {
         LOG.error("Attempt to scroll line from below bottom of screen:" + line);
         continue;
       }

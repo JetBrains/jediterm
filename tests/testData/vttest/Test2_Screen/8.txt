@@ -1,0 +1,1 @@
+[2J[?6l[24;1HOrigin mode test. This line should be at the bottom of the screen.[1;1HThis line should be at the top of the screen. Push <RETURN>

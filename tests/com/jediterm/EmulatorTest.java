@@ -21,7 +21,7 @@ import java.io.IOException;
 /**
  * @author traff
  */
-public class EmulatorTest extends TestCase {
+public class EmulatorTest extends AbstractEmulatorTest {
   public void testSetCursorPosition() throws IOException {
     doTest(3, 4, "X00\n" +  //X wins
                  "0X \n" +
@@ -45,38 +45,8 @@ public class EmulatorTest extends TestCase {
     assertColor(backBuffer.getStyleAt(2, 0), ColorPalette.getIndexedColor(0), ColorPalette.getIndexedColor(6));
   }
 
-  private static void assertColor(TextStyle style, Color foreground, Color background) {
-    assertEquals(foreground, style.getForeground());
-    assertEquals(background, style.getBackground());
-  }
-
-  private BackBuffer doTest() throws IOException {
-    return doTest(80, 24);
-  }
-
-  private BackBuffer doTest(int width, int height) throws IOException {
-    return doTest(width, height, FileUtil.loadFileLines(new File(TestPathsManager.getTestDataPath() + getName() + ".after.txt")));
-  }
-
-  private BackBuffer doTest(int width, int height, String expected) throws IOException {
-    StyleState state = new StyleState();
-
-    BackBuffer backBuffer = new BackBuffer(width, height, state);
-
-    Terminal terminal = new BackBufferTerminal(backBuffer, state);
-
-    ArrayTerminalDataStream
-      fileStream = new ArrayTerminalDataStream(FileUtil.loadFileText(new File(TestPathsManager.getTestDataPath() + getName() + ".txt"),
-                                                                     "UTF-8"));
-
-    Emulator emulator = new JediEmulator(fileStream, new NullTerminalOutputStream(), terminal);
-
-    while (emulator.hasNext()) {
-      emulator.next();
-    }
-
-    assertEquals(expected, backBuffer.getLines());
-    
-    return backBuffer;
+  @Override
+  protected String getPathToTest() {
+    return TestPathsManager.getTestDataPath() + getName();
   }
 }

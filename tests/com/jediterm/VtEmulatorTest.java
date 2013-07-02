@@ -1,6 +1,7 @@
 package com.jediterm;
 
 import com.google.common.collect.Sets;
+import com.jediterm.terminal.ArrayTerminalDataStream;
 import com.jediterm.terminal.Terminal;
 import com.jediterm.terminal.display.BackBuffer;
 import com.jediterm.terminal.display.StyleState;
@@ -20,47 +21,62 @@ import java.util.Set;
 /**
  * @author traff
  */
-public class VtEmulatorTest extends TestCase {
+public class VtEmulatorTest extends AbstractEmulatorTest {
   /**
-   * Test of screen features 
+   * Test of screen features
    */
-  public void testTest2_Screen() throws IOException {
-    doVtTest(7, Sets.newHashSet(1));
+  public void testTest2_Screen_1() throws IOException {
+    doVtTest();
   }
 
-  private void doVtTest(int count) throws IOException {
-    doVtTest(count, Sets.<Integer>newHashSet());
+  public void testTest2_Screen_2() throws IOException {
+    doVtTest();
   }
 
-  private void doVtTest(int count, Set<Integer> toSkip) throws IOException {
-    StyleState state = new StyleState();
+  public void testTest2_Screen_3() throws IOException {
+    doVtTest();
+  }
 
-    BackBuffer backBuffer = new BackBuffer(80, 24, state);
+  public void testTest2_Screen_4() throws IOException {
+    doVtTest();
+  }
 
-    Terminal terminal = new BackBufferTerminal(backBuffer, state);
+  public void testTest2_Screen_5() throws IOException {
+    doVtTest();
+  }
 
-    FileLoadableTerminalDataStream dataStream = new FileLoadableTerminalDataStream();
+  public void testTest2_Screen_6() throws IOException {
+    doVtTest();
+  }
 
-    Emulator emulator = new JediEmulator(dataStream, new NullTerminalOutputStream(), terminal);
+  public void testTest2_Screen_7() throws IOException {
+    doVtTest();
+  }
 
-    String testFolder = TestPathsManager.getTestDataPath() + "vttest/" + getName().substring(4);
-    
-    for (int i = 1; i<=count;i++) {
-      if (toSkip.contains(i)) {
-        continue;
-      }
-      File file = new File(testFolder + "/" + i + ".txt");
-      dataStream.load(file);
+  public void testTest2_Screen_8() throws IOException {
+    doVtTest();
+  }
 
-      emulator.resetEof();
-      
-      while (emulator.hasNext()) {
-        emulator.next();
-      }
+  public void testTest2_Screen_9() throws IOException {
+    doVtTest();
+  }
 
-      String expected = FileUtil.loadFileLines(new File(testFolder + "/" + i + ".after.txt"));
-      
-      assertEquals("Test " + i + " failed", expected, backBuffer.getLines());
-    }
+  public void testTest2_Screen_10() throws IOException {
+    doVtTest();
+  }
+
+  public void testTest2_Screen_11() throws IOException {
+    doVtTest();
+  }
+
+  private void doVtTest() throws IOException {
+    doTest();
+  }
+
+  @Override
+  protected String getPathToTest() {
+    String name = getName().substring(4);
+    int ind = name.lastIndexOf("_");
+    return TestPathsManager.getTestDataPath() + "vttest/" + name.substring(0, ind) + "/" + name.substring(ind+1);
   }
 }

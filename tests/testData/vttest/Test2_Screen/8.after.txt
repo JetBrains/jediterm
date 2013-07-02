@@ -1,15 +1,4 @@
-Push <RETURN>                                                                   
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-Soft scroll up region [12..13] size 2 Line 29                                   
+This line should be at the top of the screen. Push <RETURN>                     
                                                                                 
                                                                                 
                                                                                 
@@ -22,3 +11,14 @@ Soft scroll up region [12..13] size 2 Line 29
                                                                                 
                                                                                 
                                                                                 
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+Origin mode test. This line should be at the bottom of the screen.              

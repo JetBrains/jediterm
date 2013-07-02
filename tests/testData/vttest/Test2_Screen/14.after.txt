@@ -1,24 +1,24 @@
+                   Graphic rendition test pattern:                              
+                                                                                
+                                                                                
+vanilla                                bold                                     
+                                                                                
+     underline                              bold underline                      
+                                                                                
+blink                                  bold blink                               
+                                                                                
+     underline blink                        bold underline blink                
+                                                                                
+negative                               bold negative                            
+                                                                                
+     underline negative                     bold underline negative             
+                                                                                
+blink negative                         bold blink negative                      
+                                                                                
+     underline blink negative               bold underline blink negative       
                                                                                 
                                                                                 
                                                                                 
                                                                                 
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-Push <RETURN>                                                                   
-Soft scroll down region [12..13] size 2 Line 29                                 
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
+Light background. Push <RETURN>                                                 
                                                                                 

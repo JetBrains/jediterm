@@ -1,22 +1,8 @@
 package com.jediterm;
 
-import com.google.common.collect.Sets;
-import com.jediterm.terminal.ArrayTerminalDataStream;
-import com.jediterm.terminal.Terminal;
-import com.jediterm.terminal.display.BackBuffer;
-import com.jediterm.terminal.display.StyleState;
-import com.jediterm.terminal.emulator.Emulator;
-import com.jediterm.terminal.emulator.JediEmulator;
-import com.jediterm.util.BackBufferTerminal;
-import com.jediterm.util.FileLoadableTerminalDataStream;
-import com.jediterm.util.FileUtil;
-import com.jediterm.util.NullTerminalOutputStream;
-import junit.framework.TestCase;
 import testData.TestPathsManager;
 
-import java.io.File;
 import java.io.IOException;
-import java.util.Set;
 
 /**
  * @author traff
@@ -66,6 +52,22 @@ public class VtEmulatorTest extends AbstractEmulatorTest {
   }
 
   public void testTest2_Screen_11() throws IOException {
+    doVtTest();
+  }
+  
+  public void testTest2_Screen_12() throws IOException {
+    doVtTest();
+  }
+  
+  public void testTest2_Screen_13() throws IOException {
+    doVtTest();
+  }
+  
+  public void testTest2_Screen_14() throws IOException {
+    doVtTest();
+  }
+  
+  public void testTest2_Screen_15() throws IOException {
     doVtTest();
   }
 

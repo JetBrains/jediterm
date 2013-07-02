@@ -181,6 +181,9 @@ public class BufferedDisplayTerminal implements Terminal {
         myBackBuffer.clearArea(0, myCursorY - 1, myTerminalWidth, myCursorY);
         myDisplay.setCursor(myCursorX, myCursorY);
       }
+      if (myCursorY < myScrollRegionTop) {
+        myCursorY = myScrollRegionTop;
+      }
     }
     finally {
       myBackBuffer.unlock();
@@ -574,7 +577,7 @@ public class BufferedDisplayTerminal implements Terminal {
   public void cursorPosition(int x, int y) {
     myCursorX = x - 1;
     if (isOriginMode()) {
-      myCursorY = y + scrollingRegionTop();
+      myCursorY = y + scrollingRegionTop() - 1;
     }
     else {
       myCursorY = y;
@@ -589,10 +592,16 @@ public class BufferedDisplayTerminal implements Terminal {
 
   @Override
   public void setScrollingRegion(int top, int bottom) {
+    if (top > bottom) {
+      LOG.error("Top margin of scroll region can't be greater then bottom: " + top + ">" + bottom);
+    }
     myScrollRegionTop = Math.max(1, top);
     myScrollRegionBottom = Math.min(myTerminalHeight, bottom);
 
     myBackBuffer.setScrollRegion(myScrollRegionTop, myScrollRegionBottom);
+
+    //DECSTBM moves the cursor to column 1, line 1 of the page
+    cursorPosition(1, 1);
   }
 
   @Override

@@ -363,7 +363,8 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           return restoreDecPrivateModeValues(args); //
         }
         else {
-          return setScrollingRegion(args);
+          //Set Top and Bottom Margins
+          return setScrollingRegion(args); //DECSTBM
         }
       default:
         return false;

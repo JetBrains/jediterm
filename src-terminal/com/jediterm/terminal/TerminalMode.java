@@ -40,7 +40,12 @@ public enum TerminalMode {
   },
   SmoothScroll,
   ReverseVideo,
-  OriginMode,
+  OriginMode {
+    @Override
+    public void setEnabled(Terminal terminal, boolean enabled) {
+      terminal.cursorPosition(1, 1);
+    }
+  },
   WrapAround,
   AutoRepeatKeys,
   Interlace,

@@ -5,7 +5,6 @@ import com.jediterm.terminal.display.BackBuffer;
 import com.jediterm.terminal.display.BufferedDisplayTerminal;
 import com.jediterm.terminal.display.StyleState;
 import com.jediterm.util.BackBufferDisplay;
-import com.jediterm.util.TestStyle;
 import junit.framework.TestCase;
 
 import java.awt.*;
@@ -14,14 +13,14 @@ import java.awt.*;
  * @author traff
  */
 public class StyledTextTest extends TestCase {
-  private static final TextStyle GREEN = new TestStyle(6, Color.GREEN, null);
-  private static final TextStyle BLACK = new TestStyle(4, Color.BLACK, null);
+  private static final TextStyle GREEN = new TextStyle(Color.GREEN, null);
+  private static final TextStyle BLACK = new TextStyle(Color.BLACK, null);
 
 
   public void testStyledTest1() {
     final int width = 12;
     final int height = 1;
-    final String colors = "004 004 004 004 006 006 006 004 004 004 004 001 \n";
+    final String colors = "00 00 00 00 01 01 01 00 00 00 00 02 \n";
 
     StyleState state = new StyleState();
 

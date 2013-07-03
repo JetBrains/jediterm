@@ -10,7 +10,6 @@ import java.util.WeakHashMap;
 
 public class TextStyle implements Cloneable {
   public static final EnumSet<Option> NO_OPTIONS = EnumSet.noneOf(Option.class);
-  private static int COUNT = 1;
 
   public static final ChosenColor FOREGROUND = new ChosenColor(Color.BLACK);
   public static final ChosenColor BACKGROUND = new ChosenColor(Color.WHITE);
@@ -22,7 +21,6 @@ public class TextStyle implements Cloneable {
   private Color myForeground;
   private Color myBackground;
   private EnumSet<Option> myOptions;
-  protected int myNumber;
 
   public TextStyle() {
     this(null, null, NO_OPTIONS);
@@ -33,7 +31,6 @@ public class TextStyle implements Cloneable {
   }
 
   public TextStyle(final Color foreground, final Color background, final EnumSet<Option> options) {
-    myNumber = COUNT++;
     myForeground = foreground;
     myBackground = background;
     myOptions = options.clone();
@@ -121,8 +118,8 @@ public class TextStyle implements Cloneable {
     return new TextStyle(myForeground, myBackground, myOptions);
   }
 
-  public int getNumber() {
-    return myNumber;
+  public int getId() {
+    return hashCode();
   }
 
   public boolean hasOption(final Option bold) {

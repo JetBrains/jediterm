@@ -1,6 +1,7 @@
 package com.jediterm.terminal.display;
 
 import com.jediterm.terminal.TextStyle;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 
@@ -22,7 +23,7 @@ public class StyleState {
     return TextStyle.getCanonicalStyle(getMergedStyle());
   }
 
-  private static TextStyle merge(TextStyle style, TextStyle defaultStyle) {
+  private static TextStyle merge(@NotNull TextStyle style, @NotNull TextStyle defaultStyle) {
     TextStyle newStyle = style.clone();
     if (newStyle.getBackground() == null && defaultStyle.getBackground() != null) {
       newStyle.setBackground(defaultStyle.getBackground());

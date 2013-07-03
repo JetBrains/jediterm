@@ -1,5 +1,6 @@
 package com.jediterm.terminal.display;
 
+import com.google.common.collect.Maps;
 import com.jediterm.terminal.*;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -7,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 import java.awt.*;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -321,14 +323,19 @@ public class BackBuffer implements StyledTextConsumer {
   }
 
   public String getStyleLines() {
+    int count = 0;
+    Map<Integer, Integer> hashMap = Maps.newHashMap();
     myLock.lock();
     try {
       final StringBuilder sb = new StringBuilder();
       for (int row = 0; row < myHeight; row++) {
         for (int col = 0; col < myWidth; col++) {
           final TextStyle style = myStyleBuf[row * myWidth + col];
-          int styleNum = style == null ? 0 : style.getNumber();
-          sb.append(String.format("%03d ", styleNum));
+          int styleNum = style == null ? 0 : style.getId();
+          if (!hashMap.containsKey(styleNum)) {
+            hashMap.put(styleNum, count++);
+          }
+          sb.append(String.format("%02d ", hashMap.get(styleNum)));
         }
         sb.append("\n");
       }

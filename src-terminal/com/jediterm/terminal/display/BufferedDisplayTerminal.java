@@ -671,7 +671,7 @@ public class BufferedDisplayTerminal implements Terminal {
     myCursorX = storedCursor.getCursorX();
     myCursorY = storedCursor.getCursorY();
 
-    myStyleState.setCurrent(storedCursor.getTextStyle());
+    myStyleState.setCurrent(storedCursor.getTextStyle().clone());
     
     setModeEnabled(TerminalMode.AutoWrap, storedCursor.isAutoWrap());
     setModeEnabled(TerminalMode.OriginMode, storedCursor.isOriginMode());

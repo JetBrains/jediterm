@@ -43,7 +43,6 @@ public enum TerminalMode {
   OriginMode {
     @Override
     public void setEnabled(Terminal terminal, boolean enabled) {
-      terminal.cursorPosition(1, 1);
     }
   },
   AutoWrap,

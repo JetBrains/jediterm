@@ -22,13 +22,23 @@ public class CharBuffer implements Iterable<Character>, CharSequence {
     myBuf = buf;
     myStart = start;
     myLength = length;
+    
+    if (myLength<0) {
+      throw new IllegalStateException("Length can't be negative: " + myLength);
+    }
+
+    if (myStart<0) {
+      throw new IllegalStateException("Start position can't be negative: " + myStart);
+    }
+    
+    if (myStart+myLength>myBuf.length) {
+      throw new IllegalStateException(String.format("Interval is out of array bounds: %d+%d>%d", myStart, myLength, myBuf.length));
+    }
   }
 
   public CharBuffer(char c, int count) {
-    myBuf = new char[count];
+    this(new char[count], 0, count);
     Arrays.fill(myBuf, c);
-    myStart = 0;
-    myLength = count;
   }
 
   public CharBuffer(@NotNull String str) {

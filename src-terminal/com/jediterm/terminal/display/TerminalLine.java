@@ -106,22 +106,27 @@ public class TerminalLine {
     for (TextEntry entry : myTextEntries) {
       if (count == 0) {
         newEntries.add(entry);
+        continue;
       }
       int len = entry.getLength();
-      if (p + len < x) {
+      if (p + len <= x) {
         p += len;
         newEntries.add(entry);
         continue;
       }
-      if (p < x) {
-        newEntries.add(new TextEntry(entry.getStyle(), entry.getText().subBuffer(0, x - p)));
+      int dx = x - p; //>=0
+      if (dx>0) {
+        //part of entry before x
+        newEntries.add(new TextEntry(entry.getStyle(), entry.getText().subBuffer(0, dx)));
+        p = x;
       }
-      if (x + count < p + len) {
-        newEntries.add(new TextEntry(entry.getStyle(), entry.getText().subBuffer(x - p + count, len - (x - p + count))));
+      if (dx + count < len) {
+        //part that left after deleting count 
+        newEntries.add(new TextEntry(entry.getStyle(), entry.getText().subBuffer(dx + count, len - (dx + count))));
         count = 0;
       }
       else {
-        count -= (len - (p - x));
+        count -= (len-dx);
         p = x;
       }
     }

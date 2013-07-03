@@ -71,6 +71,14 @@ public class VtEmulatorTest extends AbstractEmulatorTest {
     doVtTest();
   }
 
+  /**
+   * Test of characters 
+   */
+
+  public void testTest3_Characters_1() throws IOException {
+    doVtTest();
+  }
+
   private void doVtTest() throws IOException {
     doTest();
   }

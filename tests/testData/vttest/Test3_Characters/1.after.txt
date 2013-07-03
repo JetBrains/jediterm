@@ -1,0 +1,24 @@
+         Selected as G0 (with SI)              Selected as G1 (with SO)         
+                                                                                
+Character set A (UK / national)                                                 
+          !"£$%&'()*+,-./0123456789:;<=>?       !"£$%&'()*+,-./0123456789:;<=>? 
+         @ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_      @ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_ 
+         `abcdefghijklmnopqrstuvwxyz{|}~      `abcdefghijklmnopqrstuvwxyz{|}~ 
+Character set B (US ASCII)                                                      
+          !"#$%&'()*+,-./0123456789:;<=>?       !"#$%&'()*+,-./0123456789:;<=>? 
+         @ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_      @ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_ 
+         `abcdefghijklmnopqrstuvwxyz{|}~      `abcdefghijklmnopqrstuvwxyz{|}~ 
+Character set 0 (Special graphics and line drawing)                             
+          !"#$%&'()*+,-./0123456789:;<=>?       !"#$%&'()*+,-./0123456789:;<=>? 
+         @ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_      @ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_ 
+         ◆▒␉␌␍␊°±␤␋┘┐┌└┼⎺⎻─⎼⎽├┤┴┬│≤≥π≠£·       ◆▒␉␌␍␊°±␤␋┘┐┌└┼⎺⎻─⎼⎽├┤┴┬│≤≥π≠£·  
+Character set 1 (Alternate character ROM standard characters)                   
+          !"#$%&'()*+,-./0123456789:;<=>?       !"#$%&'()*+,-./0123456789:;<=>? 
+         @ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_      @ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_ 
+         `abcdefghijklmnopqrstuvwxyz{|}~      `abcdefghijklmnopqrstuvwxyz{|}~ 
+Character set 2 (Alternate character ROM special graphics)                      
+          !"#$%&'()*+,-./0123456789:;<=>?       !"#$%&'()*+,-./0123456789:;<=>? 
+         @ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_      @ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_ 
+         ◆▒␉␌␍␊°±␤␋┘┐┌└┼⎺⎻─⎼⎽├┤┴┬│≤≥π≠£·       ◆▒␉␌␍␊°±␤␋┘┐┌└┼⎺⎻─⎼⎽├┤┴┬│≤≥π≠£·  
+                                                                                
+These are the installed character sets. Push <RETURN>                           

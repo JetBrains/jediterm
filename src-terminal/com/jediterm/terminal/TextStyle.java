@@ -16,26 +16,27 @@ public class TextStyle implements Cloneable {
   public static final ChosenColor BACKGROUND = new ChosenColor(Color.WHITE);
 
   public static final TextStyle EMPTY = new TextStyle();
-  
-  private static final WeakHashMap<TextStyle, WeakReference<TextStyle>> styles = new WeakHashMap<TextStyle, WeakReference<TextStyle>>();
-  
-  public enum Option {
-    BOLD,
-    BLINK,
-    DIM,
-    INVERSE,
-    UNDERLINED,
-    HIDDEN;
 
-    public EnumSet<Option> set(EnumSet<Option> options, boolean val) {
-      if (val) {
-        options.add(this);
-      }
-      else {
-        options.remove(this);
-      }
-      return options;
-    }
+  private static final WeakHashMap<TextStyle, WeakReference<TextStyle>> styles = new WeakHashMap<TextStyle, WeakReference<TextStyle>>();
+
+  private Color myForeground;
+  private Color myBackground;
+  private EnumSet<Option> myOptions;
+  protected int myNumber;
+
+  public TextStyle() {
+    this(null, null, NO_OPTIONS);
+  }
+
+  public TextStyle(final Color foreground, final Color background) {
+    this(foreground, background, NO_OPTIONS);
+  }
+
+  public TextStyle(final Color foreground, final Color background, final EnumSet<Option> options) {
+    myNumber = COUNT++;
+    myForeground = foreground;
+    myBackground = background;
+    myOptions = options.clone();
   }
 
   public Color getDefaultForeground() {
@@ -46,17 +47,45 @@ public class TextStyle implements Cloneable {
     return BACKGROUND;
   }
 
-  public TextStyle setBackground(Color background) {
-    return new TextStyle(myForeground, background, myOptions);
+  public void setBackground(Color background) {
+    myBackground = background;
   }
 
-  public TextStyle setForeground(Color foreground) {
-    return new TextStyle(foreground, myBackground, myOptions);
+  public void setForeground(Color foreground) {
+    myForeground = foreground;
   }
 
-  public TextStyle setOptions(EnumSet<Option> options) {
-    return new TextStyle(myForeground, myBackground, options);
+  public void setOptions(EnumSet<Option> options) {
+    myOptions = options;
   }
+
+  public void setOption(final Option opt, final boolean val) {
+    setOptions(opt.set(EnumSet.copyOf(myOptions), val));
+  }
+
+  public TextStyle readonlyCopy() {
+    return new TextStyle(myForeground, myBackground, myOptions) {
+      private TextStyle readonly() {
+        throw new IllegalStateException("Text Style is readonly");
+      }
+
+      @Override
+      public void setBackground(Color background) {
+        readonly();
+      }
+
+      @Override
+      public void setForeground(Color foreground) {
+        readonly();
+      }
+
+      @Override
+      public void setOptions(EnumSet<Option> options) {
+        readonly();
+      }
+    };
+  }
+
 
   static class ChosenColor extends Color {
     private static final long serialVersionUID = 7492667732033832704L;
@@ -79,37 +108,12 @@ public class TextStyle implements Cloneable {
   }
 
 
-  private final Color myForeground;
-  private final Color myBackground;
-  private EnumSet<Option> myOptions;
-  protected int myNumber;
-
-  public TextStyle() {
-    this(null, null, NO_OPTIONS);
-  }
-
-  public TextStyle(final Color foreground, final Color background) {
-    this(foreground, background, NO_OPTIONS);
-  }
-
-  public TextStyle(final Color foreground, final Color background, final EnumSet<Option> options) {
-    myNumber = COUNT++;
-    myForeground = foreground;
-    myBackground = background;
-    myOptions = options.clone();
-  }
-
-
   public Color getForeground() {
     return myForeground;
   }
 
   public Color getBackground() {
     return myBackground;
-  }
-
-  public TextStyle setOption(final Option opt, final boolean val) {
-    return setOptions(opt.set(EnumSet.copyOf(myOptions), val));
   }
 
   @Override
@@ -184,5 +188,24 @@ public class TextStyle implements Cloneable {
 
   public void clearOptions() {
     myOptions.clear();
+  }
+
+  public enum Option {
+    BOLD,
+    BLINK,
+    DIM,
+    INVERSE,
+    UNDERLINED,
+    HIDDEN;
+
+    public EnumSet<Option> set(EnumSet<Option> options, boolean val) {
+      if (val) {
+        options.add(this);
+      }
+      else {
+        options.remove(this);
+      }
+      return options;
+    }
   }
 }

@@ -19,6 +19,9 @@ public class CharBuffer implements Iterable<Character>, CharSequence {
   private final int myLength;
 
   public CharBuffer(@NotNull char[] buf, int start, int length) {
+    if (start + length>buf.length) {
+      throw new IllegalArgumentException(String.format("Out ouf bounds %d+%d>%d", start, length, buf.length));
+    }
     myBuf = buf;
     myStart = start;
     myLength = length;

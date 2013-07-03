@@ -2,7 +2,6 @@ package com.jediterm.terminal.emulator;
 
 import com.google.common.base.Ascii;
 import com.jediterm.terminal.*;
-import com.jediterm.terminal.display.StyleState;
 import org.apache.log4j.Logger;
 
 import java.awt.*;
@@ -135,7 +134,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         unsupported("Back Index (DECBI), VT420 and up");
         break;
       case '7': //Save Cursor (DECSC)
-        terminal.storeCursor();
+        terminal.saveCursor();
         break;
       case '8':
         terminal.restoreCursor();

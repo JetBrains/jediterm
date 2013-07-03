@@ -45,7 +45,7 @@ public interface Terminal {
 
   void fillScreen(char c);
 
-  void storeCursor();
+  void saveCursor();
 
   void restoreCursor();
 
@@ -54,6 +54,8 @@ public interface Terminal {
   void characterAttributes(TextStyle textStyle);
 
   void setScrollingRegion(int top, int bottom);
+
+  void resetScrollRegions();
 
   void cursorHorizontalAbsolute(int x);
 

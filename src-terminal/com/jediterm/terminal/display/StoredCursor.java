@@ -45,10 +45,10 @@ public class StoredCursor {
     myCursorX = cursorX;
     myCursorY = cursorY;
     myTextStyle = textStyle;
-    myGLMapping = graphicSetState.getGL().getIndex();
-    myGRMapping = graphicSetState.getGR().getIndex();
     myAutoWrap = autoWrap;
     myOriginMode = originMode;
+    myGLMapping = graphicSetState.getGL().getIndex();
+    myGRMapping = graphicSetState.getGR().getIndex();
     myGLOverride = graphicSetState.getGLOverrideIndex();
     for (int i = 0; i<4; i++) {
       myDesignations[i] = graphicSetState.getGraphicSet(i).getDesignation();

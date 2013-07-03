@@ -7,7 +7,7 @@ import java.io.IOException;
 /**
  * @author traff
  */
-public class VtEmulatorTest extends AbstractEmulatorTest {
+public class VtEmulatorTest extends EmulatorTestAbstract {
   /**
    * Test of screen features
    */

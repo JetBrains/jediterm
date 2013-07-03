@@ -21,7 +21,7 @@ import java.io.IOException;
  * @author traff
  */
 @Ignore
-public abstract class AbstractEmulatorTest extends TestCase {
+public abstract class EmulatorTestAbstract extends TestCase {
   protected static void assertColor(TextStyle style, Color foreground, Color background) {
     assertEquals(foreground, style.getForeground());
     assertEquals(background, style.getBackground());

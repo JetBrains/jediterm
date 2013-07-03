@@ -1,27 +1,15 @@
 package com.jediterm;
 
-import com.jediterm.terminal.ArrayTerminalDataStream;
-import com.jediterm.terminal.Terminal;
-import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.display.BackBuffer;
-import com.jediterm.terminal.display.StyleState;
 import com.jediterm.terminal.emulator.ColorPalette;
-import com.jediterm.terminal.emulator.Emulator;
-import com.jediterm.terminal.emulator.JediEmulator;
-import com.jediterm.util.BackBufferTerminal;
-import com.jediterm.util.FileUtil;
-import com.jediterm.util.NullTerminalOutputStream;
-import junit.framework.TestCase;
 import testData.TestPathsManager;
 
-import java.awt.*;
-import java.io.File;
 import java.io.IOException;
 
 /**
  * @author traff
  */
-public class EmulatorTest extends AbstractEmulatorTest {
+public class EmulatorTest extends EmulatorTestAbstract {
   public void testSetCursorPosition() throws IOException {
     doTest(3, 4, "X00\n" +  //X wins
                  "0X \n" +

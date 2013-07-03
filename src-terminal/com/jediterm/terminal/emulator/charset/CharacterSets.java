@@ -202,11 +202,14 @@ public final class CharacterSets {
     else if (original >= GL_START && original <= GL_END) {
       int idx = original - GL_START;
       mappedChar = gl.map(original, idx);
-    }
-    else if (original >= GR_START && original <= GR_END) {
-      int idx = original - GR_START;
-      mappedChar = gr.map(original, idx);
-    }
+    } 
+    //To support UTF-8 we don't use GR table
+    //TODO: verify that approach
+    
+    //else if (original >= GR_START && original <= GR_END) {
+    //  int idx = original - GR_START;
+    //  mappedChar = gr.map(original, idx);
+    //}
 
     return new Object[]{mappedChar, null};
   }

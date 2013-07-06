@@ -30,7 +30,7 @@ public interface Terminal {
   void designateCharacterSet(int tableNumber, char ch);
 
   void setAnsiConformanceLevel(int level);
-  
+
   void writeDoubleByte(char[] bytes) throws UnsupportedEncodingException;
 
   void writeCharacters(String string);
@@ -58,7 +58,7 @@ public interface Terminal {
   void cursorHorizontalAbsolute(int x);
 
   void linePositionAbsolute(int y);
-  
+
   void cursorPosition(int x, int y);
 
   void cursorUp(int countY);
@@ -78,7 +78,7 @@ public interface Terminal {
   void eraseInDisplay(int arg);
 
   void setModeEnabled(TerminalMode mode, boolean enabled);
-  
+
   void disconnected();
 
   int getCursorX();
@@ -116,4 +116,6 @@ public interface Terminal {
   void clearAllTabStops();
 
   void setTabStopAtCursor();
+
+  void writeUnwrappedString(String string);
 }

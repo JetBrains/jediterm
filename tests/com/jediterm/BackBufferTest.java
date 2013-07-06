@@ -3,7 +3,7 @@ package com.jediterm;
 import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.display.BackBuffer;
-import com.jediterm.terminal.display.BufferedDisplayTerminal;
+import com.jediterm.terminal.display.JediTerminal;
 import com.jediterm.terminal.display.CharBuffer;
 import com.jediterm.terminal.display.StyleState;
 import com.jediterm.util.BackBufferDisplay;
@@ -19,7 +19,7 @@ public class BackBufferTest extends TestCase {
 
     BackBuffer backBuffer = new BackBuffer(15, 10, state);
 
-    BufferedDisplayTerminal terminal = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
     terminal.writeString("  1. line1");
     terminal.newLine();
@@ -46,12 +46,12 @@ public class BackBufferTest extends TestCase {
     });
 
     assertEquals("  1. line1\n" +
-                 "  2. line2\n" +
-                 "\n" +
-                 "\n" +
-                 "  3. line3\n" +
-                 "\n" +
-                 "  4.", backBuffer.getTextBufferLines());
+        "  2. line2\n" +
+        "\n" +
+        "\n" +
+        "  3. line3\n" +
+        "\n" +
+        "  4.", backBuffer.getTextBufferLines());
   }
 
   public void testAlternateBuffer() {
@@ -59,7 +59,7 @@ public class BackBufferTest extends TestCase {
 
     BackBuffer backBuffer = new BackBuffer(5, 3, state);
 
-    BufferedDisplayTerminal terminal = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
     terminal.writeString("1.");
     terminal.newLine();
@@ -67,12 +67,12 @@ public class BackBufferTest extends TestCase {
     terminal.writeString("2.");
     terminal.newLine();
     terminal.carriageReturn();
-    
+
     terminal.useAlternateBuffer(true);
-    
+
     assertEquals("     \n" +
-                 "     \n" +
-                 "     \n", backBuffer.getLines());
+        "     \n" +
+        "     \n", backBuffer.getLines());
 
     terminal.writeString("xxxxx");
     terminal.newLine();
@@ -80,12 +80,12 @@ public class BackBufferTest extends TestCase {
     terminal.writeString("yyyyy");
     terminal.newLine();
     terminal.carriageReturn();
-    
+
     terminal.useAlternateBuffer(false);
 
     assertEquals("1.   \n" +
-                 "2.   \n" +
-                 "     \n", backBuffer.getLines());
+        "2.   \n" +
+        "     \n", backBuffer.getLines());
   }
 
   public void testInsertLine() {
@@ -93,7 +93,7 @@ public class BackBufferTest extends TestCase {
 
     BackBuffer backBuffer = new BackBuffer(5, 3, state);
 
-    BufferedDisplayTerminal terminal = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
     terminal.writeString("1");
     terminal.newLine();
@@ -102,21 +102,21 @@ public class BackBufferTest extends TestCase {
     terminal.newLine();
     terminal.carriageReturn();
     terminal.writeString("3");
-    
+
     terminal.cursorPosition(1, 2);
-    
+
     terminal.insertLines(1);
-    
+
     terminal.writeString("3");
-    
+
     assertEquals("1    \n" +
-                 "3    \n" +
-                 "2    \n", backBuffer.getLines());
+        "3    \n" +
+        "2    \n", backBuffer.getLines());
 
     assertEquals("1\n" +
-                 "3\n" +
-                 "2", backBuffer.getTextBufferLines());
-    
+        "3\n" +
+        "2", backBuffer.getTextBufferLines());
+
   }
 
   public void testInsertLine2() {
@@ -124,7 +124,7 @@ public class BackBufferTest extends TestCase {
 
     BackBuffer backBuffer = new BackBuffer(5, 3, state);
 
-    BufferedDisplayTerminal terminal = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
     terminal.writeString("1");
     terminal.newLine();
@@ -143,25 +143,25 @@ public class BackBufferTest extends TestCase {
     terminal.carriageReturn();
 
     assertEquals("3    \n" +
-                 "     \n" +
-                 "1    \n", backBuffer.getLines());
+        "     \n" +
+        "1    \n", backBuffer.getLines());
 
 
     assertEquals("3\n" +
-                 "\n" +
-                 "1", backBuffer.getTextBufferLines());
-    
+        "\n" +
+        "1", backBuffer.getTextBufferLines());
+
     terminal.insertLines(20);
 
 
     assertEquals("3    \n" +
-                 "     \n" +
-                 "     \n", backBuffer.getLines());
+        "     \n" +
+        "     \n", backBuffer.getLines());
 
 
     assertEquals("3\n" +
-                 "\n" +
-                 "", backBuffer.getTextBufferLines());
+        "\n" +
+        "", backBuffer.getTextBufferLines());
   }
 
   public void testInsertLineScrollingRegion() {
@@ -169,7 +169,7 @@ public class BackBufferTest extends TestCase {
 
     BackBuffer backBuffer = new BackBuffer(5, 3, state);
 
-    BufferedDisplayTerminal terminal = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
     terminal.writeString("1");
     terminal.newLine();
@@ -178,7 +178,7 @@ public class BackBufferTest extends TestCase {
     terminal.newLine();
     terminal.carriageReturn();
     terminal.writeString("=");
-    
+
     terminal.setScrollingRegion(1, 2);
 
     terminal.cursorPosition(1, 1);
@@ -190,12 +190,12 @@ public class BackBufferTest extends TestCase {
     terminal.carriageReturn();
 
     assertEquals("3    \n" +
-                 "1    \n" +
-                 "=    \n", backBuffer.getLines());
+        "1    \n" +
+        "=    \n", backBuffer.getLines());
 
     assertEquals("3\n" +
-                 "1\n" +
-                 "=", backBuffer.getTextBufferLines());
+        "1\n" +
+        "=", backBuffer.getTextBufferLines());
   }
 
   public void testInsertLineScrollingRegionManyLines() {
@@ -203,7 +203,7 @@ public class BackBufferTest extends TestCase {
 
     BackBuffer backBuffer = new BackBuffer(5, 3, state);
 
-    BufferedDisplayTerminal terminal = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
     terminal.writeString("1");
     terminal.newLine();
@@ -224,22 +224,21 @@ public class BackBufferTest extends TestCase {
     terminal.carriageReturn();
 
     assertEquals("3    \n" +
-                 "     \n" +
-                 "=    \n", backBuffer.getLines());
+        "     \n" +
+        "=    \n", backBuffer.getLines());
 
     assertEquals("3\n" +
-                 "\n" +
-                 "=", backBuffer.getTextBufferLines());
+        "\n" +
+        "=", backBuffer.getTextBufferLines());
   }
-  
-  
+
 
   public void testDeleteCharacters() {
     StyleState state = new StyleState();
 
     BackBuffer backBuffer = new BackBuffer(15, 3, state);
 
-    BufferedDisplayTerminal terminal = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
     terminal.writeString("first line");
     terminal.newLine();
@@ -250,58 +249,58 @@ public class BackBufferTest extends TestCase {
     terminal.writeString("third line");
 
     assertEquals("first line     \n" +
-                 "second line    \n" +
-                 "third line     \n", backBuffer.getLines());
+        "second line    \n" +
+        "third line     \n", backBuffer.getLines());
 
     terminal.cursorPosition(1, 1);
     terminal.deleteCharacters(1);
     assertEquals("irst line      \n" +
-                 "second line    \n" +
-                 "third line     \n", backBuffer.getLines());
-    
-    
+        "second line    \n" +
+        "third line     \n", backBuffer.getLines());
+
+
     assertEquals("irst line\n" +
-                 "second line\n" +
-                 "third line", backBuffer.getTextBufferLines());
+        "second line\n" +
+        "third line", backBuffer.getTextBufferLines());
 
     terminal.cursorPosition(6, 1);
     terminal.deleteCharacters(2);
     assertEquals("irst ne        \n" +
-                 "second line    \n" +
-                 "third line     \n", backBuffer.getLines());
+        "second line    \n" +
+        "third line     \n", backBuffer.getLines());
 
     assertEquals("irst ne\n" +
-                 "second line\n" +
-                 "third line", backBuffer.getTextBufferLines());
+        "second line\n" +
+        "third line", backBuffer.getTextBufferLines());
 
     terminal.cursorPosition(7, 2);
     terminal.deleteCharacters(42);
     assertEquals("irst ne        \n" +
-                 "second         \n" +
-                 "third line     \n", backBuffer.getLines());
+        "second         \n" +
+        "third line     \n", backBuffer.getLines());
 
     assertEquals("irst ne\n" +
-                 "second\n" +
-                 "third line", backBuffer.getTextBufferLines());
+        "second\n" +
+        "third line", backBuffer.getTextBufferLines());
 
     terminal.cursorPosition(1, 3);
     terminal.deleteCharacters(6);
     assertEquals("irst ne        \n" +
-                 "second         \n" +
-                 "line           \n", backBuffer.getLines());
+        "second         \n" +
+        "line           \n", backBuffer.getLines());
 
     assertEquals("irst ne\n" +
-                 "second\n" +
-                 "line", backBuffer.getTextBufferLines());
+        "second\n" +
+        "line", backBuffer.getTextBufferLines());
   }
-  
-  
+
+
   public void testDeleteLines() {
     StyleState state = new StyleState();
 
     BackBuffer backBuffer = new BackBuffer(5, 5, state);
 
-    BufferedDisplayTerminal terminal = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
     terminal.writeString("1");
     terminal.newLine();
@@ -315,7 +314,7 @@ public class BackBufferTest extends TestCase {
     terminal.writeString("4");
     terminal.newLine();
     terminal.carriageReturn();
-    
+
 
     terminal.setScrollingRegion(1, 3);
 
@@ -324,19 +323,18 @@ public class BackBufferTest extends TestCase {
     terminal.deleteLines(2);
 
     assertEquals("1    \n" +
-                 "     \n" +
-                 "     \n" + 
-                 "4    \n" +
-                 "     \n", backBuffer.getLines());
+        "     \n" +
+        "     \n" +
+        "4    \n" +
+        "     \n", backBuffer.getLines());
 
 
     assertEquals("1\n" +
-                 "\n" +
-                 "\n" +
-                 "4", backBuffer.getTextBufferLines());
+        "\n" +
+        "\n" +
+        "4", backBuffer.getTextBufferLines());
 
-    
-    
+
   }
 
   public void testDeleteManyLines() {
@@ -344,7 +342,7 @@ public class BackBufferTest extends TestCase {
 
     BackBuffer backBuffer = new BackBuffer(5, 5, state);
 
-    BufferedDisplayTerminal terminal = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
     terminal.writeString("1");
     terminal.newLine();
@@ -367,44 +365,43 @@ public class BackBufferTest extends TestCase {
     terminal.deleteLines(20);
 
     assertEquals("1    \n" +
-                 "     \n" +
-                 "     \n" +
-                 "4    \n" +
-                 "     \n", backBuffer.getLines());
+        "     \n" +
+        "     \n" +
+        "4    \n" +
+        "     \n", backBuffer.getLines());
 
 
     assertEquals("1\n" +
-                 "\n" +
-                 "\n" +
-                 "4", backBuffer.getTextBufferLines());
-
+        "\n" +
+        "\n" +
+        "4", backBuffer.getTextBufferLines());
 
 
   }
-  
+
   public void testEraseCharacters() {
     StyleState state = new StyleState();
 
     BackBuffer backBuffer = new BackBuffer(5, 2, state);
 
-    BufferedDisplayTerminal terminal = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
     terminal.writeString("11111");
-    
+
     terminal.cursorPosition(2, 1);
-    
+
     terminal.eraseCharacters(2);
 
     assertEquals("1  11\n" +
-                 "     \n", backBuffer.getLines());
-    
-    
+        "     \n", backBuffer.getLines());
+
+
     assertEquals("1  11", backBuffer.getTextBufferLines());
-    
+
     terminal.eraseCharacters(10);
 
     assertEquals("1    \n" +
-                 "     \n", backBuffer.getLines());
+        "     \n", backBuffer.getLines());
 
     assertEquals("1    ", backBuffer.getTextBufferLines());
 

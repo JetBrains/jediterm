@@ -3,7 +3,7 @@ package com.jediterm.util;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TerminalDisplay;
 import com.jediterm.terminal.display.BackBuffer;
-import com.jediterm.terminal.display.BufferedDisplayTerminal;
+import com.jediterm.terminal.display.JediTerminal;
 
 import java.awt.*;
 
@@ -38,7 +38,7 @@ public class BackBufferDisplay implements TerminalDisplay {
   }
 
   @Override
-  public Dimension requestResize(Dimension pendingResize, RequestOrigin origin, int cursorY, BufferedDisplayTerminal.ResizeHandler resizeHandler) {
+  public Dimension requestResize(Dimension pendingResize, RequestOrigin origin, int cursorY, JediTerminal.ResizeHandler resizeHandler) {
     return myBackBuffer.resize(pendingResize, origin, cursorY, resizeHandler);
   }
 
@@ -56,6 +56,6 @@ public class BackBufferDisplay implements TerminalDisplay {
 
   @Override
   public void setBlinkingCursor(boolean enabled) {
-    
+
   }
 }

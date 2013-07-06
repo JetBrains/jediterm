@@ -1,51 +1,50 @@
 package com.jediterm.terminal.debug;
 
 import com.jediterm.terminal.LoggingTtyConnector;
-import com.jediterm.terminal.ui.SwingJediTerminal;
+import com.jediterm.terminal.ui.TerminalSession;
 
 /**
  * @author traff
  */
 public enum DebugBufferType {
   Back() {
-    public String getValue(SwingJediTerminal term) {
-      return term.getTerminalPanel().getBackBuffer().getLines();
+    public String getValue(TerminalSession session) {
+      return session.getBackBuffer().getLines();
     }
   },
   BackStyle() {
-    public String getValue(SwingJediTerminal term) {
-      return term.getTerminalPanel().getBackBuffer().getStyleLines();
+    public String getValue(TerminalSession session) {
+      return session.getBackBuffer().getStyleLines();
     }
   },
   Damage() {
-    public String getValue(SwingJediTerminal term) {
-      return term.getTerminalPanel().getBackBuffer().getDamageLines();
+    public String getValue(TerminalSession session) {
+      return session.getBackBuffer().getDamageLines();
     }
   },
   Scroll() {
-    public String getValue(SwingJediTerminal term) {
-      return term.getTerminalPanel().getBackBuffer().getScrollBuffer().getLines();
+    public String getValue(TerminalSession session) {
+      return session.getBackBuffer().getScrollBuffer().getLines();
     }
   },
   Text() {
-    public String getValue(SwingJediTerminal term) {
-      return term.getTerminalPanel().getBackBuffer().getTextBufferLines();
+    public String getValue(TerminalSession session) {
+      return session.getBackBuffer().getTextBufferLines();
     }
   },
 
   ControlSequences() {
     private ControlSequenceVisualizer myVisualizer = new ControlSequenceVisualizer();
 
-    public String getValue(SwingJediTerminal term) {
-      if (term.getTtyConnector() instanceof LoggingTtyConnector) {
-        return myVisualizer.getVisualizedString(((LoggingTtyConnector)term.getTtyConnector()).getChunks());
-      }
-      else {
+    public String getValue(TerminalSession session) {
+      if (session.getTtyConnector() instanceof LoggingTtyConnector) {
+        return myVisualizer.getVisualizedString(((LoggingTtyConnector) session.getTtyConnector()).getChunks());
+      } else {
         return "Control sequences aren't logged";
       }
     }
   };
 
 
-  public abstract String getValue(SwingJediTerminal term);
+  public abstract String getValue(TerminalSession session);
 }

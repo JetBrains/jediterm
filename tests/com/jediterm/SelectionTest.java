@@ -2,7 +2,7 @@ package com.jediterm;
 
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.display.BackBuffer;
-import com.jediterm.terminal.display.BufferedDisplayTerminal;
+import com.jediterm.terminal.display.JediTerminal;
 import com.jediterm.terminal.display.SelectionUtil;
 import com.jediterm.terminal.display.StyleState;
 import com.jediterm.util.BackBufferDisplay;
@@ -19,7 +19,7 @@ public class SelectionTest extends TestCase {
 
     BackBuffer backBuffer = new BackBuffer(15, 5, state);
 
-    BufferedDisplayTerminal terminal = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
     terminal.writeString("  1. line ");
     terminal.newLine();
@@ -38,7 +38,7 @@ public class SelectionTest extends TestCase {
 
     BackBuffer backBuffer = new BackBuffer(15, 5, state);
 
-    BufferedDisplayTerminal writer = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+    JediTerminal writer = new JediTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
     writer.writeString("   line   ");
     writer.newLine();
@@ -52,7 +52,7 @@ public class SelectionTest extends TestCase {
 
     BackBuffer backBuffer = new BackBuffer(20, 5, state);
 
-    BufferedDisplayTerminal writer = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+    JediTerminal writer = new JediTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
     writer.writeString("text to select ");
     writer.newLine();
@@ -71,7 +71,7 @@ public class SelectionTest extends TestCase {
 
     BackBuffer backBuffer = new BackBuffer(15, 5, state);
 
-    BufferedDisplayTerminal writer = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+    JediTerminal writer = new JediTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
     writer.writeString("first line");
     writer.newLine();
@@ -87,7 +87,7 @@ public class SelectionTest extends TestCase {
 
     BackBuffer backBuffer = new BackBuffer(15, 5, state);
 
-    BufferedDisplayTerminal writer = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+    JediTerminal writer = new JediTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
     writer.writeString("first line");
     writer.newLine();

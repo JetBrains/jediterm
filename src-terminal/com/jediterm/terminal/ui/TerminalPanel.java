@@ -1,25 +1,3 @@
-/* -*-mode:java; c-basic-offset:2; -*- */
-/* JCTerm
- * Copyright (C) 2002-2004 ymnk, JCraft,Inc.
- *  
- * Written by: 2002 ymnk<ymnk@jcaft.com>
- *   
- *   
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Library General Public License
- * as published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Library General Public License for more details.
- * 
- * You should have received a copy of the GNU Library General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- */
-
 package com.jediterm.terminal.ui;
 
 import com.jediterm.terminal.*;
@@ -36,8 +14,8 @@ import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 
-public class SwingTerminalPanel extends JComponent implements TerminalDisplay, ClipboardOwner, StyledTextConsumer {
-  private static final Logger logger = Logger.getLogger(SwingTerminalPanel.class);
+public class TerminalPanel extends JComponent implements TerminalDisplay, ClipboardOwner, StyledTextConsumer {
+  private static final Logger logger = Logger.getLogger(TerminalPanel.class);
   private static final long serialVersionUID = -1048763516632093014L;
   private static final double FPS = 50;
 
@@ -91,12 +69,12 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   private boolean myScrollingEnabled = true;
 
 
-  public SwingTerminalPanel(BackBuffer backBuffer, StyleState styleState) {
+  public TerminalPanel(BackBuffer backBuffer, StyleState styleState) {
     myBackBuffer = backBuffer;
     myStyleState = styleState;
     myTermSize.width = backBuffer.getWidth();
     myTermSize.height = backBuffer.getHeight();
-    
+
     updateScrolling();
   }
 
@@ -153,8 +131,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
         if (e.getButton() == MouseEvent.BUTTON3) {
           JPopupMenu popup = createPopupMenu(mySelectionStart, mySelectionEnd, getClipboardString());
           popup.show(e.getComponent(), e.getX(), e.getY());
-        }
-        else {
+        } else {
           mySelectionStart = null;
           mySelectionEnd = null;
         }
@@ -176,7 +153,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       }
     });
 
-    Timer redrawTimer = new Timer((int)(1000 / FPS), new ActionListener() {
+    Timer redrawTimer = new Timer((int) (1000 / FPS), new ActionListener() {
       public void actionPerformed(ActionEvent e) {
         redraw();
       }
@@ -207,13 +184,12 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     }
 
     final String selectionText = SelectionUtil
-      .getSelectionText(selectionStart, selectionEnd, myBackBuffer);
+        .getSelectionText(selectionStart, selectionEnd, myBackBuffer);
 
     if (selectionText.length() != 0) {
       try {
         setCopyContents(new StringSelection(selectionText));
-      }
-      catch (final IllegalStateException e) {
+      } catch (final IllegalStateException e) {
         logger.error("Could not set clipboard:", e);
       }
     }
@@ -228,8 +204,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
     try {
       myTerminalStarter.sendString(selection);
-    }
-    catch (RuntimeException e) {
+    } catch (RuntimeException e) {
       logger.info(e);
     }
   }
@@ -237,8 +212,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   private String getClipboardString() {
     try {
       return getClipboardContent();
-    }
-    catch (final Exception e) {
+    } catch (final Exception e) {
       logger.info(e);
     }
     return null;
@@ -246,9 +220,8 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
   protected String getClipboardContent() throws IOException, UnsupportedFlavorException {
     try {
-      return (String)myClipboard.getData(DataFlavor.stringFlavor);
-    }
-    catch (Exception e) {
+      return (String) myClipboard.getData(DataFlavor.stringFlavor);
+    } catch (Exception e) {
       logger.info(e);
       return null;
     }
@@ -278,14 +251,14 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
       if (oldImage != null) {
         myGfx.drawImage(oldImage, 0, 0,
-                        oldImage.getWidth(), oldImage.getHeight(), myTerminalPanel);
+            oldImage.getWidth(), oldImage.getHeight(), myTerminalPanel);
       }
     }
   }
 
   protected BufferedImage createBufferedImage(int width, int height) {
     return new BufferedImage(width, height,
-                             BufferedImage.TYPE_INT_RGB);
+        BufferedImage.TYPE_INT_RGB);
   }
 
   private void sizeTerminalFromComponent() {
@@ -313,27 +286,26 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   public Dimension requestResize(final Dimension newSize,
                                  final RequestOrigin origin,
                                  int cursorY,
-                                 BufferedDisplayTerminal.ResizeHandler resizeHandler) {
+                                 JediTerminal.ResizeHandler resizeHandler) {
     if (!newSize.equals(myTermSize)) {
       myBackBuffer.lock();
       try {
         myBackBuffer.resize(newSize, origin, cursorY, resizeHandler);
-        myTermSize = (Dimension)newSize.clone();
+        myTermSize = (Dimension) newSize.clone();
         // resize images..
         setupImages();
 
         final Dimension pixelDimension = new Dimension(getPixelWidth(), getPixelHeight());
 
         setPreferredSize(pixelDimension);
-        if (myResizePanelDelegate != null) myResizePanelDelegate.resizedPanel(pixelDimension, origin);
+        if (myResizePanelDelegate != null) myResizePanelDelegate.onPanelResize(pixelDimension, origin);
         SwingUtilities.invokeLater(new Runnable() {
           @Override
           public void run() {
             updateScrolling();
           }
         });
-      }
-      finally {
+      } finally {
         myBackBuffer.unlock();
       }
     }
@@ -363,11 +335,11 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   protected void setupAntialiasing(Graphics graphics, boolean antialiasing) {
     myAntialiasing = antialiasing;
     if (graphics instanceof Graphics2D) {
-      Graphics2D myGfx = (Graphics2D)graphics;
+      Graphics2D myGfx = (Graphics2D) graphics;
       final Object mode = antialiasing ? RenderingHints.VALUE_TEXT_ANTIALIAS_ON
-                                       : RenderingHints.VALUE_TEXT_ANTIALIAS_OFF;
+          : RenderingHints.VALUE_TEXT_ANTIALIAS_OFF;
       final RenderingHints hints = new RenderingHints(
-        RenderingHints.KEY_TEXT_ANTIALIASING, mode);
+          RenderingHints.KEY_TEXT_ANTIALIASING, mode);
       myGfx.setRenderingHints(hints);
     }
   }
@@ -384,7 +356,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
   @Override
   public void paintComponent(final Graphics g) {
-    Graphics2D gfx = (Graphics2D)g;
+    Graphics2D gfx = (Graphics2D) g;
     if (myImage != null) {
       gfx.drawImage(myImage, 0, 0, myTerminalPanel);
       drawMargins(gfx, myImage.getWidth(), myImage.getHeight());
@@ -398,11 +370,9 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     final int id = e.getID();
     if (id == KeyEvent.KEY_PRESSED) {
       myKeyListener.keyPressed(e);
-    }
-    else if (id == KeyEvent.KEY_RELEASED) {
+    } else if (id == KeyEvent.KEY_RELEASED) {
                         /* keyReleased(e); */
-    }
-    else if (id == KeyEvent.KEY_TYPED) {
+    } else if (id == KeyEvent.KEY_TYPED) {
       myKeyListener.keyTyped(e);
     }
     e.consume();
@@ -432,7 +402,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     private boolean myCursorHasChanged;
 
     protected Point myCursorCoordinates = new Point();
-    
+
     private boolean myShouldDrawCursor = true;
     private boolean myBlinking = true;
 
@@ -442,8 +412,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       }
       if (cursorShouldChangeBlinkState(currentTime)) {
         return !myCursorIsShown;
-      }
-      else {
+      } else {
         return myCursorIsShown;
       }
     }
@@ -463,16 +432,15 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
           if (isCursorShown) {
             g.setColor(current.getForeground());
-          }
-          else {
+          } else {
             g.setColor(current.getBackground());
           }
           int scale = 1;
           if (UIUtil.isRetina()) {
             scale = 2;
           }
-          g.fillRect(myCursorCoordinates.x * myCharSize.width*scale, y * myCharSize.height*scale,
-                     myCharSize.width*scale, myCharSize.height*scale);
+          g.fillRect(myCursorCoordinates.x * myCharSize.width * scale, y * myCharSize.height * scale,
+              myCharSize.width * scale, myCharSize.height * scale);
 
 
           myCursorIsShown = isCursorShown;
@@ -486,9 +454,9 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     public boolean needsRepaint() {
       long currentTime = System.currentTimeMillis();
       return isShouldDrawCursor() &&
-             isFocusOwner() &&
-             noRecentResize(currentTime) &&
-             (myCursorHasChanged || cursorShouldChangeBlinkState(currentTime));
+          isFocusOwner() &&
+          noRecentResize(currentTime) &&
+          (myCursorHasChanged || cursorShouldChangeBlinkState(currentTime));
     }
 
     public void setX(int x) {
@@ -547,33 +515,32 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
         return;
       }
       top = mySelectionStart.x < mySelectionEnd.x ? mySelectionStart
-                                                  : mySelectionEnd;
+          : mySelectionEnd;
       bottom = mySelectionStart.x >= mySelectionEnd.x ? mySelectionStart
-                                                      : mySelectionEnd;
+          : mySelectionEnd;
 
       g.fillRect(top.x * myCharSize.width, (top.y - myClientScrollOrigin) * myCharSize.height,
-                 (bottom.x - top.x) * myCharSize.width, myCharSize.height);
-    }
-    else {
+          (bottom.x - top.x) * myCharSize.width, myCharSize.height);
+    } else {
       top = mySelectionStart.y < mySelectionEnd.y ? mySelectionStart
-                                                  : mySelectionEnd;
+          : mySelectionEnd;
       bottom = mySelectionStart.y > mySelectionEnd.y ? mySelectionStart
-                                                     : mySelectionEnd;
+          : mySelectionEnd;
                         /* to end of first line */
       g.fillRect(top.x * myCharSize.width, (top.y - myClientScrollOrigin) * myCharSize.height,
-                 (myTermSize.width - top.x) * myCharSize.width, myCharSize.height);
+          (myTermSize.width - top.x) * myCharSize.width, myCharSize.height);
 
       if (bottom.y - top.y > 1) {
                                 /* intermediate lines */
         g.fillRect(0, (top.y + 1 - myClientScrollOrigin) * myCharSize.height,
-                   myTermSize.width * myCharSize.width, (bottom.y - top.y - 1)
-                                                        * myCharSize.height);
+            myTermSize.width * myCharSize.width, (bottom.y - top.y - 1)
+            * myCharSize.height);
       }
 
 			/* from beginning of last line */
 
       g.fillRect(0, (bottom.y - myClientScrollOrigin) * myCharSize.height, bottom.x
-                                                                           * myCharSize.width, myCharSize.height);
+          * myCharSize.width, myCharSize.height);
     }
   }
 
@@ -582,7 +549,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     if (myGfx != null) {
       myGfx.setColor(myStyleState.getBackground(style.getBackgroundForRun()));
       myGfx
-        .fillRect(x * myCharSize.width, (y - myClientScrollOrigin) * myCharSize.height, buf.getLength() * myCharSize.width, myCharSize.height);
+          .fillRect(x * myCharSize.width, (y - myClientScrollOrigin) * myCharSize.height, buf.getLength() * myCharSize.width, myCharSize.height);
 
       myGfx.setFont(style.hasOption(TextStyle.Option.BOLD) ? myBoldFont : myNormalFont);
       myGfx.setColor(myStyleState.getForeground(style.getForegroundForRun()));
@@ -604,8 +571,8 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     int dyPix = dy * myCharSize.height;
 
     myGfx.copyArea(0, Math.max(0, dyPix),
-                   getPixelWidth(), getPixelHeight() - Math.abs(dyPix),
-                   0, -dyPix);
+        getPixelWidth(), getPixelHeight() - Math.abs(dyPix),
+        0, -dyPix);
 
     if (dy < 0) {
       // Scrolling up; Copied down
@@ -615,11 +582,10 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
       //clear rect before drawing scroll buffer on it
       myGfx.setColor(getBackground());
-      myGfx.fillRect(0, Math.max(0, dyPix), getPixelWidth(), Math.abs(dyPix)); 
-      
+      myGfx.fillRect(0, Math.max(0, dyPix), getPixelWidth(), Math.abs(dyPix));
+
       myBackBuffer.getScrollBuffer().processLines(myClientScrollOrigin, -dy, this);
-    }
-    else {
+    } else {
       // Scrolling down; Copied up
       // New area at the bottom to be filled - can be from both
 
@@ -662,8 +628,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
     if (!myBackBuffer.tryLock()) {
       if (myFramesSkipped >= 5) {
         myBackBuffer.lock();
-      }
-      else {
+      } else {
         myFramesSkipped++;
         return false;
       }
@@ -686,14 +651,12 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
 
         myBackBuffer.processDamagedCells(this);
         myBackBuffer.resetDamage();
-      }
-      else {
+      } else {
         myNoDamage++;
       }
 
       return serverScroll || clientScroll || hasDamage;
-    }
-    finally {
+    } finally {
       myBackBuffer.unlock();
     }
   }
@@ -725,8 +688,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   private void updateScrolling() {
     if (myScrollingEnabled) {
       myBoundedRangeModel.setRangeProperties(0, myTermSize.height, -myBackBuffer.getScrollBuffer().getLineCount(), myTermSize.height, false);
-    }
-    else {
+    } else {
       myBoundedRangeModel.setRangeProperties(0, myTermSize.height, 0, myTermSize.height, false);
     }
   }
@@ -752,8 +714,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
           y == ys[scrollCount] &&
           h == hs[scrollCount]) {
         dys[scrollCount] += dy;
-      }
-      else {
+      } else {
         scrollCount++;
         ensureArrays(scrollCount);
         ys[scrollCount] = y;
@@ -827,8 +788,7 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
       public void actionPerformed(ActionEvent e) {
         if ("Copy".equals(e.getActionCommand())) {
           copySelection(selectionStart, selectionEnd);
-        }
-        else if ("Paste".equals(e.getActionCommand())) {
+        } else if ("Paste".equals(e.getActionCommand())) {
           pasteSelection();
         }
       }
@@ -860,5 +820,13 @@ public class SwingTerminalPanel extends JComponent implements TerminalDisplay, C
   @Override
   public void setBlinkingCursor(boolean enabled) {
     myCursor.setBlinking(enabled);
+  }
+
+  public TerminalCursor getTerminalCursor() {
+    return myCursor;
+  }
+
+  public TerminalOutputStream getTerminalOutputStream() {
+    return myTerminalStarter;
   }
 }

@@ -2,47 +2,43 @@ package com.jediterm.terminal.ui;
 
 import com.jediterm.terminal.TerminalStarter;
 import com.jediterm.terminal.TextStyle;
-import com.jediterm.terminal.TtyChannel;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.debug.DebugBufferType;
 import com.jediterm.terminal.display.BackBuffer;
-import com.jediterm.terminal.display.BufferedDisplayTerminal;
+import com.jediterm.terminal.display.JediTerminal;
 import com.jediterm.terminal.display.StyleState;
 import org.apache.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyListener;
-import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * JediTerm terminal widget with UI implemented in Swing.
- *
- * TODO: needs to be renamed to JediTermWidget or JediTermComponent
+ * <p/>
  */
-public class SwingJediTerminal extends JPanel {
-  private static final Logger LOG = Logger.getLogger(SwingJediTerminal.class);
-  private static final long SERIAL_VERSION_UID = -8213232075937432833L;
+public class JediTermWidget extends JPanel implements TerminalSession, TerminalWidget {
+  private static final Logger LOG = Logger.getLogger(JediTermWidget.class);
 
-  protected SwingTerminalPanel myTerminalPanel;
-  protected BufferedDisplayTerminal myTerminalWriter;
+  protected TerminalPanel myTerminalPanel;
+  protected JediTerminal myTerminal;
   protected AtomicBoolean mySessionRunning = new AtomicBoolean();
   protected PreConnectHandler myPreConnectHandler;
   private TtyConnector myTtyConnector;
-  private TtyChannel myTtyChannel;
   private TerminalStarter myTerminalStarter;
   private Thread myEmuThread;
 
-  public SwingJediTerminal() {
+  public JediTermWidget() {
     this(80, 24);
   }
 
-  public SwingJediTerminal(Dimension dimension) {
+  public JediTermWidget(Dimension dimension) {
     this(dimension.width, dimension.height);
   }
 
-  public SwingJediTerminal(int columns, int lines) {
+  public JediTermWidget(int columns, int lines) {
     super(new BorderLayout());
 
     StyleState styleState = createDefaultStyle();
@@ -50,8 +46,8 @@ public class SwingJediTerminal extends JPanel {
     BackBuffer backBuffer = new BackBuffer(columns, lines, styleState);
 
     myTerminalPanel = createTerminalPanel(styleState, backBuffer);
-    myTerminalWriter = new BufferedDisplayTerminal(myTerminalPanel, backBuffer, styleState);
-    myPreConnectHandler = createPreConnectHandler(myTerminalWriter);
+    myTerminal = new JediTerminal(myTerminalPanel, backBuffer, styleState);
+    myPreConnectHandler = createPreConnectHandler(myTerminal);
     myTerminalPanel.setKeyListener(myPreConnectHandler);
     JScrollBar scrollBar = createScrollBar();
 
@@ -61,6 +57,8 @@ public class SwingJediTerminal extends JPanel {
     mySessionRunning.set(false);
 
     myTerminalPanel.init();
+
+    myTerminalPanel.setVisible(true);
   }
 
   protected JScrollBar createScrollBar() {
@@ -73,28 +71,32 @@ public class SwingJediTerminal extends JPanel {
     return styleState;
   }
 
-  protected SwingTerminalPanel createTerminalPanel(StyleState styleState, BackBuffer backBuffer) {
-    return new SwingTerminalPanel(backBuffer, styleState);
+  protected TerminalPanel createTerminalPanel(StyleState styleState, BackBuffer backBuffer) {
+    return new TerminalPanel(backBuffer, styleState);
   }
 
-  protected PreConnectHandler createPreConnectHandler(BufferedDisplayTerminal writer) {
+  protected PreConnectHandler createPreConnectHandler(JediTerminal writer) {
     return new PreConnectHandler(writer);
   }
 
-  public SwingTerminalPanel getTerminalPanel() {
+  public TerminalPanel getTerminalPanel() {
     return myTerminalPanel;
   }
 
-  public void setTtyConnector(TtyConnector ttyConnector) {
+  public void setTtyConnector(@NotNull TtyConnector ttyConnector) {
     myTtyConnector = ttyConnector;
-    myTtyChannel = new TtyChannel(ttyConnector);
 
-    myTerminalStarter = new TerminalStarter(myTerminalWriter, myTtyChannel);
+    myTerminalStarter = new TerminalStarter(myTerminal, myTtyConnector);
     myTerminalPanel.setTerminalStarter(myTerminalStarter);
   }
 
   public TtyConnector getTtyConnector() {
     return myTtyConnector;
+  }
+
+  @Override
+  public void redraw() {
+    myTerminalPanel.redraw();
   }
 
   public void start() {
@@ -113,7 +115,7 @@ public class SwingJediTerminal extends JPanel {
     }
   }
 
-  public boolean getSessionRunning() {
+  public boolean isSessionRunning() {
     return mySessionRunning.get();
   }
 
@@ -121,10 +123,9 @@ public class SwingJediTerminal extends JPanel {
     return type.getValue(this);
   }
 
-  public void sendCommand(String string) throws IOException {
-    if (mySessionRunning.get()) {
-      myTtyChannel.sendBytes(string.getBytes());
-    }
+  @Override
+  public BackBuffer getBackBuffer() {
+    return myTerminalPanel.getBackBuffer();
   }
 
   @Override
@@ -135,6 +136,34 @@ public class SwingJediTerminal extends JPanel {
       }
     });
     return super.requestFocusInWindow();
+  }
+
+  public boolean canOpenSession() {
+    return !isSessionRunning();
+  }
+
+  @Override
+  public void setResizePanelDelegate(ResizePanelDelegate resizePanelDelegate) {
+    myTerminalPanel.setResizePanelDelegate(resizePanelDelegate);
+  }
+
+  @Override
+  public TerminalSession getCurrentSession() {
+    return this;
+  }
+
+  @Override
+  public TerminalSession createTerminalSession() {
+    return this;
+  }
+
+  @Override
+  public Component getComponent() {
+    return this;
+  }
+
+  public void close() {
+    myTerminalStarter.close();
   }
 
   class EmulatorTask implements Runnable {
@@ -153,6 +182,9 @@ public class SwingJediTerminal extends JPanel {
           myTerminalStarter.start();
         }
       }
+      catch (Exception e) {
+        LOG.error("Exception running terminal", e);
+      }
       finally {
         try {
           myTtyConnector.close();
@@ -166,7 +198,7 @@ public class SwingJediTerminal extends JPanel {
   }
 
   protected KeyListener createEmulatorKeyHandler() {
-    return new TerminalEmulatorKeyHandler(myTerminalStarter);
+    return new TerminalKeyHandler(myTerminalStarter);
   }
 
   public TerminalStarter getTerminalStarter() {

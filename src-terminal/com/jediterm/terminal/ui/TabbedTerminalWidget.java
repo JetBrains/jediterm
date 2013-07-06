@@ -13,10 +13,20 @@ import java.awt.event.MouseEvent;
 /**
  * @author traff
  */
-public class TabbedTerminalWidget extends JTabbedPane implements TerminalWidget {
-  private int myTabNumber = 1;
+public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
+  private static final int FIRST_TAB_NUMBER = 1;
+
+  private int myTabNumber = FIRST_TAB_NUMBER;
 
   private ResizePanelDelegate myResizePanelDelegate = null;
+
+  private JediTermWidget myTermWidget = null;
+
+  private JTabbedPane myTabbedPane;
+
+  public TabbedTerminalWidget() {
+    super(new BorderLayout());
+  }
 
   @Override
   public TerminalSession createTerminalSession() {
@@ -24,18 +34,54 @@ public class TabbedTerminalWidget extends JTabbedPane implements TerminalWidget 
     if (myResizePanelDelegate != null) {
       terminal.setResizePanelDelegate(myResizePanelDelegate);
     }
-    String tabName = "Terminal " + myTabNumber++;
-    addTab(tabName, null, terminal);
 
-    setTabComponentAt(getTabCount() - 1, new TabComponent(this, terminal));
-    setSelectedComponent(terminal);
+    if (myTermWidget == null && myTabbedPane == null) {
+      myTermWidget = terminal;
+      Dimension size = terminal.getComponent().getSize();
+     
+      add(myTermWidget.getComponent(), BorderLayout.CENTER);
+      setSize(size);
 
-    if (getTabCount() == 1) { //Init size
-      setSize(terminal.getSize());
-      myResizePanelDelegate.onPanelResize(getSize(), RequestOrigin.User);
+      if (myResizePanelDelegate != null) {
+        myResizePanelDelegate.onPanelResize(size, RequestOrigin.User);
+      }
     }
+    else {
+      if (myTabbedPane == null) {
+        myTabbedPane = setupTabbedPane();
+      }
 
+      addTab(terminal, myTabbedPane);
+    }
     return terminal;
+  }
+
+  private void addTab(JediTermWidget terminal, JTabbedPane tabbedPane) {
+    String tabName = "Terminal " + myTabNumber++;
+    tabbedPane.addTab(tabName, null, terminal);
+
+    tabbedPane.setTabComponentAt(tabbedPane.getTabCount() - 1, new TabComponent(tabbedPane, terminal));
+    tabbedPane.setSelectedComponent(terminal);
+  }
+
+  private JTabbedPane setupTabbedPane() {
+    JTabbedPane tabbedPane = createTabbedPane();
+
+    myTabNumber = FIRST_TAB_NUMBER;
+    
+    remove(myTermWidget);
+
+    addTab(myTermWidget, tabbedPane);
+
+    myTermWidget = null;
+
+    add(tabbedPane, BorderLayout.CENTER);
+
+    return tabbedPane;
+  }
+
+  protected JTabbedPane createTabbedPane() {
+    return new JTabbedPane();
   }
 
   private JPopupMenu createPopup(final JediTermWidget terminal) {
@@ -46,7 +92,7 @@ public class TabbedTerminalWidget extends JTabbedPane implements TerminalWidget 
       @Override
       public void actionPerformed(ActionEvent event) {
         terminal.close();
-        remove(terminal);
+        removeTab(terminal);
       }
     });
 
@@ -55,6 +101,19 @@ public class TabbedTerminalWidget extends JTabbedPane implements TerminalWidget 
     return popupMenu;
   }
 
+  private void removeTab(JediTermWidget terminal) {
+    if (myTabbedPane.getTabCount() == 2) {
+      myTermWidget = getTerminalPanel(0);
+      myTabbedPane.removeAll();
+      remove(myTabbedPane);
+      myTabbedPane = null;
+      add(myTermWidget.getComponent(), BorderLayout.CENTER);
+      myTermWidget.requestFocusInWindow();
+    }
+    else {
+      myTabbedPane.remove(terminal);
+    }
+  }
 
   private class TabComponent extends JPanel {
 
@@ -117,18 +176,25 @@ public class TabbedTerminalWidget extends JTabbedPane implements TerminalWidget 
 
   @Override
   public void setResizePanelDelegate(ResizePanelDelegate resizePanelDelegate) {
-    for (int i = 0; i < getTabCount(); i++) {
-      getTerminalPanel(i).setResizePanelDelegate(resizePanelDelegate);
+    if (myTabbedPane != null) {
+      for (int i = 0; i < myTabbedPane.getTabCount(); i++) {
+        getTerminalPanel(i).setResizePanelDelegate(resizePanelDelegate);
+      }
     }
     myResizePanelDelegate = resizePanelDelegate;
   }
 
   @Override
   public TerminalSession getCurrentSession() {
-    return getTerminalPanel(getSelectedIndex());
+    if (myTabbedPane != null) {
+      return getTerminalPanel(myTabbedPane.getSelectedIndex());
+    }
+    else {
+      return myTermWidget;
+    }
   }
 
-  private TerminalSession getTerminalPanel(int index) {
-    return (TerminalSession)getComponentAt(index);
+  private JediTermWidget getTerminalPanel(int index) {
+    return (JediTermWidget)myTabbedPane.getComponentAt(index);
   }
 }

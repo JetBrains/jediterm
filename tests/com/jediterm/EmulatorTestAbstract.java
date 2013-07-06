@@ -11,6 +11,7 @@ import com.jediterm.util.BackBufferTerminal;
 import com.jediterm.util.FileUtil;
 import com.jediterm.util.NullTerminalOutputStream;
 import junit.framework.TestCase;
+import org.junit.Ignore;
 
 import java.awt.*;
 import java.io.File;
@@ -19,7 +20,8 @@ import java.io.IOException;
 /**
  * @author traff
  */
-public abstract class AbstractEmulatorTest extends TestCase {
+@Ignore
+public abstract class EmulatorTestAbstract extends TestCase {
   protected static void assertColor(TextStyle style, Color foreground, Color background) {
     assertEquals(foreground, style.getForeground());
     assertEquals(background, style.getBackground());

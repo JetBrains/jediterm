@@ -23,7 +23,7 @@ public enum TerminalMode {
 
       terminal.resize(d, RequestOrigin.Remote);
       terminal.clearScreen();
-      terminal.restoreCursor();
+      terminal.resetScrollRegions();
     }
   },
   CursorVisible {
@@ -43,7 +43,6 @@ public enum TerminalMode {
   OriginMode {
     @Override
     public void setEnabled(Terminal terminal, boolean enabled) {
-      terminal.cursorPosition(1, 1);
     }
   },
   AutoWrap,
@@ -59,7 +58,7 @@ public enum TerminalMode {
     @Override
     public void setEnabled(Terminal terminal, boolean enabled) {
       if (enabled) {
-        terminal.storeCursor();
+        terminal.saveCursor();
       }
       else {
         terminal.restoreCursor();

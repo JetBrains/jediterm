@@ -7,7 +7,7 @@ import java.io.IOException;
 /**
  * @author traff
  */
-public class VtEmulatorTest extends AbstractEmulatorTest {
+public class VtEmulatorTest extends EmulatorTestAbstract {
   /**
    * Test of screen features
    */
@@ -68,6 +68,14 @@ public class VtEmulatorTest extends AbstractEmulatorTest {
   }
   
   public void testTest2_Screen_15() throws IOException {
+    doVtTest();
+  }
+
+  /**
+   * Test of characters 
+   */
+
+  public void testTest3_Characters_1() throws IOException {
     doVtTest();
   }
 

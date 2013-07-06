@@ -7,6 +7,8 @@ import java.awt.*;
 public class StyleState {
   private TextStyle myCurrentStyle = TextStyle.EMPTY;
   private TextStyle myDefaultStyle = TextStyle.EMPTY;
+  
+  private TextStyle myMergedStyle = null;
 
   public StyleState() {
     this(TextStyle.EMPTY);
@@ -17,31 +19,19 @@ public class StyleState {
   }
 
   public TextStyle getCurrent() {
-    return TextStyle.getCanonicalStyle(merge(myCurrentStyle, myDefaultStyle));
+    return TextStyle.getCanonicalStyle(getMergedStyle());
   }
 
   private static TextStyle merge(TextStyle style, TextStyle defaultStyle) {
-    TextStyle newStyle = style;
+    TextStyle newStyle = style.clone();
     if (newStyle.getBackground() == null && defaultStyle.getBackground() != null) {
-      newStyle = newStyle.setBackground(defaultStyle.getBackground());
+      newStyle.setBackground(defaultStyle.getBackground());
     }
     if (newStyle.getForeground() == null && defaultStyle.getForeground() != null) {
-      newStyle = newStyle.setForeground(defaultStyle.getForeground());
+      newStyle.setForeground(defaultStyle.getForeground());
     }
     
-    return newStyle;
-  }
-
-  public void setCurrentBackground(final Color bg) {
-    myCurrentStyle = myCurrentStyle.setBackground(bg);
-  }
-
-  public void setCurrentForeground(final Color fg) {
-    myCurrentStyle = myCurrentStyle.setForeground(fg);
-  }
-
-  public void setOption(TextStyle.Option opt, boolean val) {
-    myCurrentStyle = myCurrentStyle.setOption(opt, val);
+    return newStyle.readonlyCopy();
   }
 
   public void reset() {
@@ -54,6 +44,7 @@ public class StyleState {
 
   public void setDefaultStyle(TextStyle defaultStyle) {
     myDefaultStyle = defaultStyle;
+    myMergedStyle = null;
   }
 
   public Color getBackground(Color color) {
@@ -70,5 +61,13 @@ public class StyleState {
 
   public void setCurrent(TextStyle current) {
     myCurrentStyle = current;
+    myMergedStyle = null;
+  }
+
+  public TextStyle getMergedStyle() {
+    if (myMergedStyle == null) {
+      myMergedStyle = merge(myCurrentStyle, myDefaultStyle);
+    }
+    return myMergedStyle;
   }
 }

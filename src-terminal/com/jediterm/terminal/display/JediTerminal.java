@@ -597,6 +597,11 @@ public class JediTerminal implements Terminal {
   }
 
   @Override
+  public void resetScrollRegions() {
+    setScrollingRegion(1, myTerminalHeight);
+  }
+
+  @Override
   public void characterAttributes(final TextStyle textStyle) {
     myStyleState.setCurrent(textStyle);
   }
@@ -612,7 +617,7 @@ public class JediTerminal implements Terminal {
   }
 
   @Override
-  public void storeCursor() {
+  public void saveCursor() {
     myStoredCursor = createCursorState();
   }
 
@@ -629,11 +634,12 @@ public class JediTerminal implements Terminal {
       setModeEnabled(TerminalMode.OriginMode, false); //Resets origin mode (DECOM)
       cursorPosition(1, 1); //Moves the cursor to the home position (upper left of screen).
       myStyleState.reset(); //Turns all character attributes off (normal setting).
-
-      myGraphicSetState.designateGraphicSet(0, CharacterSet.ASCII);//Maps the ASCII character set into GL
-      mapCharsetToGL(0);
-      myGraphicSetState.designateGraphicSet(1, CharacterSet.DEC_SUPPLEMENTAL);
-      mapCharsetToGR(1); //and the DEC Supplemental Graphic set into GR
+      
+      myGraphicSetState.resetState();
+      //myGraphicSetState.designateGraphicSet(0, CharacterSet.ASCII);//Maps the ASCII character set into GL
+      //mapCharsetToGL(0);
+      //myGraphicSetState.designateGraphicSet(1, CharacterSet.DEC_SUPPLEMENTAL);
+      //mapCharsetToGR(1); //and the DEC Supplemental Graphic set into GR
     }
     myDisplay.setCursor(myCursorX, myCursorY);
   }
@@ -642,8 +648,8 @@ public class JediTerminal implements Terminal {
     myCursorX = storedCursor.getCursorX();
     myCursorY = storedCursor.getCursorY();
 
-    myStyleState.setCurrent(storedCursor.getTextStyle());
-
+    myStyleState.setCurrent(storedCursor.getTextStyle().clone());
+    
     setModeEnabled(TerminalMode.AutoWrap, storedCursor.isAutoWrap());
     setModeEnabled(TerminalMode.OriginMode, storedCursor.isOriginMode());
 

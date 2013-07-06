@@ -7,13 +7,13 @@ AAAAA
                                                                                 
            normal      bold        underscored blinking    reversed             
                                                                                 
-stars:     *****       *****       *****       *****       *****                
+stars:     **********  **********  **********  **********  **********           
                                                                                 
-line:      ─────       ─────       ─────       ─────       ─────                
+line:      ──────────  ──────────  ──────────  ──────────  ──────────           
                                                                                 
-x'es:      xxxxx       xxxxx       xxxxx       xxxxx       xxxxx                
+x'es:      xxxxxxxxxx  xxxxxxxxxx  xxxxxxxxxx  xxxxxxxxxx  xxxxxxxxxx           
                                                                                 
-diamonds:  ◆◆◆◆◆       ◆◆◆◆◆       ◆◆◆◆◆       ◆◆◆◆◆       ◆◆◆◆◆                
+diamonds:  ◆◆◆◆◆◆◆◆◆◆  ◆◆◆◆◆◆◆◆◆◆  ◆◆◆◆◆◆◆◆◆◆  ◆◆◆◆◆◆◆◆◆◆  ◆◆◆◆◆◆◆◆◆◆           
                                                                                 
                                                                                 
                                                                                 

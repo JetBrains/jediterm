@@ -1,6 +1,7 @@
 package com.jediterm.terminal.ui;
 
 import com.jediterm.terminal.RequestOrigin;
+import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.debug.BufferPanel;
 import org.apache.log4j.Logger;
 
@@ -12,17 +13,13 @@ import java.awt.event.WindowEvent;
 
 
 public abstract class AbstractTerminalFrame {
-
-
   public static final Logger LOG = Logger.getLogger(AbstractTerminalFrame.class);
 
-  JFrame myBufferFrame;
+  private JFrame myBufferFrame;
 
-  private SwingTerminalPanel myTerminalPanel;
+  private TerminalWidget myTerminal;
 
-  private SwingJediTerminal myTerminal;
-
-  private AbstractAction myOpenAction = new AbstractAction("Open SHELL Session...") {
+  private AbstractAction myOpenAction = new AbstractAction("New Session...") {
     public void actionPerformed(final ActionEvent e) {
       openSession();
     }
@@ -30,17 +27,13 @@ public abstract class AbstractTerminalFrame {
 
   private AbstractAction myResetDamage = new AbstractAction("Reset damage") {
     public void actionPerformed(final ActionEvent e) {
-      if (myTerminalPanel != null) {
-        myTerminalPanel.getBackBuffer().resetDamage();
-      }
+      myTerminal.getCurrentSession().getBackBuffer().resetDamage();
     }
   };
 
   private AbstractAction myDrawDamage = new AbstractAction("Draw from damage") {
     public void actionPerformed(final ActionEvent e) {
-      if (myTerminalPanel != null) {
-        myTerminalPanel.redraw();
-      }
+      myTerminal.getCurrentSession().redraw();
     }
   };
 
@@ -52,7 +45,7 @@ public abstract class AbstractTerminalFrame {
     }
   };
 
-  private final JMenuBar getJMenuBar() {
+  private JMenuBar getJMenuBar() {
     final JMenuBar mb = new JMenuBar();
     final JMenu m = new JMenu("File");
 
@@ -69,16 +62,22 @@ public abstract class AbstractTerminalFrame {
   }
 
   private void openSession() {
-    if (!myTerminal.getSessionRunning()) {
-      openSession(myTerminal);
+    if (myTerminal.canOpenSession()) {
+      openSession(myTerminal, createTtyConnector());
     }
   }
 
-  public abstract void openSession(SwingJediTerminal terminal);
+  public void openSession(TerminalWidget terminal, TtyConnector ttyConnector) {
+    TerminalSession session = terminal.createTerminalSession();
+    session.setTtyConnector(ttyConnector);
+    session.start();
+  }
+
+  public abstract TtyConnector createTtyConnector();
 
   protected AbstractTerminalFrame() {
-    myTerminal = new SwingJediTerminal();
-    myTerminalPanel = myTerminal.getTerminalPanel();
+    myTerminal = new TabbedTerminalWidget();
+    
     final JFrame frame = new JFrame("JediTerm");
 
     frame.addWindowListener(new WindowAdapter() {
@@ -91,19 +90,19 @@ public abstract class AbstractTerminalFrame {
     final JMenuBar mb = getJMenuBar();
     frame.setJMenuBar(mb);
     sizeFrameForTerm(frame);
-    frame.getContentPane().add("Center", myTerminal);
+    frame.getContentPane().add("Center", myTerminal.getComponent());
 
     frame.pack();
-    myTerminalPanel.setVisible(true);
     frame.setVisible(true);
 
     frame.setResizable(true);
 
-    myTerminalPanel.setResizePanelDelegate(new ResizePanelDelegate() {
-      public void resizedPanel(final Dimension pixelDimension, final RequestOrigin origin) {
+    myTerminal.setResizePanelDelegate(new ResizePanelDelegate() {
+      public void onPanelResize(final Dimension pixelDimension, final RequestOrigin origin) {
         if (origin == RequestOrigin.Remote) {
           sizeFrameForTerm(frame);
         }
+        frame.pack();
       }
     });
 
@@ -122,7 +121,7 @@ public abstract class AbstractTerminalFrame {
     SwingUtilities.invokeLater(new Runnable() {
       public void run() {
         myBufferFrame = new JFrame("buffers");
-        final JPanel panel = new BufferPanel(myTerminal);
+        final JPanel panel = new BufferPanel(myTerminal.getCurrentSession());
 
         myBufferFrame.getContentPane().add(panel);
         myBufferFrame.pack();

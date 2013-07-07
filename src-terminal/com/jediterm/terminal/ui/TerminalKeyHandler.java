@@ -6,32 +6,30 @@ import org.apache.log4j.Logger;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 
-public class TerminalEmulatorKeyHandler implements KeyListener {
-  private static Logger logger = Logger.getLogger(TerminalEmulatorKeyHandler.class);
+public class TerminalKeyHandler implements KeyListener {
+  private static Logger logger = Logger.getLogger(TerminalKeyHandler.class);
   private final TerminalStarter myTerminalStarter;
 
-  public TerminalEmulatorKeyHandler(TerminalStarter terminalStarter) {
+  public TerminalKeyHandler(TerminalStarter terminalStarter) {
     myTerminalStarter = terminalStarter;
   }
 
   public void keyPressed(final KeyEvent e) {
     try {
       final int keycode = e.getKeyCode();
-      
+
       final byte[] code = myTerminalStarter.getCode(keycode);
       if (code != null) {
         myTerminalStarter.sendBytes(code);
-      }
-      else {
+      } else {
         final char keychar = e.getKeyChar();
         final byte[] obuffer = new byte[1];
         if ((keychar & 0xff00) == 0) {
-          obuffer[0] = (byte)e.getKeyChar();
+          obuffer[0] = (byte) e.getKeyChar();
           myTerminalStarter.sendBytes(obuffer);
         }
       }
-    }
-    catch (final Exception ex) {
+    } catch (final Exception ex) {
       logger.error("Error sending key to emulator", ex);
     }
   }
@@ -43,8 +41,7 @@ public class TerminalEmulatorKeyHandler implements KeyListener {
       foo[0] = keychar;
       try {
         myTerminalStarter.sendString(new String(foo));
-      }
-      catch (final RuntimeException ex) {
+      } catch (final RuntimeException ex) {
         logger.error("Error sending key to emulator", ex);
       }
     }

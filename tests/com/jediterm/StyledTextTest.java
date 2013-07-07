@@ -2,7 +2,7 @@ package com.jediterm;
 
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.display.BackBuffer;
-import com.jediterm.terminal.display.BufferedDisplayTerminal;
+import com.jediterm.terminal.display.JediTerminal;
 import com.jediterm.terminal.display.StyleState;
 import com.jediterm.util.BackBufferDisplay;
 import junit.framework.TestCase;
@@ -26,7 +26,7 @@ public class StyledTextTest extends TestCase {
 
     BackBuffer backBuffer = new BackBuffer(width, height, state);
 
-    BufferedDisplayTerminal terminal = new BufferedDisplayTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
 
     BackBuffer backBuffer2 = new BackBuffer(width, height, state);
 

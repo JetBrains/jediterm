@@ -3,7 +3,7 @@
  */
 package com.jediterm.terminal.debug;
 
-import com.jediterm.terminal.ui.SwingJediTerminal;
+import com.jediterm.terminal.ui.TerminalSession;
 
 import javax.swing.*;
 import java.awt.*;
@@ -14,7 +14,7 @@ import java.awt.event.ItemListener;
 
 
 public class BufferPanel extends JPanel {
-  public BufferPanel(final SwingJediTerminal terminal) {
+  public BufferPanel(final TerminalSession terminal) {
     super(new BorderLayout());
     final JTextArea area = new JTextArea();
     area.setEditable(false);
@@ -33,7 +33,7 @@ public class BufferPanel extends JPanel {
       private String myLastUpdate = "";
 
       void update() {
-        final DebugBufferType type = (DebugBufferType)chooser.getSelectedItem();
+        final DebugBufferType type = (DebugBufferType) chooser.getSelectedItem();
         final String text = terminal.getBufferText(type);
         if (!text.equals(myLastUpdate)) {
           area.setText(text);

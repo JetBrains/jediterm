@@ -17,8 +17,8 @@ import java.util.*;
  *
  * @author traff
  */
-public class BufferedDisplayTerminal implements Terminal {
-  private static final Logger LOG = Logger.getLogger(BufferedDisplayTerminal.class.getName());
+public class JediTerminal implements Terminal {
+  private static final Logger LOG = Logger.getLogger(JediTerminal.class.getName());
 
   private static final int MIN_WIDTH = 5;
 
@@ -45,7 +45,7 @@ public class BufferedDisplayTerminal implements Terminal {
 
   private final GraphicSetState myGraphicSetState;
 
-  public BufferedDisplayTerminal(final TerminalDisplay display, final BackBuffer buf, final StyleState initialStyleState) {
+  public JediTerminal(final TerminalDisplay display, final BackBuffer buf, final StyleState initialStyleState) {
     myDisplay = display;
     myBackBuffer = buf;
     myStyleState = initialStyleState;
@@ -68,8 +68,7 @@ public class BufferedDisplayTerminal implements Terminal {
   public void setModeEnabled(TerminalMode mode, boolean enabled) {
     if (enabled) {
       myModes.add(mode);
-    }
-    else {
+    } else {
       myModes.remove(mode);
     }
 
@@ -99,7 +98,7 @@ public class BufferedDisplayTerminal implements Terminal {
   }
 
   private void writeCharacters(final char[] chosenBuffer, final int start,
-                              final int length) {
+                               final int length) {
     myBackBuffer.lock();
     try {
       wrapLines();
@@ -111,8 +110,7 @@ public class BufferedDisplayTerminal implements Terminal {
       }
       myCursorX += length;
       finishText();
-    }
-    finally {
+    } finally {
       myBackBuffer.unlock();
     }
   }
@@ -145,8 +143,7 @@ public class BufferedDisplayTerminal implements Terminal {
       myBackBuffer.writeString(myCursorX, myCursorY, string);
       myCursorX += string.length();
       finishText();
-    }
-    finally {
+    } finally {
       myBackBuffer.unlock();
     }
   }
@@ -177,8 +174,7 @@ public class BufferedDisplayTerminal implements Terminal {
       if (myCursorY < myScrollRegionTop) {
         myCursorY = myScrollRegionTop;
       }
-    }
-    finally {
+    } finally {
       myBackBuffer.unlock();
     }
   }
@@ -224,8 +220,7 @@ public class BufferedDisplayTerminal implements Terminal {
       myGraphicSetState.designateGraphicSet(1, CharacterSet.DEC_SUPPLEMENTAL); //TODO: not DEC supplemental, but ISO Latin-1 supplemental designated as G1
       mapCharsetToGL(0);
       mapCharsetToGR(1);
-    } else 
-    if (level == 3) {
+    } else if (level == 3) {
       designateCharacterSet(0, 'B'); //ASCII designated as G0
       mapCharsetToGL(0);
     } else {
@@ -305,8 +300,7 @@ public class BufferedDisplayTerminal implements Terminal {
       if (beginY != endY) {
         clearLines(beginY, endY);
       }
-    }
-    finally {
+    } finally {
       myBackBuffer.unlock();
     }
   }
@@ -315,8 +309,7 @@ public class BufferedDisplayTerminal implements Terminal {
     myBackBuffer.lock();
     try {
       myBackBuffer.clearLines(beginY, endY);
-    }
-    finally {
+    } finally {
       myBackBuffer.unlock();
     }
   }
@@ -346,8 +339,7 @@ public class BufferedDisplayTerminal implements Terminal {
   public void setApplicationArrowKeys(boolean enabled) {
     if (enabled) {
       myTerminalKeyEncoder.arrowKeysApplicationSequences();
-    }
-    else {
+    } else {
       myTerminalKeyEncoder.arrowKeysAnsiCursorSequences();
     }
   }
@@ -356,8 +348,7 @@ public class BufferedDisplayTerminal implements Terminal {
   public void setApplicationKeypad(boolean enabled) {
     if (enabled) {
       myTerminalKeyEncoder.keypadApplicationSequences();
-    }
-    else {
+    } else {
       myTerminalKeyEncoder.normalKeypad();
     }
   }
@@ -382,8 +373,7 @@ public class BufferedDisplayTerminal implements Terminal {
           LOG.error("Unsupported erase in line mode:" + arg);
           break;
       }
-    }
-    finally {
+    } finally {
       myBackBuffer.unlock();
     }
   }
@@ -394,8 +384,7 @@ public class BufferedDisplayTerminal implements Terminal {
     try {
       final int extent = Math.min(count, myTerminalWidth - myCursorX);
       myBackBuffer.deleteCharacters(myCursorX, myCursorY - 1, extent);
-    }
-    finally {
+    } finally {
       myBackBuffer.unlock();
     }
   }
@@ -408,8 +397,7 @@ public class BufferedDisplayTerminal implements Terminal {
     try {
       final int extent = Math.min(count, myTerminalWidth - myCursorX);
       myBackBuffer.eraseCharacters(myCursorX, myCursorX + extent, myCursorY - 1);
-    }
-    finally {
+    } finally {
       myBackBuffer.unlock();
     }
   }
@@ -434,8 +422,7 @@ public class BufferedDisplayTerminal implements Terminal {
     myBackBuffer.lock();
     try {
       myBackBuffer.insertLines(myCursorY - 1, count);
-    }
-    finally {
+    } finally {
       myBackBuffer.unlock();
     }
   }
@@ -445,8 +432,7 @@ public class BufferedDisplayTerminal implements Terminal {
     myBackBuffer.lock();
     try {
       myBackBuffer.deleteLines(myCursorY - 1, count);
-    }
-    finally {
+    } finally {
       myBackBuffer.unlock();
     }
   }
@@ -463,8 +449,7 @@ public class BufferedDisplayTerminal implements Terminal {
       myCursorY -= countY;
       myCursorY = Math.max(myCursorY, scrollingRegionTop());
       myDisplay.setCursor(myCursorX, myCursorY);
-    }
-    finally {
+    } finally {
       myBackBuffer.unlock();
     }
   }
@@ -476,8 +461,7 @@ public class BufferedDisplayTerminal implements Terminal {
       myCursorY += dY;
       myCursorY = Math.min(myCursorY, scrollingRegionBottom());
       myDisplay.setCursor(myCursorX, myCursorY);
-    }
-    finally {
+    } finally {
       myBackBuffer.unlock();
     }
   }
@@ -492,14 +476,12 @@ public class BufferedDisplayTerminal implements Terminal {
       if (myCursorY == myScrollRegionBottom) {
         scrollArea(myScrollRegionTop, scrollingRegionSize(), -1);
         myBackBuffer.clearArea(0, myScrollRegionBottom - 1, myTerminalWidth,
-                               myScrollRegionBottom);
-      }
-      else {
+            myScrollRegionBottom);
+      } else {
         myCursorY += 1;
         myDisplay.setCursor(myCursorX, myCursorY);
       }
-    }
-    finally {
+    } finally {
       myBackBuffer.unlock();
     }
   }
@@ -518,14 +500,12 @@ public class BufferedDisplayTerminal implements Terminal {
       if (myCursorY == myScrollRegionBottom) {
         scrollArea(myScrollRegionTop, scrollingRegionSize(), -1);
         myBackBuffer.clearArea(0, myScrollRegionBottom - 1, myTerminalWidth,
-                               myScrollRegionBottom);
-      }
-      else {
+            myScrollRegionBottom);
+      } else {
         myCursorY += 1;
       }
       myDisplay.setCursor(myCursorX, myCursorY);
-    }
-    finally {
+    } finally {
       myBackBuffer.unlock();
     }
   }
@@ -544,13 +524,11 @@ public class BufferedDisplayTerminal implements Terminal {
       if (myCursorY == myScrollRegionTop) {
         scrollArea(myScrollRegionTop - 1, scrollingRegionSize(), 1);
         myBackBuffer.clearArea(myCursorX, myCursorY - 1, myTerminalWidth, myCursorY);
-      }
-      else {
+      } else {
         myCursorY -= 1;
         myDisplay.setCursor(myCursorX, myCursorY);
       }
-    }
-    finally {
+    } finally {
       myBackBuffer.unlock();
     }
   }
@@ -593,8 +571,7 @@ public class BufferedDisplayTerminal implements Terminal {
     myCursorX = x - 1;
     if (isOriginMode()) {
       myCursorY = y + scrollingRegionTop() - 1;
-    }
-    else {
+    } else {
       myCursorY = y;
     }
 
@@ -646,7 +623,7 @@ public class BufferedDisplayTerminal implements Terminal {
 
   private StoredCursor createCursorState() {
     return new StoredCursor(myCursorX, myCursorY, myStyleState.getCurrent().clone(),
-                            isAutoWrap(), isOriginMode(), myGraphicSetState);
+        isAutoWrap(), isOriginMode(), myGraphicSetState);
   }
 
   @Override
@@ -666,7 +643,7 @@ public class BufferedDisplayTerminal implements Terminal {
     }
     myDisplay.setCursor(myCursorX, myCursorY);
   }
-  
+
   public void restoreCursor(@NotNull StoredCursor storedCursor) {
     myCursorX = storedCursor.getCursorX();
     myCursorY = storedCursor.getCursorY();
@@ -677,14 +654,13 @@ public class BufferedDisplayTerminal implements Terminal {
     setModeEnabled(TerminalMode.OriginMode, storedCursor.isOriginMode());
 
     CharacterSet[] designations = storedCursor.getDesignations();
-    for ( int i = 0; i < designations.length; i++ )
-    {
+    for (int i = 0; i < designations.length; i++) {
       myGraphicSetState.designateGraphicSet(i, designations[i]);
     }
     myGraphicSetState.setGL(storedCursor.getGLMapping());
     myGraphicSetState.setGR(storedCursor.getGRMapping());
 
-    if ( storedCursor.getGLOverride() >= 0 ) {
+    if (storedCursor.getGLOverride() >= 0) {
       myGraphicSetState.overrideGL(storedCursor.getGLOverride());
     }
   }
@@ -754,8 +730,7 @@ public class BufferedDisplayTerminal implements Terminal {
       for (int row = 1; row <= myTerminalHeight; row++) {
         myBackBuffer.writeString(0, row, str);
       }
-    }
-    finally {
+    } finally {
       myBackBuffer.unlock();
     }
   }
@@ -814,8 +789,7 @@ public class BufferedDisplayTerminal implements Terminal {
             myTabStops.add(i);
           }
         }
-      }
-      else {
+      } else {
         Iterator<Integer> it = myTabStops.iterator();
         while (it.hasNext()) {
           int i = it.next();

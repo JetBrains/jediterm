@@ -22,5 +22,5 @@ public interface TerminalSession {
 
   TtyConnector getTtyConnector();
 
-  void setResizePanelDelegate(ResizePanelDelegate delegate);
+  String getSessionName();
 }

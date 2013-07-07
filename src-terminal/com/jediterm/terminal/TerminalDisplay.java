@@ -23,4 +23,6 @@ public interface TerminalDisplay {
   void setScrollingEnabled(boolean enabled);
 
   void setBlinkingCursor(boolean enabled);
+
+  void setWindowTitle(String name);
 }

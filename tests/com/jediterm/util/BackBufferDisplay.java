@@ -58,4 +58,9 @@ public class BackBufferDisplay implements TerminalDisplay {
   public void setBlinkingCursor(boolean enabled) {
 
   }
+
+  @Override
+  public void setWindowTitle(String name) {
+    
+  }
 }

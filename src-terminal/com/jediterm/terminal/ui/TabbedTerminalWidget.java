@@ -2,8 +2,11 @@ package com.jediterm.terminal.ui;
 
 import com.jediterm.terminal.RequestOrigin;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -18,7 +21,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
 
   private int myTabNumber = FIRST_TAB_NUMBER;
 
-  private ResizePanelDelegate myResizePanelDelegate = null;
+  private TerminalPanelListener myTerminalPanelListener = null;
 
   private JediTermWidget myTermWidget = null;
 
@@ -31,20 +34,22 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
   @Override
   public TerminalSession createTerminalSession() {
     JediTermWidget terminal = new JediTermWidget();
-    if (myResizePanelDelegate != null) {
-      terminal.setResizePanelDelegate(myResizePanelDelegate);
+    if (myTerminalPanelListener != null) {
+      terminal.setTerminalPanelListener(myTerminalPanelListener);
     }
 
     if (myTermWidget == null && myTabbedPane == null) {
       myTermWidget = terminal;
       Dimension size = terminal.getComponent().getSize();
-     
+
       add(myTermWidget.getComponent(), BorderLayout.CENTER);
       setSize(size);
 
-      if (myResizePanelDelegate != null) {
-        myResizePanelDelegate.onPanelResize(size, RequestOrigin.User);
+      if (myTerminalPanelListener != null) {
+        myTerminalPanelListener.onPanelResize(size, RequestOrigin.User);
       }
+
+      onSessionChanged();
     }
     else {
       if (myTabbedPane == null) {
@@ -65,10 +70,17 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
   }
 
   private JTabbedPane setupTabbedPane() {
-    JTabbedPane tabbedPane = createTabbedPane();
+    final JTabbedPane tabbedPane = createTabbedPane();
+
+    tabbedPane.addChangeListener(new ChangeListener() {
+      @Override
+      public void stateChanged(ChangeEvent event) {
+        onSessionChanged();
+      }
+    });
 
     myTabNumber = FIRST_TAB_NUMBER;
-    
+
     remove(myTermWidget);
 
     addTab(myTermWidget, tabbedPane);
@@ -78,6 +90,15 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
     add(tabbedPane, BorderLayout.CENTER);
 
     return tabbedPane;
+  }
+
+  private void onSessionChanged() {
+    if (myTerminalPanelListener != null) {
+      TerminalSession session = getCurrentSession();
+      if (session != null) {
+        myTerminalPanelListener.onSessionChanged(session);
+      }
+    }
   }
 
   protected JTabbedPane createTabbedPane() {
@@ -109,6 +130,8 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
       myTabbedPane = null;
       add(myTermWidget.getComponent(), BorderLayout.CENTER);
       myTermWidget.requestFocusInWindow();
+
+      onSessionChanged();
     }
     else {
       myTabbedPane.remove(terminal);
@@ -175,16 +198,17 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
   }
 
   @Override
-  public void setResizePanelDelegate(ResizePanelDelegate resizePanelDelegate) {
+  public void setTerminalPanelListener(TerminalPanelListener terminalPanelListener) {
     if (myTabbedPane != null) {
       for (int i = 0; i < myTabbedPane.getTabCount(); i++) {
-        getTerminalPanel(i).setResizePanelDelegate(resizePanelDelegate);
+        getTerminalPanel(i).setTerminalPanelListener(terminalPanelListener);
       }
     }
-    myResizePanelDelegate = resizePanelDelegate;
+    myTerminalPanelListener = terminalPanelListener;
   }
 
   @Override
+  @Nullable
   public TerminalSession getCurrentSession() {
     if (myTabbedPane != null) {
       return getTerminalPanel(myTabbedPane.getSelectedIndex());
@@ -194,7 +218,13 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
     }
   }
 
+  @Nullable
   private JediTermWidget getTerminalPanel(int index) {
-    return (JediTermWidget)myTabbedPane.getComponentAt(index);
+    if (index < myTabbedPane.getTabCount() && index >= 0) {
+      return (JediTermWidget)myTabbedPane.getComponentAt(index);
+    }
+    else {
+      return null;
+    }
   }
 }

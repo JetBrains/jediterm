@@ -5,8 +5,9 @@ import com.jediterm.terminal.RequestOrigin;
 import java.awt.*;
 
 
-public interface ResizePanelDelegate {
+public interface TerminalPanelListener {
 
   void onPanelResize(Dimension pixelDimension, RequestOrigin origin);
 
+  void onSessionChanged(TerminalSession currentSession);
 }

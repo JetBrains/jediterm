@@ -237,8 +237,7 @@ public class JediTerminal implements Terminal {
 
   @Override
   public void setWindowTitle(String name) {
-    //TODO: implement
-    //To change body of implemented methods use File | Settings | File Templates.
+     myDisplay.setWindowTitle(name);  
   }
 
   @Override

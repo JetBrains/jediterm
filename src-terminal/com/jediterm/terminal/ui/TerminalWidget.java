@@ -12,7 +12,7 @@ public interface TerminalWidget {
 
     boolean canOpenSession();
 
-    void setResizePanelDelegate(ResizePanelDelegate resizePanelDelegate);
+    void setTerminalPanelListener(TerminalPanelListener terminalPanelListener);
 
     Dimension getPreferredSize();
 

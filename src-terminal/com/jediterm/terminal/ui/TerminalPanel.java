@@ -39,7 +39,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private boolean myAntialiasing = true;
 
-  private TerminalStarter myTerminalStarter = null;
+  private TerminalStarter myTerminalStarter = null; 
 
   protected Point mySelectionStart;
 
@@ -49,7 +49,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private Clipboard myClipboard;
 
-  private ResizePanelDelegate myResizePanelDelegate;
+  private TerminalPanelListener myTerminalPanelListener;
 
   final private BackBuffer myBackBuffer;
 
@@ -67,6 +67,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private long myLastResize;
 
   private boolean myScrollingEnabled = true;
+  private String myWindowTitle = "Terminal";
 
 
   public TerminalPanel(BackBuffer backBuffer, StyleState styleState) {
@@ -298,7 +299,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         final Dimension pixelDimension = new Dimension(getPixelWidth(), getPixelHeight());
 
         setPreferredSize(pixelDimension);
-        if (myResizePanelDelegate != null) myResizePanelDelegate.onPanelResize(pixelDimension, origin);
+        if (myTerminalPanelListener != null) myTerminalPanelListener.onPanelResize(pixelDimension, origin);
         SwingUtilities.invokeLater(new Runnable() {
           @Override
           public void run() {
@@ -313,8 +314,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     return new Dimension(getPixelWidth(), getPixelHeight());
   }
 
-  public void setResizePanelDelegate(final ResizePanelDelegate resizeDelegate) {
-    myResizePanelDelegate = resizeDelegate;
+  public void setTerminalPanelListener(final TerminalPanelListener resizeDelegate) {
+    myTerminalPanelListener = resizeDelegate;
   }
 
   private void establishFontMetrics() {
@@ -393,6 +394,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   public int getRowCount() {
     return myTermSize.height;
+  }
+
+  public String getWindowTitle() {
+    return myWindowTitle;
   }
 
 
@@ -828,5 +833,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   public TerminalOutputStream getTerminalOutputStream() {
     return myTerminalStarter;
+  }
+
+  @Override
+  public void setWindowTitle(String name) {
+    myWindowTitle = name;
   }
 }

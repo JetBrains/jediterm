@@ -95,6 +95,11 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   }
 
   @Override
+  public String getSessionName() {
+    return myTerminalPanel.getWindowTitle();
+  }
+
+  @Override
   public void redraw() {
     myTerminalPanel.redraw();
   }
@@ -143,8 +148,8 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   }
 
   @Override
-  public void setResizePanelDelegate(ResizePanelDelegate resizePanelDelegate) {
-    myTerminalPanel.setResizePanelDelegate(resizePanelDelegate);
+  public void setTerminalPanelListener(TerminalPanelListener terminalPanelListener) {
+    myTerminalPanel.setTerminalPanelListener(terminalPanelListener);
   }
 
   @Override

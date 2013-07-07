@@ -97,12 +97,17 @@ public abstract class AbstractTerminalFrame {
 
     frame.setResizable(true);
 
-    myTerminal.setResizePanelDelegate(new ResizePanelDelegate() {
+    myTerminal.setTerminalPanelListener(new TerminalPanelListener() {
       public void onPanelResize(final Dimension pixelDimension, final RequestOrigin origin) {
         if (origin == RequestOrigin.Remote) {
           sizeFrameForTerm(frame);
         }
         frame.pack();
+      }
+      
+      @Override
+      public void onSessionChanged(final TerminalSession currentSession) {
+        frame.setTitle(currentSession.getSessionName());
       }
     });
 

@@ -68,7 +68,8 @@ public class JediTerminal implements Terminal {
   public void setModeEnabled(TerminalMode mode, boolean enabled) {
     if (enabled) {
       myModes.add(mode);
-    } else {
+    }
+    else {
       myModes.remove(mode);
     }
 
@@ -110,7 +111,8 @@ public class JediTerminal implements Terminal {
       }
       myCursorX += length;
       finishText();
-    } finally {
+    }
+    finally {
       myBackBuffer.unlock();
     }
   }
@@ -143,7 +145,8 @@ public class JediTerminal implements Terminal {
       myBackBuffer.writeString(myCursorX, myCursorY, string);
       myCursorX += string.length();
       finishText();
-    } finally {
+    }
+    finally {
       myBackBuffer.unlock();
     }
   }
@@ -174,7 +177,8 @@ public class JediTerminal implements Terminal {
       if (myCursorY < myScrollRegionTop) {
         myCursorY = myScrollRegionTop;
       }
-    } finally {
+    }
+    finally {
       myBackBuffer.unlock();
     }
   }
@@ -217,13 +221,16 @@ public class JediTerminal implements Terminal {
   public void setAnsiConformanceLevel(int level) {
     if (level == 1 || level == 2) {
       myGraphicSetState.designateGraphicSet(0, CharacterSet.ASCII); //ASCII designated as G0
-      myGraphicSetState.designateGraphicSet(1, CharacterSet.DEC_SUPPLEMENTAL); //TODO: not DEC supplemental, but ISO Latin-1 supplemental designated as G1
+      myGraphicSetState
+        .designateGraphicSet(1, CharacterSet.DEC_SUPPLEMENTAL); //TODO: not DEC supplemental, but ISO Latin-1 supplemental designated as G1
       mapCharsetToGL(0);
       mapCharsetToGR(1);
-    } else if (level == 3) {
+    }
+    else if (level == 3) {
       designateCharacterSet(0, 'B'); //ASCII designated as G0
       mapCharsetToGL(0);
-    } else {
+    }
+    else {
       throw new IllegalArgumentException();
     }
   }
@@ -272,7 +279,7 @@ public class JediTerminal implements Terminal {
         case 0:
           // Initial line
           if (myCursorX < myTerminalWidth) {
-            myBackBuffer.clearArea(myCursorX, myCursorY - 1, myTerminalWidth, myCursorY);
+            myBackBuffer.eraseCharacters(myCursorX, myTerminalWidth, myCursorY - 1);
           }
           // Rest
           beginY = myCursorY;
@@ -281,7 +288,7 @@ public class JediTerminal implements Terminal {
           break;
         case 1:
           // initial line
-          myBackBuffer.clearArea(0, myCursorY - 1, myCursorX + 1, myCursorY);
+          myBackBuffer.eraseCharacters(0, myCursorX + 1, myCursorY - 1);
 
           beginY = 0;
           endY = myCursorY - 1;
@@ -300,7 +307,8 @@ public class JediTerminal implements Terminal {
       if (beginY != endY) {
         clearLines(beginY, endY);
       }
-    } finally {
+    }
+    finally {
       myBackBuffer.unlock();
     }
   }
@@ -309,7 +317,8 @@ public class JediTerminal implements Terminal {
     myBackBuffer.lock();
     try {
       myBackBuffer.clearLines(beginY, endY);
-    } finally {
+    }
+    finally {
       myBackBuffer.unlock();
     }
   }
@@ -339,7 +348,8 @@ public class JediTerminal implements Terminal {
   public void setApplicationArrowKeys(boolean enabled) {
     if (enabled) {
       myTerminalKeyEncoder.arrowKeysApplicationSequences();
-    } else {
+    }
+    else {
       myTerminalKeyEncoder.arrowKeysAnsiCursorSequences();
     }
   }
@@ -348,7 +358,8 @@ public class JediTerminal implements Terminal {
   public void setApplicationKeypad(boolean enabled) {
     if (enabled) {
       myTerminalKeyEncoder.keypadApplicationSequences();
-    } else {
+    }
+    else {
       myTerminalKeyEncoder.normalKeypad();
     }
   }
@@ -373,7 +384,8 @@ public class JediTerminal implements Terminal {
           LOG.error("Unsupported erase in line mode:" + arg);
           break;
       }
-    } finally {
+    }
+    finally {
       myBackBuffer.unlock();
     }
   }
@@ -384,7 +396,8 @@ public class JediTerminal implements Terminal {
     try {
       final int extent = Math.min(count, myTerminalWidth - myCursorX);
       myBackBuffer.deleteCharacters(myCursorX, myCursorY - 1, extent);
-    } finally {
+    }
+    finally {
       myBackBuffer.unlock();
     }
   }
@@ -397,7 +410,8 @@ public class JediTerminal implements Terminal {
     try {
       final int extent = Math.min(count, myTerminalWidth - myCursorX);
       myBackBuffer.eraseCharacters(myCursorX, myCursorX + extent, myCursorY - 1);
-    } finally {
+    }
+    finally {
       myBackBuffer.unlock();
     }
   }
@@ -422,7 +436,8 @@ public class JediTerminal implements Terminal {
     myBackBuffer.lock();
     try {
       myBackBuffer.insertLines(myCursorY - 1, count);
-    } finally {
+    }
+    finally {
       myBackBuffer.unlock();
     }
   }
@@ -432,7 +447,8 @@ public class JediTerminal implements Terminal {
     myBackBuffer.lock();
     try {
       myBackBuffer.deleteLines(myCursorY - 1, count);
-    } finally {
+    }
+    finally {
       myBackBuffer.unlock();
     }
   }
@@ -449,7 +465,8 @@ public class JediTerminal implements Terminal {
       myCursorY -= countY;
       myCursorY = Math.max(myCursorY, scrollingRegionTop());
       myDisplay.setCursor(myCursorX, myCursorY);
-    } finally {
+    }
+    finally {
       myBackBuffer.unlock();
     }
   }
@@ -461,7 +478,8 @@ public class JediTerminal implements Terminal {
       myCursorY += dY;
       myCursorY = Math.min(myCursorY, scrollingRegionBottom());
       myDisplay.setCursor(myCursorX, myCursorY);
-    } finally {
+    }
+    finally {
       myBackBuffer.unlock();
     }
   }
@@ -476,12 +494,14 @@ public class JediTerminal implements Terminal {
       if (myCursorY == myScrollRegionBottom) {
         scrollArea(myScrollRegionTop, scrollingRegionSize(), -1);
         myBackBuffer.clearArea(0, myScrollRegionBottom - 1, myTerminalWidth,
-            myScrollRegionBottom);
-      } else {
+                               myScrollRegionBottom);
+      }
+      else {
         myCursorY += 1;
         myDisplay.setCursor(myCursorX, myCursorY);
       }
-    } finally {
+    }
+    finally {
       myBackBuffer.unlock();
     }
   }
@@ -500,12 +520,14 @@ public class JediTerminal implements Terminal {
       if (myCursorY == myScrollRegionBottom) {
         scrollArea(myScrollRegionTop, scrollingRegionSize(), -1);
         myBackBuffer.clearArea(0, myScrollRegionBottom - 1, myTerminalWidth,
-            myScrollRegionBottom);
-      } else {
+                               myScrollRegionBottom);
+      }
+      else {
         myCursorY += 1;
       }
       myDisplay.setCursor(myCursorX, myCursorY);
-    } finally {
+    }
+    finally {
       myBackBuffer.unlock();
     }
   }
@@ -524,11 +546,13 @@ public class JediTerminal implements Terminal {
       if (myCursorY == myScrollRegionTop) {
         scrollArea(myScrollRegionTop - 1, scrollingRegionSize(), 1);
         myBackBuffer.clearArea(myCursorX, myCursorY - 1, myTerminalWidth, myCursorY);
-      } else {
+      }
+      else {
         myCursorY -= 1;
         myDisplay.setCursor(myCursorX, myCursorY);
       }
-    } finally {
+    }
+    finally {
       myBackBuffer.unlock();
     }
   }
@@ -571,7 +595,8 @@ public class JediTerminal implements Terminal {
     myCursorX = x - 1;
     if (isOriginMode()) {
       myCursorY = y + scrollingRegionTop() - 1;
-    } else {
+    }
+    else {
       myCursorY = y;
     }
 
@@ -623,18 +648,19 @@ public class JediTerminal implements Terminal {
 
   private StoredCursor createCursorState() {
     return new StoredCursor(myCursorX, myCursorY, myStyleState.getCurrent().clone(),
-        isAutoWrap(), isOriginMode(), myGraphicSetState);
+                            isAutoWrap(), isOriginMode(), myGraphicSetState);
   }
 
   @Override
   public void restoreCursor() {
     if (myStoredCursor != null) {
       restoreCursor(myStoredCursor);
-    } else { //If nothing was saved by DECSC
+    }
+    else { //If nothing was saved by DECSC
       setModeEnabled(TerminalMode.OriginMode, false); //Resets origin mode (DECOM)
       cursorPosition(1, 1); //Moves the cursor to the home position (upper left of screen).
       myStyleState.reset(); //Turns all character attributes off (normal setting).
-      
+
       myGraphicSetState.resetState();
       //myGraphicSetState.designateGraphicSet(0, CharacterSet.ASCII);//Maps the ASCII character set into GL
       //mapCharsetToGL(0);
@@ -649,7 +675,7 @@ public class JediTerminal implements Terminal {
     myCursorY = storedCursor.getCursorY();
 
     myStyleState.setCurrent(storedCursor.getTextStyle().clone());
-    
+
     setModeEnabled(TerminalMode.AutoWrap, storedCursor.isAutoWrap());
     setModeEnabled(TerminalMode.OriginMode, storedCursor.isOriginMode());
 
@@ -730,7 +756,8 @@ public class JediTerminal implements Terminal {
       for (int row = 1; row <= myTerminalHeight; row++) {
         myBackBuffer.writeString(0, row, str);
       }
-    } finally {
+    }
+    finally {
       myBackBuffer.unlock();
     }
   }
@@ -789,7 +816,8 @@ public class JediTerminal implements Terminal {
             myTabStops.add(i);
           }
         }
-      } else {
+      }
+      else {
         Iterator<Integer> it = myTabStops.iterator();
         while (it.hasNext()) {
           int i = it.next();

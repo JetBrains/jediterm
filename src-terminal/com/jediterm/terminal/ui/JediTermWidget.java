@@ -22,30 +22,32 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class JediTermWidget extends JPanel implements TerminalSession, TerminalWidget {
   private static final Logger LOG = Logger.getLogger(JediTermWidget.class);
 
-  protected TerminalPanel myTerminalPanel;
-  protected JediTerminal myTerminal;
-  protected AtomicBoolean mySessionRunning = new AtomicBoolean();
+  protected final TerminalPanel myTerminalPanel;
+  protected final JediTerminal myTerminal;
+  protected final AtomicBoolean mySessionRunning = new AtomicBoolean();
   protected PreConnectHandler myPreConnectHandler;
   private TtyConnector myTtyConnector;
   private TerminalStarter myTerminalStarter;
   private Thread myEmuThread;
+  private final SystemSettingsProvider mySettingsProvider;
 
-  public JediTermWidget() {
-    this(80, 24);
+  public JediTermWidget(SystemSettingsProvider settingsProvider) {
+    this(80, 24, settingsProvider);
   }
 
-  public JediTermWidget(Dimension dimension) {
-    this(dimension.width, dimension.height);
+  public JediTermWidget(Dimension dimension, SystemSettingsProvider settingsProvider) {
+    this(dimension.width, dimension.height, settingsProvider);
   }
 
-  public JediTermWidget(int columns, int lines) {
+  public JediTermWidget(int columns, int lines, SystemSettingsProvider settingsProvider) {
     super(new BorderLayout());
 
     StyleState styleState = createDefaultStyle();
 
     BackBuffer backBuffer = new BackBuffer(columns, lines, styleState);
 
-    myTerminalPanel = createTerminalPanel(styleState, backBuffer);
+    mySettingsProvider = settingsProvider;
+    myTerminalPanel = createTerminalPanel(mySettingsProvider, styleState, backBuffer);
     myTerminal = new JediTerminal(myTerminalPanel, backBuffer, styleState);
     myPreConnectHandler = createPreConnectHandler(myTerminal);
     myTerminalPanel.setKeyListener(myPreConnectHandler);
@@ -61,6 +63,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     myTerminalPanel.setVisible(true);
   }
 
+
   protected JScrollBar createScrollBar() {
     return new JScrollBar();
   }
@@ -71,8 +74,8 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     return styleState;
   }
 
-  protected TerminalPanel createTerminalPanel(StyleState styleState, BackBuffer backBuffer) {
-    return new TerminalPanel(backBuffer, styleState);
+  protected TerminalPanel createTerminalPanel(SystemSettingsProvider settingsProvider, StyleState styleState, BackBuffer backBuffer) {
+    return new TerminalPanel(settingsProvider, backBuffer, styleState);
   }
 
   protected PreConnectHandler createPreConnectHandler(JediTerminal writer) {

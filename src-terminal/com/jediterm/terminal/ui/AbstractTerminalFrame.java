@@ -19,7 +19,7 @@ public abstract class AbstractTerminalFrame {
 
   private TerminalWidget myTerminal;
 
-  private AbstractAction myOpenAction = new AbstractAction("New Session...") {
+  private AbstractAction myOpenAction = new AbstractAction("New Session") {
     public void actionPerformed(final ActionEvent e) {
       openSession();
     }
@@ -76,7 +76,7 @@ public abstract class AbstractTerminalFrame {
   public abstract TtyConnector createTtyConnector();
 
   protected AbstractTerminalFrame() {
-    myTerminal = new TabbedTerminalWidget();
+    myTerminal = new TabbedTerminalWidget(new MySystemSettingsProvider());
     
     final JFrame frame = new JFrame("JediTerm");
 
@@ -141,5 +141,12 @@ public abstract class AbstractTerminalFrame {
         });
       }
     });
+  }
+
+  private class MySystemSettingsProvider implements SystemSettingsProvider {
+    @Override
+    public AbstractAction getNewSessionAction() {
+      return myOpenAction;
+    }
   }
 }

@@ -26,14 +26,17 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
   private JediTermWidget myTermWidget = null;
 
   private JTabbedPane myTabbedPane;
+  
+  private SystemSettingsProvider mySystemSettingsProvider;
 
-  public TabbedTerminalWidget() {
+  public TabbedTerminalWidget(@NotNull SystemSettingsProvider settingsProvider) {
     super(new BorderLayout());
+    mySystemSettingsProvider = settingsProvider;
   }
 
   @Override
   public TerminalSession createTerminalSession() {
-    JediTermWidget terminal = new JediTermWidget();
+    JediTermWidget terminal = new JediTermWidget(mySystemSettingsProvider);
     if (myTerminalPanelListener != null) {
       terminal.setTerminalPanelListener(myTerminalPanelListener);
     }
@@ -107,6 +110,8 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
 
   private JPopupMenu createPopup(final JediTermWidget terminal) {
     JPopupMenu popupMenu = new JPopupMenu();
+    
+    popupMenu.add(mySystemSettingsProvider.getNewSessionAction());
 
     JMenuItem close = new JMenuItem("Close");
     close.addActionListener(new ActionListener() {

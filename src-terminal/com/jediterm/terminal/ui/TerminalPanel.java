@@ -71,7 +71,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private String myWindowTitle = "Terminal";
 
 
-  public TerminalPanel(SystemSettingsProvider settingsProvider, BackBuffer backBuffer, StyleState styleState) {
+  public TerminalPanel(@NotNull SystemSettingsProvider settingsProvider, @NotNull BackBuffer backBuffer, @NotNull StyleState styleState) {
     mySettingsProvider = settingsProvider;
     myBackBuffer = backBuffer;
     myStyleState = styleState;

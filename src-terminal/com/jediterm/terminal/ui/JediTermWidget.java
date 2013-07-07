@@ -31,7 +31,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   private Thread myEmuThread;
   private final SystemSettingsProvider mySettingsProvider;
 
-  public JediTermWidget(SystemSettingsProvider settingsProvider) {
+  public JediTermWidget(@NotNull SystemSettingsProvider settingsProvider) {
     this(80, 24, settingsProvider);
   }
 
@@ -166,7 +166,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   }
 
   @Override
-  public Component getComponent() {
+  public JComponent getComponent() {
     return this;
   }
 

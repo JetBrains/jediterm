@@ -1,20 +1,23 @@
 package com.jediterm.terminal.ui;
 
+import com.jediterm.terminal.TtyConnector;
+
+import javax.swing.*;
 import java.awt.*;
 
 /**
  * @author traff
  */
 public interface TerminalWidget {
-    TerminalSession createTerminalSession();
+  TerminalSession createTerminalSession();
 
-    Component getComponent();
+  JComponent getComponent();
 
-    boolean canOpenSession();
+  boolean canOpenSession();
 
-    void setTerminalPanelListener(TerminalPanelListener terminalPanelListener);
+  void setTerminalPanelListener(TerminalPanelListener terminalPanelListener);
 
-    Dimension getPreferredSize();
+  Dimension getPreferredSize();
 
-    TerminalSession getCurrentSession();
+  TerminalSession getCurrentSession();
 }

@@ -18,6 +18,7 @@ import java.awt.event.MouseEvent;
  */
 public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
   private static final int FIRST_TAB_NUMBER = 1;
+  public static final String TAB_DEFAULT_NAME = "Session ";
 
   private int myTabNumber = FIRST_TAB_NUMBER;
 
@@ -26,7 +27,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
   private JediTermWidget myTermWidget = null;
 
   private JTabbedPane myTabbedPane;
-  
+
   private SystemSettingsProvider mySystemSettingsProvider;
 
   public TabbedTerminalWidget(@NotNull SystemSettingsProvider settingsProvider) {
@@ -36,7 +37,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
 
   @Override
   public TerminalSession createTerminalSession() {
-    JediTermWidget terminal = new JediTermWidget(mySystemSettingsProvider);
+    JediTermWidget terminal = createInnerTerminalWidget();
     if (myTerminalPanelListener != null) {
       terminal.setTerminalPanelListener(myTerminalPanelListener);
     }
@@ -64,8 +65,12 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
     return terminal;
   }
 
+  protected JediTermWidget createInnerTerminalWidget() {
+    return new JediTermWidget(mySystemSettingsProvider);
+  }
+
   private void addTab(JediTermWidget terminal, JTabbedPane tabbedPane) {
-    String tabName = "Terminal " + myTabNumber++;
+    String tabName = TAB_DEFAULT_NAME + myTabNumber++;
     tabbedPane.addTab(tabName, null, terminal);
 
     tabbedPane.setTabComponentAt(tabbedPane.getTabCount() - 1, new TabComponent(tabbedPane, terminal));
@@ -97,9 +102,10 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
 
   private void onSessionChanged() {
     if (myTerminalPanelListener != null) {
-      TerminalSession session = getCurrentSession();
+      JediTermWidget session = getCurrentSession();
       if (session != null) {
         myTerminalPanelListener.onSessionChanged(session);
+        session.getTerminalPanel().requestFocusInWindow();
       }
     }
   }
@@ -110,7 +116,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
 
   private JPopupMenu createPopup(final JediTermWidget terminal) {
     JPopupMenu popupMenu = new JPopupMenu();
-    
+
     popupMenu.add(mySystemSettingsProvider.getNewSessionAction());
 
     JMenuItem close = new JMenuItem("Close");
@@ -128,19 +134,16 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
   }
 
   private void removeTab(JediTermWidget terminal) {
-    if (myTabbedPane.getTabCount() == 2) {
+    myTabbedPane.remove(terminal);
+    if (myTabbedPane.getTabCount() == 1) {
       myTermWidget = getTerminalPanel(0);
       myTabbedPane.removeAll();
       remove(myTabbedPane);
       myTabbedPane = null;
       add(myTermWidget.getComponent(), BorderLayout.CENTER);
-      myTermWidget.requestFocusInWindow();
-
-      onSessionChanged();
     }
-    else {
-      myTabbedPane.remove(terminal);
-    }
+    
+    onSessionChanged();
   }
 
   private class TabComponent extends JPanel {
@@ -193,7 +196,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
 
 
   @Override
-  public Component getComponent() {
+  public JComponent getComponent() {
     return this;
   }
 
@@ -214,7 +217,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
 
   @Override
   @Nullable
-  public TerminalSession getCurrentSession() {
+  public JediTermWidget getCurrentSession() {
     if (myTabbedPane != null) {
       return getTerminalPanel(myTabbedPane.getSelectedIndex());
     }
@@ -231,5 +234,9 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
     else {
       return null;
     }
+  }
+
+  public SystemSettingsProvider getSystemSettingsProvider() {
+    return mySystemSettingsProvider;
   }
 }

@@ -13,6 +13,8 @@ import org.jetbrains.annotations.NotNull;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -49,6 +51,9 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     mySettingsProvider = settingsProvider;
     myTerminalPanel = createTerminalPanel(mySettingsProvider, styleState, backBuffer);
     myTerminal = new JediTerminal(myTerminalPanel, backBuffer, styleState);
+    
+    myTerminalPanel.addTerminalMouseListener(myTerminal);
+    
     myPreConnectHandler = createPreConnectHandler(myTerminal);
     myTerminalPanel.setKeyListener(myPreConnectHandler);
     JScrollBar scrollBar = createScrollBar();

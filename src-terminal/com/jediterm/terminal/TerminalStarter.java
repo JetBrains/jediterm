@@ -32,6 +32,7 @@ public class TerminalStarter implements TerminalOutputStream {
     myTtyConnector = ttyConnector;
     myTtyChannel = createTtyChannel();
     myTerminal = terminal;
+    myTerminal.setTerminalOutput(this);
     myEmulator = new JediEmulator(myTtyChannel, this, terminal);
   }
 

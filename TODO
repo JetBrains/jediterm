@@ -1,6 +1,5 @@
-* Better fonts rendering under Linux
-* ncurses support (doesn't work in Midnight Commander now)
 * Mouse support
 * Encodings settings support
-* Clear page after VIM
+* Better selection: scroll on margin reach and don't xor on paint
+* Drag'n'drop 
 * Find in text

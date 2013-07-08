@@ -1,13 +1,20 @@
 package com.jediterm.terminal.display;
 
+import com.google.common.base.Ascii;
 import com.jediterm.terminal.*;
+import com.jediterm.terminal.emulator.mouse.MouseButtonCodes;
+import com.jediterm.terminal.emulator.mouse.MouseButtonModifierFlags;
+import com.jediterm.terminal.emulator.mouse.MouseFormat;
 import com.jediterm.terminal.emulator.charset.CharacterSet;
 import com.jediterm.terminal.emulator.charset.GraphicSet;
 import com.jediterm.terminal.emulator.charset.GraphicSetState;
+import com.jediterm.terminal.emulator.mouse.TerminalMouseListener;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
 
@@ -17,7 +24,7 @@ import java.util.*;
  *
  * @author traff
  */
-public class JediTerminal implements Terminal {
+public class JediTerminal implements Terminal, TerminalMouseListener {
   private static final Logger LOG = Logger.getLogger(JediTerminal.class.getName());
 
   private static final int MIN_WIDTH = 5;
@@ -44,6 +51,10 @@ public class JediTerminal implements Terminal {
   private final Tabulator myTabulator;
 
   private final GraphicSetState myGraphicSetState;
+
+  private MouseFormat myMouseFormat = MouseFormat.MOUSE_FORMAT_XTERM;
+
+  private TerminalOutputStream myTerminalOutput = null;
 
   public JediTerminal(final TerminalDisplay display, final BackBuffer buf, final StyleState initialStyleState) {
     myDisplay = display;
@@ -237,7 +248,7 @@ public class JediTerminal implements Terminal {
 
   @Override
   public void setWindowTitle(String name) {
-     myDisplay.setWindowTitle(name);  
+    myDisplay.setWindowTitle(name);
   }
 
   @Override
@@ -718,6 +729,104 @@ public class JediTerminal implements Terminal {
 
   public boolean isAutoWrap() {
     return myModes.contains(TerminalMode.AutoWrap);
+  }
+
+  private int createButtonCode(MouseEvent event) {
+    if ((event.getModifiersEx() & MouseEvent.BUTTON1) != 0) {
+      return MouseButtonCodes.MOUSE_BUTTON_LEFT;
+    }
+    else {
+      return MouseButtonCodes.MOUSE_BUTTON_RIGHT;
+    }
+  }
+
+  private String mouseReport(int button, int x, int y) {
+    StringBuilder sb = new StringBuilder();
+    switch (myMouseFormat) {
+      case MOUSE_FORMAT_XTERM_EXT:
+        sb.append(String.format(Ascii.ESC + "[M%c%lc%lc", //TODO
+                                (32 + button),
+                                (32 + x),
+                                (32 + y)));
+        break;
+      case MOUSE_FORMAT_URXVT:
+        sb.append(String.format(Ascii.ESC + "[%d;%d;%dM", 32 + button, x, y));
+        break;
+      case MOUSE_FORMAT_SGR:
+        if ((button & MouseButtonModifierFlags.MOUSE_BUTTON_SGR_RELEASE_FLAG) != 0) {
+          // for mouse release event
+          sb.append(String.format(Ascii.ESC + "[<%d;%d;%dm",
+                                  button ^ MouseButtonModifierFlags.MOUSE_BUTTON_SGR_RELEASE_FLAG,
+                                  x,
+                                  y));
+        }
+        else {
+          // for mouse press/motion event
+          sb.append(String.format(Ascii.ESC + "[<%d;%d;%dM", button, x, y));
+        }
+        break;
+      case MOUSE_FORMAT_XTERM:
+      default:
+        sb.append(String.format(Ascii.ESC + "[M%c%c%c", (char)(32 + button), (char)(32 + x), (char)(32 + y)));
+        break;
+    }
+    return sb.toString();
+  }
+
+  @Override
+  public void mousePressed(int x, int y, MouseEvent event) {
+    if (myTerminalOutput != null) {
+      int button = createButtonCode(event);
+      int cb = button;
+
+      if (button == MouseButtonCodes.MOUSE_BUTTON_SCROLLDOWN || button == MouseButtonCodes.MOUSE_BUTTON_SCROLLUP) {
+        // convert x11 scroll button number to terminal button code
+        int offset = MouseButtonCodes.MOUSE_BUTTON_SCROLLDOWN;
+        cb -= offset;
+        cb |= MouseButtonModifierFlags.MOUSE_BUTTON_SCROLL_FLAG;
+      }
+      
+      cb = applyModifierKeys(event, cb);
+      
+      myTerminalOutput.sendString(mouseReport(cb, x, y));
+    }
+  }
+
+  @Override
+  public void mouseReleased(int x, int y, MouseEvent event) {
+    if (myTerminalOutput != null) {
+      int cb = createButtonCode(event);
+
+      if (myMouseFormat == MouseFormat.MOUSE_FORMAT_SGR) {
+        // for SGR 1006 mode
+        cb |= MouseButtonModifierFlags.MOUSE_BUTTON_SGR_RELEASE_FLAG;
+      }
+      else {
+        // for 1000/1005/1015 mode
+        cb = 3;
+      }
+
+      cb = applyModifierKeys(event, cb);
+
+      myTerminalOutput.sendString(mouseReport(cb, x, y));
+    }
+  }
+
+  private int applyModifierKeys(MouseEvent event, int cb) {
+    if (event.isControlDown()) {
+      cb |= MouseButtonModifierFlags.MOUSE_BUTTON_CTRL_FLAG;
+    }
+    if (event.isShiftDown()) {
+      cb |= MouseButtonModifierFlags.MOUSE_BUTTON_SHIFT_FLAG;
+    }
+    if (event.isMetaDown()) {
+      cb |= MouseButtonModifierFlags.MOUSE_BUTTON_META_FLAG;
+    }
+    return cb;
+  }
+
+  public void setTerminalOutput(TerminalOutputStream terminalOutput) {
+    myTerminalOutput = terminalOutput;
   }
 
   public interface ResizeHandler {

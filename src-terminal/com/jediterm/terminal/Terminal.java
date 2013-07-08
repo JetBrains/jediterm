@@ -1,6 +1,7 @@
 package com.jediterm.terminal;
 
 import com.jediterm.terminal.display.StyleState;
+import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.io.UnsupportedEncodingException;
@@ -120,4 +121,6 @@ public interface Terminal {
   void setTabStopAtCursor();
 
   void writeUnwrappedString(String string);
+
+  void setTerminalOutput(@Nullable TerminalOutputStream terminalOutput);
 }

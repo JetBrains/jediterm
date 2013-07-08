@@ -2,6 +2,8 @@ package com.jediterm.terminal.ui;
 
 import com.jediterm.terminal.*;
 import com.jediterm.terminal.display.*;
+import com.jediterm.terminal.emulator.JediEmulator;
+import com.jediterm.terminal.emulator.mouse.TerminalMouseListener;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
@@ -408,6 +410,23 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   public String getWindowTitle() {
     return myWindowTitle;
+  }
+
+  public void addTerminalMouseListener(final TerminalMouseListener listener) {
+    addMouseListener(new MouseAdapter() {
+      @Override
+      public void mousePressed(MouseEvent e) {
+        Point p = panelToCharCoords(e.getPoint());
+        listener.mousePressed(p.x, p.y, e);
+      }
+
+      @Override
+      public void mouseReleased(MouseEvent e) {
+        Point p = panelToCharCoords(e.getPoint());
+        listener.mouseReleased(p.x, p.y, e);
+      }
+    });
+    
   }
 
 

@@ -788,7 +788,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
            (myMouseMode == MouseMode.MOUSE_REPORTING_NORMAL || myMouseMode == MouseMode.MOUSE_REPORTING_ALL_MOTION ||
             myMouseMode == MouseMode.MOUSE_REPORTING_BUTTON_MOTION);
   }
-
+  
   @Override
   public void mousePressed(int x, int y, MouseEvent event) {
     if (shouldSendMouseData()) {

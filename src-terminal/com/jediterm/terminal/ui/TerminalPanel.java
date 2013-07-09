@@ -3,6 +3,7 @@ package com.jediterm.terminal.ui;
 import com.jediterm.terminal.*;
 import com.jediterm.terminal.display.*;
 import com.jediterm.terminal.emulator.mouse.TerminalMouseListener;
+import com.jediterm.terminal.util.Pair;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
@@ -22,7 +23,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private BufferedImage myImage;
 
+  private BufferedImage myImageForSelection;
+
   protected Graphics2D myGfx;
+
+  private Graphics2D myGfxForSelection;
 
   private final Component myTerminalPanel = this;
 
@@ -42,11 +47,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private TerminalStarter myTerminalStarter = null;
 
-  protected Point mySelectionStart;
+  private TerminalSelection mySelection = null;
 
-  protected Point mySelectionEnd;
-
-  protected boolean mySelectionInProgress;
+  private TextStyle mySelectionColor = new TextStyle(Color.WHITE, new Color(82, 109, 165));
 
   private Clipboard myClipboard;
 
@@ -70,7 +73,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private boolean myScrollingEnabled = true;
   private String myWindowTitle = "Terminal";
-
 
   public TerminalPanel(@NotNull SystemSettingsProvider settingsProvider, @NotNull BackBuffer backBuffer, @NotNull StyleState styleState) {
     mySettingsProvider = settingsProvider;
@@ -103,13 +105,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       public void mouseDragged(final MouseEvent e) {
         final Point charCoords = panelToCharCoords(e.getPoint());
 
-        if (!mySelectionInProgress) {
-          mySelectionStart = new Point(charCoords);
-          mySelectionInProgress = true;
+        if (mySelection == null) {
+          mySelection = new TerminalSelection(new Point(charCoords));
         }
         repaint();
-        mySelectionEnd = charCoords;
-        mySelectionEnd.x = Math.min(mySelectionEnd.x + 1, myTermSize.width);
+        mySelection.updateEnd(charCoords, myTermSize.width);
       }
     });
 
@@ -124,8 +124,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     addMouseListener(new MouseAdapter() {
       @Override
       public void mouseReleased(final MouseEvent e) {
-        mySelectionInProgress = false;
-
         repaint();
       }
 
@@ -133,12 +131,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       public void mouseClicked(final MouseEvent e) {
         requestFocusInWindow();
         if (e.getButton() == MouseEvent.BUTTON3) {
-          JPopupMenu popup = createPopupMenu(mySelectionStart, mySelectionEnd, getClipboardString());
+          JPopupMenu popup = createPopupMenu(mySelection, getClipboardString());
           popup.show(e.getComponent(), e.getX(), e.getY());
         }
         else {
-          mySelectionStart = null;
-          mySelectionEnd = null;
+          mySelection = null;
         }
         repaint();
       }
@@ -246,23 +243,36 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     int width = getPixelWidth();
     int height = getPixelHeight();
     if (width > 0 && height > 0) {
-      myImage = createBufferedImage(width, height);
-      myGfx = myImage.createGraphics();
+      Pair<BufferedImage, Graphics2D> imageAndGfx = createAndInitImage(width, height);
+      myImage = imageAndGfx.first;
+      myGfx = imageAndGfx.second;
 
-      if (UIUtil.isRetina()) {
-        myGfx.scale(0.5, 0.5);
-      }
-      setupAntialiasing(myGfx, myAntialiasing);
-
-      myGfx.setColor(getBackground());
-
-      myGfx.fillRect(0, 0, width, height);
+      imageAndGfx = createAndInitImage(width, height);
+      myImageForSelection = imageAndGfx.first;
+      myGfxForSelection = imageAndGfx.second;
 
       if (oldImage != null) {
         myGfx.drawImage(oldImage, 0, 0,
                         oldImage.getWidth(), oldImage.getHeight(), myTerminalPanel);
       }
     }
+  }
+
+  private Pair<BufferedImage, Graphics2D> createAndInitImage(int width, int height) {
+    BufferedImage image = createBufferedImage(width, height);
+
+    Graphics2D gfx = image.createGraphics();
+
+    if (UIUtil.isRetina()) {
+      gfx.scale(0.5, 0.5);
+    }
+    setupAntialiasing(gfx, myAntialiasing);
+
+    gfx.setColor(getBackground());
+
+    gfx.fillRect(0, 0, width, height);
+
+    return Pair.create(image, gfx);
   }
 
   protected BufferedImage createBufferedImage(int width, int height) {
@@ -370,7 +380,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     if (myImage != null) {
       gfx.drawImage(myImage, 0, 0, myTerminalPanel);
       drawMargins(gfx, myImage.getWidth(), myImage.getHeight());
-      drawSelection(gfx);
+      drawSelection(myImageForSelection, gfx);
       myCursor.drawCursor(gfx);
     }
   }
@@ -463,12 +473,15 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
           boolean isCursorShown = calculateIsCursorShown(System.currentTimeMillis());
 
+          g.setXORMode(current.getBackground());
           if (isCursorShown) {
             g.setColor(current.getForeground());
           }
           else {
             g.setColor(current.getBackground());
           }
+
+
           int scale = 1;
           if (UIUtil.isRetina()) {
             scale = 2;
@@ -532,72 +545,85 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
   }
 
-  public void drawSelection(Graphics2D g) {
+  public void drawSelection(BufferedImage imageForSelection, Graphics2D g) {
     /* which is the top one */
     Point top;
     Point bottom;
-    TextStyle current = myStyleState.getCurrent();
-    g.setColor(current.getForeground());
-    g.setXORMode(current.getBackground());
-    if (mySelectionStart == null || mySelectionEnd == null) {
+
+    if (mySelection == null) {
       return;
     }
 
-    if (mySelectionStart.y == mySelectionEnd.y) {
+    Point start = mySelection.getStart();
+    Point end = mySelection.getEnd();
+
+    if (start.y == end.y) {
                         /* same line */
-      if (mySelectionStart.x == mySelectionEnd.x) {
+      if (start.x == end.x) {
         return;
       }
-      top = mySelectionStart.x < mySelectionEnd.x ? mySelectionStart
-                                                  : mySelectionEnd;
-      bottom = mySelectionStart.x >= mySelectionEnd.x ? mySelectionStart
-                                                      : mySelectionEnd;
+      top = start.x < end.x ? start : end;
+      bottom = start.x >= end.x ? start : end;
 
-      g.fillRect(top.x * myCharSize.width, (top.y - myClientScrollOrigin) * myCharSize.height,
-                 (bottom.x - top.x) * myCharSize.width, myCharSize.height);
+      copyImage(g, imageForSelection, top.x * myCharSize.width, (top.y - myClientScrollOrigin) * myCharSize.height,
+                (bottom.x - top.x) * myCharSize.width, myCharSize.height);
     }
     else {
-      top = mySelectionStart.y < mySelectionEnd.y ? mySelectionStart
-                                                  : mySelectionEnd;
-      bottom = mySelectionStart.y > mySelectionEnd.y ? mySelectionStart
-                                                     : mySelectionEnd;
+      top = start.y < end.y ? start : end;
+      bottom = start.y > end.y ? start : end;
                         /* to end of first line */
-      g.fillRect(top.x * myCharSize.width, (top.y - myClientScrollOrigin) * myCharSize.height,
-                 (myTermSize.width - top.x) * myCharSize.width, myCharSize.height);
+      copyImage(g, imageForSelection, top.x * myCharSize.width, (top.y - myClientScrollOrigin) * myCharSize.height,
+                (myTermSize.width - top.x) * myCharSize.width, myCharSize.height);
 
       if (bottom.y - top.y > 1) {
-                                /* intermediate lines */
-        g.fillRect(0, (top.y + 1 - myClientScrollOrigin) * myCharSize.height,
-                   myTermSize.width * myCharSize.width, (bottom.y - top.y - 1)
-                                                        * myCharSize.height);
+        /* intermediate lines */
+        copyImage(g, imageForSelection, 0, (top.y + 1 - myClientScrollOrigin) * myCharSize.height,
+                  myTermSize.width * myCharSize.width, (bottom.y - top.y - 1)
+                                                       * myCharSize.height);
       }
 
       /* from beginning of last line */
 
-      g.fillRect(0, (bottom.y - myClientScrollOrigin) * myCharSize.height, bottom.x
-                                                                           * myCharSize.width, myCharSize.height);
+      copyImage(g, imageForSelection, 0, (bottom.y - myClientScrollOrigin) * myCharSize.height, bottom.x
+                                                                                                * myCharSize.width, myCharSize.height);
     }
   }
+
+  private void copyImage(Graphics2D g, BufferedImage image, int x, int y, int width, int height) {
+    g.drawImage(image, x, y, x + width, y + height, x, y, x + width, y + height, null);
+  }
+
 
   @Override
   public void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer buf, int startRow) {
     if (myGfx != null) {
-      myGfx.setColor(myStyleState.getBackground(style.getBackgroundForRun()));
-      myGfx
-        .fillRect(x * myCharSize.width, (y - myClientScrollOrigin) * myCharSize.height, buf.getLength() * myCharSize.width,
-                  myCharSize.height);
+      drawCharacters(x, y, style, buf, myGfx);
+    }
+    if (myGfxForSelection != null) {
+      TextStyle selectionStyle = style.clone();
+      selectionStyle.setBackground(mySelectionColor.getBackground());
+      selectionStyle.setForeground(mySelectionColor.getForeground());
+      
+      drawCharacters(x, y, selectionStyle, buf, myGfxForSelection);
+    }
+  }
 
-      myGfx.setFont(style.hasOption(TextStyle.Option.BOLD) ? myBoldFont : myNormalFont);
-      myGfx.setColor(myStyleState.getForeground(style.getForegroundForRun()));
+  private void drawCharacters(int x, int y, TextStyle style, CharBuffer buf, Graphics2D gfx) {
+    gfx.setColor(myStyleState.getBackground(style.getBackgroundForRun()));
+    gfx
+      .fillRect(x * myCharSize.width, (y - myClientScrollOrigin) * myCharSize.height, buf.getLength() * myCharSize.width,
+                myCharSize.height);
 
-      int baseLine = (y + 1 - myClientScrollOrigin) * myCharSize.height - myDescent;
+    gfx.setFont(style.hasOption(TextStyle.Option.BOLD) ? myBoldFont : myNormalFont);
+    gfx.setColor(myStyleState.getForeground(style.getForegroundForRun()));
+
+    int baseLine = (y + 1 - myClientScrollOrigin) * myCharSize.height - myDescent;
 
 
-      myGfx.drawChars(buf.getBuf(), buf.getStart(), buf.getLength(), x * myCharSize.width, baseLine);
+    gfx.drawChars(buf.getBuf(), buf.getStart(), buf.getLength(), x * myCharSize.width, baseLine);
 
-      if (style.hasOption(TextStyle.Option.UNDERLINED)) {
-        myGfx.drawLine(x * myCharSize.width, baseLine + 1, (x + buf.getLength()) * myCharSize.width, baseLine + 1);
-      }
+    if (style.hasOption(TextStyle.Option.UNDERLINED)) {
+      gfx.drawLine(x * myCharSize.width, baseLine + 1, (x + buf.getLength()) * myCharSize.width, baseLine + 1);
     }
   }
 
@@ -606,19 +632,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     int dyPix = dy * myCharSize.height;
 
-    myGfx.copyArea(0, Math.max(0, dyPix),
-                   getPixelWidth(), getPixelHeight() - Math.abs(dyPix),
-                   0, -dyPix);
+    copyAndClearAreaOnScroll(dy, dyPix, myGfx);
+    copyAndClearAreaOnScroll(dy, dyPix, myGfxForSelection);
+    
 
     if (dy < 0) {
       // Scrolling up; Copied down
       // New area at the top to be filled in - can only be from scroll buffer
       //
-
-
-      //clear rect before drawing scroll buffer on it
-      myGfx.setColor(getBackground());
-      myGfx.fillRect(0, Math.max(0, dyPix), getPixelWidth(), Math.abs(dyPix));
 
       myBackBuffer.getScrollBuffer().processLines(myClientScrollOrigin, -dy, this);
     }
@@ -642,6 +663,17 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       if (portionInBackBuffer > 0) {
         myBackBuffer.processBufferRows(oldEnd + portionInScroll, portionInBackBuffer, this);
       }
+    }
+  }
+
+  private void copyAndClearAreaOnScroll(int dy, int dyPix, Graphics2D gfx) {
+    gfx.copyArea(0, Math.max(0, dyPix),
+                 getPixelWidth(), getPixelHeight() - Math.abs(dyPix),
+                 0, -dyPix);
+    if (dy<0) {
+      //clear rect before drawing scroll buffer on it
+      gfx.setColor(getBackground());
+      gfx.fillRect(0, Math.max(0, dyPix), getPixelWidth(), Math.abs(dyPix));
     }
   }
 
@@ -720,8 +752,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         }
       });
     }
-    mySelectionStart = null;
-    mySelectionEnd = null;
+    mySelection = null;
     pendingScrolls.add(y, h, dy);
   }
 
@@ -791,13 +822,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     myLineSpace = foo;
   }
 
-  public void setAntiAliasing(final boolean antialiasing) {
-    if (myGfx == null) {
-      return;
-    }
-    setupAntialiasing(myGfx, antialiasing);
-  }
-
   public BoundedRangeModel getBoundedRangeModel() {
     return myBoundedRangeModel;
   }
@@ -823,7 +847,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     myCursor.setShouldDrawCursor(shouldDrawCursor);
   }
 
-  protected JPopupMenu createPopupMenu(final Point selectionStart, final Point selectionEnd, String content) {
+  protected JPopupMenu createPopupMenu(final TerminalSelection selection, String content) {
     JPopupMenu popup = new JPopupMenu();
 
     popup.add(mySettingsProvider.getNewSessionAction());
@@ -834,7 +858,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       @Override
       public void actionPerformed(ActionEvent e) {
         if ("Copy".equals(e.getActionCommand())) {
-          copySelection(selectionStart, selectionEnd);
+          copySelection(selection.getStart(), selection.getEnd());
         }
         else if ("Paste".equals(e.getActionCommand())) {
           pasteSelection();
@@ -844,7 +868,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     JMenuItem menuItem = new JMenuItem("Copy");
     menuItem.addActionListener(popupListener);
-    menuItem.setEnabled(selectionStart != null);
+    menuItem.setEnabled(selection != null);
     popup.add(menuItem);
     menuItem = new JMenuItem("Paste");
     menuItem.setEnabled(content != null);
@@ -881,5 +905,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   @Override
   public void setWindowTitle(String name) {
     myWindowTitle = name;
+  }
+
+  public void setSelectionColor(TextStyle selectionColor) {
+    mySelectionColor = selectionColor;
   }
 }

@@ -48,6 +48,7 @@ public class BackBuffer implements StyledTextConsumer {
 
   private int myScrollRegionBottom = -1;
   private int myScrollRegionTop = -1;
+  private boolean myUsingAlternateBuffer = false;
 
   public BackBuffer(final int width, final int height, @NotNull StyleState styleState) {
     myStyleState = styleState;
@@ -89,7 +90,8 @@ public class BackBuffer implements StyledTextConsumer {
       if (!myAlternateBuffer) {
         myTextBuffer.moveTopLinesTo(count, myScrollBuffer);
       }
-    } else if (newHeight > cursorY && myScrollBuffer.getLineCount() > 0) {
+    }
+    else if (newHeight > cursorY && myScrollBuffer.getLineCount() > 0) {
       //we need to move lines from scroll buffer to the text buffer
       if (!myAlternateBuffer) {
         myScrollBuffer.moveBottomLinesTo(newHeight - cursorY, myTextBuffer);
@@ -115,7 +117,8 @@ public class BackBuffer implements StyledTextConsumer {
       oldStart = 0;
 
       start = Math.min(myHeight - copyHeight, scrollLinesCountOld);
-    } else {
+    }
+    else {
       oldStart = Math.max(0, cursorY - myHeight);
       start = 0;
     }
@@ -161,23 +164,25 @@ public class BackBuffer implements StyledTextConsumer {
     for (int y = topY; y < bottomY; y++) {
       if (y > myHeight - 1 || y < 0) {
         LOG.error("attempt to clear line " + y + "\n" +
-            "args were x1:" + leftX + " y1:" + topY + " x2:"
-            + rightX + " y2:" + bottomY);
-      } else if (leftX > rightX) {
+                  "args were x1:" + leftX + " y1:" + topY + " x2:"
+                  + rightX + " y2:" + bottomY);
+      }
+      else if (leftX > rightX) {
         LOG.error("Attempt to clear backwards area: left:" + leftX + " > right:" + rightX);
-      } else {
+      }
+      else {
         Arrays.fill(myBuf,
-            y * myWidth + leftX,
-            y * myWidth + rightX,
-            EMPTY_CHAR);
+                    y * myWidth + leftX,
+                    y * myWidth + rightX,
+                    EMPTY_CHAR);
         Arrays.fill(myStyleBuf,
-            y * myWidth + leftX,
-            y * myWidth + rightX,
-            TextStyle.EMPTY
+                    y * myWidth + leftX,
+                    y * myWidth + rightX,
+                    TextStyle.EMPTY
         );
         myDamage.set(y * myWidth + leftX,
-            y * myWidth + rightX,
-            true);
+                     y * myWidth + rightX,
+                     true);
       }
     }
   }
@@ -185,17 +190,20 @@ public class BackBuffer implements StyledTextConsumer {
   public void deleteCharacters(final int x, final int y, final int count) {
     if (y > myHeight - 1 || y < 0) {
       LOG.error("attempt to delete in line " + y + "\n" +
-          "args were x:" + x + " count:" + count);
-    } else if (count < 0) {
+                "args were x:" + x + " count:" + count);
+    }
+    else if (count < 0) {
       LOG.error("Attempt to delete negative chars number: count:" + count);
-    } else if (count == 0) { //nothing to do
+    }
+    else if (count == 0) { //nothing to do
       return;
-    } else {
+    }
+    else {
       int to = y * myWidth + x;
       int from = to + count;
       int remain = myWidth - x - count;
       LOG.debug("About to delete " + count + " chars on line " + y + ", starting from " + x +
-          " (from : " + from + " to : " + to + " remain : " + remain + ")");
+                " (from : " + from + " to : " + to + " remain : " + remain + ")");
       System.arraycopy(myBuf, from, myBuf, to, remain);
       Arrays.fill(myBuf, to + remain, (y + 1) * myWidth, EMPTY_CHAR);
       System.arraycopy(myStyleBuf, from, myStyleBuf, to, remain);
@@ -212,8 +220,8 @@ public class BackBuffer implements StyledTextConsumer {
     if (adjY >= myHeight || adjY < 0) {
       if (LOG.isDebugEnabled()) {
         StringBuilder sb = new StringBuilder("Attempt to draw line ")
-            .append(adjY).append(" at (").append(x).append(",")
-            .append(y).append(")");
+          .append(adjY).append(" at (").append(x).append(",")
+          .append(y).append(")");
 
         CharacterUtils.appendBuf(sb, bytes, start, len);
         LOG.debug(sb);
@@ -269,7 +277,8 @@ public class BackBuffer implements StyledTextConsumer {
     final int lastLine = y + h - 1;
     if (dy > 0) {
       moveLinesDown(y, dy, lastLine);
-    } else {
+    }
+    else {
       moveLinesUp(y, dy, lastLine);
     }
   }
@@ -332,7 +341,8 @@ public class BackBuffer implements StyledTextConsumer {
         sb.append("\n");
       }
       return sb.toString();
-    } finally {
+    }
+    finally {
       myLock.unlock();
     }
   }
@@ -346,7 +356,8 @@ public class BackBuffer implements StyledTextConsumer {
         sb.append('\n');
       }
       return sb.toString();
-    } finally {
+    }
+    finally {
       myLock.unlock();
     }
   }
@@ -363,7 +374,8 @@ public class BackBuffer implements StyledTextConsumer {
         sb.append("\n");
       }
       return sb.toString();
-    } finally {
+    }
+    finally {
       myLock.unlock();
     }
   }
@@ -372,7 +384,8 @@ public class BackBuffer implements StyledTextConsumer {
     myLock.lock();
     try {
       myDamage.clear();
-    } finally {
+    }
+    finally {
       myLock.unlock();
     }
   }
@@ -399,7 +412,8 @@ public class BackBuffer implements StyledTextConsumer {
       for (int row = startRow; row < endRow; row++) {
         processBufferRow(row, startCol, endCol, consumer);
       }
-    } finally {
+    }
+    finally {
       myLock.unlock();
     }
   }
@@ -420,7 +434,8 @@ public class BackBuffer implements StyledTextConsumer {
       if (lastStyle == null) {
         //begin line
         lastStyle = cellStyle;
-      } else if (!cellStyle.equals(lastStyle)) {
+      }
+      else if (!cellStyle.equals(lastStyle)) {
         //start of new run
         consumer.consume(beginRun, row, lastStyle, new CharBuffer(myBuf, row * myWidth + beginRun, col - beginRun), 0);
         beginRun = col;
@@ -439,7 +454,8 @@ public class BackBuffer implements StyledTextConsumer {
 
     if (lastStyle == null) {
       LOG.error("Style is null for run supposed to be from " + beginRun + " to " + endCol + " on row " + row);
-    } else {
+    }
+    else {
       consumer.consume(beginRun, row, lastStyle, new CharBuffer(myBuf, row * myWidth + beginRun, endCol - beginRun), 0);
     }
   }
@@ -473,12 +489,14 @@ public class BackBuffer implements StyledTextConsumer {
               flushStyledText(consumer, row, lastStyle, beginRun, col);
             }
             lastStyle = null;
-          } else {
+          }
+          else {
             if (lastStyle == null) {
               //begin a new run
               beginRun = col;
               lastStyle = cellStyle;
-            } else if (!cellStyle.equals(lastStyle)) {
+            }
+            else if (!cellStyle.equals(lastStyle)) {
               //flush prev run and start of a new one
               flushStyledText(consumer, row, lastStyle, beginRun, col);
               beginRun = col;
@@ -491,7 +509,8 @@ public class BackBuffer implements StyledTextConsumer {
           flushStyledText(consumer, row, lastStyle, beginRun, endCol);
         }
       }
-    } finally {
+    }
+    finally {
       myLock.unlock();
     }
   }
@@ -567,15 +586,22 @@ public class BackBuffer implements StyledTextConsumer {
   public void useAlternateBuffer(boolean enabled) {
     myAlternateBuffer = enabled;
     if (enabled) {
-      myTextBufferBackup = myTextBuffer;
-      myScrollBufferBackup = myScrollBuffer;
-      myTextBuffer = new LinesBuffer();
-      myScrollBuffer = new LinesBuffer();
-      clearArea();
-    } else {
-      myTextBuffer = myTextBufferBackup;
-      myScrollBuffer = myScrollBufferBackup;
-      resetFromTextBuffer();
+      if (!myUsingAlternateBuffer) {
+        myTextBufferBackup = myTextBuffer;
+        myScrollBufferBackup = myScrollBuffer;
+        myTextBuffer = new LinesBuffer();
+        myScrollBuffer = new LinesBuffer();
+        clearArea();
+        myUsingAlternateBuffer = true;
+      }
+    }
+    else {
+      if (myUsingAlternateBuffer) {
+        myTextBuffer = myTextBufferBackup;
+        myScrollBuffer = myScrollBufferBackup;
+        resetFromTextBuffer();
+        myUsingAlternateBuffer = false;
+      }
     }
   }
 

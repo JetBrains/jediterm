@@ -1,6 +1,9 @@
 package com.jediterm.terminal;
 
 import com.jediterm.terminal.display.StyleState;
+import com.jediterm.terminal.emulator.mouse.MouseFormat;
+import com.jediterm.terminal.emulator.mouse.MouseMode;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
@@ -123,4 +126,8 @@ public interface Terminal {
   void writeUnwrappedString(String string);
 
   void setTerminalOutput(@Nullable TerminalOutputStream terminalOutput);
+
+  void setMouseMode(@NotNull MouseMode mode);
+
+  void setMouseFormat(MouseFormat mouseFormat);
 }

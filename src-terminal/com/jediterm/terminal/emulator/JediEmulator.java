@@ -2,6 +2,8 @@ package com.jediterm.terminal.emulator;
 
 import com.google.common.base.Ascii;
 import com.jediterm.terminal.*;
+import com.jediterm.terminal.emulator.mouse.MouseFormat;
+import com.jediterm.terminal.emulator.mouse.MouseMode;
 import org.apache.log4j.Logger;
 
 import java.awt.*;
@@ -221,7 +223,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           case 'L': //Set ANSI conformance level 1 and 2
           case 'M':
             terminal.setAnsiConformanceLevel(1);
-            break;          
+            break;
           case 'N': //Set ANSI conformance level 3
             terminal.setAnsiConformanceLevel(3);
             break;
@@ -433,6 +435,62 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 1049: //Save cursor and use Alternate Screen Buffer
           setModeEnabled(TerminalMode.StoreCursor, enabled);
           setModeEnabled(TerminalMode.AlternateBuffer, enabled);
+          return true;
+        case 1000:
+          if (enabled) {
+            setMouseMode(MouseMode.MOUSE_REPORTING_NORMAL);
+          }
+          else {
+            setMouseMode(MouseMode.MOUSE_REPORTING_NONE);
+          }
+          return true;
+        case 1001:
+          if (enabled) {
+            setMouseMode(MouseMode.MOUSE_REPORTING_HILITE);
+          }
+          else {
+            setMouseMode(MouseMode.MOUSE_REPORTING_NONE);
+          }
+          return true;
+        case 1002:
+          if (enabled) {
+            setMouseMode(MouseMode.MOUSE_REPORTING_BUTTON_MOTION);
+          }
+          else {
+            setMouseMode(MouseMode.MOUSE_REPORTING_NONE);
+          }
+          return true;
+        case 1003:
+          if (enabled) {
+            myTerminal.setMouseMode(MouseMode.MOUSE_REPORTING_ALL_MOTION);
+          }
+          else {
+            myTerminal.setMouseMode(MouseMode.MOUSE_REPORTING_NONE);
+          }
+          return true;
+        case 1005:
+          if (enabled) {
+            myTerminal.setMouseFormat(MouseFormat.MOUSE_FORMAT_XTERM_EXT);
+          }
+          else {
+            myTerminal.setMouseFormat(MouseFormat.MOUSE_FORMAT_XTERM);
+          }
+          return true;
+        case 1006:
+          if (enabled) {
+            myTerminal.setMouseFormat(MouseFormat.MOUSE_FORMAT_SGR);
+          }
+          else {
+            myTerminal.setMouseFormat(MouseFormat.MOUSE_FORMAT_XTERM);
+          }
+          return true;
+        case 1015:
+          if (enabled) {
+            myTerminal.setMouseFormat(MouseFormat.MOUSE_FORMAT_URXVT);
+          }
+          else {
+            myTerminal.setMouseFormat(MouseFormat.MOUSE_FORMAT_XTERM);
+          }
           return true;
         default:
           return false;
@@ -801,6 +859,10 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       LOG.info("Setting mode " + mode + " enabled = " + enabled);
     }
     myTerminal.setModeEnabled(mode, enabled);
+  }
+
+  public void setMouseMode(MouseMode mouseMode) {
+    myTerminal.setMouseMode(mouseMode);
   }
 }
 

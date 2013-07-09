@@ -2,19 +2,15 @@ package com.jediterm.terminal.display;
 
 import com.google.common.base.Ascii;
 import com.jediterm.terminal.*;
-import com.jediterm.terminal.emulator.mouse.MouseButtonCodes;
-import com.jediterm.terminal.emulator.mouse.MouseButtonModifierFlags;
-import com.jediterm.terminal.emulator.mouse.MouseFormat;
+import com.jediterm.terminal.emulator.mouse.*;
 import com.jediterm.terminal.emulator.charset.CharacterSet;
 import com.jediterm.terminal.emulator.charset.GraphicSet;
 import com.jediterm.terminal.emulator.charset.GraphicSetState;
-import com.jediterm.terminal.emulator.mouse.TerminalMouseListener;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
 
@@ -55,6 +51,8 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
   private MouseFormat myMouseFormat = MouseFormat.MOUSE_FORMAT_XTERM;
 
   private TerminalOutputStream myTerminalOutput = null;
+
+  private MouseMode myMouseMode = MouseMode.MOUSE_REPORTING_NONE;
 
   public JediTerminal(final TerminalDisplay display, final BackBuffer buf, final StyleState initialStyleState) {
     myDisplay = display;
@@ -711,7 +709,14 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
 
     initModes();
 
+    initMouseModes();
+
     cursorPosition(1, 1);
+  }
+
+  private void initMouseModes() {
+    myMouseMode = MouseMode.MOUSE_REPORTING_NONE;
+    myMouseFormat = MouseFormat.MOUSE_FORMAT_XTERM;
   }
 
   private void initModes() {
@@ -731,7 +736,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
     return myModes.contains(TerminalMode.AutoWrap);
   }
 
-  private int createButtonCode(MouseEvent event) {
+  private static int createButtonCode(MouseEvent event) {
     if ((event.getModifiersEx() & MouseEvent.BUTTON1) != 0) {
       return MouseButtonCodes.MOUSE_BUTTON_LEFT;
     }
@@ -744,30 +749,30 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
     StringBuilder sb = new StringBuilder();
     switch (myMouseFormat) {
       case MOUSE_FORMAT_XTERM_EXT:
-        sb.append(String.format(Ascii.ESC + "[M%c%lc%lc", //TODO
-                                (32 + button),
-                                (32 + x),
-                                (32 + y)));
+        sb.append(String.format("\033[M%c%c%c",
+                                (char)(32 + button),
+                                (char)(32 + x),
+                                (char)(32 + y)));
         break;
       case MOUSE_FORMAT_URXVT:
-        sb.append(String.format(Ascii.ESC + "[%d;%d;%dM", 32 + button, x, y));
+        sb.append(String.format("\033[%d;%d;%dM", 32 + button, x, y));
         break;
       case MOUSE_FORMAT_SGR:
         if ((button & MouseButtonModifierFlags.MOUSE_BUTTON_SGR_RELEASE_FLAG) != 0) {
           // for mouse release event
-          sb.append(String.format(Ascii.ESC + "[<%d;%d;%dm",
+          sb.append(String.format("\033[<%d;%d;%dm",
                                   button ^ MouseButtonModifierFlags.MOUSE_BUTTON_SGR_RELEASE_FLAG,
                                   x,
                                   y));
         }
         else {
           // for mouse press/motion event
-          sb.append(String.format(Ascii.ESC + "[<%d;%d;%dM", button, x, y));
+          sb.append(String.format("\033[<%d;%d;%dM", button, x, y));
         }
         break;
       case MOUSE_FORMAT_XTERM:
       default:
-        sb.append(String.format(Ascii.ESC + "[M%c%c%c", (char)(32 + button), (char)(32 + x), (char)(32 + y)));
+        sb.append(String.format("\033[M%c%c%c", (char)(32 + button), (char)(32 + x), (char)(32 + y)));
         break;
     }
     return sb.toString();
@@ -775,7 +780,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
 
   @Override
   public void mousePressed(int x, int y, MouseEvent event) {
-    if (myTerminalOutput != null) {
+    if (shouldSendMouseData()) {
       int button = createButtonCode(event);
       int cb = button;
 
@@ -785,16 +790,22 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
         cb -= offset;
         cb |= MouseButtonModifierFlags.MOUSE_BUTTON_SCROLL_FLAG;
       }
-      
+
       cb = applyModifierKeys(event, cb);
-      
+
       myTerminalOutput.sendString(mouseReport(cb, x, y));
     }
   }
 
+  private boolean shouldSendMouseData() {
+    return myTerminalOutput != null &&
+           (myMouseMode == MouseMode.MOUSE_REPORTING_NORMAL || myMouseMode == MouseMode.MOUSE_REPORTING_ALL_MOTION ||
+            myMouseMode == MouseMode.MOUSE_REPORTING_BUTTON_MOTION);
+  }
+
   @Override
   public void mouseReleased(int x, int y, MouseEvent event) {
-    if (myTerminalOutput != null) {
+    if (shouldSendMouseData()) {
       int cb = createButtonCode(event);
 
       if (myMouseFormat == MouseFormat.MOUSE_FORMAT_SGR) {
@@ -812,7 +823,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
     }
   }
 
-  private int applyModifierKeys(MouseEvent event, int cb) {
+  private static int applyModifierKeys(MouseEvent event, int cb) {
     if (event.isControlDown()) {
       cb |= MouseButtonModifierFlags.MOUSE_BUTTON_CTRL_FLAG;
     }
@@ -827,6 +838,16 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
 
   public void setTerminalOutput(TerminalOutputStream terminalOutput) {
     myTerminalOutput = terminalOutput;
+  }
+
+  @Override
+  public void setMouseMode(@NotNull MouseMode mode) {
+    myMouseMode = mode;
+  }
+
+  @Override
+  public void setMouseFormat(MouseFormat mouseFormat) {
+    myMouseFormat = mouseFormat;
   }
 
   public interface ResizeHandler {
@@ -889,6 +910,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
   public StyleState getStyleState() {
     return myStyleState;
   }
+
 
   private static class DefaultTabulator implements Tabulator {
     private static final int TAB_LENGTH = 8;

@@ -2,7 +2,7 @@ ChangeLog of JediTerm
 
 ==============================
 9/07/2013 0.06
--Delete abd insert lines of characters
+-Delete and insert lines/characters
 -Passes Screen tests of vttest  (except 1st WRAPAROUND mode test)
 -Tabs
 -Mouse support

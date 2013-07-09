@@ -1,5 +1,12 @@
 ChangeLog of JediTerm
 
+==============================
+9/07/2013 0.06
+-Delete abd insert lines of characters
+-Passes Screen tests of vttest  (except 1st WRAPAROUND mode test)
+-Tabs
+-Mouse support
+
 
 ==============================
 24/06/2013 0.05

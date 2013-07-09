@@ -1,4 +1,3 @@
-* Mouse support
 * Encodings settings support
 * Better selection: scroll on margin reach and don't xor on paint
 * Drag'n'drop 

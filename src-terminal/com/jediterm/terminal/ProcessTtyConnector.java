@@ -1,5 +1,7 @@
 package com.jediterm.terminal;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.awt.*;
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,7 +20,7 @@ public abstract class ProcessTtyConnector implements TtyConnector {
   private Dimension myPendingTermSize;
   private Dimension myPendingPixelSize;
 
-  public ProcessTtyConnector(Process process, Charset charset) {
+  public ProcessTtyConnector(@NotNull Process process, Charset charset) {
     myOutputStream = process.getOutputStream();
     myCharset = charset;
     myInputStream = process.getInputStream();

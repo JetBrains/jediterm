@@ -21,6 +21,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private static final long serialVersionUID = -1048763516632093014L;
   private static final double FPS = 50;
 
+  public static final double SCROLL_SPEED = 0.05;
+
   private BufferedImage myImage;
 
   private BufferedImage myImageForSelection;
@@ -110,6 +112,13 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         }
         repaint();
         mySelection.updateEnd(charCoords, myTermSize.width);
+
+        if (e.getPoint().y < 0) {
+          moveScrollBar((int)((e.getPoint().y) * SCROLL_SPEED));
+        }
+        if (e.getPoint().y > getPixelHeight()) {
+          moveScrollBar((int)((e.getPoint().y - getPixelHeight()) * SCROLL_SPEED));
+        }
       }
     });
 
@@ -117,7 +126,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       @Override
       public void mouseWheelMoved(MouseWheelEvent e) {
         int notches = e.getWheelRotation();
-        myBoundedRangeModel.setValue(myBoundedRangeModel.getValue() + notches);
+        moveScrollBar(notches);
       }
     });
 
@@ -163,6 +172,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     setDoubleBuffered(true);
     redrawTimer.start();
     repaint();
+  }
+
+  private void moveScrollBar(int k) {
+    myBoundedRangeModel.setValue(myBoundedRangeModel.getValue() + k);
   }
 
   protected Font createFont() {
@@ -603,7 +616,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       TextStyle selectionStyle = style.clone();
       selectionStyle.setBackground(mySelectionColor.getBackground());
       selectionStyle.setForeground(mySelectionColor.getForeground());
-      
+
       drawCharacters(x, y, selectionStyle, buf, myGfxForSelection);
     }
   }
@@ -634,7 +647,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     copyAndClearAreaOnScroll(dy, dyPix, myGfx);
     copyAndClearAreaOnScroll(dy, dyPix, myGfxForSelection);
-    
+
 
     if (dy < 0) {
       // Scrolling up; Copied down
@@ -670,7 +683,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     gfx.copyArea(0, Math.max(0, dyPix),
                  getPixelWidth(), getPixelHeight() - Math.abs(dyPix),
                  0, -dyPix);
-    if (dy<0) {
+    if (dy < 0) {
       //clear rect before drawing scroll buffer on it
       gfx.setColor(getBackground());
       gfx.fillRect(0, Math.max(0, dyPix), getPixelWidth(), Math.abs(dyPix));

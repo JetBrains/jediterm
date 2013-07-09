@@ -1,17 +1,17 @@
 package com.jediterm.terminal.display;
 
-import com.google.common.base.Ascii;
 import com.jediterm.terminal.*;
-import com.jediterm.terminal.emulator.mouse.*;
 import com.jediterm.terminal.emulator.charset.CharacterSet;
 import com.jediterm.terminal.emulator.charset.GraphicSet;
 import com.jediterm.terminal.emulator.charset.GraphicSetState;
+import com.jediterm.terminal.emulator.mouse.*;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.util.*;
 
 /**
@@ -737,15 +737,19 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
   }
 
   private static int createButtonCode(MouseEvent event) {
-    if ((event.getModifiersEx() & MouseEvent.BUTTON1) != 0) {
-      return MouseButtonCodes.MOUSE_BUTTON_LEFT;
+    if ((event.getButton()) == MouseEvent.BUTTON1) {
+      return MouseButtonCodes.LEFT;
     }
+    else 
+      if (event.getButton() == MouseEvent.BUTTON3) {
+        return MouseButtonCodes.NONE; //we dont handle right mouse button as it used for the context menu invocation
+      }
     else {
-      return MouseButtonCodes.MOUSE_BUTTON_RIGHT;
+      return MouseButtonCodes.RIGHT;
     }
   }
 
-  private String mouseReport(int button, int x, int y) {
+  private byte[] mouseReport(int button, int x, int y) {
     StringBuilder sb = new StringBuilder();
     switch (myMouseFormat) {
       case MOUSE_FORMAT_XTERM_EXT:
@@ -775,7 +779,14 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
         sb.append(String.format("\033[M%c%c%c", (char)(32 + button), (char)(32 + x), (char)(32 + y)));
         break;
     }
-    return sb.toString();
+    return sb.toString().getBytes(Charset.forName("UTF-8"));
+  }
+
+
+  private boolean shouldSendMouseData() {
+    return myTerminalOutput != null &&
+           (myMouseMode == MouseMode.MOUSE_REPORTING_NORMAL || myMouseMode == MouseMode.MOUSE_REPORTING_ALL_MOTION ||
+            myMouseMode == MouseMode.MOUSE_REPORTING_BUTTON_MOTION);
   }
 
   @Override
@@ -784,23 +795,17 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
       int button = createButtonCode(event);
       int cb = button;
 
-      if (button == MouseButtonCodes.MOUSE_BUTTON_SCROLLDOWN || button == MouseButtonCodes.MOUSE_BUTTON_SCROLLUP) {
+      if (button == MouseButtonCodes.SCROLLDOWN || button == MouseButtonCodes.SCROLLUP) {
         // convert x11 scroll button number to terminal button code
-        int offset = MouseButtonCodes.MOUSE_BUTTON_SCROLLDOWN;
+        int offset = MouseButtonCodes.SCROLLDOWN;
         cb -= offset;
         cb |= MouseButtonModifierFlags.MOUSE_BUTTON_SCROLL_FLAG;
       }
 
       cb = applyModifierKeys(event, cb);
 
-      myTerminalOutput.sendString(mouseReport(cb, x, y));
+      myTerminalOutput.sendBytes(mouseReport(cb, x+1, y+1));
     }
-  }
-
-  private boolean shouldSendMouseData() {
-    return myTerminalOutput != null &&
-           (myMouseMode == MouseMode.MOUSE_REPORTING_NORMAL || myMouseMode == MouseMode.MOUSE_REPORTING_ALL_MOTION ||
-            myMouseMode == MouseMode.MOUSE_REPORTING_BUTTON_MOTION);
   }
 
   @Override
@@ -819,7 +824,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
 
       cb = applyModifierKeys(event, cb);
 
-      myTerminalOutput.sendString(mouseReport(cb, x, y));
+      myTerminalOutput.sendBytes(mouseReport(cb, x+1, y+1));
     }
   }
 
@@ -830,7 +835,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
     if (event.isShiftDown()) {
       cb |= MouseButtonModifierFlags.MOUSE_BUTTON_SHIFT_FLAG;
     }
-    if (event.isMetaDown()) {
+    if ((event.getModifiersEx() & MouseEvent.META_MASK) != 0) {
       cb |= MouseButtonModifierFlags.MOUSE_BUTTON_META_FLAG;
     }
     return cb;

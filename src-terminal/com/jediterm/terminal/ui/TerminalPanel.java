@@ -2,7 +2,6 @@ package com.jediterm.terminal.ui;
 
 import com.jediterm.terminal.*;
 import com.jediterm.terminal.display.*;
-import com.jediterm.terminal.emulator.JediEmulator;
 import com.jediterm.terminal.emulator.mouse.TerminalMouseListener;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -426,7 +425,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         listener.mouseReleased(p.x, p.y, e);
       }
     });
-    
   }
 
 
@@ -535,7 +533,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   public void drawSelection(Graphics2D g) {
-                /* which is the top one */
+    /* which is the top one */
     Point top;
     Point bottom;
     TextStyle current = myStyleState.getCurrent();
@@ -574,7 +572,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
                                                         * myCharSize.height);
       }
 
-			/* from beginning of last line */
+      /* from beginning of last line */
 
       g.fillRect(0, (bottom.y - myClientScrollOrigin) * myCharSize.height, bottom.x
                                                                            * myCharSize.width, myCharSize.height);

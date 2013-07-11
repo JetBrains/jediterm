@@ -135,6 +135,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     addMouseListener(new MouseAdapter() {
       @Override
       public void mouseReleased(final MouseEvent e) {
+        requestFocusInWindow();
         repaint();
       }
 
@@ -951,19 +952,19 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     public void keyPressed(final KeyEvent e) {
       try {
-        final int keycode = e.getKeyCode();
-
-        if (isCopyKeyStroke(keycode)) {
+        if (isCopyKeyStroke(e)) {
           handleCopy();
           return;
         }
-        if (isPasteKeyStroke(keycode)) {
+        if (isPasteKeyStroke(e)) {
           handlePaste();
           return;
         }
-        if (isNewSessionKeyStroke(keycode)) {
+        if (isNewSessionKeyStroke(e)) {
           handleNewSession(e);
         }
+
+        final int keycode = e.getKeyCode();
 
         final byte[] code = myTerminalStarter.getCode(keycode);
         if (code != null) {
@@ -1018,30 +1019,30 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
   }
 
-  private boolean isNewSessionKeyStroke(int keyCode) {
+  private boolean isNewSessionKeyStroke(KeyEvent event) {
     for (KeyStroke ks : mySettingsProvider.getNewSessionKeyStrokes()) {
-      if (ks.getKeyCode() == keyCode) {
+      if (ks.equals(KeyStroke.getKeyStrokeForEvent(event))) {
         return true;
       }
     }
     return false;
   }
 
-  private boolean isCopyKeyStroke(int keyCode) {
+  private boolean isCopyKeyStroke(KeyEvent event) {
     if (mySelection == null) {
       return false;
     }
     for (KeyStroke ks : mySettingsProvider.getCopyKeyStrokes()) {
-      if (ks.getKeyCode() == keyCode) {
+      if (ks.equals(KeyStroke.getKeyStrokeForEvent(event))) {
         return true;
       }
     }
     return false;
   }
 
-  private boolean isPasteKeyStroke(int keyCode) {
+  private boolean isPasteKeyStroke(KeyEvent event) {
     for (KeyStroke ks : mySettingsProvider.getPasteKeyStrokes()) {
-      if (ks.getKeyCode() == keyCode) {
+      if (ks.equals(KeyStroke.getKeyStrokeForEvent(event))) {
         return true;
       }
     }

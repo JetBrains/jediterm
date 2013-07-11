@@ -76,6 +76,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private boolean myScrollingEnabled = true;
   private String myWindowTitle = "Terminal";
 
+  private static final int SCALE = UIUtil.isRetina() ? 2 : 1;
+
   public TerminalPanel(@NotNull SystemSettingsProvider settingsProvider, @NotNull BackBuffer backBuffer, @NotNull StyleState styleState) {
     mySettingsProvider = settingsProvider;
     myBackBuffer = backBuffer;
@@ -276,9 +278,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     Graphics2D gfx = image.createGraphics();
 
-    if (UIUtil.isRetina()) {
-      gfx.scale(0.5, 0.5);
-    }
     setupAntialiasing(gfx, myAntialiasing);
 
     gfx.setColor(getBackground());
@@ -495,12 +494,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
           }
 
 
-          int scale = 1;
-          if (UIUtil.isRetina()) {
-            scale = 2;
-          }
-          g.fillRect(myCursorCoordinates.x * myCharSize.width * scale, y * myCharSize.height * scale,
-                     myCharSize.width * scale, myCharSize.height * scale);
+          g.fillRect(myCursorCoordinates.x * myCharSize.width * SCALE, y * myCharSize.height * SCALE,
+                     myCharSize.width * SCALE, myCharSize.height * SCALE);
 
 
           myCursorIsShown = isCursorShown;

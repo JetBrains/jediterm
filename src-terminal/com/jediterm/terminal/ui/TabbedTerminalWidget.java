@@ -8,10 +8,7 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 
 /**
  * @author traff
@@ -101,13 +98,17 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
   }
 
   private void onSessionChanged() {
-    if (myTerminalPanelListener != null) {
-      JediTermWidget session = getCurrentSession();
-      if (session != null) {
+    JediTermWidget session = getCurrentSession();
+    if (session != null) {
+      if (myTerminalPanelListener != null) {
         myTerminalPanelListener.onSessionChanged(session);
-        session.getTerminalPanel().requestFocusInWindow();
       }
+      doRequestFocus(session.getTerminalPanel());
     }
+  }
+
+  protected void doRequestFocus(JComponent component) {
+    component.requestFocusInWindow();
   }
 
   protected JTabbedPane createTabbedPane() {
@@ -142,15 +143,22 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
       myTabbedPane = null;
       add(myTermWidget.getComponent(), BorderLayout.CENTER);
     }
-    
+
     onSessionChanged();
   }
 
-  private class TabComponent extends JPanel {
+  private class TabComponent extends JPanel implements FocusListener {
+
+    private JediTermWidget myTerminal;
 
     private TabComponent(final @NotNull JTabbedPane pane, final JediTermWidget terminal) {
       super(new FlowLayout(FlowLayout.LEFT, 0, 0));
+      myTerminal = terminal;
       setOpaque(false);
+
+      setFocusable(false);
+
+      addFocusListener(this);
 
       //make JLabel read titles from JTabbedPane
       JLabel label = new JLabel() {
@@ -162,6 +170,9 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
           return null;
         }
       };
+
+      label.addFocusListener(this);
+
 
       //add more space between the label and the button
       label.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 5));
@@ -191,6 +202,16 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
 
 
       add(label);
+    }
+
+    @Override
+    public void focusGained(FocusEvent e) {
+      doRequestFocus(myTerminal.getComponent());
+    }
+
+    @Override
+    public void focusLost(FocusEvent e) {
+
     }
   }
 

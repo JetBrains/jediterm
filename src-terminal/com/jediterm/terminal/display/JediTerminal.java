@@ -740,10 +740,9 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
     if ((event.getButton()) == MouseEvent.BUTTON1) {
       return MouseButtonCodes.LEFT;
     }
-    else 
-      if (event.getButton() == MouseEvent.BUTTON3) {
-        return MouseButtonCodes.NONE; //we dont handle right mouse button as it used for the context menu invocation
-      }
+    else if (event.getButton() == MouseEvent.BUTTON3) {
+      return MouseButtonCodes.NONE; //we dont handle right mouse button as it used for the context menu invocation
+    }
     else {
       return MouseButtonCodes.RIGHT;
     }
@@ -788,23 +787,24 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
            (myMouseMode == MouseMode.MOUSE_REPORTING_NORMAL || myMouseMode == MouseMode.MOUSE_REPORTING_ALL_MOTION ||
             myMouseMode == MouseMode.MOUSE_REPORTING_BUTTON_MOTION);
   }
-  
+
   @Override
   public void mousePressed(int x, int y, MouseEvent event) {
     if (shouldSendMouseData()) {
-      int button = createButtonCode(event);
-      int cb = button;
+      int cb = createButtonCode(event);
 
-      if (button == MouseButtonCodes.SCROLLDOWN || button == MouseButtonCodes.SCROLLUP) {
-        // convert x11 scroll button number to terminal button code
-        int offset = MouseButtonCodes.SCROLLDOWN;
-        cb -= offset;
-        cb |= MouseButtonModifierFlags.MOUSE_BUTTON_SCROLL_FLAG;
+      if (cb != MouseButtonCodes.NONE) {
+        if (createButtonCode(event) == MouseButtonCodes.SCROLLDOWN || createButtonCode(event) == MouseButtonCodes.SCROLLUP) {
+          // convert x11 scroll button number to terminal button code
+          int offset = MouseButtonCodes.SCROLLDOWN;
+          cb -= offset;
+          cb |= MouseButtonModifierFlags.MOUSE_BUTTON_SCROLL_FLAG;
+        }
+
+        cb = applyModifierKeys(event, cb);
+
+        myTerminalOutput.sendBytes(mouseReport(cb, x + 1, y + 1));
       }
-
-      cb = applyModifierKeys(event, cb);
-
-      myTerminalOutput.sendBytes(mouseReport(cb, x+1, y+1));
     }
   }
 
@@ -813,18 +813,21 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
     if (shouldSendMouseData()) {
       int cb = createButtonCode(event);
 
-      if (myMouseFormat == MouseFormat.MOUSE_FORMAT_SGR) {
-        // for SGR 1006 mode
-        cb |= MouseButtonModifierFlags.MOUSE_BUTTON_SGR_RELEASE_FLAG;
-      }
-      else {
-        // for 1000/1005/1015 mode
-        cb = 3;
-      }
+      if (cb != MouseButtonCodes.NONE) {
 
-      cb = applyModifierKeys(event, cb);
+        if (myMouseFormat == MouseFormat.MOUSE_FORMAT_SGR) {
+          // for SGR 1006 mode
+          cb |= MouseButtonModifierFlags.MOUSE_BUTTON_SGR_RELEASE_FLAG;
+        }
+        else {
+          // for 1000/1005/1015 mode
+          cb = 3;
+        }
 
-      myTerminalOutput.sendBytes(mouseReport(cb, x+1, y+1));
+        cb = applyModifierKeys(event, cb);
+
+        myTerminalOutput.sendBytes(mouseReport(cb, x + 1, y + 1));
+      }
     }
   }
 

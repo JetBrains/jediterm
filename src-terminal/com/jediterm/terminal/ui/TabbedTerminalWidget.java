@@ -118,7 +118,11 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
   private JPopupMenu createPopup(final JediTermWidget terminal) {
     JPopupMenu popupMenu = new JPopupMenu();
 
-    popupMenu.add(mySystemSettingsProvider.getNewSessionAction());
+    JMenuItem newSession = new JMenuItem(mySystemSettingsProvider.getNewSessionAction());
+    if (mySystemSettingsProvider.getNewSessionKeyStrokes().length > 0) {
+      newSession.setAccelerator(mySystemSettingsProvider.getNewSessionKeyStrokes()[0]);
+    }
+    popupMenu.add(newSession);
 
     JMenuItem close = new JMenuItem("Close");
     close.addActionListener(new ActionListener() {

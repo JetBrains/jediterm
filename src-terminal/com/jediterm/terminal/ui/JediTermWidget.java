@@ -12,9 +12,6 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.KeyListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -188,7 +185,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
           Thread.currentThread().setName(myTtyConnector.getName());
           SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-              myTerminalPanel.setKeyListener(createEmulatorKeyHandler());
+              myTerminalPanel.initKeyHandler();
               myTerminalPanel.requestFocusInWindow();
             }
           });
@@ -208,10 +205,6 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
         myTerminalPanel.setKeyListener(myPreConnectHandler);
       }
     }
-  }
-
-  protected KeyListener createEmulatorKeyHandler() {
-    return new TerminalKeyHandler(myTerminalStarter);
   }
 
   public TerminalStarter getTerminalStarter() {

@@ -17,7 +17,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 
 public class TerminalPanel extends JComponent implements TerminalDisplay, ClipboardOwner, StyledTextConsumer {
-  private static final Logger logger = Logger.getLogger(TerminalPanel.class);
+  private static final Logger LOG = Logger.getLogger(TerminalPanel.class);
   private static final long serialVersionUID = -1048763516632093014L;
   private static final double FPS = 50;
 
@@ -208,7 +208,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         setCopyContents(new StringSelection(selectionText));
       }
       catch (final IllegalStateException e) {
-        logger.error("Could not set clipboard:", e);
+        LOG.error("Could not set clipboard:", e);
       }
     }
   }
@@ -224,7 +224,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       myTerminalStarter.sendString(selection);
     }
     catch (RuntimeException e) {
-      logger.info(e);
+      LOG.info(e);
     }
   }
 
@@ -233,7 +233,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       return getClipboardContent();
     }
     catch (final Exception e) {
-      logger.info(e);
+      LOG.info(e);
     }
     return null;
   }
@@ -243,7 +243,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       return (String)myClipboard.getData(DataFlavor.stringFlavor);
     }
     catch (Exception e) {
-      logger.info(e);
+      LOG.info(e);
       return null;
     }
   }
@@ -449,6 +449,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     });
   }
 
+  protected void initKeyHandler() {
+    setKeyListener(new TerminalKeyHandler(myTerminalStarter, mySettingsProvider));
+  }
 
   public class TerminalCursor {
     private static final long CURSOR_BLINK_PERIOD = 505;
@@ -858,7 +861,13 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   protected JPopupMenu createPopupMenu(final TerminalSelection selection, String content) {
     JPopupMenu popup = new JPopupMenu();
 
-    popup.add(mySettingsProvider.getNewSessionAction());
+    JMenuItem newSession = new JMenuItem(mySettingsProvider.getNewSessionAction());
+
+    if (mySettingsProvider.getNewSessionKeyStrokes().length > 0) {
+      newSession.setAccelerator(mySettingsProvider.getNewSessionKeyStrokes()[0]);
+    }
+
+    popup.add(newSession);
 
     popup.addSeparator();
 
@@ -875,10 +884,22 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     };
 
     JMenuItem menuItem = new JMenuItem("Copy");
+    menuItem.setMnemonic(KeyEvent.VK_C);
+
+    if (mySettingsProvider.getCopyKeyStrokes().length > 0) {
+      menuItem.setAccelerator(mySettingsProvider.getCopyKeyStrokes()[0]);
+    }
+
     menuItem.addActionListener(popupListener);
     menuItem.setEnabled(selection != null);
     popup.add(menuItem);
     menuItem = new JMenuItem("Paste");
+
+    if (mySettingsProvider.getPasteKeyStrokes().length > 0) {
+      menuItem.setAccelerator(mySettingsProvider.getPasteKeyStrokes()[0]);
+    }
+
+    menuItem.setMnemonic(KeyEvent.VK_P);
     menuItem.setEnabled(content != null);
     menuItem.addActionListener(popupListener);
     popup.add(menuItem);
@@ -917,5 +938,113 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   public void setSelectionColor(TextStyle selectionColor) {
     mySelectionColor = selectionColor;
+  }
+
+  public class TerminalKeyHandler implements KeyListener {
+    private final TerminalStarter myTerminalStarter;
+    private SystemSettingsProvider mySettingsProvider;
+
+    public TerminalKeyHandler(TerminalStarter terminalStarter, SystemSettingsProvider settingsProvider) {
+      myTerminalStarter = terminalStarter;
+      mySettingsProvider = settingsProvider;
+    }
+
+    public void keyPressed(final KeyEvent e) {
+      try {
+        final int keycode = e.getKeyCode();
+
+        if (isCopyKeyStroke(keycode)) {
+          handleCopy();
+          return;
+        }
+        if (isPasteKeyStroke(keycode)) {
+          handlePaste();
+          return;
+        }
+        if (isNewSessionKeyStroke(keycode)) {
+          handleNewSession(e);
+        }
+
+        final byte[] code = myTerminalStarter.getCode(keycode);
+        if (code != null) {
+          myTerminalStarter.sendBytes(code);
+        }
+        else {
+          final char keychar = e.getKeyChar();
+          final byte[] obuffer = new byte[1];
+          if ((keychar & 0xff00) == 0) {
+            obuffer[0] = (byte)e.getKeyChar();
+            myTerminalStarter.sendBytes(obuffer);
+          }
+        }
+      }
+      catch (final Exception ex) {
+        LOG.error("Error sending key to emulator", ex);
+      }
+    }
+
+    private void handleNewSession(KeyEvent e) {
+      mySettingsProvider.getNewSessionAction().actionPerformed(new ActionEvent(e.getSource(), e.getID(), "Paste", e.getModifiers()));
+    }
+
+    public void keyTyped(final KeyEvent e) {
+      final char keychar = e.getKeyChar();
+      if ((keychar & 0xff00) != 0) {
+        final char[] foo = new char[1];
+        foo[0] = keychar;
+        try {
+          myTerminalStarter.sendString(new String(foo));
+        }
+        catch (final RuntimeException ex) {
+          LOG.error("Error sending key to emulator", ex);
+        }
+      }
+    }
+
+    //Ignore releases
+    public void keyReleased(KeyEvent e) {
+    }
+  }
+
+  private void handlePaste() {
+    pasteSelection();
+  }
+
+  private void handleCopy() {
+    if (mySelection != null) {
+      copySelection(mySelection.getStart(), mySelection.getEnd());
+      mySelection = null;
+      repaint();
+    }
+  }
+
+  private boolean isNewSessionKeyStroke(int keyCode) {
+    for (KeyStroke ks : mySettingsProvider.getNewSessionKeyStrokes()) {
+      if (ks.getKeyCode() == keyCode) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private boolean isCopyKeyStroke(int keyCode) {
+    if (mySelection == null) {
+      return false;
+    }
+    for (KeyStroke ks : mySettingsProvider.getCopyKeyStrokes()) {
+      if (ks.getKeyCode() == keyCode) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private boolean isPasteKeyStroke(int keyCode) {
+    for (KeyStroke ks : mySettingsProvider.getPasteKeyStrokes()) {
+      if (ks.getKeyCode() == keyCode) {
+        return true;
+      }
+    }
+    return false;
   }
 }

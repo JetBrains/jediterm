@@ -7,9 +7,7 @@ import org.apache.log4j.Logger;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import java.awt.event.*;
 
 
 public abstract class AbstractTerminalFrame {
@@ -77,7 +75,7 @@ public abstract class AbstractTerminalFrame {
 
   protected AbstractTerminalFrame() {
     myTerminal = new TabbedTerminalWidget(new MySystemSettingsProvider());
-    
+
     final JFrame frame = new JFrame("JediTerm");
 
     frame.addWindowListener(new WindowAdapter() {
@@ -104,7 +102,7 @@ public abstract class AbstractTerminalFrame {
         }
         frame.pack();
       }
-      
+
       @Override
       public void onSessionChanged(final TerminalSession currentSession) {
         frame.setTitle(currentSession.getSessionName());
@@ -143,10 +141,24 @@ public abstract class AbstractTerminalFrame {
     });
   }
 
-  private class MySystemSettingsProvider implements SystemSettingsProvider {
+  private class MySystemSettingsProvider extends AbstractSystemSettingsProvider {
     @Override
     public AbstractAction getNewSessionAction() {
       return myOpenAction;
+    }
+
+    @Override
+    public KeyStroke[] getCopyKeyStrokes() {
+      return new KeyStroke[]{UIUtil.isMac
+                             ? KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.META_DOWN_MASK)
+                             : KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK)};
+    }
+
+    @Override
+    public KeyStroke[] getPasteKeyStrokes() {
+      return new KeyStroke[]{UIUtil.isMac
+                             ? KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.META_DOWN_MASK)
+                             : KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK)};
     }
   }
 }

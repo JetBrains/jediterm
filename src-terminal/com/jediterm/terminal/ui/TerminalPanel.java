@@ -39,7 +39,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private int myDescent = 0;
 
-  private int myLineSpace = 0;
+  private float myLineSpace = 0;
 
   protected Dimension myCharSize = new Dimension();
 
@@ -357,7 +357,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     final FontMetrics fo = graphics.getFontMetrics();
     myDescent = fo.getDescent();
     myCharSize.width = fo.charWidth('@');
-    myCharSize.height = fo.getHeight() + myLineSpace * 2;
+    myCharSize.height = fo.getHeight() + (int)(myLineSpace * 2);
     myDescent += myLineSpace;
 
     img.flush();
@@ -826,7 +826,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     Toolkit.getDefaultToolkit().beep();
   }
 
-  public void setLineSpace(final int foo) {
+  public void setLineSpace(final float foo) {
     myLineSpace = foo;
   }
 

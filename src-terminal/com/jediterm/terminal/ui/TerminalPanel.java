@@ -193,7 +193,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
   }
 
-  private void copySelection(final Point selectionStart, final Point selectionEnd) {
+  protected void copySelection(final Point selectionStart, final Point selectionEnd) {
     if (selectionStart == null || selectionEnd == null) {
       return;
     }
@@ -215,7 +215,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     myClipboard.setContents(selection, this);
   }
 
-  private void pasteSelection() {
+  protected void pasteSelection() {
     final String selection = getClipboardString();
 
     try {

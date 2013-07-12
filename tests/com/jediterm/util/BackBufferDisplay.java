@@ -43,7 +43,7 @@ public class BackBufferDisplay implements TerminalDisplay {
   }
 
   @Override
-  public void scrollArea(int y, int h, int dy) {
+  public void scrollArea(int scrollRegionTop, int scrollRegionSize, int dy) {
   }
 
   @Override

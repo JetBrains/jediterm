@@ -8,6 +8,7 @@ import com.jediterm.terminal.display.StyleState;
 import com.jediterm.terminal.emulator.Emulator;
 import com.jediterm.terminal.emulator.JediEmulator;
 import com.jediterm.util.BackBufferTerminal;
+import com.jediterm.util.BackBufferUtil;
 import com.jediterm.util.FileUtil;
 import com.jediterm.util.NullTerminalOutputStream;
 import junit.framework.TestCase;
@@ -53,9 +54,12 @@ public abstract class EmulatorTestAbstract extends TestCase {
     }
 
     assertEquals(expected, backBuffer.getLines());
-    
+
+    BackBufferUtil.assertBuffersEquals(backBuffer);
+
     return backBuffer;
   }
+
 
   protected abstract String getPathToTest();
 }

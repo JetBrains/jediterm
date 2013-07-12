@@ -16,7 +16,7 @@ public interface TerminalDisplay {
 
   Dimension requestResize(Dimension pendingResize, RequestOrigin origin, int cursorY, JediTerminal.ResizeHandler resizeHandler);
 
-  void scrollArea(final int y, final int h, int dy);
+  void scrollArea(final int scrollRegionTop, final int scrollRegionSize, int dy);
 
   void setCursorVisible(boolean shouldDrawCursor);
 

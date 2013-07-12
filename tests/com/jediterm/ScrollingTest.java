@@ -96,7 +96,7 @@ public class ScrollingTest extends TestCase {
         "       \n", backBuffer.getLines());
 
     assertEquals("2345678901\n" +
-        "3456789", backBuffer.getTextBufferLines());
+        "3456789\n", backBuffer.getTextBufferLines());
 
     assertEquals("1234567890", backBuffer.getScrollBuffer().getLines());
   }

@@ -156,7 +156,7 @@ public class BackBuffer implements StyledTextConsumer {
     clearArea(0, 0, myWidth, myHeight);
   }
 
-  public void clearArea(final int leftX, final int topY, final int rightX, final int bottomY) {
+  private void clearArea(final int leftX, final int topY, final int rightX, final int bottomY) {
     if (topY > bottomY) {
       LOG.error("Attempt to clear upside down area: top:" + topY + " > bottom:" + bottomY);
       return;
@@ -236,9 +236,9 @@ public class BackBuffer implements StyledTextConsumer {
 
       myStyleBuf[location] = style;
     }
-    if (!myAlternateBuffer) {
-      myTextBuffer.writeString(x, adjY, new String(bytes, start, len), style); //TODO: make write bytes method
-    }
+
+    myTextBuffer.writeString(x, adjY, new String(bytes, start, len), style); //TODO: make write bytes method
+
     myDamage.set(adjY * myWidth + x, adjY * myWidth + x + len);
   }
 
@@ -249,9 +249,7 @@ public class BackBuffer implements StyledTextConsumer {
   private void writeString(int x, int y, @NotNull String str, @NotNull TextStyle style) {
     if (writeToBackBuffer(x, y, str, style)) return;
 
-    if (!myAlternateBuffer) {
-      myTextBuffer.writeString(x, y - 1, str, style);
-    }
+    myTextBuffer.writeString(x, y - 1, str, style);
   }
 
   private boolean writeToBackBuffer(int x, int y, @NotNull String str, @NotNull TextStyle style) {
@@ -271,15 +269,27 @@ public class BackBuffer implements StyledTextConsumer {
     return false;
   }
 
-  public void scrollArea(final int y, final int h, final int dy) {
-    myTextBuffer.moveTopLinesTo(y, myScrollBuffer);
 
-    final int lastLine = y + h - 1;
+
+  public void scrollArea(final int scrollRegionTop, final int dy, int scrollRegionBottom) {
     if (dy > 0) {
-      moveLinesDown(y, dy, lastLine);
+      moveLinesDown(scrollRegionTop, dy, scrollRegionBottom);
+      clearArea(0, scrollRegionTop, myWidth,
+                scrollRegionTop + dy);
+
+      myTextBuffer.insertLines(scrollRegionTop, dy, scrollRegionBottom);
     }
     else {
-      moveLinesUp(y, dy, lastLine);
+      moveLinesUp(scrollRegionTop, dy, scrollRegionBottom);
+
+      LinesBuffer removed = myTextBuffer.deleteLines(scrollRegionTop - 1, -dy, scrollRegionBottom);
+
+      if (scrollRegionTop == 1) {
+        removed.moveTopLinesTo(removed.getLineCount(), myScrollBuffer);
+      }
+
+      clearArea(0, scrollRegionBottom - 1, myWidth,
+                scrollRegionBottom);
     }
   }
 
@@ -615,7 +625,7 @@ public class BackBuffer implements StyledTextConsumer {
     myTextBuffer.insertLines(y, count, getScrollRegionBottom() - 1);
   }
 
-  private int getScrollRegionBottom() {
+  private int getScrollRegionBottom() { //TODO: remove from BackBuffer, make arguments in methods
     return myScrollRegionBottom != -1 ? myScrollRegionBottom : myHeight;
   }
 

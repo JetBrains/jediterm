@@ -754,7 +754,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     gfx.fillRect(width, 0, getWidth() - width, getHeight());
   }
 
-  public void scrollArea(final int y, final int h, int dy) {
+  public void scrollArea(final int scrollRegionTop, final int scrollRegionSize, int dy) {
     if (dy < 0) {
       //Moving lines off the top of the screen
       //TODO: Something to do with application keypad mode
@@ -768,7 +768,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       });
     }
     mySelection = null;
-    pendingScrolls.add(y, h, dy);
+    pendingScrolls.add(scrollRegionTop, scrollRegionSize, dy);
   }
 
   private void updateScrolling() {

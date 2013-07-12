@@ -94,8 +94,8 @@ public class LinesBuffer {
     
     tail.moveTopLinesTo(tail.getLineCount(), this);
   }
-
-  public void deleteLines(int y, int count, int lastLine) {
+  
+  public LinesBuffer deleteLines(int y, int count, int lastLine) {
     LinesBuffer tail = new LinesBuffer();
 
     if (lastLine < getLineCount() - 1) {
@@ -109,7 +109,8 @@ public class LinesBuffer {
 
     int toRemove = Math.min(count, getLineCount());
     
-    removeTopLines(toRemove);
+    LinesBuffer removed = new LinesBuffer();
+    moveTopLinesTo(toRemove, removed);
 
     head.moveBottomLinesTo(head.getLineCount(), this);
 
@@ -118,6 +119,8 @@ public class LinesBuffer {
     }
 
     tail.moveTopLinesTo(tail.getLineCount(), this);
+    
+    return removed;
   }
 
   public void writeString(int x, int y, String str, @NotNull TextStyle style) {

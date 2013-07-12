@@ -46,8 +46,6 @@ public class BackBuffer implements StyledTextConsumer {
   private LinesBuffer myScrollBufferBackup;
   private boolean myAlternateBuffer = false;
 
-  private int myScrollRegionBottom = -1;
-  private int myScrollRegionTop = -1;
   private boolean myUsingAlternateBuffer = false;
 
   public BackBuffer(final int width, final int height, @NotNull StyleState styleState) {
@@ -268,7 +266,6 @@ public class BackBuffer implements StyledTextConsumer {
     myDamage.set(adjY * myWidth + x, adjY * myWidth + x + str.length());
     return false;
   }
-
 
 
   public void scrollArea(final int scrollRegionTop, final int dy, int scrollRegionBottom) {
@@ -619,26 +616,17 @@ public class BackBuffer implements StyledTextConsumer {
     return myScrollBuffer;
   }
 
-  public void insertLines(int y, int count) {
-    moveLinesDown(y, count, getScrollRegionBottom() - 1);
-    clearArea(0, y, myWidth, Math.min(y + count, getScrollRegionBottom()));
-    myTextBuffer.insertLines(y, count, getScrollRegionBottom() - 1);
+  public void insertLines(int y, int count, int scrollRegionBottom) {
+    moveLinesDown(y, count, scrollRegionBottom - 1);
+    clearArea(0, y, myWidth, Math.min(y + count, scrollRegionBottom));
+    myTextBuffer.insertLines(y, count, scrollRegionBottom - 1);
   }
 
-  private int getScrollRegionBottom() { //TODO: remove from BackBuffer, make arguments in methods
-    return myScrollRegionBottom != -1 ? myScrollRegionBottom : myHeight;
-  }
+  public void deleteLines(int y, int count, int scrollRegionBottom) {
+    moveLinesUp(y + count, -count, scrollRegionBottom - 1);
+    clearArea(0, Math.max(y, scrollRegionBottom - count), myWidth, scrollRegionBottom);
 
-  public void deleteLines(int y, int count) {
-    moveLinesUp(y + count, -count, getScrollRegionBottom() - 1);
-    clearArea(0, Math.max(y, getScrollRegionBottom() - count), myWidth, getScrollRegionBottom());
-
-    myTextBuffer.deleteLines(y, count, getScrollRegionBottom() - 1);
-  }
-
-  public void setScrollRegion(int top, int bottom) {
-    myScrollRegionTop = top;
-    myScrollRegionBottom = bottom;
+    myTextBuffer.deleteLines(y, count, scrollRegionBottom - 1);
   }
 
   public void eraseCharacters(int leftX, int rightX, int y) {

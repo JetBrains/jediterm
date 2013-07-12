@@ -440,7 +440,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
   public void insertLines(int count) {
     myBackBuffer.lock();
     try {
-      myBackBuffer.insertLines(myCursorY - 1, count);
+      myBackBuffer.insertLines(myCursorY - 1, count, myScrollRegionBottom);
     }
     finally {
       myBackBuffer.unlock();
@@ -451,7 +451,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
   public void deleteLines(int count) {
     myBackBuffer.lock();
     try {
-      myBackBuffer.deleteLines(myCursorY - 1, count);
+      myBackBuffer.deleteLines(myCursorY - 1, count, myScrollRegionBottom);
     }
     finally {
       myBackBuffer.unlock();
@@ -613,8 +613,6 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
     }
     myScrollRegionTop = Math.max(1, top);
     myScrollRegionBottom = Math.min(myTerminalHeight, bottom);
-
-    myBackBuffer.setScrollRegion(myScrollRegionTop, myScrollRegionBottom);
 
     //DECSTBM moves the cursor to column 1, line 1 of the page
     cursorPosition(1, 1);

@@ -196,7 +196,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
   }
 
-  private void copySelection(final Point selectionStart, final Point selectionEnd) {
+  protected void copySelection(final Point selectionStart, final Point selectionEnd) {
     if (selectionStart == null || selectionEnd == null) {
       return;
     }
@@ -218,7 +218,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     myClipboard.setContents(selection, this);
   }
 
-  private void pasteSelection() {
+  protected void pasteSelection() {
     final String selection = getClipboardString();
 
     try {
@@ -682,10 +682,13 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     gfx.copyArea(0, Math.max(0, dyPix),
                  getPixelWidth(), getPixelHeight() - Math.abs(dyPix),
                  0, -dyPix);
+    //clear rect before drawing scroll buffer on it
+    gfx.setColor(getBackground());
     if (dy < 0) {
-      //clear rect before drawing scroll buffer on it
-      gfx.setColor(getBackground());
-      gfx.fillRect(0, Math.max(0, dyPix), getPixelWidth(), Math.abs(dyPix));
+      gfx.fillRect(0, 0, getPixelWidth(), Math.abs(dyPix));
+    }
+    else {
+      gfx.fillRect(0, getPixelHeight() - dyPix, getPixelWidth(), dyPix);
     }
   }
 

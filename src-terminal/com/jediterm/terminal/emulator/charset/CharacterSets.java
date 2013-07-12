@@ -33,12 +33,12 @@ public final class CharacterSets {
     {0, "enq"}, //
     {0, "ack"}, //
     {0, "bel"}, //
-    {'\b', "bs"}, //
-    {'\t', "ht"}, //
-    {'\n', "lf"}, //
+    {(int) '\b', "bs"}, //
+    {(int) '\t', "ht"}, //
+    {(int) '\n', "lf"}, //
     {0, "vt"}, //
     {0, "ff"}, //
-    {'\r', "cr"}, //
+    {(int) '\r', "cr"}, //
     {0, "so"}, //
     {0, "si"}, //
     {0, "dle"}, //
@@ -152,7 +152,7 @@ public final class CharacterSets {
   public static char getChar(char original, GraphicSet gl, GraphicSet gr) {
     Object[] mapping = getMapping(original, gl, gr);
 
-    int ch = ((Integer)mapping[0]).intValue();
+    int ch = (Integer) mapping[0];
     if (ch > 0) {
       return (char)ch;
     }

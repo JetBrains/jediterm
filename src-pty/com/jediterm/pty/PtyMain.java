@@ -53,7 +53,7 @@ public class PtyMain extends AbstractTerminalFrame {
     }
 
     public List<char[]> getChunks() {
-      return myDataChunks;
+      return Lists.newArrayList(myDataChunks);
     }
   }
 }

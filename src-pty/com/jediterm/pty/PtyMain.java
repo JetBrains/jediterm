@@ -36,7 +36,7 @@ public class PtyMain extends AbstractTerminalFrame {
 
 
   public static class LoggingPtyProcessTtyConnector extends PtyProcessTtyConnector implements LoggingTtyConnector {
-    private List<char[]> myDataChunks = Lists.newArrayList();
+    private List<char[]> myDataChunks = Lists.newCopyOnWriteArrayList();
 
     public LoggingPtyProcessTtyConnector(PtyProcess process, Charset charset) {
       super(process, charset);

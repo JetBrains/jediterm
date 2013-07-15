@@ -30,7 +30,6 @@ public class SelectionTest extends TestCase {
 
     assertEquals("line \n" +
                  "  2. line", SelectionUtil.getSelectionText(new Point(5, 0), new Point(9, 1), backBuffer));
-
   }
 
   public void testSingleLineSelection() {
@@ -100,4 +99,31 @@ public class SelectionTest extends TestCase {
     assertEquals("second line\nlast line", SelectionUtil.getSelectionText(new Point(0, 1), new Point(9, 2), backBuffer));
   }
 
+  public void testSelectionFromScrollBuffer() {
+    StyleState state = new StyleState();
+
+    BackBuffer backBuffer = new BackBuffer(5, 3, state);
+
+    JediTerminal writer = new JediTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+
+    writer.writeString("12");
+    writer.newLine();
+    writer.carriageReturn();
+    writer.writeString("34");
+    writer.newLine();
+    writer.carriageReturn();
+    writer.writeString("56");
+    writer.newLine();
+    writer.carriageReturn();
+    writer.writeString("78");
+    writer.newLine();
+    writer.carriageReturn();
+    writer.writeString("90");
+
+
+    assertEquals("12\n" +
+                 "34\n" +
+                 "56\n" +
+                 "78", SelectionUtil.getSelectionText(new Point(0, -2), new Point(2, 1), backBuffer));
+  }
 }

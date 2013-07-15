@@ -147,7 +147,7 @@ public class BackBuffer implements StyledTextConsumer {
 
   private void resetFromTextBuffer() {
     clearArea();
-    myTextBuffer.processLines(-getTextBufferLinesCount(), getTextBufferLinesCount(), this);
+    myTextBuffer.processLines(0, getTextBufferLinesCount(), this, 0);
   }
 
   private void clearArea() {
@@ -397,8 +397,12 @@ public class BackBuffer implements StyledTextConsumer {
     }
   }
 
-  public void processTextBuffer(final int startRow, final int height, @NotNull final StyledTextConsumer consumer) {
-    myTextBuffer.processLines(startRow - getTextBufferLinesCount(), Math.min(height, myTextBuffer.getLineCount()), consumer);
+  public void processTextBufferLines(final int yStart, final int yCount, @NotNull final StyledTextConsumer consumer, int startRow) {
+    myTextBuffer.processLines(yStart - startRow, Math.min(yCount, myTextBuffer.getLineCount()), consumer, startRow);
+  }
+
+  public void processTextBufferLines(final int yStart, final int yCount, @NotNull final StyledTextConsumer consumer) {
+    myTextBuffer.processLines(yStart - getTextBufferLinesCount(), Math.min(yCount, myTextBuffer.getLineCount()), consumer);
   }
 
   public void processBufferRows(final int startRow, final int height, final StyledTextConsumer consumer) {

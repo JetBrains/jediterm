@@ -83,7 +83,7 @@ public class LinesBuffer {
     if (y > 0) {
       moveTopLinesTo(y, head);
     }
-    
+
     for (int i = 0; i < count; i++) {
       head.addNewLine(TextStyle.EMPTY, CharBuffer.EMPTY);
     }
@@ -91,10 +91,10 @@ public class LinesBuffer {
     head.moveBottomLinesTo(head.getLineCount(), this);
 
     removeBottomLines(count);
-    
+
     tail.moveTopLinesTo(tail.getLineCount(), this);
   }
-  
+
   public LinesBuffer deleteLines(int y, int count, int lastLine) {
     LinesBuffer tail = new LinesBuffer();
 
@@ -108,7 +108,7 @@ public class LinesBuffer {
     }
 
     int toRemove = Math.min(count, getLineCount());
-    
+
     LinesBuffer removed = new LinesBuffer();
     moveTopLinesTo(toRemove, removed);
 
@@ -119,7 +119,7 @@ public class LinesBuffer {
     }
 
     tail.moveTopLinesTo(tail.getLineCount(), this);
-    
+
     return removed;
   }
 
@@ -140,7 +140,7 @@ public class LinesBuffer {
       }
     }
   }
-  
+
   public void clearAll() {
     myLines.clear();
   }
@@ -151,7 +151,7 @@ public class LinesBuffer {
   }
 
   public void clearArea(int leftX, int topY, int rightX, int bottomY) {
-    for (int y = topY; y<bottomY; y++) {
+    for (int y = topY; y < bottomY; y++) {
       TerminalLine line = getLine(y);
       line.clearArea(leftX, rightX);
     }
@@ -165,18 +165,24 @@ public class LinesBuffer {
     void process(int x, int y, @NotNull TerminalLine.TextEntry entry);
   }
 
-  public synchronized void processLines(final int firstLine, final int count, @NotNull final StyledTextConsumer consumer) {
-    final int linesShift = getLineCount();
-    iterateLines(getLineCount() + firstLine, count, new TextEntryProcessor() {
+  public synchronized void processLines(final int yStart,
+                                        final int yCount,
+                                        @NotNull final StyledTextConsumer consumer,
+                                        final int startRow) {
+    iterateLines(yStart, yCount, new TextEntryProcessor() {
       @Override
       public void process(int x, int y, @NotNull TerminalLine.TextEntry entry) {
-        consumer.consume(x, y - linesShift, entry.getStyle(), entry.getText(), -getLineCount()); //  TODO: first line as a parameter
+        consumer.consume(x, y, entry.getStyle(), entry.getText(), startRow);
       }
-    });
+    }, startRow);
   }
 
-  public synchronized void iterateLines(final int firstLine, final int count, @NotNull TextEntryProcessor processor) {
-    int y = -1;
+  public synchronized void processLines(final int yStart, final int yCount, @NotNull final StyledTextConsumer consumer) {
+    processLines(yStart, yCount, consumer, -getLineCount());
+  }
+
+  public synchronized void iterateLines(final int firstLine, final int count, @NotNull TextEntryProcessor processor, int startRow) {
+    int y = startRow-1;
 
     int x;
 

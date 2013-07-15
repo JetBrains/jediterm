@@ -3,8 +3,8 @@ package com.jediterm;
 import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.display.BackBuffer;
-import com.jediterm.terminal.display.JediTerminal;
 import com.jediterm.terminal.display.CharBuffer;
+import com.jediterm.terminal.display.JediTerminal;
 import com.jediterm.terminal.display.StyleState;
 import com.jediterm.util.BackBufferDisplay;
 import junit.framework.TestCase;
@@ -38,7 +38,7 @@ public class BackBufferTest extends TestCase {
     terminal.carriageReturn();
     terminal.writeString("  4.");
 
-    backBuffer.processTextBuffer(0, 10, new StyledTextConsumer() {
+    backBuffer.processTextBufferLines(0, 10, new StyledTextConsumer() {
       @Override
       public void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
         assertNotNull(style);

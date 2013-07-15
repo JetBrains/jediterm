@@ -36,24 +36,23 @@ public class SelectionUtil {
     if (top.y < 0) {  //add lines from scroll buffer
       final Point scrollEnd = bottom.y >= 0 ? new Point(terminalWidth, -1) : bottom;
       SelectionTextAppender scrollText = new SelectionTextAppender(top, scrollEnd);
-      backBuffer.getScrollBuffer().processLines(top.y, scrollEnd.y - top.y,
-                                scrollText);
+      backBuffer.getScrollBuffer().processLines(top.y, scrollEnd.y - top.y + 1,
+                                                scrollText);
       selectionText.append(scrollText.getText());
     }
 
     if (bottom.y >= 0) {
       final Point backBegin = top.y < 0 ? new Point(0, 0) : top;
       SelectionTextAppender selectionTextAppender = new SelectionTextAppender(backBegin, bottom);
-      for (int y = backBegin.y; y < bottom.y; y++) {
+      for (int y = backBegin.y; y <= bottom.y; y++) {
         if (backBuffer.checkTextBufferIsValid(y)) {
-          backBuffer.processTextBuffer(y, 1, selectionTextAppender);
+          backBuffer.processTextBufferLines(y, 1, selectionTextAppender, 0);
         }
         else {
           LOG.error("Text buffer has invalid content");
           backBuffer.processBufferRow(y, selectionTextAppender);
         }
       }
-      backBuffer.processBufferRow(bottom.y, 0, bottom.x, selectionTextAppender); //process the last line
 
       if (selectionText.length() > 0) {
         selectionText.append("\n");

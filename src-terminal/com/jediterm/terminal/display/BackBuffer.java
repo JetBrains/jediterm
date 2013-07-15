@@ -639,7 +639,7 @@ public class BackBuffer implements StyledTextConsumer {
 
   public void clearLines(int startRow, int endRow) {
     TextStyle style = createEmptyStyleWithCurrentColor();
-    
+
     myTextBuffer.clearLines(startRow, endRow);
     clearArea(0, startRow, myWidth, endRow, style);
   }
@@ -647,9 +647,13 @@ public class BackBuffer implements StyledTextConsumer {
 
   public void eraseCharacters(int leftX, int rightX, int y) {
     TextStyle style = createEmptyStyleWithCurrentColor();
-    
-    clearArea(leftX, y, rightX, y + 1, style);
-    myTextBuffer.clearArea(leftX, y, rightX, y + 1, style);
+    if (y >= 0) {
+      clearArea(leftX, y, rightX, y + 1, style);
+      myTextBuffer.clearArea(leftX, y, rightX, y + 1, style);
+    }
+    else {
+      LOG.error("Attempt to erase characters in line: " + y);
+    }
   }
 
   public void clearAll() {

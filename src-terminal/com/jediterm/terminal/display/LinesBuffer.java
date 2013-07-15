@@ -46,11 +46,11 @@ public class LinesBuffer {
   }
 
 
-  private void addNewLine(@NotNull TerminalLine.TextEntry entry) {
+  private synchronized void addNewLine(@NotNull TerminalLine.TextEntry entry) {
     addLine(new TerminalLine(entry));
   }
 
-  private void addLine(@NotNull TerminalLine line) {
+  private synchronized void addLine(@NotNull TerminalLine line) {
     if (myLines.size() > BUFFER_MAX_LINES) {
       removeTopLines(1);
     }
@@ -58,11 +58,11 @@ public class LinesBuffer {
     myLines.add(line);
   }
 
-  public int getLineCount() {
+  public synchronized int getLineCount() {
     return myLines.size();
   }
 
-  public void removeTopLines(int count) {
+  public synchronized void removeTopLines(int count) {
     myLines = Lists.newArrayList(myLines.subList(count, myLines.size()));
   }
 
@@ -72,7 +72,7 @@ public class LinesBuffer {
     return line.getText();
   }
 
-  public void insertLines(int y, int count, int lastLine) {
+  public synchronized void insertLines(int y, int count, int lastLine) {
     LinesBuffer tail = new LinesBuffer();
 
     if (lastLine < getLineCount() - 1) {
@@ -95,7 +95,7 @@ public class LinesBuffer {
     tail.moveTopLinesTo(tail.getLineCount(), this);
   }
 
-  public LinesBuffer deleteLines(int y, int count, int lastLine) {
+  public synchronized LinesBuffer deleteLines(int y, int count, int lastLine) {
     LinesBuffer tail = new LinesBuffer();
 
     if (lastLine < getLineCount() - 1) {
@@ -123,13 +123,13 @@ public class LinesBuffer {
     return removed;
   }
 
-  public void writeString(int x, int y, String str, @NotNull TextStyle style) {
+  public synchronized void writeString(int x, int y, String str, @NotNull TextStyle style) {
     TerminalLine line = getLine(y);
 
     line.writeString(x, str, style);
   }
 
-  public void clearLines(int startRow, int endRow) {
+  public synchronized void clearLines(int startRow, int endRow) {
     for (int i = startRow; i <= endRow; i++) {
       if (i < myLines.size()) {
         TerminalLine line = myLines.get(i);
@@ -141,16 +141,16 @@ public class LinesBuffer {
     }
   }
 
-  public void clearAll() {
+  public synchronized void clearAll() {
     myLines.clear();
   }
 
-  public void deleteCharacters(int x, int y, int count) {
+  public synchronized void deleteCharacters(int x, int y, int count) {
     TerminalLine line = getLine(y);
     line.deleteCharacters(x, count);
   }
 
-  public void clearArea(int leftX, int topY, int rightX, int bottomY, @NotNull TextStyle style) {
+  public synchronized void clearArea(int leftX, int topY, int rightX, int bottomY, @NotNull TextStyle style) {
     for (int y = topY; y < bottomY; y++) {
       TerminalLine line = getLine(y);
       line.clearArea(leftX, rightX, style);
@@ -210,18 +210,18 @@ public class LinesBuffer {
     }
   }
 
-  public void moveTopLinesTo(int count, final @NotNull LinesBuffer buffer) {
+  public synchronized void moveTopLinesTo(int count, final @NotNull LinesBuffer buffer) {
     count = Math.min(count, getLineCount());
     buffer.addLines(myLines.subList(0, count));
     removeTopLines(count);
   }
 
-  public void addLines(@NotNull List<TerminalLine> lines) {
+  public synchronized void addLines(@NotNull List<TerminalLine> lines) {
     myLines.addAll(lines);
   }
 
   @NotNull
-  public TerminalLine getLine(int row) {
+  public synchronized TerminalLine getLine(int row) {
     if (row >= getLineCount()) {
       for (int i = getLineCount(); i <= row; i++) {
         addLine(TerminalLine.createEmpty());
@@ -231,20 +231,20 @@ public class LinesBuffer {
     return myLines.get(row);
   }
 
-  public void moveBottomLinesTo(int count, final @NotNull LinesBuffer buffer) {
+  public synchronized void moveBottomLinesTo(int count, final @NotNull LinesBuffer buffer) {
     count = Math.min(count, getLineCount());
     buffer.addLinesFirst(myLines.subList(getLineCount() - count, getLineCount()));
 
     removeBottomLines(count);
   }
 
-  private void addLinesFirst(@NotNull List<TerminalLine> lines) {
+  private synchronized void addLinesFirst(@NotNull List<TerminalLine> lines) {
     List<TerminalLine> list = Lists.newArrayList(lines);
     list.addAll(myLines);
     myLines = Lists.newArrayList(list);
   }
 
-  private void removeBottomLines(int count) {
+  private synchronized void removeBottomLines(int count) {
     myLines = Lists.newArrayList(myLines.subList(0, getLineCount() - count));
   }
 }

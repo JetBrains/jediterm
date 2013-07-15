@@ -9,6 +9,7 @@ import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
+import java.awt.event.InputEvent;
 import java.awt.event.MouseEvent;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
@@ -827,7 +828,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
     if (event.isShiftDown()) {
       cb |= MouseButtonModifierFlags.MOUSE_BUTTON_SHIFT_FLAG;
     }
-    if ((event.getModifiersEx() & MouseEvent.META_MASK) != 0) {
+    if ((event.getModifiersEx() & InputEvent.META_MASK) != 0) {
       cb |= MouseButtonModifierFlags.MOUSE_BUTTON_META_FLAG;
     }
     return cb;

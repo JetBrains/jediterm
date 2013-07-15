@@ -3,6 +3,8 @@
  */
 package com.jediterm.terminal;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.awt.*;
 import java.lang.ref.WeakReference;
 import java.util.EnumSet;
@@ -92,6 +94,7 @@ public class TextStyle implements Cloneable {
     }
   }
 
+  @NotNull
   public static TextStyle getCanonicalStyle(TextStyle currentStyle) {
     final WeakReference<TextStyle> canonRef = styles.get(currentStyle);
     if (canonRef != null) {
@@ -116,6 +119,10 @@ public class TextStyle implements Cloneable {
   @Override
   public TextStyle clone() {
     return new TextStyle(myForeground, myBackground, myOptions);
+  }
+  
+  public TextStyle createEmptyWithColors() {
+    return new TextStyle(myForeground, myBackground);
   }
 
   public int getId() {

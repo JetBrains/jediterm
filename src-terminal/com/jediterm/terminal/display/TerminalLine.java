@@ -43,7 +43,7 @@ public class TerminalLine {
     writeCharacters(x, style, new CharBuffer(str));
   }
 
-  private void writeCharacters(int x, TextStyle style, CharBuffer characters) {
+  private void writeCharacters(int x, @NotNull TextStyle style, @NotNull CharBuffer characters) {
     int len = myTextEntries.length();
 
     if (x >= len) {
@@ -134,8 +134,8 @@ public class TerminalLine {
     myTextEntries = newEntries;
   }
 
-  public void clearArea(int leftX, int rightX) {
-    writeCharacters(leftX, TextStyle.EMPTY, new CharBuffer(' ', rightX - leftX));
+  public void clearArea(int leftX, int rightX, @NotNull TextStyle style) {
+    writeCharacters(leftX, style, new CharBuffer(' ', rightX - leftX));
   }
 
   static class TextEntry {

@@ -155,6 +155,10 @@ public class BackBuffer implements StyledTextConsumer {
   }
 
   private void clearArea(final int leftX, final int topY, final int rightX, final int bottomY) {
+    clearArea(leftX, topY, rightX, bottomY, TextStyle.EMPTY);
+  }
+
+  private void clearArea(final int leftX, final int topY, final int rightX, final int bottomY, @NotNull TextStyle textStyle) {
     if (topY > bottomY) {
       LOG.error("Attempt to clear upside down area: top:" + topY + " > bottom:" + bottomY);
       return;
@@ -174,18 +178,20 @@ public class BackBuffer implements StyledTextConsumer {
                     y * myWidth + rightX,
                     EMPTY_CHAR);
 
-        TextStyle style = new TextStyle(myStyleState.getCurrent().getForeground(), myStyleState.getCurrent().getBackground());
-        
         Arrays.fill(myStyleBuf,
                     y * myWidth + leftX,
                     y * myWidth + rightX,
-                    style
+                    textStyle
         );
         myDamage.set(y * myWidth + leftX,
                      y * myWidth + rightX,
                      true);
       }
     }
+  }
+
+  private TextStyle createEmptyStyleWithCurrentColor() {
+    return myStyleState.getCurrent().createEmptyWithColors();
   }
 
   public void deleteCharacters(final int x, final int y, final int count) {
@@ -572,11 +578,6 @@ public class BackBuffer implements StyledTextConsumer {
     return myHeight;
   }
 
-  public void clearLines(int startRow, int endRow) {
-    myTextBuffer.clearLines(startRow, endRow);
-    clearArea(0, startRow, myWidth, endRow);
-  }
-
   public int getTextBufferLinesCount() {
     return myTextBuffer.getLineCount();
   }
@@ -636,9 +637,19 @@ public class BackBuffer implements StyledTextConsumer {
     myTextBuffer.deleteLines(y, count, scrollRegionBottom - 1);
   }
 
+  public void clearLines(int startRow, int endRow) {
+    TextStyle style = createEmptyStyleWithCurrentColor();
+    
+    myTextBuffer.clearLines(startRow, endRow);
+    clearArea(0, startRow, myWidth, endRow, style);
+  }
+
+
   public void eraseCharacters(int leftX, int rightX, int y) {
-    clearArea(leftX, y, rightX, y + 1);
-    myTextBuffer.clearArea(leftX, y, rightX, y + 1);
+    TextStyle style = createEmptyStyleWithCurrentColor();
+    
+    clearArea(leftX, y, rightX, y + 1, style);
+    myTextBuffer.clearArea(leftX, y, rightX, y + 1, style);
   }
 
   public void clearAll() {

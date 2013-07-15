@@ -18,12 +18,15 @@ Licensed under LGPL.
 Features
 --------
 
-* ssh using JSch from jcraft.org
-* vt102 emulation
-* xterm colours
-* back buffer so selection / cut and paste works
-* scroll buffer
-* terminal resizing from client or server side
+* Ssh using JSch from jcraft.org 
+* Local terminal using JPty
+* Xterm emulation
+* Xterm 256 colours
+* Scrolling
+* Copy/Paste
+* Mouse support
+* Terminal resizing from client or server side
+* Terminal tabs
 
 
 Links

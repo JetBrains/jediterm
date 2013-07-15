@@ -22,7 +22,7 @@ public abstract class DataStreamIteratingEmulator implements Emulator {
   public boolean hasNext() {
     return !myEof;
   }
-
+  
   @Override
   public void resetEof() {
     myEof = false;
@@ -33,7 +33,9 @@ public abstract class DataStreamIteratingEmulator implements Emulator {
     try {
       char b = myDataStream.getChar();
 
-      processChar(b, myTerminal);
+      synchronized (myTerminal) {
+        processChar(b, myTerminal);
+      }
     }
     catch (TerminalDataStream.EOF e) {
       myEof = true;

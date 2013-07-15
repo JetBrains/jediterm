@@ -8,7 +8,7 @@ import java.io.IOException;
  * @author traff
  */
 public class ArrayTerminalDataStream implements TerminalDataStream {
-  protected final char[] myBuf;
+  protected char[] myBuf;
   protected int myOffset;
   protected int myLength;
 
@@ -35,8 +35,17 @@ public class ArrayTerminalDataStream implements TerminalDataStream {
   public void pushChar(final char c) throws EOF {
     if (myOffset == 0) {
       // Pushed back too many... shift it up to the end.
-      myOffset = myBuf.length - myLength;
-      System.arraycopy(myBuf, 0, myBuf, myOffset, myLength);
+
+      char[] newBuf;
+      if (myBuf.length - myLength == 0) {
+        newBuf = new char[myBuf.length + 1];
+      }
+      else {
+        newBuf = myBuf;
+      }
+      myOffset = newBuf.length - myLength;
+      System.arraycopy(myBuf, 0, newBuf, myOffset, myLength);
+      myBuf = newBuf;
     }
 
     myLength++;

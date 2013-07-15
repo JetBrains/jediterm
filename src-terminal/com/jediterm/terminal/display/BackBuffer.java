@@ -173,10 +173,13 @@ public class BackBuffer implements StyledTextConsumer {
                     y * myWidth + leftX,
                     y * myWidth + rightX,
                     EMPTY_CHAR);
+
+        TextStyle style = new TextStyle(myStyleState.getCurrent().getForeground(), myStyleState.getCurrent().getBackground());
+        
         Arrays.fill(myStyleBuf,
                     y * myWidth + leftX,
                     y * myWidth + rightX,
-                    TextStyle.EMPTY
+                    style
         );
         myDamage.set(y * myWidth + leftX,
                      y * myWidth + rightX,

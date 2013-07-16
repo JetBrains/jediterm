@@ -150,6 +150,10 @@ public class LinesBuffer {
     line.deleteCharacters(x, count);
   }
 
+  public void insertBlankCharacters(final int x, final int y, final int count) {
+    // TODO : implement
+  }
+
   public void clearArea(int leftX, int topY, int rightX, int bottomY, @NotNull TextStyle style) {
     for (int y = topY; y < bottomY; y++) {
       TerminalLine line = getLine(y);

@@ -598,11 +598,9 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   }
 
   private boolean insertBlankCharacters(ControlSequence args) {
-    final int arg = args.getArg(0, 1);
-    char[] chars = new char[arg];
-    Arrays.fill(chars, ' ');
+    final int count = args.getArg(0, 1);
 
-    myTerminal.writeCharacters(new String(chars, 0, arg));
+    myTerminal.insertBlankCharacters(count);
 
     return true;
   }

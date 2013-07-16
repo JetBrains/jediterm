@@ -408,6 +408,18 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
   }
 
   @Override
+  public void insertBlankCharacters(int count) {
+    myBackBuffer.lock();
+    try {
+      final int extent = Math.min(count, myTerminalWidth - myCursorX);
+      myBackBuffer.insertBlankCharacters(myCursorX, myCursorY - 1, extent);
+    }
+    finally {
+      myBackBuffer.unlock();
+    }
+  }
+
+  @Override
   public void eraseCharacters(int count) {
     //Clear the next n characters on the cursor's line, including the cursor's
     //position.

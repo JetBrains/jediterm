@@ -117,6 +117,8 @@ public interface Terminal {
 
   void eraseCharacters(int count);
 
+  void insertBlankCharacters(int count);
+
   void clearTabStopAtCursor();
 
   void clearAllTabStops();

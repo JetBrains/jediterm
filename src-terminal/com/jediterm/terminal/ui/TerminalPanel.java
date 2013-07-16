@@ -230,7 +230,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     final String selectionText = SelectionUtil
       .getSelectionText(selectionStart, selectionEnd, myBackBuffer);
-    
+
     if (selectionText.length() != 0) {
       try {
         setCopyContents(new StringSelection(selectionText));
@@ -440,7 +440,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     e.consume();
   }
 
-
   public int getPixelWidth() {
     return myCharSize.width * myTermSize.width;
   }
@@ -524,10 +523,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             g.setColor(current.getBackground());
           }
 
-
           g.fillRect(myCursorCoordinates.x * myCharSize.width * SCALE, y * myCharSize.height * SCALE,
                      myCharSize.width * SCALE, myCharSize.height * SCALE);
-
 
           myCursorIsShown = isCursorShown;
           myLastCursorChange = System.currentTimeMillis();
@@ -673,7 +670,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     copyAndClearAreaOnScroll(dy, dyPix, myGfx);
     copyAndClearAreaOnScroll(dy, dyPix, myGfxForSelection);
-
 
     if (dy < 0) {
       // Scrolling up; Copied down

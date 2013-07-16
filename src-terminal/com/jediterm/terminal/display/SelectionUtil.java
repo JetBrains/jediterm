@@ -4,12 +4,27 @@ import com.jediterm.terminal.SelectionTextAppender;
 import org.apache.log4j.Logger;
 
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author traff
  */
 public class SelectionUtil {
   private static final Logger LOG = Logger.getLogger(SelectionUtil.class);
+  
+  private static final List<Character> SEPARATORS = new ArrayList<Character>();
+  static {
+    SEPARATORS.add(' ');
+    SEPARATORS.add('\u00A0'); // NO-BREAK SPACE
+    SEPARATORS.add('\t');
+    SEPARATORS.add('\'');
+    SEPARATORS.add('$');
+    SEPARATORS.add('(');
+    SEPARATORS.add(')');
+    SEPARATORS.add('[');
+    SEPARATORS.add(']');
+  }
 
   public static String getSelectionText(final Point selectionStart,
                                         final Point selectionEnd,
@@ -60,7 +75,64 @@ public class SelectionUtil {
       selectionText.append(selectionTextAppender.getText());
     }
 
-
     return selectionText.toString();
   }
+
+  public static Point getPreviousSeparator(Point charCoords, BackBuffer backBuffer) {
+    int x = charCoords.x;
+    int y = charCoords.y;
+    int terminalWidth = backBuffer.getWidth();
+
+    String line = backBuffer.getLine(y).getText();
+    while (x < line.length() && !SEPARATORS.contains(line.charAt(x))) {
+      x--;
+      if (x < 0) {
+        if (y <= - backBuffer.getScrollBufferLinesCount()) {
+          return new Point(0, y);
+        }
+        y--;
+        x = terminalWidth - 1;
+
+        line = backBuffer.getLine(y).getText();
+      }
+    }
+
+    x++;
+    if (x > terminalWidth) {
+      y++;
+      x = 0;
+    }
+
+    return new Point(x, y);
+  }
+
+  public static Point getNextSeparator(Point charCoords, BackBuffer backBuffer) {
+    int x = charCoords.x;
+    int y = charCoords.y;
+    int terminalWidth = backBuffer.getWidth();
+    int terminalHeight = backBuffer.getHeight();
+
+    String line = backBuffer.getLine(y).getText();
+    while (x < line.length() && !SEPARATORS.contains(line.charAt(x))) {
+      x++;
+      if (x > terminalWidth) {
+        if (y >= terminalHeight - 1) {
+          return new Point(terminalWidth - 1, terminalHeight - 1);
+        }
+        y++;
+        x = 0;
+        
+        line = backBuffer.getLine(y).getText();
+      }
+    }
+
+    x--;
+    if (x < 0) {
+      y--;
+      x = terminalWidth - 1;
+    }
+
+    return new Point(x, y);
+  }
+
 }

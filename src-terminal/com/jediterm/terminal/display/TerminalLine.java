@@ -20,7 +20,6 @@ public class TerminalLine {
     return new TerminalLine(TextEntry.EMPTY);
   }
 
-
   public String getText() {
     final StringBuilder sb = new StringBuilder();
 
@@ -134,6 +133,37 @@ public class TerminalLine {
     myTextEntries = newEntries;
   }
 
+  public void insertBlankCharacters(int x, int count, int maxLen) {
+    int len = myTextEntries.length();
+    len = Math.min(len + count, maxLen);
+
+    char[] buf = new char[len];
+    TextStyle[] styles = new TextStyle[len];
+
+    int p = 0;
+    for (TextEntry entry : myTextEntries) {
+      for (int i = 0; i < entry.getLength() && p < len; i++) {
+        if (p == x) {
+          for(int j = 0; j < count; j++) {
+            buf[p] = ' ';
+            styles[p] = TextStyle.EMPTY;
+            p++;
+          }
+        }
+        if (p < len) {
+          buf[p] = entry.getText().charAt(i);
+          styles[p] = entry.getStyle();
+          p++;
+        }
+      }
+      if (p >= len) {
+        break;
+      }
+    }
+
+    myTextEntries = collectFromBuffer(buf, styles);
+  }
+
   public void clearArea(int leftX, int rightX, @NotNull TextStyle style) {
     writeCharacters(leftX, style, new CharBuffer(' ', rightX - leftX));
   }
@@ -161,7 +191,7 @@ public class TerminalLine {
       return myText.getLength();
     }
   }
-  
+
   private static class TextEntries implements Iterable<TextEntry> {
     private Deque<TextEntry> myTextEntries = new ArrayDeque<TextEntry>();
 

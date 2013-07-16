@@ -244,7 +244,7 @@ public class BackBuffer implements StyledTextConsumer {
       System.arraycopy(myStyleBuf, from, myStyleBuf, to, remain);
       Arrays.fill(myStyleBuf, from, to, TextStyle.EMPTY);
 
-      myTextBuffer.insertBlankCharacters(x, y, count);
+      myTextBuffer.insertBlankCharacters(x, y, count, myWidth);
 
       myDamage.set(from, (y + 1) * myWidth, true);
     }

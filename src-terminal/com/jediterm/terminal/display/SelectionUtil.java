@@ -82,26 +82,27 @@ public class SelectionUtil {
     int x = charCoords.x;
     int y = charCoords.y;
     int terminalWidth = backBuffer.getWidth();
-   
-    while (!SEPARATORS.contains(backBuffer.getCharAt(x, y))) {
+
+    String line = backBuffer.getLine(y).getText();
+    while (x < line.length() && !SEPARATORS.contains(line.charAt(x))) {
       x--;
-      if(x < 0) {
+      if (x < 0) {
+        if (y <= - backBuffer.getScrollBufferLinesCount()) {
+          return new Point(0, y);
+        }
         y--;
         x = terminalWidth - 1;
-        
-        // TODO : ScrollBuffer
-        if(y < 0) {
-          return new Point(0, 0);
-        }
+
+        line = backBuffer.getLine(y).getText();
       }
     }
-    
+
     x++;
-    if(x > terminalWidth) {
+    if (x > terminalWidth) {
       y++;
       x = 0;
     }
-    
+
     return new Point(x, y);
   }
 
@@ -110,25 +111,27 @@ public class SelectionUtil {
     int y = charCoords.y;
     int terminalWidth = backBuffer.getWidth();
     int terminalHeight = backBuffer.getHeight();
-   
-    while (!SEPARATORS.contains(backBuffer.getCharAt(x, y))) {
+
+    String line = backBuffer.getLine(y).getText();
+    while (x < line.length() && !SEPARATORS.contains(line.charAt(x))) {
       x++;
-      if(x > terminalWidth) {
+      if (x > terminalWidth) {
+        if (y >= terminalHeight - 1) {
+          return new Point(terminalWidth - 1, terminalHeight - 1);
+        }
         y++;
         x = 0;
         
-        if(y > terminalHeight) {
-          return new Point(terminalWidth - 1, terminalHeight - 1);
-        }
+        line = backBuffer.getLine(y).getText();
       }
     }
-    
+
     x--;
-    if(x < 0) {
+    if (x < 0) {
       y--;
       x = terminalWidth - 1;
     }
-    
+
     return new Point(x, y);
   }
 

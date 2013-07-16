@@ -363,6 +363,23 @@ public class BackBuffer implements StyledTextConsumer {
     }
   }
 
+  public TerminalLine getLine(int index) {
+    if (index >= 0) {
+      if (index >= getHeight()) {
+        LOG.error("Attempt to get line out of bounds: " + index + " >= " + getHeight());
+        return TerminalLine.createEmpty();
+      }
+      return myTextBuffer.getLine(index);
+    }
+    else {
+      if (index < -myScrollBuffer.getLineCount()) {
+        LOG.error("Attempt to get line out of bounds: " + index + " < " + -myScrollBuffer.getLineCount());
+        return TerminalLine.createEmpty();
+      }
+      return myScrollBuffer.getLine(getScrollBufferLinesCount() + index);
+    }
+  }
+
   public String getLines() {
     myLock.lock();
     try {
@@ -578,6 +595,10 @@ public class BackBuffer implements StyledTextConsumer {
     return myHeight;
   }
 
+  public int getScrollBufferLinesCount() {
+    return myScrollBuffer.getLineCount();
+  }
+
   public int getTextBufferLinesCount() {
     return myTextBuffer.getLineCount();
   }
@@ -587,7 +608,7 @@ public class BackBuffer implements StyledTextConsumer {
   }
 
   public boolean checkTextBufferIsValid(int row) {
-    return myTextBuffer.getLineText(row).contains(getLineTrimTrailing(row));//in a raw back buffer is always a prefix of text buffer
+    return myTextBuffer.getLineText(row).startsWith(getLineTrimTrailing(row));//in a row back buffer is always a prefix of text buffer
   }
 
   public char getCharAt(int x, int y) {

@@ -134,6 +134,16 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     addMouseListener(new MouseAdapter() {
       @Override
+      public void mousePressed(final MouseEvent e) {
+        if (e.getButton() == MouseEvent.BUTTON1) {
+          if (e.getClickCount() == 1) {
+            mySelection = null;
+            repaint();
+          }
+        }
+      }
+
+      @Override
       public void mouseReleased(final MouseEvent e) {
         requestFocusInWindow();
         repaint();
@@ -142,12 +152,29 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       @Override
       public void mouseClicked(final MouseEvent e) {
         requestFocusInWindow();
-        if (e.getButton() == MouseEvent.BUTTON3) {
+        if (e.getButton() == MouseEvent.BUTTON1) {
+          int count = e.getClickCount();
+          if (count == 1) {
+            // do nothing
+          }
+          else if (count == 2) {
+            // select word
+            final Point charCoords = panelToCharCoords(e.getPoint());
+            Point start = SelectionUtil.getPreviousSeparator(charCoords, myBackBuffer);
+            Point stop = SelectionUtil.getNextSeparator(charCoords, myBackBuffer);
+            mySelection = new TerminalSelection(start);
+            mySelection.updateEnd(stop, myTermSize.width);
+          }
+          else if (count == 3) {
+            // select line
+            final Point charCoords = panelToCharCoords(e.getPoint());
+            mySelection = new TerminalSelection(new Point(0, charCoords.y));
+            mySelection.updateEnd(new Point(myTermSize.width, charCoords.y), myTermSize.width);
+          }
+        }
+        else if (e.getButton() == MouseEvent.BUTTON3) {
           JPopupMenu popup = createPopupMenu(mySelection, getClipboardString());
           popup.show(e.getComponent(), e.getX(), e.getY());
-        }
-        else {
-          mySelection = null;
         }
         repaint();
       }
@@ -413,7 +440,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     e.consume();
   }
 
-
   public int getPixelWidth() {
     return myCharSize.width * myTermSize.width;
   }
@@ -497,10 +523,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             g.setColor(current.getBackground());
           }
 
-
           g.fillRect(myCursorCoordinates.x * myCharSize.width * SCALE, y * myCharSize.height * SCALE,
                      myCharSize.width * SCALE, myCharSize.height * SCALE);
-
 
           myCursorIsShown = isCursorShown;
           myLastCursorChange = System.currentTimeMillis();
@@ -646,7 +670,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     copyAndClearAreaOnScroll(dy, dyPix, myGfx);
     copyAndClearAreaOnScroll(dy, dyPix, myGfxForSelection);
-
 
     if (dy < 0) {
       // Scrolling up; Copied down

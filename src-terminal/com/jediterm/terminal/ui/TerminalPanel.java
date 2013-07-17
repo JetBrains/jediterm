@@ -1,5 +1,6 @@
 package com.jediterm.terminal.ui;
 
+import com.google.common.base.Ascii;
 import com.jediterm.terminal.*;
 import com.jediterm.terminal.display.*;
 import com.jediterm.terminal.emulator.mouse.TerminalMouseListener;
@@ -988,6 +989,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         }
         if (isNewSessionKeyStroke(e)) {
           handleNewSession(e);
+          return;
         }
 
         final int keycode = e.getKeyCode();
@@ -995,6 +997,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         final byte[] code = myTerminalStarter.getCode(keycode);
         if (code != null) {
           myTerminalStarter.sendBytes(code);
+        }
+        // CTRL + Space is not handled in KeyEvent; handle it manually
+        else if(e.getKeyChar() == ' ' && (e.getModifiers() & KeyEvent.CTRL_MASK) != 0) {
+          myTerminalStarter.sendBytes(new byte[]{Ascii.NUL});
         }
         else {
           final char keychar = e.getKeyChar();
@@ -1011,7 +1017,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
 
     private void handleNewSession(KeyEvent e) {
-      mySettingsProvider.getNewSessionAction().actionPerformed(new ActionEvent(e.getSource(), e.getID(), "Paste", e.getModifiers()));
+      mySettingsProvider.getNewSessionAction().actionPerformed(new ActionEvent(e.getSource(), e.getID(), "New Session", e.getModifiers()));
     }
 
     public void keyTyped(final KeyEvent e) {

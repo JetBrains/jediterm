@@ -541,13 +541,13 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     }
     int c = args.getArg(0, 0);
     if (c == 5) {
-      myOutputStream.sendString(Ascii.ESC + "[0n");
+      myOutputStream.sendString("\033[0n");
       return true;
     }
     else if (c == 6) {
       int row = myTerminal.getCursorY();
       int column = myTerminal.getCursorX();
-      myOutputStream.sendString(Ascii.ESC + "[" + row + ";" + column + "R");
+      myOutputStream.sendString("\033[" + row + ";" + column + "R");
       return true;
     }
     else {

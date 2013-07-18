@@ -994,7 +994,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
         final int keycode = e.getKeyCode();
         final char keychar = e.getKeyChar();
-        
+
         // numLock does not change the code sent by keypad VK_DELETE
         // although it send the char '.'
         if (keycode == KeyEvent.VK_DELETE && keychar == '.') {
@@ -1006,17 +1006,15 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
           myTerminalStarter.sendBytes(new byte[]{Ascii.NUL});
           return;
         }
-        
+
         final byte[] code = myTerminalStarter.getCode(keycode);
         if (code != null) {
           myTerminalStarter.sendBytes(code);
         }
-        else {
-          if ((keychar & 0xff00) == 0) {
-            final byte[] obuffer = new byte[1];
-            obuffer[0] = (byte)keychar;
-            myTerminalStarter.sendBytes(obuffer);
-          }
+        else if ((keychar & 0xff00) == 0) {
+          final byte[] obuffer = new byte[1];
+          obuffer[0] = (byte)keychar;
+          myTerminalStarter.sendBytes(obuffer);
         }
       }
       catch (final Exception ex) {

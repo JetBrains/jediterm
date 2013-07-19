@@ -19,7 +19,8 @@ public enum TerminalMode {
   WideColumn {
     @Override
     public void setEnabled(Terminal terminal, boolean enabled) {
-      Dimension d = enabled ? new Dimension(132, 24) : new Dimension(80, 24);
+      int h = terminal.getTerminalHeight();
+      Dimension d = enabled ? new Dimension(132, h) : new Dimension(80, h);
 
       terminal.resize(d, RequestOrigin.Remote);
       terminal.clearScreen();
@@ -45,7 +46,12 @@ public enum TerminalMode {
     public void setEnabled(Terminal terminal, boolean enabled) {
     }
   },
-  AutoWrap,
+  AutoWrap {
+    @Override
+    public void setEnabled(Terminal terminal, boolean enabled) {
+      //we do nothing just switching the mode
+    }
+  },
   AutoRepeatKeys,
   Interlace,
   Keypad {

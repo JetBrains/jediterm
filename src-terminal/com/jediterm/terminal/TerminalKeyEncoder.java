@@ -69,13 +69,13 @@ public class TerminalKeyEncoder {
   public void keypadApplicationSequences() {
     //0
     //1
-    putCode(VK_KP_DOWN, ESC, 'O', 'r'); //2
+    putCode(VK_KP_DOWN, ESC, '[', 'B'); //2
     //3
-    putCode(VK_KP_LEFT, ESC, 'O', 't'); //4
+    putCode(VK_KP_LEFT, ESC, '[', 'D'); //4
     //5
-    putCode(VK_KP_RIGHT, ESC, 'O', 'v'); //6
+    putCode(VK_KP_RIGHT, ESC, '[', 'C'); //6
     //7
-    putCode(VK_KP_UP, ESC, 'O', 'x'); //8
+    putCode(VK_KP_UP, ESC, '[', 'A'); //8
     //9
   }
 

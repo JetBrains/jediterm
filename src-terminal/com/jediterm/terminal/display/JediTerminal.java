@@ -94,7 +94,9 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
   private void wrapLines() {
     if (myCursorX >= myTerminalWidth) {
       myCursorX = 0;
-      myCursorY += 1;
+      if (isAutoWrap()) {
+         myCursorY += 1;
+      }
     }
   }
 
@@ -711,7 +713,8 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
 
   private void initModes() {
     myModes.clear();
-    myModes.add(TerminalMode.AutoNewLine);
+    setModeEnabled(TerminalMode.AutoNewLine, true);
+    setModeEnabled(TerminalMode.AutoWrap, true);
   }
 
   public boolean isAutoNewLine() {

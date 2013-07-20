@@ -12,9 +12,9 @@ public class VtEmulatorTest extends EmulatorTestAbstract {
    * Test of screen features
    */
   
-  //public void testTest2_Screen_1() throws IOException {
-  //  doVtTest(); TODO: WRAP AROUND mode setting
-  //}
+  public void testTest2_Screen_1() throws IOException {
+    doVtTest();
+  }
 
   public void testTest2_Screen_2() throws IOException {
     doVtTest();

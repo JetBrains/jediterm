@@ -1,15 +1,19 @@
 package com.jediterm.pty;
 
+import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.jediterm.terminal.LoggingTtyConnector;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.ui.AbstractTerminalFrame;
 import com.jediterm.terminal.ui.UIUtil;
+import com.pty4j.Pty;
+import com.pty4j.PtyProcess;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
@@ -25,7 +29,23 @@ public class PtyMain extends AbstractTerminalFrame {
     Map<String, String> envs = Maps.newHashMap(System.getenv());
     envs.put("TERM", "xterm");
     String[] command = UIUtil.isMac ? new String[]{"/bin/bash", "--login"} : new String[]{"/bin/bash"};
-    return new LoggingPtyProcessTtyConnector(new PtyProcess(command[0], command, envs), Charset.forName("UTF-8"));
+    try {
+      PtyProcess process = Pty.exec(command, toStringArray(envs), new File("/Users/traff"));
+
+      return new PtyProcessTtyConnector(process, Charset.forName("UTF-8"));
+    } catch (Exception e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  private static String[] toStringArray(Map<String, String> environment) {
+    List<String> list = Lists.transform(Lists.newArrayList(environment.entrySet()), new Function<Map.Entry<String, String>, String>() {
+      @Override
+      public String apply(Map.Entry<String, String> entry) {
+        return entry.getKey() + "=" + entry.getValue();
+      }
+    });
+    return list.toArray(new String[list.size()]);
   }
 
   public static void main(final String[] arg) {

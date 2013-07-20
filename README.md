@@ -19,7 +19,7 @@ Features
 --------
 
 * Ssh using JSch from jcraft.org 
-* Local terminal using JPty
+* Local terminal using Pty4J
 * Xterm emulation
 * Xterm 256 colours
 * Scrolling
@@ -34,7 +34,7 @@ Links
  * Terminal protocol description: http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
  * Terminal Character Set Terminology and Mechanics: http://www.columbia.edu/kermit/k95manual/iso2022.html
  * VT420 Programmer Reference Manual: http://manx.classiccmp.org/collections/mds-199909/cd3/term/vt420rm2.pdf
- * JPty library: https://github.com/jawi/JPty
+ * Pty4J library: https://github.com/traff/pty4j
  * JSch library: http://www.jcraft.com/jsch
  * UTF8 Demo: http://www.cl.cam.ac.uk/~mgk25/ucs/examples/UTF-8-demo.txt
  * Control sequences visualization: http://www.gnu.org/software/teseq/

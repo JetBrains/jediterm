@@ -406,4 +406,28 @@ public class BackBufferTest extends TestCase {
     assertEquals("1    ", backBuffer.getTextBufferLines());
 
   }
+
+  public void testInsertBlankCharacters() {
+    StyleState state = new StyleState();
+
+    BackBuffer backBuffer = new BackBuffer(10, 2, state);
+
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+
+    terminal.writeString("11111");
+
+    terminal.cursorPosition(2, 1);
+    terminal.insertBlankCharacters(2);
+
+    assertEquals("1  1111   \n" +
+        "          \n", backBuffer.getLines());
+    assertEquals("1  1111", backBuffer.getTextBufferLines());
+
+    terminal.cursorPosition(6, 1);
+    terminal.insertBlankCharacters(4);
+
+    assertEquals("1  11    1\n" +
+        "          \n", backBuffer.getLines());
+    assertEquals("1  11    1", backBuffer.getTextBufferLines());
+  }
 }

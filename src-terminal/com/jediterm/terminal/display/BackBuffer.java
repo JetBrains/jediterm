@@ -222,6 +222,34 @@ public class BackBuffer implements StyledTextConsumer {
     }
   }
 
+  public void insertBlankCharacters(final int x, final int y, final int count) {
+    if (y > myHeight - 1 || y < 0) {
+      LOG.error("attempt to insert blank chars in line " + y + "\n" +
+                "args were x:" + x + " count:" + count);
+    }
+    else if (count < 0) {
+      LOG.error("Attempt to insert negative blank chars number: count:" + count);
+    }
+    else if (count == 0) { //nothing to do
+      return;
+    }
+    else {
+      int from = y * myWidth + x;
+      int to = from + count;
+      int remain = myWidth - x - count;
+      LOG.debug("About to insert " + count + " blank chars on line " + y + ", starting from " + x +
+                " (from : " + from + " to : " + to + " remain : " + remain + ")");
+      System.arraycopy(myBuf, from, myBuf, to, remain);
+      Arrays.fill(myBuf, from, to, EMPTY_CHAR);
+      System.arraycopy(myStyleBuf, from, myStyleBuf, to, remain);
+      Arrays.fill(myStyleBuf, from, to, TextStyle.EMPTY);
+
+      myTextBuffer.insertBlankCharacters(x, y, count, myWidth);
+
+      myDamage.set(from, (y + 1) * myWidth, true);
+    }
+  }
+
   public void writeBytes(final int x, final int y, final char[] bytes, final int start, final int len) {
     final int adjY = y - 1;
     if (adjY >= myHeight || adjY < 0) {

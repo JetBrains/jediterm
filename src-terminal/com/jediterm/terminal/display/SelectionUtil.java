@@ -120,7 +120,7 @@ public class SelectionUtil {
   }
 
   public static Point getNextSeparator(Point charCoords, BackBuffer backBuffer) {
-    return getPreviousSeparator(charCoords, backBuffer, SEPARATORS);
+    return getNextSeparator(charCoords, backBuffer, SEPARATORS);
   }
 
   public static Point getNextSeparator(Point charCoords, BackBuffer backBuffer, @NotNull List<Character> separators) {

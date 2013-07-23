@@ -83,6 +83,10 @@ public class SelectionUtil {
     int y = charCoords.y;
     int terminalWidth = backBuffer.getWidth();
 
+    if (SEPARATORS.contains(backBuffer.getCharAt(x, y))) {
+      return new Point(x, y);
+    }
+
     String line = backBuffer.getLine(y).getText();
     while (x < line.length() && !SEPARATORS.contains(line.charAt(x))) {
       x--;
@@ -98,7 +102,7 @@ public class SelectionUtil {
     }
 
     x++;
-    if (x > terminalWidth) {
+    if (x >= terminalWidth) {
       y++;
       x = 0;
     }
@@ -112,10 +116,14 @@ public class SelectionUtil {
     int terminalWidth = backBuffer.getWidth();
     int terminalHeight = backBuffer.getHeight();
 
+    if (SEPARATORS.contains(backBuffer.getCharAt(x, y))) {
+      return new Point(x, y);
+    }
+
     String line = backBuffer.getLine(y).getText();
     while (x < line.length() && !SEPARATORS.contains(line.charAt(x))) {
       x++;
-      if (x > terminalWidth) {
+      if (x >= terminalWidth) {
         if (y >= terminalHeight - 1) {
           return new Point(terminalWidth - 1, terminalHeight - 1);
         }

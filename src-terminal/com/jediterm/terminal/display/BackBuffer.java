@@ -400,7 +400,7 @@ public class BackBuffer implements StyledTextConsumer {
       return myTextBuffer.getLine(index);
     }
     else {
-      if (index < -myScrollBuffer.getLineCount()) {
+      if (index < - myScrollBuffer.getLineCount()) {
         LOG.error("Attempt to get line out of bounds: " + index + " < " + -myScrollBuffer.getLineCount());
         return TerminalLine.createEmpty();
       }
@@ -641,6 +641,11 @@ public class BackBuffer implements StyledTextConsumer {
 
   public char getCharAt(int x, int y) {
     return myBuf[x + myWidth * y];
+  }
+
+  public char getBuffersCharAt(int x, int y) {
+    String lineText = getLine(y).getText();
+    return x < lineText.length() ? lineText.charAt(x) : EMPTY_CHAR;
   }
 
   public TextStyle getStyleAt(int x, int y) {

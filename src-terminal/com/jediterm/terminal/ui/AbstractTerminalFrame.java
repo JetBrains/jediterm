@@ -107,6 +107,11 @@ public abstract class AbstractTerminalFrame {
       public void onSessionChanged(final TerminalSession currentSession) {
         frame.setTitle(currentSession.getSessionName());
       }
+
+      @Override
+      public void onTitleChanged(String title) {
+        frame.setTitle(myTerminal.getCurrentSession().getSessionName());
+      }
     });
 
     openSession();

@@ -19,7 +19,6 @@ public interface TerminalSession {
 
   void redraw();
 
-
   TtyConnector getTtyConnector();
 
   String getSessionName();

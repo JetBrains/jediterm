@@ -39,6 +39,8 @@ public class SystemCommandSequence {
           break;
         }
         isNumber = true;
+        number = 0;
+        string = new StringBuilder();
       }
       else if (isNumber) {
         if ('0' <= b && b <= '9') {

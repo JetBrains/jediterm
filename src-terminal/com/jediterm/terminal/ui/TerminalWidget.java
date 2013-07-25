@@ -1,7 +1,5 @@
 package com.jediterm.terminal.ui;
 
-import com.jediterm.terminal.TtyConnector;
-
 import javax.swing.*;
 import java.awt.*;
 

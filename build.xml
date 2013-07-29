@@ -8,7 +8,7 @@
   <property name="classes" value="classes"/>
 
   <path id="common-jars">
-    <fileset dir="lib">
+    <fileset dir="lib" id="common-jars-fileset">
       <include name="guava*.jar"/>
       <include name="log4*.jar"/>
       <include name="annotations.jar"/>
@@ -23,8 +23,9 @@
   </path>
 
   <path id="pty-jars">
-    <fileset dir="lib">
-      <include name="JPty*.jar"/>
+    <fileset dir="lib" id="pty-jars-fileset">
+      <include name="jna*.jar"/>
+      <include name="pty4j*.jar"/>
       <include name="jsch*.jar"/>
       <include name="purejavacomm*.jar"/>
     </fileset>
@@ -133,4 +134,34 @@
     </junit>
 
   </target>
+
+
+    <target name="jediterm-pty-package" depends="jediterm-pty.jar">
+
+        <property name="destination.jar.name" value="jediterm-${version}"/>
+        <property name="destination.dir" value="build"/>
+        <property name="application.main-class" value="com.jediterm.pty.PtyMain"/>
+        <property name="destination.jar" value="${destination.dir}/${destination.jar.name}.jar"/>
+
+        <echo message="Packaging jediterm-pty into a single JAR at ${destination.jar}"/>
+
+        <property name="temp.jar" value="${destination.dir}/jediterm_temp.jar"/>
+        
+        <jar destfile="${temp.jar}" filesetmanifest="skip">
+            <!-- Packages the following jars -->
+            <zipgroupfileset dir="build" includes="jediterm-pty-${version}.jar"/>
+            <zipgroupfileset refid="common-jars-fileset"/>
+            <zipgroupfileset refid="pty-jars-fileset"/>
+            <manifest>
+                <attribute name="Main-Class" value="${application.main-class}"/>
+            </manifest>
+        </jar>
+
+        <zip destfile="${destination.jar}">
+            <zipfileset src="${temp.jar}"
+                        excludes="META-INF/*.SF, META-INF/*.DSA, META-INF/*.RSA"/>
+        </zip>
+
+        <delete file="${temp.jar}"/>
+    </target>
 </project>

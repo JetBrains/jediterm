@@ -202,7 +202,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     repaint();
   }
 
-  class WeakRedrawTimer implements ActionListener {
+  static class WeakRedrawTimer implements ActionListener {
 
     private WeakReference<TerminalPanel> ref;
 

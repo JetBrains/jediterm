@@ -102,8 +102,6 @@ public class BackBuffer implements StyledTextConsumer {
 
     allocateBuffers();
 
-    Arrays.fill(myBuf, EMPTY_CHAR);
-
     final int copyWidth = Math.min(oldWidth, myWidth);
     final int copyHeight = Math.min(oldHeight, myHeight);
 

@@ -42,7 +42,9 @@ public class TerminalStarter implements TerminalOutputStream {
   }
 
   private void execute(Runnable runnable) {
-    myEmulatorExecutor.execute(runnable);
+    if (!myEmulatorExecutor.isShutdown()) {
+      myEmulatorExecutor.execute(runnable);
+    }
   }
 
   public void start() {
@@ -114,6 +116,9 @@ public class TerminalStarter implements TerminalOutputStream {
         }
         catch (Exception e) {
           LOG.error("Error closing terminal", e);
+        }
+        finally {
+          myEmulatorExecutor.shutdown();
         }
       }
     });

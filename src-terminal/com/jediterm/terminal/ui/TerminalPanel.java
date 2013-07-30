@@ -966,6 +966,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   @Override
   public void setWindowTitle(String name) {
     myWindowTitle = name;
+    if (myTerminalPanelListener != null) {
+      myTerminalPanelListener.onTitleChanged(myWindowTitle);
+    }
   }
 
   public void setSelectionColor(TextStyle selectionColor) {

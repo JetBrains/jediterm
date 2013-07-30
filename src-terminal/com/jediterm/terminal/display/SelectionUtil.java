@@ -92,7 +92,7 @@ public class SelectionUtil {
     int y = charCoords.y;
     int terminalWidth = backBuffer.getWidth();
 
-    if (separators.contains(backBuffer.getCharAt(x, y))) {
+    if (separators.contains(backBuffer.getBuffersCharAt(x, y))) {
       return new Point(x, y);
     }
 
@@ -129,7 +129,7 @@ public class SelectionUtil {
     int terminalWidth = backBuffer.getWidth();
     int terminalHeight = backBuffer.getHeight();
 
-    if (separators.contains(backBuffer.getCharAt(x, y))) {
+    if (separators.contains(backBuffer.getBuffersCharAt(x, y))) {
       return new Point(x, y);
     }
 

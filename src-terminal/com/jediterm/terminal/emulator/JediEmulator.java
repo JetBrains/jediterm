@@ -8,7 +8,6 @@ import org.apache.log4j.Logger;
 
 import java.awt.*;
 import java.io.IOException;
-import java.util.Arrays;
 
 /**
  * The main terminal emulator class.

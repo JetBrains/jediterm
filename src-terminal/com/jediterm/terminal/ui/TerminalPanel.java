@@ -214,7 +214,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   private Point panelToCharCoords(final Point p) {
-    return new Point(p.x / myCharSize.width, p.y / myCharSize.height + myClientScrollOrigin);
+    int x = Math.min(p.x / myCharSize.width, getColumnCount() - 1);
+    int y = Math.min(p.y / myCharSize.height, getRowCount() - 1)  + myClientScrollOrigin;
+    return new Point(x, y);
   }
 
   void setUpClipboard() {

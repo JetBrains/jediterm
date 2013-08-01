@@ -20,11 +20,16 @@ public class SelectionUtil {
     SEPARATORS.add('\u00A0'); // NO-BREAK SPACE
     SEPARATORS.add('\t');
     SEPARATORS.add('\'');
+    SEPARATORS.add('"');
     SEPARATORS.add('$');
     SEPARATORS.add('(');
     SEPARATORS.add(')');
     SEPARATORS.add('[');
     SEPARATORS.add(']');
+    SEPARATORS.add('{');
+    SEPARATORS.add('}');
+    SEPARATORS.add('<');
+    SEPARATORS.add('>');
   }
 
   public static List<Character> getDefaultSeparators() {

@@ -16,6 +16,7 @@ import java.awt.datatransfer.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 
 public class TerminalPanel extends JComponent implements TerminalDisplay, ClipboardOwner, StyledTextConsumer {
   private static final Logger LOG = Logger.getLogger(TerminalPanel.class);
@@ -195,14 +196,33 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       }
     });
 
-    Timer redrawTimer = new Timer((int)(1000 / FPS), new ActionListener() {
-      public void actionPerformed(ActionEvent e) {
-        redraw();
-      }
-    });
+    Timer redrawTimer = new Timer((int)(1000 / FPS), new WeakRedrawTimer(this));
     setDoubleBuffered(true);
     redrawTimer.start();
     repaint();
+  }
+
+  static class WeakRedrawTimer implements ActionListener {
+
+    private WeakReference<TerminalPanel> ref;
+
+    public WeakRedrawTimer(TerminalPanel terminalPanel) {
+      this.ref = new WeakReference<TerminalPanel>(terminalPanel);
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+      TerminalPanel terminalPanel = (TerminalPanel) ref.get();
+      if (terminalPanel != null) {
+        terminalPanel.redraw();
+      }
+      else { // terminalPanel was garbage collected
+        Timer timer = (Timer) e.getSource();
+        timer.removeActionListener(this);
+        timer.stop();
+      }
+    }
+
   }
 
   private void moveScrollBar(int k) {

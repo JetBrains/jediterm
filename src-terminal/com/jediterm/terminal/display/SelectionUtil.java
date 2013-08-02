@@ -2,6 +2,7 @@ package com.jediterm.terminal.display;
 
 import com.jediterm.terminal.SelectionTextAppender;
 import org.apache.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -19,11 +20,20 @@ public class SelectionUtil {
     SEPARATORS.add('\u00A0'); // NO-BREAK SPACE
     SEPARATORS.add('\t');
     SEPARATORS.add('\'');
+    SEPARATORS.add('"');
     SEPARATORS.add('$');
     SEPARATORS.add('(');
     SEPARATORS.add(')');
     SEPARATORS.add('[');
     SEPARATORS.add(']');
+    SEPARATORS.add('{');
+    SEPARATORS.add('}');
+    SEPARATORS.add('<');
+    SEPARATORS.add('>');
+  }
+
+  public static List<Character> getDefaultSeparators() {
+    return new ArrayList<Character>(SEPARATORS);
   }
 
   public static String getSelectionText(final Point selectionStart,
@@ -79,16 +89,20 @@ public class SelectionUtil {
   }
 
   public static Point getPreviousSeparator(Point charCoords, BackBuffer backBuffer) {
+    return getPreviousSeparator(charCoords, backBuffer, SEPARATORS);
+  }
+
+  public static Point getPreviousSeparator(Point charCoords, BackBuffer backBuffer, @NotNull List<Character> separators) {
     int x = charCoords.x;
     int y = charCoords.y;
     int terminalWidth = backBuffer.getWidth();
 
-    if (SEPARATORS.contains(backBuffer.getBuffersCharAt(x, y))) {
+    if (separators.contains(backBuffer.getBuffersCharAt(x, y))) {
       return new Point(x, y);
     }
 
     String line = backBuffer.getLine(y).getText();
-    while (x < line.length() && !SEPARATORS.contains(line.charAt(x))) {
+    while (x < line.length() && !separators.contains(line.charAt(x))) {
       x--;
       if (x < 0) {
         if (y <= - backBuffer.getScrollBufferLinesCount()) {
@@ -111,17 +125,21 @@ public class SelectionUtil {
   }
 
   public static Point getNextSeparator(Point charCoords, BackBuffer backBuffer) {
+    return getNextSeparator(charCoords, backBuffer, SEPARATORS);
+  }
+
+  public static Point getNextSeparator(Point charCoords, BackBuffer backBuffer, @NotNull List<Character> separators) {
     int x = charCoords.x;
     int y = charCoords.y;
     int terminalWidth = backBuffer.getWidth();
     int terminalHeight = backBuffer.getHeight();
 
-    if (SEPARATORS.contains(backBuffer.getBuffersCharAt(x, y))) {
+    if (separators.contains(backBuffer.getBuffersCharAt(x, y))) {
       return new Point(x, y);
     }
 
     String line = backBuffer.getLine(y).getText();
-    while (x < line.length() && !SEPARATORS.contains(line.charAt(x))) {
+    while (x < line.length() && !separators.contains(line.charAt(x))) {
       x++;
       if (x >= terminalWidth) {
         if (y >= terminalHeight - 1) {

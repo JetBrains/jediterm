@@ -233,8 +233,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     return Font.decode("Monospaced-14");
   }
 
-  private Point panelToCharCoords(final Point p) {
+  protected Point panelToCharCoords(final Point p) {
     return new Point(p.x / myCharSize.width, p.y / myCharSize.height + myClientScrollOrigin);
+  }
+
+  protected Point charToPanelCoords(final Point p) {
+    return new Point(p.x * myCharSize.width, (p.y - myClientScrollOrigin) * myCharSize.height);
   }
 
   void setUpClipboard() {

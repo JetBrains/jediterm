@@ -7,7 +7,6 @@ import com.jediterm.terminal.LoggingTtyConnector;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.ui.AbstractTerminalFrame;
 import com.jediterm.terminal.ui.UIUtil;
-import com.pty4j.Pty;
 import com.pty4j.PtyProcess;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
@@ -26,13 +25,18 @@ import java.util.Map;
 public class PtyMain extends AbstractTerminalFrame {
   @Override
   public TtyConnector createTtyConnector() {
-    Map<String, String> envs = Maps.newHashMap(System.getenv());
-    envs.put("TERM", "xterm");
-    String[] command = UIUtil.isMac ? new String[]{"/bin/bash", "--login"} : new String[]{"/bin/bash"};
     try {
-      PtyProcess process = Pty.exec(command, toStringArray(envs), new File("/Users/traff"));
+      Map<String, String> envs = Maps.newHashMap(System.getenv());
+      envs.put("TERM", "xterm");
+      String[] command = new String[]{"/bin/bash", "--login"};
 
-      return new PtyProcessTtyConnector(process, Charset.forName("UTF-8"));
+      if (UIUtil.isWindows) {
+        command = new String[]{"cmd.exe"};
+      }
+
+      PtyProcess process = PtyProcess.exec(command, toStringArray(envs), null);
+
+      return new LoggingPtyProcessTtyConnector(process, Charset.forName("UTF-8"));
     } catch (Exception e) {
       throw new IllegalStateException(e);
     }

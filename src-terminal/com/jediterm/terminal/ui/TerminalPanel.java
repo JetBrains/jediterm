@@ -230,6 +230,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   protected Font createFont() {
+    if (UIUtil.isWindows) {
+      return Font.decode("Consolas-14");
+    }
     return Font.decode("Monospaced-14");
   }
 
@@ -501,7 +504,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     });
   }
 
-  protected void initKeyHandler() {
+  public void initKeyHandler() {
     setKeyListener(new TerminalKeyHandler(myTerminalStarter, mySettingsProvider));
   }
 

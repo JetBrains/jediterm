@@ -19,12 +19,14 @@ public abstract class ProcessTtyConnector implements TtyConnector {
   protected Charset myCharset;
   private Dimension myPendingTermSize;
   private Dimension myPendingPixelSize;
+  private Process myProcess;
 
   public ProcessTtyConnector(@NotNull Process process, Charset charset) {
     myOutputStream = process.getOutputStream();
     myCharset = charset;
     myInputStream = process.getInputStream();
     myReader = new InputStreamReader(myInputStream, charset);
+    myProcess = process;
   }
 
   @Override
@@ -42,7 +44,7 @@ public abstract class ProcessTtyConnector implements TtyConnector {
 
   @Override
   public String getName() {
-    return "ConnectRunnable";
+    return "ConnectRunnable"; //TODO: 
   }
 
   public int read(char[] buf, int offset, int length) throws IOException {
@@ -83,5 +85,10 @@ public abstract class ProcessTtyConnector implements TtyConnector {
   @Override
   public boolean init(Questioner q) {
     return isConnected();
+  }
+
+  @Override
+  public void close() {
+    myProcess.destroy();
   }
 }

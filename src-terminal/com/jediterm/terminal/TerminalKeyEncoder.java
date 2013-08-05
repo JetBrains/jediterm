@@ -25,7 +25,7 @@ public class TerminalKeyEncoder {
     putCode(VK_F2, ESC, 'O', 'Q');
     putCode(VK_F3, ESC, 'O', 'R');
     putCode(VK_F4, ESC, 'O', 'S');
-    putCode(VK_F5, ESC, 'O', 't');
+    putCode(VK_F5, ESC, '[', '1', '5', '~');
     putCode(VK_F6, ESC, '[', '1', '7', '~');
     putCode(VK_F7, ESC, '[', '1', '8', '~');
     putCode(VK_F8, ESC, '[', '1', '9', '~');

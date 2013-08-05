@@ -80,8 +80,8 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     return new TerminalPanel(settingsProvider, backBuffer, styleState);
   }
 
-  protected PreConnectHandler createPreConnectHandler(JediTerminal writer) {
-    return new PreConnectHandler(writer);
+  protected PreConnectHandler createPreConnectHandler(JediTerminal terminal) {
+    return new PreConnectHandler(terminal);
   }
 
   public TerminalPanel getTerminalPanel() {
@@ -183,9 +183,9 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
         Thread.currentThread().setName(myTtyConnector.getName());
         if (myTtyConnector.init(myPreConnectHandler)) {
           Thread.currentThread().setName(myTtyConnector.getName());
+          myTerminalPanel.initKeyHandler();
           SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-              myTerminalPanel.initKeyHandler();
               myTerminalPanel.requestFocusInWindow();
             }
           });

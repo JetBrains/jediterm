@@ -12,8 +12,8 @@ public class PreConnectHandler implements Questioner, KeyListener {
   private StringBuffer myAnswer;
   private boolean myVisible;
 
-  public PreConnectHandler(Terminal myTerminal) {
-    this.myTerminal = myTerminal;
+  public PreConnectHandler(Terminal terminal) {
+    this.myTerminal = terminal;
     this.myVisible = true;
   }
 

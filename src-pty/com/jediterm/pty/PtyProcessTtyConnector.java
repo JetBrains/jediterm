@@ -4,7 +4,6 @@ import com.jediterm.terminal.ProcessTtyConnector;
 import com.pty4j.PtyProcess;
 import com.pty4j.WinSize;
 
-import java.io.IOException;
 import java.nio.charset.Charset;
 
 /**
@@ -17,11 +16,6 @@ public class PtyProcessTtyConnector extends ProcessTtyConnector {
     super(process, charset);
 
     myProcess = process;
-  }
-
-  @Override
-  public void close() {
-    myProcess.destroy();
   }
 
   @Override

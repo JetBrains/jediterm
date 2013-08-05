@@ -34,22 +34,12 @@ public class PtyMain extends AbstractTerminalFrame {
         command = new String[]{"cmd.exe"};
       }
 
-      PtyProcess process = PtyProcess.exec(command, toStringArray(envs), null);
+      PtyProcess process = PtyProcess.exec(command, envs, null);
 
       return new LoggingPtyProcessTtyConnector(process, Charset.forName("UTF-8"));
     } catch (Exception e) {
       throw new IllegalStateException(e);
     }
-  }
-
-  private static String[] toStringArray(Map<String, String> environment) {
-    List<String> list = Lists.transform(Lists.newArrayList(environment.entrySet()), new Function<Map.Entry<String, String>, String>() {
-      @Override
-      public String apply(Map.Entry<String, String> entry) {
-        return entry.getKey() + "=" + entry.getValue();
-      }
-    });
-    return list.toArray(new String[list.size()]);
   }
 
   public static void main(final String[] arg) {

@@ -11,30 +11,24 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="Groovy" level="project" />
-    <orderEntry type="library" name="Guava" level="project" />
-    <orderEntry type="module-library">
-      <library>
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/guava-12.0.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
     <orderEntry type="module-library">
       <library>
         <CLASSES>
           <root url="jar://$MODULE_DIR$/lib/jna.jar!/" />
         </CLASSES>
         <JAVADOC />
-        <SOURCES />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/../pty4j/lib/jna-src-full.zip!/test" />
+          <root url="jar://$MODULE_DIR$/../pty4j/lib/jna-src-full.zip!/contrib/platform/test" />
+          <root url="jar://$MODULE_DIR$/../pty4j/lib/jna-src-full.zip!/contrib/platform/src" />
+          <root url="jar://$MODULE_DIR$/../pty4j/lib/jna-src-full.zip!/src" />
+        </SOURCES>
       </library>
     </orderEntry>
     <orderEntry type="module-library">
       <library>
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/pty4j-0.1.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jna-platform.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />
@@ -70,15 +64,6 @@
     <orderEntry type="module-library">
       <library>
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/jzlib-1.07.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library">
-      <library>
-        <CLASSES>
           <root url="jar://$MODULE_DIR$/lib/log4j-1.2.14.jar!/" />
         </CLASSES>
         <JAVADOC />
@@ -89,6 +74,33 @@
       <library>
         <CLASSES>
           <root url="jar://$MODULE_DIR$/lib/annotations.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/guava-14.0.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/jzlib-1.1.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/pty4j-0.2.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />

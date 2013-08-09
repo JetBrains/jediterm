@@ -33,7 +33,11 @@ public class TerminalStarter implements TerminalOutputStream {
     myTtyChannel = createTtyChannel();
     myTerminal = terminal;
     myTerminal.setTerminalOutput(this);
-    myEmulator = new JediEmulator(myTtyChannel, this, terminal);
+    myEmulator = createEmulator(myTtyChannel, this, terminal);
+  }
+
+  protected JediEmulator createEmulator(TtyChannel channel, TerminalOutputStream stream, Terminal terminal) {
+    return new JediEmulator(channel, stream, terminal);
   }
 
   private TtyChannel createTtyChannel() {

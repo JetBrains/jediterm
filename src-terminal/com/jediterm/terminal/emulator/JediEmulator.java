@@ -277,10 +277,20 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     }
   }
 
-  private static void unsupported(char... b) {
-    unsupported(escapeSequenceToString(b));
+  /**
+   * This method is used to handle unknown sequences. Can be overriden.
+   * 
+   * @param sequenceChars are the characters of the unhandled sequence following the ESC character
+   *                      (first ESC is excluded from the sequenceChars)
+   */
+  protected void unsupported(char... sequenceChars) {
+    unsupported(escapeSequenceToString(sequenceChars));
   }
 
+  /**
+   * This method is used to report about know unsupported sequences
+   * @param msg The message describing the sequence
+   */
   private static void unsupported(String msg) {
     LOG.error("Unsupported control characters: " + msg);
   }

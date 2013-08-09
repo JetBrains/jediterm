@@ -91,8 +91,12 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   public void setTtyConnector(@NotNull TtyConnector ttyConnector) {
     myTtyConnector = ttyConnector;
 
-    myTerminalStarter = new TerminalStarter(myTerminal, myTtyConnector);
+    myTerminalStarter = createTerminalStarter(myTerminal, myTtyConnector);
     myTerminalPanel.setTerminalStarter(myTerminalStarter);
+  }
+
+  protected TerminalStarter createTerminalStarter(JediTerminal terminal, TtyConnector connector) {
+    return new TerminalStarter(terminal, connector);
   }
 
   public TtyConnector getTtyConnector() {

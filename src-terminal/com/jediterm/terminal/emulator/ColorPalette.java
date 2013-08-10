@@ -1,7 +1,5 @@
 package com.jediterm.terminal.emulator;
 
-import com.sun.jna.Platform;
-
 import java.awt.*;
 
 /**
@@ -51,8 +49,8 @@ public class ColorPalette {
 
 
   public static Color[] getCurrentColorSettings() {
-    return Platform.isWindows() ? WINDOWS_PALETTE : XTERM_PALETTE;
-    //TODO: settings
+    return /*Platform.isWindows() ? WINDOWS_PALETTE :*/ XTERM_PALETTE;
+    //TODO: move colors to terminal, emulator should deal only with color codes not real colors.
   }
 
   public static Color getIndexedColor(int index) {

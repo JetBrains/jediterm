@@ -1,5 +1,7 @@
 package com.jediterm.terminal.emulator;
 
+import com.sun.jna.Platform;
+
 import java.awt.*;
 
 /**
@@ -8,28 +10,49 @@ import java.awt.*;
 @SuppressWarnings("UseJBColor")
 public class ColorPalette {
   private static final Color[] XTERM_PALETTE = new Color[]{
-    new Color(0x000000), //Black
-    new Color(0xcd0000), //Red 
-    new Color(0x00cd00), //Green
-    new Color(0xcdcd00), //Yellow
-    new Color(0x1e90ff), //Blue 
-    new Color(0xcd00cd), //Magenta
-    new Color(0x00cdcd), //Cyan
-    new Color(0xe5e5e5), //White
-    //Bright versions of the ISO colors
-    new Color(0x4c4c4c), //Black 
-    new Color(0xff0000), //Red
-    new Color(0x00ff00), //Green
-    new Color(0xffff00), //Yellow
-    new Color(0x4682b4), //Blue
-    new Color(0xff00ff), //Magenta
-    new Color(0x00ffff), //Cyan
-    new Color(0xffffff), //White
+      new Color(0x000000), //Black
+      new Color(0xcd0000), //Red 
+      new Color(0x00cd00), //Green
+      new Color(0xcdcd00), //Yellow
+      new Color(0x1e90ff), //Blue 
+      new Color(0xcd00cd), //Magenta
+      new Color(0x00cdcd), //Cyan
+      new Color(0xe5e5e5), //White
+      //Bright versions of the ISO colors
+      new Color(0x4c4c4c), //Black 
+      new Color(0xff0000), //Red
+      new Color(0x00ff00), //Green
+      new Color(0xffff00), //Yellow
+      new Color(0x4682b4), //Blue
+      new Color(0xff00ff), //Magenta
+      new Color(0x00ffff), //Cyan
+      new Color(0xffffff), //White
+  };
+
+  private static final Color[] WINDOWS_PALETTE = new Color[]{
+      new Color(0x000000), //Black
+      new Color(0x800000), //Red 
+      new Color(0x008000), //Green
+      new Color(0x808000), //Yellow
+      new Color(0x000080), //Blue 
+      new Color(0x800080), //Magenta
+      new Color(0x008080), //Cyan
+      new Color(0xc0c0c0), //White
+      //Bright versions of the ISO colors
+      new Color(0x808080), //Black 
+      new Color(0xff0000), //Red
+      new Color(0x00ff00), //Green
+      new Color(0xffff00), //Yellow
+      new Color(0x4682b4), //Blue
+      new Color(0xff00ff), //Magenta
+      new Color(0x00ffff), //Cyan
+      new Color(0xffffff), //White
   };
 
 
   public static Color[] getCurrentColorSettings() {
-    return XTERM_PALETTE;
+    return Platform.isWindows() ? WINDOWS_PALETTE : XTERM_PALETTE;
+    //TODO: settings
   }
 
   public static Color getIndexedColor(int index) {
@@ -51,9 +74,9 @@ public class ColorPalette {
         for (int blue = 0; blue < 6; ++blue) {
           int code = 36 * red + 6 * green + blue;
           COL_RES_256[code] =
-            new Color(red > 0 ? (40 * red + 55) : 0,
-                      green > 0 ? (40 * green + 55) : 0,
-                      blue > 0 ? (40 * blue + 55) : 0);
+              new Color(red > 0 ? (40 * red + 55) : 0,
+                  green > 0 ? (40 * green + 55) : 0,
+                  blue > 0 ? (40 * blue + 55) : 0);
         }
       }
     }

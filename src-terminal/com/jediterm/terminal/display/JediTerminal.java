@@ -826,7 +826,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
         }
         else {
           // for 1000/1005/1015 mode
-          cb = 3;
+          cb = MouseButtonCodes.RELEASE;
         }
 
         cb = applyModifierKeys(event, cb);

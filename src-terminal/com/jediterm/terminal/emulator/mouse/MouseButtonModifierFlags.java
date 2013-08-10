@@ -5,7 +5,7 @@ package com.jediterm.terminal.emulator.mouse;
  */
 public class MouseButtonModifierFlags {
   // keyboard modifier flag
-  //  4 - shit
+  //  4 - shift
   //  8 - meta
   //  16 - ctrl
   public static final int MOUSE_BUTTON_SHIFT_FLAG = 4;

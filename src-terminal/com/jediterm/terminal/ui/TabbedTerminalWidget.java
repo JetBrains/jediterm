@@ -128,14 +128,23 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
     close.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent event) {
-        terminal.close();
-        removeTab(terminal);
+        close(terminal);
       }
     });
 
     popupMenu.add(close);
 
     return popupMenu;
+  }
+
+  private void close(JediTermWidget terminal) {
+    terminal.close();
+    removeTab(terminal);
+  }
+
+
+  public void closeCurrentSession() {
+    close(getCurrentSession());
   }
 
   private void removeTab(JediTermWidget terminal) {

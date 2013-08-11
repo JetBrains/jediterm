@@ -1,5 +1,7 @@
 package com.jediterm.terminal.ui;
 
+import com.jediterm.terminal.emulator.ColorPalette;
+
 import javax.swing.*;
 
 /**
@@ -13,4 +15,6 @@ public interface SystemSettingsProvider {
   KeyStroke[] getPasteKeyStrokes();
 
   KeyStroke[] getNewSessionKeyStrokes();
+
+  ColorPalette getPalette();
 }

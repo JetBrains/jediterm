@@ -1,5 +1,6 @@
 package com.jediterm;
 
+import com.jediterm.terminal.TerminalColor;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.display.BackBuffer;
 import com.jediterm.terminal.display.JediTerminal;
@@ -13,8 +14,8 @@ import java.awt.*;
  * @author traff
  */
 public class StyledTextTest extends TestCase {
-  private static final TextStyle GREEN = new TextStyle(Color.GREEN, null);
-  private static final TextStyle BLACK = new TextStyle(Color.BLACK, null);
+  private static final TextStyle GREEN = new TextStyle(TerminalColor.index(2), null);
+  private static final TextStyle BLACK = new TextStyle(TerminalColor.BLACK, null);
 
 
   public void testStyledTest1() {

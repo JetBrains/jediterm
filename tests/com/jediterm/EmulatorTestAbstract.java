@@ -2,6 +2,7 @@ package com.jediterm;
 
 import com.jediterm.terminal.ArrayTerminalDataStream;
 import com.jediterm.terminal.Terminal;
+import com.jediterm.terminal.TerminalColor;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.display.BackBuffer;
 import com.jediterm.terminal.display.StyleState;
@@ -23,7 +24,7 @@ import java.io.IOException;
  */
 @Ignore
 public abstract class EmulatorTestAbstract extends TestCase {
-  protected static void assertColor(TextStyle style, Color foreground, Color background) {
+  protected static void assertColor(TextStyle style, TerminalColor foreground, TerminalColor background) {
     assertEquals(foreground, style.getForeground());
     assertEquals(background, style.getBackground());
   }
@@ -44,8 +45,8 @@ public abstract class EmulatorTestAbstract extends TestCase {
     Terminal terminal = new BackBufferTerminal(backBuffer, state);
 
     ArrayTerminalDataStream
-      fileStream = new ArrayTerminalDataStream(FileUtil.loadFileText(new File(getPathToTest() + ".txt"),
-                                                                     "UTF-8"));
+        fileStream = new ArrayTerminalDataStream(FileUtil.loadFileText(new File(getPathToTest() + ".txt"),
+        "UTF-8"));
 
     Emulator emulator = new JediEmulator(fileStream, new NullTerminalOutputStream(), terminal);
 

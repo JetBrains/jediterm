@@ -5,9 +5,11 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.jediterm.terminal.LoggingTtyConnector;
 import com.jediterm.terminal.TtyConnector;
+import com.jediterm.terminal.emulator.ColorPalette;
 import com.jediterm.terminal.ui.AbstractTerminalFrame;
 import com.jediterm.terminal.ui.UIUtil;
 import com.pty4j.PtyProcess;
+import com.sun.jna.Platform;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -40,6 +42,11 @@ public class PtyMain extends AbstractTerminalFrame {
     } catch (Exception e) {
       throw new IllegalStateException(e);
     }
+  }
+
+  @Override
+  protected ColorPalette getTerminalColorPalette() {
+    return Platform.isWindows() ? ColorPalette.WINDOWS_PALETTE : ColorPalette.XTERM_PALETTE;
   }
 
   public static void main(final String[] arg) {

@@ -1,5 +1,6 @@
 package com.jediterm.terminal.display;
 
+import com.jediterm.terminal.TerminalColor;
 import com.jediterm.terminal.TextStyle;
 import org.jetbrains.annotations.NotNull;
 
@@ -48,11 +49,11 @@ public class StyleState {
     myMergedStyle = null;
   }
 
-  public Color getBackground(Color color) {
+  public TerminalColor getBackground(TerminalColor color) {
     return color != null ? color : myDefaultStyle.getBackground();
   }
 
-  public Color getForeground(Color color) {
+  public TerminalColor getForeground(TerminalColor color) {
     return color != null ? color : myDefaultStyle.getForeground();
   }
   

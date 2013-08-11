@@ -767,10 +767,10 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 35:
         case 36:
         case 37:
-          textStyle.setForeground(ColorPalette.getCurrentColorSettings()[arg - 30]);
+          textStyle.setForeground(TerminalColor.index(arg - 30));
           break;
         case 38: // Set xterm-256 text color
-          Color color256 = getColor256(args);
+          TerminalColor color256 = getColor256(args);
           if (color256 != null) {
             textStyle.setForeground(color256);
           }
@@ -786,10 +786,10 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 45:
         case 46:
         case 47:
-          textStyle.setBackground(ColorPalette.getCurrentColorSettings()[arg - 40]);
+          textStyle.setBackground(TerminalColor.index(arg - 40));
           break;
         case 48: // Set xterm-256 background color
-          Color bgColor256 = getColor256(args);
+          TerminalColor bgColor256 = getColor256(args);
           if (bgColor256 != null) {
             textStyle.setBackground(bgColor256);
           }
@@ -826,7 +826,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     return textStyle;
   }
 
-  private static Color getColor256(ControlSequence args) {
+  private static TerminalColor getColor256(ControlSequence args) {
     int code = args.getArg(1, 0);
 
     if (code == 2) {
@@ -837,7 +837,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       if ((val0 >= 0 && val0 < 256) &&
           (val1 >= 0 && val1 < 256) &&
           (val2 >= 0 && val2 < 256)) {
-        return new Color(val0, val1, val2);
+        return new TerminalColor(val0, val1, val2);
       }
       else {
         LOG.error("Bogus color setting " + args.toString());

@@ -13,44 +13,44 @@ import java.util.WeakHashMap;
 public class TextStyle implements Cloneable {
   public static final EnumSet<Option> NO_OPTIONS = EnumSet.noneOf(Option.class);
 
-  public static final ChosenColor FOREGROUND = new ChosenColor(Color.BLACK);
-  public static final ChosenColor BACKGROUND = new ChosenColor(Color.WHITE);
+  public static final TerminalColor FOREGROUND = TerminalColor.BLACK;
+  public static final TerminalColor BACKGROUND = TerminalColor.WHITE;
 
   public static final TextStyle EMPTY = new TextStyle();
 
   private static final WeakHashMap<TextStyle, WeakReference<TextStyle>> styles = new WeakHashMap<TextStyle, WeakReference<TextStyle>>();
 
-  private Color myForeground;
-  private Color myBackground;
+  private TerminalColor myForeground;
+  private TerminalColor myBackground;
   private EnumSet<Option> myOptions;
 
   public TextStyle() {
     this(null, null, NO_OPTIONS);
   }
 
-  public TextStyle(final Color foreground, final Color background) {
+  public TextStyle(final TerminalColor foreground, final TerminalColor background) {
     this(foreground, background, NO_OPTIONS);
   }
 
-  public TextStyle(final Color foreground, final Color background, final EnumSet<Option> options) {
+  public TextStyle(final TerminalColor foreground, final TerminalColor background, final EnumSet<Option> options) {
     myForeground = foreground;
     myBackground = background;
     myOptions = options.clone();
   }
 
-  public Color getDefaultForeground() {
+  public TerminalColor getDefaultForeground() {
     return FOREGROUND;
   }
 
-  public Color getDefaultBackground() {
+  public TerminalColor getDefaultBackground() {
     return BACKGROUND;
   }
 
-  public void setBackground(Color background) {
+  public void setBackground(TerminalColor background) {
     myBackground = background;
   }
 
-  public void setForeground(Color foreground) {
+  public void setForeground(TerminalColor foreground) {
     myForeground = foreground;
   }
 
@@ -69,12 +69,12 @@ public class TextStyle implements Cloneable {
       }
 
       @Override
-      public void setBackground(Color background) {
+      public void setBackground(TerminalColor background) {
         readonly();
       }
 
       @Override
-      public void setForeground(Color foreground) {
+      public void setForeground(TerminalColor foreground) {
         readonly();
       }
 
@@ -85,14 +85,6 @@ public class TextStyle implements Cloneable {
     };
   }
 
-
-  static class ChosenColor extends Color {
-    private static final long serialVersionUID = 7492667732033832704L;
-
-    public ChosenColor(final Color def) {
-      super(def.getRGB());
-    }
-  }
 
   @NotNull
   public static TextStyle getCanonicalStyle(TextStyle currentStyle) {
@@ -108,11 +100,11 @@ public class TextStyle implements Cloneable {
   }
 
 
-  public Color getForeground() {
+  public TerminalColor getForeground() {
     return myForeground;
   }
 
-  public Color getBackground() {
+  public TerminalColor getBackground() {
     return myBackground;
   }
 
@@ -182,11 +174,11 @@ public class TextStyle implements Cloneable {
     return true;
   }
 
-  public Color getBackgroundForRun() {
+  public TerminalColor getBackgroundForRun() {
     return myOptions.contains(Option.INVERSE) ? myForeground : myBackground;
   }
 
-  public Color getForegroundForRun() {
+  public TerminalColor getForegroundForRun() {
     return myOptions.contains(Option.INVERSE) ? myBackground : myForeground;
   }
 

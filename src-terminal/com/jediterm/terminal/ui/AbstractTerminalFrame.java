@@ -3,6 +3,7 @@ package com.jediterm.terminal.ui;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.debug.BufferPanel;
+import com.jediterm.terminal.emulator.ColorPalette;
 import org.apache.log4j.Logger;
 
 import javax.swing.*;
@@ -165,5 +166,12 @@ public abstract class AbstractTerminalFrame {
                              ? KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.META_DOWN_MASK)
                              : KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK)};
     }
+
+    @Override
+    public ColorPalette getPalette() {
+      return getTerminalColorPalette();
+    }
   }
+
+  protected abstract ColorPalette getTerminalColorPalette();
 }

@@ -1,5 +1,7 @@
 package com.jediterm.terminal;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.awt.*;
 
 /**
@@ -22,6 +24,7 @@ public class TerminalColor {
   }
 
   public TerminalColor(int r, int g, int b) {
+    myColorIndex = -1;
     myR = r;
     myG = g;
     myB = b;
@@ -79,5 +82,13 @@ public class TerminalColor {
     result = 31 * result + myG;
     result = 31 * result + myB;
     return result;
+  }
+
+  @Nullable
+  public static TerminalColor awt(@Nullable Color color) {
+    if (color == null) {
+      return null;
+    }
+    return rgb(color.getRed(), color.getGreen(), color.getBlue());
   }
 }

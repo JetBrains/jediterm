@@ -304,6 +304,9 @@ public class BackBuffer implements StyledTextConsumer {
 
 
   public void scrollArea(final int scrollRegionTop, final int dy, int scrollRegionBottom) {
+    if (dy == 0) {
+      return;
+    }
     if (dy > 0) {
       moveLinesDown(scrollRegionTop, dy, scrollRegionBottom);
       clearArea(0, scrollRegionTop, myWidth,
@@ -321,7 +324,7 @@ public class BackBuffer implements StyledTextConsumer {
       }
 
       clearArea(0, scrollRegionBottom - 1, myWidth,
-                scrollRegionBottom);
+                scrollRegionBottom); // TODO : dy ?
     }
   }
 
@@ -331,11 +334,11 @@ public class BackBuffer implements StyledTextConsumer {
     }
     for (int line = y; line < lastLine; line++) {
       if (line > myHeight) {
-        LOG.error("Attempt to scroll line from below bottom of screen:" + line);
+        LOG.error("Attempt to scroll line from below bottom of screen: " + line);
         continue;
       }
       if (line + dy < 0) {
-        LOG.error("Attempt to scroll to line off top of screen" + (line + dy));
+        LOG.error("Attempt to scroll to line off top of screen: " + (line + dy));
         continue;
       }
 
@@ -351,11 +354,11 @@ public class BackBuffer implements StyledTextConsumer {
     }
     for (int line = lastLine - dy; line >= y; line--) {
       if (line < 0) {
-        LOG.error("Attempt to scroll line from above top of screen:" + line);
+        LOG.error("Attempt to scroll line from above top of screen: " + line);
         continue;
       }
       if (line + dy + 1 > myHeight) {
-        LOG.error("Attempt to scroll line off bottom of screen:" + (line + dy));
+        LOG.error("Attempt to scroll line off bottom of screen: " + (line + dy));
         continue;
       }
       System.arraycopy(myBuf, line * myWidth, myBuf, (line + dy) * myWidth, myWidth);

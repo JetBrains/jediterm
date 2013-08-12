@@ -634,6 +634,28 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
   }
 
   @Override
+  public void scrollUp(int count) {
+    myBackBuffer.lock();
+    try {
+      scrollArea(myScrollRegionTop, scrollingRegionSize(), -count);
+    }
+    finally {
+      myBackBuffer.unlock();
+    }
+  }
+
+  @Override
+  public void scrollDown(int count) {
+    myBackBuffer.lock();
+    try {
+      scrollArea(myScrollRegionTop, scrollingRegionSize(), count);
+    }
+    finally {
+      myBackBuffer.unlock();
+    }
+  }
+
+  @Override
   public void resetScrollRegions() {
     setScrollingRegion(1, myTerminalHeight);
   }

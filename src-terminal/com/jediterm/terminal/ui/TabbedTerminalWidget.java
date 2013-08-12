@@ -1,6 +1,7 @@
 package com.jediterm.terminal.ui;
 
 import com.jediterm.terminal.RequestOrigin;
+import com.jediterm.terminal.TtyConnector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -33,8 +34,10 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
   }
 
   @Override
-  public TerminalSession createTerminalSession() {
-    JediTermWidget terminal = createInnerTerminalWidget();
+  public TerminalSession createTerminalSession(TtyConnector ttyConnector) {
+    final JediTermWidget terminal = createInnerTerminalWidget();
+    terminal.setTtyConnector(ttyConnector);
+    
     if (myTerminalPanelListener != null) {
       terminal.setTerminalPanelListener(myTerminalPanelListener);
     }
@@ -67,8 +70,8 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
   }
 
   private void addTab(JediTermWidget terminal, JTabbedPane tabbedPane) {
-    String tabName = TAB_DEFAULT_NAME + myTabNumber++;
-    tabbedPane.addTab(tabName, null, terminal);
+    //TODO: add number when we have the same names
+    tabbedPane.addTab(terminal.getSessionName(), null, terminal);
 
     tabbedPane.setTabComponentAt(tabbedPane.getTabCount() - 1, new TabComponent(tabbedPane, terminal));
     tabbedPane.setSelectedComponent(terminal);
@@ -95,6 +98,10 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
     add(tabbedPane, BorderLayout.CENTER);
 
     return tabbedPane;
+  }
+
+  public boolean isSingleSession() {
+    return myTabbedPane == null && myTermWidget != null;
   }
 
   private void onSessionChanged() {
@@ -139,7 +146,11 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
 
   private void close(JediTermWidget terminal) {
     terminal.close();
-    removeTab(terminal);
+    if (myTabbedPane != null) {
+      removeTab(terminal);
+    } else {
+      myTermWidget = null;
+    }
   }
 
 

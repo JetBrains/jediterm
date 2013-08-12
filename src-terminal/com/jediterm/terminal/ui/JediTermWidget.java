@@ -48,9 +48,9 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     mySettingsProvider = settingsProvider;
     myTerminalPanel = createTerminalPanel(mySettingsProvider, styleState, backBuffer);
     myTerminal = new JediTerminal(myTerminalPanel, backBuffer, styleState);
-    
+
     myTerminalPanel.addTerminalMouseListener(myTerminal);
-    
+
     myPreConnectHandler = createPreConnectHandler(myTerminal);
     myTerminalPanel.setKeyListener(myPreConnectHandler);
     JScrollBar scrollBar = createScrollBar();
@@ -105,7 +105,12 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   @Override
   public String getSessionName() {
-    return myTerminalPanel.getWindowTitle();
+    if (myTtyConnector != null) {
+      return myTtyConnector.getName();
+    }
+    else {
+      return "Session";
+    }
   }
 
   @Override
@@ -167,7 +172,8 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   }
 
   @Override
-  public TerminalSession createTerminalSession() {
+  public TerminalSession createTerminalSession(TtyConnector ttyConnector) {
+    setTtyConnector(ttyConnector);
     return this;
   }
 
@@ -184,9 +190,8 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     public void run() {
       try {
         mySessionRunning.set(true);
-        Thread.currentThread().setName(myTtyConnector.getName());
+        Thread.currentThread().setName("Connector-" + myTtyConnector.getName());
         if (myTtyConnector.init(myPreConnectHandler)) {
-          Thread.currentThread().setName(myTtyConnector.getName());
           myTerminalPanel.initKeyHandler();
           SwingUtilities.invokeLater(new Runnable() {
             public void run() {

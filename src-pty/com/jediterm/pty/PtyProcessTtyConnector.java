@@ -30,4 +30,9 @@ public class PtyProcessTtyConnector extends ProcessTtyConnector {
   public boolean isConnected() {
     return myProcess.isRunning();
   }
+
+  @Override
+  public String getName() {
+    return "Local";
+  }
 }

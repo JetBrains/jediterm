@@ -21,7 +21,7 @@ public class JSchTtyConnector implements TtyConnector {
   private OutputStream myOutputStream = null;
   private Session mySession;
   private ChannelShell myChannelShell;
-  
+
   private int myPort = 22;
 
   private String myUser = null;
@@ -154,7 +154,7 @@ public class JSchTtyConnector implements TtyConnector {
   }
 
   public String getName() {
-    return "ConnectRunnable";
+    return myHost;
   }
 
   @Override

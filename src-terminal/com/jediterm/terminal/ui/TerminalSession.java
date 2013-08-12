@@ -9,8 +9,6 @@ import org.jetbrains.annotations.NotNull;
  * @author traff
  */
 public interface TerminalSession {
-  void setTtyConnector(@NotNull TtyConnector ttyConnector);
-
   void start();
 
   String getBufferText(DebugBufferType type);

@@ -119,11 +119,16 @@ public abstract class AbstractTerminalFrame {
   }
 
   private void sizeFrameForTerm(final JFrame frame) {
-    Dimension d = myTerminal.getPreferredSize();
+    SwingUtilities.invokeLater(new Runnable() {
+      @Override
+      public void run() {
+        Dimension d = myTerminal.getPreferredSize();
 
-    d.width += frame.getWidth() - frame.getContentPane().getWidth();
-    d.height += frame.getHeight() - frame.getContentPane().getHeight();
-    frame.setSize(d);
+        d.width += frame.getWidth() - frame.getContentPane().getWidth();
+        d.height += frame.getHeight() - frame.getContentPane().getHeight();
+        frame.setSize(d);
+      }
+    });
   }
 
   private void showBuffers() {

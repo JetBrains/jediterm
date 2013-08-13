@@ -559,7 +559,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
     myBackBuffer.lock();
     try {
       if (myCursorY == myScrollRegionTop) {
-        scrollArea(myScrollRegionTop - 1, scrollingRegionSize(), 1);
+        scrollArea(myScrollRegionTop, scrollingRegionSize(), 1);
       }
       else {
         myCursorY -= 1;
@@ -637,7 +637,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
   public void scrollUp(int count) {
     myBackBuffer.lock();
     try {
-      scrollArea(myScrollRegionTop, scrollingRegionSize(), -count);
+      scrollArea(myScrollRegionTop, scrollingRegionSize(), - count);
     }
     finally {
       myBackBuffer.unlock();

@@ -59,6 +59,10 @@ public interface Terminal {
 
   void setScrollingRegion(int top, int bottom);
 
+  void scrollUp(int count);
+
+  void scrollDown(int count);
+
   void resetScrollRegions();
 
   void cursorHorizontalAbsolute(int x);

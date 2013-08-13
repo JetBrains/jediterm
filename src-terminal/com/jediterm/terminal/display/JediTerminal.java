@@ -559,7 +559,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
     myBackBuffer.lock();
     try {
       if (myCursorY == myScrollRegionTop) {
-        scrollArea(myScrollRegionTop - 1, scrollingRegionSize(), 1);
+        scrollArea(myScrollRegionTop, scrollingRegionSize(), 1);
       }
       else {
         myCursorY -= 1;
@@ -631,6 +631,28 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
 
     //DECSTBM moves the cursor to column 1, line 1 of the page
     cursorPosition(1, 1);
+  }
+
+  @Override
+  public void scrollUp(int count) {
+    myBackBuffer.lock();
+    try {
+      scrollArea(myScrollRegionTop, scrollingRegionSize(), - count);
+    }
+    finally {
+      myBackBuffer.unlock();
+    }
+  }
+
+  @Override
+  public void scrollDown(int count) {
+    myBackBuffer.lock();
+    try {
+      scrollArea(myScrollRegionTop, scrollingRegionSize(), count);
+    }
+    finally {
+      myBackBuffer.unlock();
+    }
   }
 
   @Override

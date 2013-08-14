@@ -11,7 +11,6 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.*;
-import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -40,7 +39,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
   public TerminalSession createTerminalSession(TtyConnector ttyConnector) {
     final JediTermWidget terminal = createInnerTerminalWidget();
     terminal.setTtyConnector(ttyConnector);
-    
+
     if (myTerminalPanelListener != null) {
       terminal.setTerminalPanelListener(myTerminalPanelListener);
     }
@@ -57,8 +56,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
       }
 
       onSessionChanged();
-    }
-    else {
+    } else {
       if (myTabbedPane == null) {
         myTabbedPane = setupTabbedPane();
       }
@@ -82,7 +80,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
 
   private String generateUniqueName(String suggestedName, JTabbedPane tabbedPane) {
     final Set<String> names = Sets.newHashSet();
-    for (int i = 0; i<tabbedPane.getTabCount(); i++) {
+    for (int i = 0; i < tabbedPane.getTabCount(); i++) {
       names.add(tabbedPane.getTitleAt(i));
     }
     String newSdkName = suggestedName;
@@ -147,6 +145,13 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
     }
     popupMenu.add(newSession);
 
+    JMenuItem rename = new JMenuItem("Rename");
+    rename.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent actionEvent) {
+        renameTab();
+      }
+    });
     JMenuItem close = new JMenuItem("Close");
     close.addActionListener(new ActionListener() {
       @Override
@@ -155,9 +160,49 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
       }
     });
 
+    popupMenu.add(rename);
     popupMenu.add(close);
 
     return popupMenu;
+  }
+
+  private void renameTab() {
+    if (myTabbedPane != null) {
+      final int selectedIndex = myTabbedPane.getSelectedIndex();
+      final Component component = myTabbedPane.getTabComponentAt(selectedIndex);
+      final JTextField jTextField = new JTextField(myTabbedPane.getTitleAt(selectedIndex));
+      final FocusAdapter focusAdapter = new FocusAdapter() {
+        @Override
+        public void focusLost(FocusEvent focusEvent) {
+          finishRename(selectedIndex, component, jTextField.getText());
+        }
+      };
+      jTextField.addFocusListener(focusAdapter);
+      jTextField.addKeyListener(new KeyAdapter() {
+        @Override
+        public void keyPressed(KeyEvent keyEvent) {
+          if (keyEvent.getKeyCode() == KeyEvent.VK_ESCAPE) {
+            jTextField.removeFocusListener(focusAdapter);
+            finishRename(selectedIndex, component, null);
+          } else if (keyEvent.getKeyCode() == KeyEvent.VK_ENTER) {
+            jTextField.removeFocusListener(focusAdapter);
+            finishRename(selectedIndex, component, jTextField.getText());
+          } else {
+            super.keyPressed(keyEvent);
+          }
+        }
+      });
+      myTabbedPane.setTabComponentAt(myTabbedPane.getSelectedIndex(), jTextField);
+      jTextField.requestFocus();
+      jTextField.selectAll();
+    }
+  }
+
+  private void finishRename(int selectedIndex, Component component, String newName) {
+    myTabbedPane.setTabComponentAt(selectedIndex, component);
+    if (newName != null) {
+      myTabbedPane.setTitleAt(selectedIndex, newName);
+    }
   }
 
   private void close(JediTermWidget terminal) {
@@ -216,7 +261,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
 
       //add more space between the label and the button
       label.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 5));
-
+      
       label.addMouseListener(new MouseAdapter() {
 
         @Override
@@ -233,9 +278,12 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
           if (event.isPopupTrigger()) {
             JPopupMenu menu = createPopup(terminal);
             menu.show(event.getComponent(), event.getX(), event.getY());
-          }
-          else {
+          } else {
             pane.setSelectedComponent(terminal);
+            if (event.getClickCount() == 2 && !event.isConsumed()) {
+              event.consume();
+              renameTab();
+            }
           }
         }
       });
@@ -281,8 +329,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
   public JediTermWidget getCurrentSession() {
     if (myTabbedPane != null) {
       return getTerminalPanel(myTabbedPane.getSelectedIndex());
-    }
-    else {
+    } else {
       return myTermWidget;
     }
   }
@@ -290,9 +337,8 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
   @Nullable
   private JediTermWidget getTerminalPanel(int index) {
     if (index < myTabbedPane.getTabCount() && index >= 0) {
-      return (JediTermWidget)myTabbedPane.getComponentAt(index);
-    }
-    else {
+      return (JediTermWidget) myTabbedPane.getComponentAt(index);
+    } else {
       return null;
     }
   }

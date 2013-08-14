@@ -20,8 +20,6 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
   private static final int FIRST_TAB_NUMBER = 1;
   public static final String TAB_DEFAULT_NAME = "Session ";
 
-  private int myTabNumber = FIRST_TAB_NUMBER;
-
   private TerminalPanelListener myTerminalPanelListener = null;
 
   private JediTermWidget myTermWidget = null;
@@ -100,8 +98,6 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
         onSessionChanged();
       }
     });
-
-    myTabNumber = FIRST_TAB_NUMBER;
 
     remove(myTermWidget);
 
@@ -257,7 +253,6 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
       };
 
       label.addFocusListener(this);
-
 
       //add more space between the label and the button
       label.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 5));

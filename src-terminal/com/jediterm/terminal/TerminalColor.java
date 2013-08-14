@@ -22,6 +22,7 @@ public class TerminalColor {
   }
 
   public TerminalColor(int r, int g, int b) {
+    myColorIndex = -1;
     myR = r;
     myG = g;
     myB = b;

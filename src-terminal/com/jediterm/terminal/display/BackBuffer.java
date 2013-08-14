@@ -288,9 +288,7 @@ public class BackBuffer implements StyledTextConsumer {
   private boolean writeToBackBuffer(int x, int y, @NotNull String str, @NotNull TextStyle style) {
     final int adjY = y - 1;
     if (adjY >= myHeight || adjY < 0) {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Attempt to draw line out of bounds: " + adjY + " at (" + x + "," + y + ")");
-      }
+      LOG.debug("Attempt to draw line out of bounds: " + adjY + " at (" + x + "," + y + ")");
       return true;
     }
     str.getChars(0, str.length(), myBuf, adjY * myWidth + x);
@@ -304,24 +302,17 @@ public class BackBuffer implements StyledTextConsumer {
 
 
   public void scrollArea(final int scrollRegionTop, final int dy, int scrollRegionBottom) {
+    if (dy == 0) {
+      return;
+    }
     if (dy > 0) {
-      moveLinesDown(scrollRegionTop, dy, scrollRegionBottom);
-      clearArea(0, scrollRegionTop, myWidth,
-                scrollRegionTop + dy);
-
-      myTextBuffer.insertLines(scrollRegionTop, dy, scrollRegionBottom);
+      insertLines(scrollRegionTop - 1, dy, scrollRegionBottom);
     }
     else {
-      moveLinesUp(scrollRegionTop, dy, scrollRegionBottom);
-
-      LinesBuffer removed = myTextBuffer.deleteLines(scrollRegionTop - 1, -dy, scrollRegionBottom);
-
+      LinesBuffer removed = deleteLines(scrollRegionTop - 1, -dy, scrollRegionBottom);
       if (scrollRegionTop == 1) {
         removed.moveTopLinesTo(removed.getLineCount(), myScrollBuffer);
       }
-
-      clearArea(0, scrollRegionBottom - 1, myWidth,
-                scrollRegionBottom);
     }
   }
 
@@ -330,12 +321,14 @@ public class BackBuffer implements StyledTextConsumer {
       LOG.error("dy should be negative");
     }
     for (int line = y; line < lastLine; line++) {
-      if (line > myHeight) {
-        LOG.error("Attempt to scroll line from below bottom of screen:" + line);
+      if (line >= myHeight) {
+        // this is not necessary an error; simply skip it
+        LOG.debug("Attempt to scroll line from below bottom of screen: " + line);
         continue;
       }
       if (line + dy < 0) {
-        LOG.error("Attempt to scroll to line off top of screen" + (line + dy));
+        // this is not necessary an error; simply skip it
+        LOG.debug("Attempt to scroll to line off top of screen: " + (line + dy));
         continue;
       }
 
@@ -351,16 +344,18 @@ public class BackBuffer implements StyledTextConsumer {
     }
     for (int line = lastLine - dy; line >= y; line--) {
       if (line < 0) {
-        LOG.error("Attempt to scroll line from above top of screen:" + line);
+        // this is not necessary an error; simply skip it
+        LOG.debug("Attempt to scroll line from above top of screen: " + line);
         continue;
       }
       if (line + dy + 1 > myHeight) {
-        LOG.error("Attempt to scroll line off bottom of screen:" + (line + dy));
+        // this is not necessary an error; simply skip it
+        LOG.debug("Attempt to scroll line off bottom of screen: " + (line + dy));
         continue;
       }
+
       System.arraycopy(myBuf, line * myWidth, myBuf, (line + dy) * myWidth, myWidth);
       System.arraycopy(myStyleBuf, line * myWidth, myStyleBuf, (line + dy) * myWidth, myWidth);
-
       myDamage.set((line + dy) * myWidth, (line + dy + 1) * myWidth);
     }
   }
@@ -682,11 +677,12 @@ public class BackBuffer implements StyledTextConsumer {
     myTextBuffer.insertLines(y, count, scrollRegionBottom - 1);
   }
 
-  public void deleteLines(int y, int count, int scrollRegionBottom) {
-    moveLinesUp(y + count, -count, scrollRegionBottom - 1);
+  // returns deleted lines
+  public LinesBuffer deleteLines(int y, int count, int scrollRegionBottom) {
+    moveLinesUp(y + count, -count, scrollRegionBottom);
     clearArea(0, Math.max(y, scrollRegionBottom - count), myWidth, scrollRegionBottom);
 
-    myTextBuffer.deleteLines(y, count, scrollRegionBottom - 1);
+    return myTextBuffer.deleteLines(y, count, scrollRegionBottom - 1);
   }
 
   public void clearLines(int startRow, int endRow) {

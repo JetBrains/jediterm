@@ -339,6 +339,10 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         return eraseCharacters(args);
       case 'P': //DCH
         return deleteCharacters(args);
+      case 'S': //SU
+        return scrollUp(args);
+      case 'T': //SD
+        return scrollDown(args);
       case 'c': //Send Device Attributes (Primary DA)
         if (args.startsWithMoreMark()) { //Send Device Attributes (Secondary DA)
           if (args.getArg(0, 0) == 0) { //apply on to VT220 but xterm extends this to VT100
@@ -672,6 +676,18 @@ public class JediEmulator extends DataStreamIteratingEmulator {
 
     myTerminal.setScrollingRegion(top, bottom);
 
+    return true;
+  }
+
+  private boolean scrollUp(ControlSequence args) {
+    int count = args.getArg(0, 1);
+    myTerminal.scrollUp(count);
+    return true;
+  }
+
+  private boolean scrollDown(ControlSequence args) {
+    int count = args.getArg(0, 1);
+    myTerminal.scrollDown(count);
     return true;
   }
 

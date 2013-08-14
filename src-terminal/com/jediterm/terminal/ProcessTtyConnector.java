@@ -43,9 +43,7 @@ public abstract class ProcessTtyConnector implements TtyConnector {
   protected abstract void resizeImmediately();
 
   @Override
-  public String getName() {
-    return "ConnectRunnable"; //TODO: 
-  }
+  public abstract String getName();
 
   public int read(char[] buf, int offset, int length) throws IOException {
     return myReader.read(buf, offset, length);

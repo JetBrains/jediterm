@@ -1,5 +1,6 @@
 package com.jediterm.terminal.ui;
 
+import com.google.common.collect.Sets;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TtyConnector;
 import org.jetbrains.annotations.NotNull;
@@ -10,6 +11,8 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * @author traff
@@ -71,10 +74,23 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
 
   private void addTab(JediTermWidget terminal, JTabbedPane tabbedPane) {
     //TODO: add number when we have the same names
-    tabbedPane.addTab(terminal.getSessionName(), null, terminal);
+    tabbedPane.addTab(generateUniqueName(terminal.getSessionName(), tabbedPane), null, terminal);
 
     tabbedPane.setTabComponentAt(tabbedPane.getTabCount() - 1, new TabComponent(tabbedPane, terminal));
     tabbedPane.setSelectedComponent(terminal);
+  }
+
+  private String generateUniqueName(String suggestedName, JTabbedPane tabbedPane) {
+    final Set<String> names = Sets.newHashSet();
+    for (int i = 0; i<tabbedPane.getTabCount(); i++) {
+      names.add(tabbedPane.getTitleAt(i));
+    }
+    String newSdkName = suggestedName;
+    int i = 0;
+    while (names.contains(newSdkName)) {
+      newSdkName = suggestedName + " (" + (++i) + ")";
+    }
+    return newSdkName;
   }
 
   private JTabbedPane setupTabbedPane() {

@@ -1,10 +1,12 @@
 package com.jediterm.terminal;
 
 import com.google.common.base.Predicate;
-import com.pty4j.PtyProcess;
 import org.apache.log4j.Logger;
 
-import java.util.concurrent.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 public class TtyConnectorWaitFor {
   private static final Logger LOG = Logger.getLogger(TtyConnectorWaitFor.class);

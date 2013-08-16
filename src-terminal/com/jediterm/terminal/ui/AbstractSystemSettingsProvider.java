@@ -11,7 +11,7 @@ public abstract class AbstractSystemSettingsProvider implements SystemSettingsPr
   @Override
   public KeyStroke[] getNewSessionKeyStrokes() {
     return new KeyStroke[]{UIUtil.isMac
-                           ? KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.META_DOWN_MASK)
+                           ? KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.META_DOWN_MASK)
                            : KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK)};
   }
 }

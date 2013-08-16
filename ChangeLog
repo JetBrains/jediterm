@@ -1,6 +1,15 @@
 ChangeLog of JediTerm
 
 ==============================
+16/08/2013 0.08
+-Switched to pty4j to run local terminal
+-Autowrap
+-Added word and line selection by click
+-Tab rename
+-Scroll-up & Scroll-Down
+-Fixed a lot of bugs
+
+==============================
 15/07/2013 0.07
 -New selection(non-XOR) that works better with dark schemes
 -Move scrolling on mouse drag

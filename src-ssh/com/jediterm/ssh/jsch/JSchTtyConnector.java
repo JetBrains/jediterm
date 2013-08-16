@@ -3,10 +3,7 @@
  */
 package com.jediterm.ssh.jsch;
 
-import com.jcraft.jsch.ChannelShell;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.Session;
+import com.jcraft.jsch.*;
 import com.jediterm.terminal.Questioner;
 import com.jediterm.terminal.TtyConnector;
 import org.apache.log4j.Logger;
@@ -179,5 +176,17 @@ public class JSchTtyConnector implements TtyConnector {
   @Override
   public void write(String string) throws IOException {
     write(string.getBytes("utf-8")); //TODO: fix
+  }
+
+  @Override
+  public int waitFor() throws InterruptedException {
+    while (isRunning(myChannelShell)) {
+      Thread.sleep(100); //TODO: remove busy wait
+    }
+    return myChannelShell.getExitStatus();
+  }
+
+  private static boolean isRunning(Channel channel) {
+    return channel.getExitStatus() < 0 && channel.isConnected();
   }
 }

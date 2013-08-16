@@ -1,8 +1,10 @@
 package com.jediterm.terminal.ui;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Sets;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TtyConnector;
+import com.jediterm.terminal.TtyConnectorWaitFor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -12,14 +14,12 @@ import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.Set;
+import java.util.concurrent.Executors;
 
 /**
  * @author traff
  */
 public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
-  private static final int FIRST_TAB_NUMBER = 1;
-  public static final String TAB_DEFAULT_NAME = "Session ";
-
   private TerminalPanelListener myTerminalPanelListener = null;
 
   private JediTermWidget myTermWidget = null;
@@ -37,6 +37,18 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
   public TerminalSession createTerminalSession(TtyConnector ttyConnector) {
     final JediTermWidget terminal = createInnerTerminalWidget();
     terminal.setTtyConnector(ttyConnector);
+
+    new TtyConnectorWaitFor(ttyConnector, Executors.newSingleThreadExecutor()).setTerminationCallback(new Predicate<Integer>() {
+      @Override
+      public boolean apply(Integer integer) {
+        if (mySystemSettingsProvider.shouldCloseTabOnLogout()) {
+          if (myTabbedPane != null) {
+            removeTab(terminal);
+          }
+        }
+        return true;
+      }
+    });
 
     if (myTerminalPanelListener != null) {
       terminal.setTerminalPanelListener(myTerminalPanelListener);
@@ -69,7 +81,6 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
   }
 
   private void addTab(JediTermWidget terminal, JTabbedPane tabbedPane) {
-    //TODO: add number when we have the same names
     tabbedPane.addTab(generateUniqueName(terminal.getSessionName(), tabbedPane), null, terminal);
 
     tabbedPane.setTabComponentAt(tabbedPane.getTabCount() - 1, new TabComponent(tabbedPane, terminal));
@@ -256,7 +267,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
 
       //add more space between the label and the button
       label.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 5));
-      
+
       label.addMouseListener(new MouseAdapter() {
 
         @Override

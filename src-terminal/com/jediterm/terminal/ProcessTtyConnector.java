@@ -89,4 +89,9 @@ public abstract class ProcessTtyConnector implements TtyConnector {
   public void close() {
     myProcess.destroy();
   }
+
+  @Override
+  public int waitFor() throws InterruptedException {
+    return myProcess.waitFor();
+  }
 }

@@ -22,4 +22,6 @@ public interface TtyConnector {
   boolean isConnected();
 
   void write(String string) throws IOException;
+
+  int waitFor() throws InterruptedException;
 }

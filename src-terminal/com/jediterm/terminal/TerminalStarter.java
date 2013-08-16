@@ -26,7 +26,7 @@ public class TerminalStarter implements TerminalOutputStream {
 
   private final TtyConnector myTtyConnector;
 
-  private final ExecutorService myEmulatorExecutor = Executors.newFixedThreadPool(1);
+  private final ExecutorService myEmulatorExecutor = Executors.newSingleThreadExecutor();
 
   public TerminalStarter(final Terminal terminal, final TtyConnector ttyConnector) {
     myTtyConnector = ttyConnector;

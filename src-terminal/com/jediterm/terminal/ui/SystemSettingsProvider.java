@@ -16,5 +16,9 @@ public interface SystemSettingsProvider {
 
   KeyStroke[] getNewSessionKeyStrokes();
 
+  KeyStroke[] getCloseSessionKeyStrokes();
+  
   ColorPalette getPalette();
+
+  boolean shouldCloseTabOnLogout();
 }

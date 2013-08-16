@@ -26,36 +26,27 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   public static final double SCROLL_SPEED = 0.05;
 
+  /*images*/
   private BufferedImage myImage;
-
   private BufferedImage myImageForSelection;
-
   protected Graphics2D myGfx;
-
   private Graphics2D myGfxForSelection;
 
   private final Component myTerminalPanel = this;
 
+  /*font related*/
   private Font myNormalFont;
-
   private Font myBoldFont;
-
   private int myDescent = 0;
-
   private float myLineSpace = 0;
-
   protected Dimension myCharSize = new Dimension();
-
   protected Dimension myTermSize = new Dimension(80, 24);
-
   private boolean myAntialiasing = true;
 
   private TerminalStarter myTerminalStarter = null;
 
   private TerminalSelection mySelection = null;
-
   private TextStyle mySelectionColor = new TextStyle(TerminalColor.WHITE, TerminalColor.rgb(82, 109, 165));
-
   private Clipboard myClipboard;
 
   private TerminalPanelListener myTerminalPanelListener;
@@ -65,21 +56,22 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   final private StyleState myStyleState;
 
+  /*scroll and cursor*/
   final private TerminalCursor myCursor = new TerminalCursor();
-
   private final BoundedRangeModel myBoundedRangeModel = new DefaultBoundedRangeModel(0, 80, 0, 80);
-
   protected int myClientScrollOrigin;
   protected int newClientScrollOrigin;
   private KeyListener myKeyListener;
   private long myLastCursorChange;
   private boolean myCursorIsShown;
   private long myLastResize;
-
   private boolean myScrollingEnabled = true;
+  
   private String myWindowTitle = "Terminal";
 
   private static final int SCALE = UIUtil.isRetina() ? 2 : 1;
+  
+  private TerminalKeyListener myNextHandler;
 
   public TerminalPanel(@NotNull SystemSettingsProvider settingsProvider, @NotNull BackBuffer backBuffer, @NotNull StyleState styleState) {
     mySettingsProvider = settingsProvider;
@@ -198,6 +190,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     setDoubleBuffered(true);
     redrawTimer.start();
     repaint();
+  }
+
+  public void setKeyHandler(TerminalKeyListener myNextHandler) {
+    this.myNextHandler = myNextHandler;
   }
 
   static class WeakRedrawTimer implements ActionListener {
@@ -1002,9 +998,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
           handlePaste();
           return;
         }
-        if (isNewSessionKeyStroke(e)) {
-          handleNewSession(e);
-          return;
+        
+        if (myNextHandler != null) { //try to handle by next in chain
+          if (myNextHandler.keyPressed(e)) { 
+            return;
+          }
         }
 
         final int keycode = e.getKeyCode();
@@ -1035,10 +1033,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       }
     }
 
-    private void handleNewSession(KeyEvent e) {
-      mySettingsProvider.getNewSessionAction().actionPerformed(new ActionEvent(e.getSource(), e.getID(), "New Session", e.getModifiers()));
-    }
-
     public void keyTyped(final KeyEvent e) {
       final char keychar = e.getKeyChar();
       if ((keychar & 0xff00) != 0) {
@@ -1067,15 +1061,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       mySelection = null;
       repaint();
     }
-  }
-
-  private boolean isNewSessionKeyStroke(KeyEvent event) {
-    for (KeyStroke ks : mySettingsProvider.getNewSessionKeyStrokes()) {
-      if (ks.equals(KeyStroke.getKeyStrokeForEvent(event))) {
-        return true;
-      }
-    }
-    return false;
   }
 
   private boolean isCopyKeyStroke(KeyEvent event) {

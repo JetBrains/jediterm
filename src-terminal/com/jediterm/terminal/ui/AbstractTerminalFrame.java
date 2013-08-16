@@ -17,7 +17,7 @@ public abstract class AbstractTerminalFrame {
   private JFrame myBufferFrame;
 
   private TerminalWidget myTerminal;
-
+  
   private AbstractAction myOpenAction = new AbstractAction("New Session") {
     public void actionPerformed(final ActionEvent e) {
       openSession();

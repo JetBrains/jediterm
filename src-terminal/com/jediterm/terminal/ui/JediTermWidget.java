@@ -12,13 +12,14 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.KeyEvent;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * JediTerm terminal widget with UI implemented in Swing.
  * <p/>
  */
-public class JediTermWidget extends JPanel implements TerminalSession, TerminalWidget {
+public class JediTermWidget extends JPanel implements TerminalSession, TerminalWidget, TerminalKeyListener {
   private static final Logger LOG = Logger.getLogger(JediTermWidget.class);
 
   protected final TerminalPanel myTerminalPanel;
@@ -29,6 +30,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   private TerminalStarter myTerminalStarter;
   private Thread myEmuThread;
   private final SystemSettingsProvider mySettingsProvider;
+  private TerminalKeyListener myNextKeyListener;
 
   public JediTermWidget(@NotNull SystemSettingsProvider settingsProvider) {
     this(80, 24, settingsProvider);
@@ -50,6 +52,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     myTerminal = new JediTerminal(myTerminalPanel, backBuffer, styleState);
 
     myTerminalPanel.addTerminalMouseListener(myTerminal);
+    myTerminalPanel.setKeyHandler(this);
 
     myPreConnectHandler = createPreConnectHandler(myTerminal);
     myTerminalPanel.setKeyListener(myPreConnectHandler);
@@ -107,8 +110,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   public String getSessionName() {
     if (myTtyConnector != null) {
       return myTtyConnector.getName();
-    }
-    else {
+    } else {
       return "Session";
     }
   }
@@ -122,8 +124,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     if (!mySessionRunning.get()) {
       myEmuThread = new Thread(new EmulatorTask());
       myEmuThread.start();
-    }
-    else {
+    } else {
       LOG.error("Should not try to start session again at this point... ");
     }
   }
@@ -186,6 +187,20 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     myTerminalStarter.close();
   }
 
+  @Override
+  public boolean keyPressed(KeyEvent e) {
+    if (myNextKeyListener != null) {
+      if (myNextKeyListener.keyPressed(e)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public void setKeyListener(TerminalKeyListener keyListener) {
+    this.myNextKeyListener = keyListener;
+  }
+
   class EmulatorTask implements Runnable {
     public void run() {
       try {
@@ -200,15 +215,12 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
           });
           myTerminalStarter.start();
         }
-      }
-      catch (Exception e) {
+      } catch (Exception e) {
         LOG.error("Exception running terminal", e);
-      }
-      finally {
+      } finally {
         try {
           myTtyConnector.close();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
         }
         mySessionRunning.set(false);
         myTerminalPanel.setKeyListener(myPreConnectHandler);

@@ -19,29 +19,30 @@ import java.util.concurrent.Executors;
 /**
  * @author traff
  */
-public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
+public class TabbedTerminalWidget extends JPanel implements TerminalWidget, TerminalKeyListener {
   private TerminalPanelListener myTerminalPanelListener = null;
 
   private JediTermWidget myTermWidget = null;
 
   private JTabbedPane myTabbedPane;
 
-  private SystemSettingsProvider mySystemSettingsProvider;
+  private SystemSettingsProvider mySettingsProvider;
 
   public TabbedTerminalWidget(@NotNull SystemSettingsProvider settingsProvider) {
     super(new BorderLayout());
-    mySystemSettingsProvider = settingsProvider;
+    mySettingsProvider = settingsProvider;
   }
 
   @Override
   public TerminalSession createTerminalSession(TtyConnector ttyConnector) {
     final JediTermWidget terminal = createInnerTerminalWidget();
     terminal.setTtyConnector(ttyConnector);
+    terminal.setKeyListener(this);
 
     new TtyConnectorWaitFor(ttyConnector, Executors.newSingleThreadExecutor()).setTerminationCallback(new Predicate<Integer>() {
       @Override
       public boolean apply(Integer integer) {
-        if (mySystemSettingsProvider.shouldCloseTabOnLogout()) {
+        if (mySettingsProvider.shouldCloseTabOnLogout()) {
           if (myTabbedPane != null) {
             removeTab(terminal);
           }
@@ -77,7 +78,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
   }
 
   protected JediTermWidget createInnerTerminalWidget() {
-    return new JediTermWidget(mySystemSettingsProvider);
+    return new JediTermWidget(mySettingsProvider);
   }
 
   private void addTab(JediTermWidget terminal, JTabbedPane tabbedPane) {
@@ -146,9 +147,9 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
   private JPopupMenu createPopup(final JediTermWidget terminal) {
     JPopupMenu popupMenu = new JPopupMenu();
 
-    JMenuItem newSession = new JMenuItem(mySystemSettingsProvider.getNewSessionAction());
-    if (mySystemSettingsProvider.getNewSessionKeyStrokes().length > 0) {
-      newSession.setAccelerator(mySystemSettingsProvider.getNewSessionKeyStrokes()[0]);
+    JMenuItem newSession = new JMenuItem(mySettingsProvider.getNewSessionAction());
+    if (mySettingsProvider.getNewSessionKeyStrokes().length > 0) {
+      newSession.setAccelerator(mySettingsProvider.getNewSessionKeyStrokes()[0]);
     }
     popupMenu.add(newSession);
 
@@ -166,6 +167,9 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
         close(terminal);
       }
     });
+    if (mySettingsProvider.getCloseSessionKeyStrokes().length > 0) {
+      close.setAccelerator(mySettingsProvider.getCloseSessionKeyStrokes()[0]);
+    }
 
     popupMenu.add(rename);
     popupMenu.add(close);
@@ -239,6 +243,47 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
     onSessionChanged();
   }
 
+  @Override
+  public boolean keyPressed(KeyEvent e) {
+    if (isNewSessionKeyStroke(e)) {
+      handleNewSession(e);
+      return true;
+    }
+    if (isCloseSessionKeyStroke(e)) {
+      handleCloseSession();
+      return true;
+    }
+    
+    return false;
+  }
+
+  private void handleCloseSession() {
+    closeCurrentSession();
+  }
+
+  private boolean isNewSessionKeyStroke(KeyEvent event) {
+    for (KeyStroke ks : mySettingsProvider.getNewSessionKeyStrokes()) {
+      if (ks.equals(KeyStroke.getKeyStrokeForEvent(event))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+
+  private void handleNewSession(KeyEvent e) {
+    mySettingsProvider.getNewSessionAction().actionPerformed(new ActionEvent(e.getSource(), e.getID(), "New Session", e.getModifiers()));
+  }
+
+  private boolean isCloseSessionKeyStroke(KeyEvent event) { //TODO: remove code duplication
+    for (KeyStroke ks : mySettingsProvider.getCloseSessionKeyStrokes()) {
+      if (ks.equals(KeyStroke.getKeyStrokeForEvent(event))) {
+        return true;
+      }
+    }
+    return false;
+  }
+  
   private class TabComponent extends JPanel implements FocusListener {
 
     private JediTermWidget myTerminal;
@@ -350,6 +395,6 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget {
   }
 
   public SystemSettingsProvider getSystemSettingsProvider() {
-    return mySystemSettingsProvider;
+    return mySettingsProvider;
   }
 }

@@ -1,5 +1,6 @@
 package com.jediterm.terminal.ui;
 
+import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.emulator.ColorPalette;
 
 import javax.swing.*;
@@ -20,5 +21,5 @@ public interface SystemSettingsProvider {
   
   ColorPalette getPalette();
 
-  boolean shouldCloseTabOnLogout();
+  boolean shouldCloseTabOnLogout(TtyConnector ttyConnector);
 }

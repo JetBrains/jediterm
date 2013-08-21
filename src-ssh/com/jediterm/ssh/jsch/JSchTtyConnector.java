@@ -10,6 +10,7 @@ import org.apache.log4j.Logger;
 
 import java.awt.*;
 import java.io.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class JSchTtyConnector implements TtyConnector {
   public static final Logger LOG = Logger.getLogger(JSchTtyConnector.class);
@@ -18,6 +19,7 @@ public class JSchTtyConnector implements TtyConnector {
   private OutputStream myOutputStream = null;
   private Session mySession;
   private ChannelShell myChannelShell;
+  private AtomicBoolean isInitiated = new AtomicBoolean(false);
 
   private int myPort = 22;
 
@@ -79,6 +81,7 @@ public class JSchTtyConnector implements TtyConnector {
       myChannelShell.setPtyType("xterm");
       myChannelShell.connect();
       resizeImmediately();
+      isInitiated.set(true);
       return true;
     }
     catch (final IOException e) {
@@ -180,13 +183,13 @@ public class JSchTtyConnector implements TtyConnector {
 
   @Override
   public int waitFor() throws InterruptedException {
-    while (isRunning(myChannelShell)) {
+    while (!isInitiated.get() || isRunning(myChannelShell)) {
       Thread.sleep(100); //TODO: remove busy wait
     }
     return myChannelShell.getExitStatus();
   }
 
   private static boolean isRunning(Channel channel) {
-    return channel.getExitStatus() < 0 && channel.isConnected();
+    return channel != null && channel.getExitStatus() < 0 && channel.isConnected();
   }
 }

@@ -147,7 +147,7 @@ public class JSchTtyConnector implements TtyConnector {
       if (myUser == null) {
         myUser = q.questionVisible("user:", System.getProperty("user.name").toLowerCase());
       }
-      if (myHost == null || myHost.length() == 0) {
+      if (myUser == null || myUser.length() == 0) {
         continue;
       }
       break;

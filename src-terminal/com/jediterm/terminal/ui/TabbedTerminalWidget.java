@@ -1,6 +1,7 @@
 package com.jediterm.terminal.ui;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TtyConnector;
@@ -13,6 +14,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Executors;
 
@@ -27,6 +29,8 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   private JTabbedPane myTabbedPane;
 
   private SystemSettingsProvider mySettingsProvider;
+  
+  private List<TabListener> myTabListeners = Lists.newArrayList();
 
   public TabbedTerminalWidget(@NotNull SystemSettingsProvider settingsProvider) {
     super(new BorderLayout());
@@ -123,8 +127,8 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     return tabbedPane;
   }
 
-  public boolean isSingleSession() {
-    return myTabbedPane == null && myTermWidget != null;
+  public boolean isNoActiveSessions() {
+    return myTabbedPane == null && myTermWidget == null;
   }
 
   private void onSessionChanged() {
@@ -228,6 +232,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
       else {
         myTermWidget = null;
       }
+      fireTabClosed(terminal);
     }
   }
 
@@ -405,5 +410,24 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
 
   public SystemSettingsProvider getSystemSettingsProvider() {
     return mySettingsProvider;
+  }
+
+  
+  public void addTabListener(TabListener listener) {
+    myTabListeners.add(listener);
+  }
+  
+  public void removeTabListener(TabListener listener) {
+    myTabListeners.remove(listener);
+  }
+  
+  private void fireTabClosed(JediTermWidget terminal) {
+    for (TabListener l: myTabListeners) {
+      l.tabClosed(terminal);
+    }
+  }
+  
+  public interface TabListener {
+    void tabClosed(JediTermWidget terminal);
   }
 }

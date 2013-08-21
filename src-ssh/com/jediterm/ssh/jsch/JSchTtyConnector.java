@@ -155,7 +155,7 @@ public class JSchTtyConnector implements TtyConnector {
   }
 
   public String getName() {
-    return myHost;
+    return myHost != null ? myHost : "Remote";
   }
 
   @Override

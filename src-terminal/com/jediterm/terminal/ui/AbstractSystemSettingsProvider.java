@@ -1,6 +1,5 @@
 package com.jediterm.terminal.ui;
 
-import com.jediterm.pty.PtyProcessTtyConnector;
 import com.jediterm.terminal.TtyConnector;
 
 import javax.swing.*;
@@ -27,6 +26,6 @@ public abstract class AbstractSystemSettingsProvider implements SystemSettingsPr
 
   @Override
   public boolean shouldCloseTabOnLogout(TtyConnector ttyConnector) {
-    return ttyConnector instanceof PtyProcessTtyConnector; //close tab only on logout of local pty, not remote
+    return true;
   }
 }

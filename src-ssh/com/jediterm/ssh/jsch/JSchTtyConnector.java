@@ -109,15 +109,15 @@ public class JSchTtyConnector implements TtyConnector {
     config.put("compression.s2c", "zlib,none");
     config.put("compression.c2s", "zlib,none");
     configureSession(session, config);
-    session.setTimeout(5000);
     session.connect();
     session.setTimeout(0);
 
     return session;
   }
 
-  protected void configureSession(Session session, final java.util.Properties config) {
+  protected void configureSession(Session session, final java.util.Properties config) throws JSchException {
     session.setConfig(config);
+    session.setTimeout(5000);
   }
 
   private void getAuthDetails(Questioner q) {

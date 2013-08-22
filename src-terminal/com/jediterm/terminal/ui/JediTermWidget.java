@@ -1,5 +1,6 @@
 package com.jediterm.terminal.ui;
 
+import com.google.common.collect.Lists;
 import com.jediterm.terminal.TerminalStarter;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.TtyConnector;
@@ -13,13 +14,15 @@ import org.jetbrains.annotations.NotNull;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
+import java.util.*;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * JediTerm terminal widget with UI implemented in Swing.
  * <p/>
  */
-public class JediTermWidget extends JPanel implements TerminalSession, TerminalWidget, TerminalKeyListener {
+public class JediTermWidget extends JPanel implements TerminalSession, TerminalWidget, TerminalActionProvider {
   private static final Logger LOG = Logger.getLogger(JediTermWidget.class);
 
   protected final TerminalPanel myTerminalPanel;
@@ -30,7 +33,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   private TerminalStarter myTerminalStarter;
   private Thread myEmuThread;
   private final SystemSettingsProvider mySettingsProvider;
-  private TerminalKeyListener myNextKeyListener;
+  private TerminalActionProvider myNextActionProvider;
 
   public JediTermWidget(@NotNull SystemSettingsProvider settingsProvider) {
     this(80, 24, settingsProvider);
@@ -52,7 +55,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     myTerminal = new JediTerminal(myTerminalPanel, backBuffer, styleState);
 
     myTerminalPanel.addTerminalMouseListener(myTerminal);
-    myTerminalPanel.setKeyHandler(this);
+    myTerminalPanel.setNextProvider(this);
 
     myPreConnectHandler = createPreConnectHandler(myTerminal);
     myTerminalPanel.setKeyListener(myPreConnectHandler);
@@ -188,17 +191,17 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   }
 
   @Override
-  public boolean keyPressed(KeyEvent e) {
-    if (myNextKeyListener != null) {
-      if (myNextKeyListener.keyPressed(e)) {
-        return true;
-      }
-    }
-    return false;
+  public List<TerminalAction> getActions() {
+    return Lists.newArrayList();
   }
 
-  public void setKeyListener(TerminalKeyListener keyListener) {
-    this.myNextKeyListener = keyListener;
+  @Override
+  public TerminalActionProvider getNextProvider() {
+    return myNextActionProvider;
+  }
+
+  public void setNextProvider(TerminalActionProvider actionProvider) {
+    this.myNextActionProvider = actionProvider;
   }
 
   class EmulatorTask implements Runnable {

@@ -21,7 +21,7 @@ import java.util.concurrent.Executors;
 /**
  * @author traff
  */
-public class TabbedTerminalWidget extends JPanel implements TerminalWidget, TerminalKeyListener {
+public class TabbedTerminalWidget extends JPanel implements TerminalWidget, TerminalActionProvider {
   private TerminalPanelListener myTerminalPanelListener = null;
 
   private JediTermWidget myTermWidget = null;
@@ -31,6 +31,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   private SystemSettingsProvider mySettingsProvider;
   
   private List<TabListener> myTabListeners = Lists.newArrayList();
+  private TerminalActionProvider myNextActionProvider;
 
   public TabbedTerminalWidget(@NotNull SystemSettingsProvider settingsProvider) {
     super(new BorderLayout());
@@ -41,7 +42,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   public TerminalSession createTerminalSession(final TtyConnector ttyConnector) {
     final JediTermWidget terminal = createInnerTerminalWidget();
     terminal.setTtyConnector(ttyConnector);
-    terminal.setKeyListener(this);
+    terminal.setNextProvider(this);
 
     new TtyConnectorWaitFor(ttyConnector, Executors.newSingleThreadExecutor()).setTerminationCallback(new Predicate<Integer>() {
       @Override
@@ -255,44 +256,40 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   }
 
   @Override
-  public boolean keyPressed(KeyEvent e) {
-    if (isNewSessionKeyStroke(e)) {
-      handleNewSession(e);
-      return true;
-    }
-    if (isCloseSessionKeyStroke(e)) {
-      handleCloseSession();
-      return true;
-    }
-
-    return false;
+  public List<TerminalAction> getActions() {
+    return Lists.newArrayList(
+      new TerminalAction(mySettingsProvider.getNewSessionKeyStrokes(), new Runnable() {
+        @Override
+        public void run() {
+          handleNewSession();
+        }
+      }),
+      new TerminalAction(mySettingsProvider.getCloseSessionKeyStrokes(), new Runnable() {
+        @Override
+        public void run() {
+          handleCloseSession();
+        }
+      })
+    );
   }
+
+  @Override
+  public TerminalActionProvider getNextProvider() {
+    return myNextActionProvider;
+  }
+
+  @Override
+  public void setNextProvider(TerminalActionProvider provider) {
+    myNextActionProvider = provider;
+  }
+
 
   private void handleCloseSession() {
     closeCurrentSession();
   }
 
-  private boolean isNewSessionKeyStroke(KeyEvent event) {
-    for (KeyStroke ks : mySettingsProvider.getNewSessionKeyStrokes()) {
-      if (ks.equals(KeyStroke.getKeyStrokeForEvent(event))) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-
-  private void handleNewSession(KeyEvent e) {
-    mySettingsProvider.getNewSessionAction().actionPerformed(new ActionEvent(e.getSource(), e.getID(), "New Session", e.getModifiers()));
-  }
-
-  private boolean isCloseSessionKeyStroke(KeyEvent event) { //TODO: remove code duplication
-    for (KeyStroke ks : mySettingsProvider.getCloseSessionKeyStrokes()) {
-      if (ks.equals(KeyStroke.getKeyStrokeForEvent(event))) {
-        return true;
-      }
-    }
-    return false;
+  private void handleNewSession() {
+    mySettingsProvider.getNewSessionAction().actionPerformed(null);
   }
 
   private class TabComponent extends JPanel implements FocusListener {

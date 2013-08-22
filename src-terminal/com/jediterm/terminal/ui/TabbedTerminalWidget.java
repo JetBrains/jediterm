@@ -29,7 +29,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   private JTabbedPane myTabbedPane;
 
   private SystemSettingsProvider mySettingsProvider;
-  
+
   private List<TabListener> myTabListeners = Lists.newArrayList();
   private TerminalActionProvider myNextActionProvider;
 
@@ -49,7 +49,12 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
       public boolean apply(Integer integer) {
         if (mySettingsProvider.shouldCloseTabOnLogout(ttyConnector)) {
           if (myTabbedPane != null) {
-            removeTab(terminal);
+            SwingUtilities.invokeLater(new Runnable() {
+              @Override
+              public void run() {
+                removeTab(terminal);
+              }
+            });
           }
         }
         return true;
@@ -409,21 +414,21 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     return mySettingsProvider;
   }
 
-  
+
   public void addTabListener(TabListener listener) {
     myTabListeners.add(listener);
   }
-  
+
   public void removeTabListener(TabListener listener) {
     myTabListeners.remove(listener);
   }
-  
+
   private void fireTabClosed(JediTermWidget terminal) {
-    for (TabListener l: myTabListeners) {
+    for (TabListener l : myTabListeners) {
       l.tabClosed(terminal);
     }
   }
-  
+
   public interface TabListener {
     void tabClosed(JediTermWidget terminal);
   }

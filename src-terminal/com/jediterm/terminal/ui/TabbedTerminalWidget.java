@@ -263,16 +263,18 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   @Override
   public List<TerminalAction> getActions() {
     return Lists.newArrayList(
-      new TerminalAction(mySettingsProvider.getNewSessionKeyStrokes(), new Runnable() {
+      new TerminalAction(mySettingsProvider.getNewSessionKeyStrokes(), new Predicate<KeyEvent>() {
         @Override
-        public void run() {
+        public boolean apply(KeyEvent input) {
           handleNewSession();
+          return true;
         }
       }),
-      new TerminalAction(mySettingsProvider.getCloseSessionKeyStrokes(), new Runnable() {
+      new TerminalAction(mySettingsProvider.getCloseSessionKeyStrokes(), new Predicate<KeyEvent>() {
         @Override
-        public void run() {
+        public boolean apply(KeyEvent input) {
           handleCloseSession();
+          return true;
         }
       })
     );

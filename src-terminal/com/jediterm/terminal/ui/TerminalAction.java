@@ -1,5 +1,7 @@
 package com.jediterm.terminal.ui;
 
+import com.google.common.base.Predicate;
+
 import javax.swing.*;
 import java.awt.event.KeyEvent;
 
@@ -8,19 +10,11 @@ import java.awt.event.KeyEvent;
  */
 public class TerminalAction {
   private final KeyStroke[] myKeyStrokes;
-  private final Runnable myRunnable;
+  private final Predicate<KeyEvent> myRunnable;
 
-  public TerminalAction(KeyStroke[] keyStrokes, Runnable runnable) {
+  public TerminalAction(KeyStroke[] keyStrokes, Predicate<KeyEvent> runnable) {
     myKeyStrokes = keyStrokes;
     myRunnable = runnable;
-  }
-
-  public KeyStroke[] getKeyStrokes() {
-    return myKeyStrokes;
-  }
-
-  public Runnable getRunnable() {
-    return myRunnable;
   }
 
   public boolean matches(KeyEvent e) {
@@ -32,14 +26,14 @@ public class TerminalAction {
     return false;  
   }
 
-  public void perform() {
-    myRunnable.run();
+  public void perform(KeyEvent e) {
+    myRunnable.apply(e);
   }
 
   public static boolean processEvent(TerminalActionProvider actionProvider, final KeyEvent e) {
     for (TerminalAction a: actionProvider.getActions()) {
       if (a.matches(e)) {
-        a.perform();
+        a.perform(e);
         return true;
       }
     }

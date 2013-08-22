@@ -1,6 +1,7 @@
 package com.jediterm.terminal.ui;
 
 import com.google.common.base.Ascii;
+import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.jediterm.terminal.*;
 import com.jediterm.terminal.display.*;
@@ -11,7 +12,6 @@ import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import javax.swing.Timer;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
@@ -20,7 +20,6 @@ import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
-import java.util.*;
 import java.util.List;
 
 public class TerminalPanel extends JComponent implements TerminalDisplay, ClipboardOwner, StyledTextConsumer, TerminalActionProvider {
@@ -73,7 +72,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private String myWindowTitle = "Terminal";
 
-  private static final int SCALE = UIUtil.isRetina() ? 2 : 1;
+  private static final int SCALE = UIUtil.isRetina() ? 1 : 1;
 
   private TerminalActionProvider myNextActionProvider;
 
@@ -199,6 +198,18 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     repaint();
   }
 
+  public String getFontName() {
+    if (UIUtil.isWindows) {
+      return "Consolas-14";
+    }
+    else if (UIUtil.isMac) {
+      return "Menlo-14";
+    }
+    else {
+      return "Monospaced-14";
+    }
+  }
+
   static class WeakRedrawTimer implements ActionListener {
 
     private WeakReference<TerminalPanel> ref;
@@ -226,10 +237,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   protected Font createFont() {
-    if (UIUtil.isWindows) {
-      return Font.decode("Consolas-14");
-    }
-    return Font.decode("Monospaced-14");
+    return Font.decode(getFontName());
   }
 
   protected Point panelToCharCoords(final Point p) {
@@ -321,10 +329,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       myGfxForSelection = imageAndGfx.second;
 
       if (oldImage != null) {
-        myGfx.drawImage(oldImage, 0, 0,
-                        oldImage.getWidth(), oldImage.getHeight(), myTerminalPanel);
+        drawImage(myGfx, oldImage);
       }
     }
+  }
+
+  protected void drawImage(Graphics2D gfx, BufferedImage image) {
+    gfx.drawImage(image, 0, 0,
+                  image.getWidth(), image.getHeight(), myTerminalPanel);    
   }
 
   private Pair<BufferedImage, Graphics2D> createAndInitImage(int width, int height) {
@@ -444,7 +456,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   public void paintComponent(final Graphics g) {
     Graphics2D gfx = (Graphics2D)g;
     if (myImage != null) {
-      gfx.drawImage(myImage, 0, 0, myTerminalPanel);
+      drawImage(gfx, myImage);
       drawMargins(gfx, myImage.getWidth(), myImage.getHeight());
       drawSelection(myImageForSelection, gfx);
       myCursor.drawCursor(gfx);
@@ -503,7 +515,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   public void initKeyHandler() {
-    setKeyListener(new TerminalKeyHandler(myTerminalStarter, mySettingsProvider));
+    setKeyListener(new TerminalKeyHandler());
   }
 
   public class TerminalCursor {
@@ -548,7 +560,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
           else {
             g.setColor(getPalette().getColor(current.getBackground()));
           }
-
           g.fillRect(myCursorCoordinates.x * myCharSize.width * SCALE, y * myCharSize.height * SCALE,
                      myCharSize.width * SCALE, myCharSize.height * SCALE);
 
@@ -1004,16 +1015,18 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   @Override
   public List<TerminalAction> getActions() {
     return Lists.newArrayList(
-      new TerminalAction(mySettingsProvider.getCopyKeyStrokes(), new Runnable() {
+      new TerminalAction(mySettingsProvider.getCopyKeyStrokes(), new Predicate<KeyEvent>() {
         @Override
-        public void run() {
-          handleCopy();
+        public boolean apply(KeyEvent input) {
+          handleCopy(input);
+          return true;
         }
       }),
-      new TerminalAction(mySettingsProvider.getPasteKeyStrokes(), new Runnable() {
+      new TerminalAction(mySettingsProvider.getPasteKeyStrokes(), new Predicate<KeyEvent>() {
         @Override
-        public void run() {
+        public boolean apply(KeyEvent input) {
           handlePaste();
+          return true;
         }
       }));
   }
@@ -1028,61 +1041,66 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     myNextActionProvider = provider;
   }
 
-  public class TerminalKeyHandler implements KeyListener {
-    private final TerminalStarter myTerminalStarter;
-    private SystemSettingsProvider mySettingsProvider;
+  private void processTerminalKeyPressed(KeyEvent e) {
+    try {
+      final int keycode = e.getKeyCode();
+      final char keychar = e.getKeyChar();
 
-    public TerminalKeyHandler(TerminalStarter terminalStarter, SystemSettingsProvider settingsProvider) {
-      myTerminalStarter = terminalStarter;
-      mySettingsProvider = settingsProvider;
-    }
-
-    public void keyPressed(final KeyEvent e) {
-      try {
-        TerminalAction.processEvent(TerminalPanel.this, e);
-
-        final int keycode = e.getKeyCode();
-        final char keychar = e.getKeyChar();
-
-        // numLock does not change the code sent by keypad VK_DELETE
-        // although it send the char '.'
-        if (keycode == KeyEvent.VK_DELETE && keychar == '.') {
-          myTerminalStarter.sendBytes(new byte[]{'.'});
-          return;
-        }
-        // CTRL + Space is not handled in KeyEvent; handle it manually
-        else if (keychar == ' ' && (e.getModifiers() & KeyEvent.CTRL_MASK) != 0) {
-          myTerminalStarter.sendBytes(new byte[]{Ascii.NUL});
-          return;
-        }
-
-        final byte[] code = myTerminalStarter.getCode(keycode);
-        if (code != null) {
-          myTerminalStarter.sendBytes(code);
-        }
-        else if ((keychar & 0xff00) == 0) {
-          final byte[] obuffer = new byte[1];
-          obuffer[0] = (byte)keychar;
-          myTerminalStarter.sendBytes(obuffer);
-        }
+      // numLock does not change the code sent by keypad VK_DELETE
+      // although it send the char '.'
+      if (keycode == KeyEvent.VK_DELETE && keychar == '.') {
+        myTerminalStarter.sendBytes(new byte[]{'.'});
+        return;
       }
-      catch (final Exception ex) {
+      // CTRL + Space is not handled in KeyEvent; handle it manually
+      else if (keychar == ' ' && (e.getModifiers() & KeyEvent.CTRL_MASK) != 0) {
+        myTerminalStarter.sendBytes(new byte[]{Ascii.NUL});
+        return;
+      }
+
+      final byte[] code = myTerminalStarter.getCode(keycode);
+      if (code != null) {
+        myTerminalStarter.sendBytes(code);
+      }
+      else if ((keychar & 0xff00) == 0) {
+        final byte[] obuffer = new byte[1];
+        obuffer[0] = (byte)keychar;
+        myTerminalStarter.sendBytes(obuffer);
+      }
+    }
+    catch (final Exception ex) {
+      LOG.error("Error sending key to emulator", ex);
+    }
+  }
+
+  private void processTerminalKeyTyped(KeyEvent e) {
+    final char keychar = e.getKeyChar();
+    if ((keychar & 0xff00) != 0) {
+      final char[] foo = new char[1];
+      foo[0] = keychar;
+      try {
+        myTerminalStarter.sendString(new String(foo));
+      }
+      catch (final RuntimeException ex) {
         LOG.error("Error sending key to emulator", ex);
       }
     }
+  }
+
+  public class TerminalKeyHandler implements KeyListener {
+
+    public TerminalKeyHandler() {
+    }
+
+    public void keyPressed(final KeyEvent e) {
+      
+      TerminalAction.processEvent(TerminalPanel.this, e);
+
+      processTerminalKeyPressed(e);
+    }
 
     public void keyTyped(final KeyEvent e) {
-      final char keychar = e.getKeyChar();
-      if ((keychar & 0xff00) != 0) {
-        final char[] foo = new char[1];
-        foo[0] = keychar;
-        try {
-          myTerminalStarter.sendString(new String(foo));
-        }
-        catch (final RuntimeException ex) {
-          LOG.error("Error sending key to emulator", ex);
-        }
-      }
+      processTerminalKeyTyped(e);
     }
 
     //Ignore releases
@@ -1094,11 +1112,13 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     pasteSelection();
   }
 
-  private void handleCopy() {
+  private void handleCopy(final KeyEvent e) {
     if (mySelection != null) {
       copySelection(mySelection.getStart(), mySelection.getEnd());
       mySelection = null;
       repaint();
+    } else {
+      processTerminalKeyPressed(e);
     }
   }
 }

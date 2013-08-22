@@ -1,18 +1,27 @@
 package com.jediterm.terminal.ui;
 
 import com.google.common.base.Predicate;
+import com.google.common.base.Supplier;
 
 import javax.swing.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 
 /**
  * @author traff
  */
 public class TerminalAction {
+  private final String myName;
   private final KeyStroke[] myKeyStrokes;
   private final Predicate<KeyEvent> myRunnable;
 
-  public TerminalAction(KeyStroke[] keyStrokes, Predicate<KeyEvent> runnable) {
+  private Character myMnemonic = null;
+  private Supplier<Boolean> myEnabledSupplier = null;
+  private Integer myMnemonicKey = null;
+
+  public TerminalAction(String name, KeyStroke[] keyStrokes, Predicate<KeyEvent> runnable) {
+    myName = name;
     myKeyStrokes = keyStrokes;
     myRunnable = runnable;
   }
@@ -23,7 +32,7 @@ public class TerminalAction {
         return true;
       }
     }
-    return false;  
+    return false;
   }
 
   public void perform(KeyEvent e) {
@@ -31,7 +40,7 @@ public class TerminalAction {
   }
 
   public static boolean processEvent(TerminalActionProvider actionProvider, final KeyEvent e) {
-    for (TerminalAction a: actionProvider.getActions()) {
+    for (TerminalAction a : actionProvider.getActions()) {
       if (a.matches(e)) {
         a.perform(e);
         return true;
@@ -47,18 +56,88 @@ public class TerminalAction {
     return false;
   }
 
+  public static boolean addToMenu(JPopupMenu menu, TerminalActionProvider actionProvider) {
+    boolean added = false;
+    if (actionProvider.getNextProvider() != null) {
+      added = addToMenu(menu, actionProvider.getNextProvider());
+    }
+    boolean addSeparator = added;
+    for (final TerminalAction a : actionProvider.getActions()) {
+      if (addSeparator) {
+        menu.addSeparator();
+        addSeparator = false;
+      }
+
+      menu.add(a.toMenuItem());
+
+      added = true;
+    }
+
+    return added;
+  }
 
   public int getKeyCode() {
-    for (KeyStroke ks: myKeyStrokes) {
+    for (KeyStroke ks : myKeyStrokes) {
       return ks.getKeyCode();
     }
     return 0;
   }
 
   public int getModifiers() {
-    for (KeyStroke ks: myKeyStrokes) {
+    for (KeyStroke ks : myKeyStrokes) {
       return ks.getModifiers();
     }
     return 0;
+  }
+
+  public String getName() {
+    return myName;
+  }
+  
+  public TerminalAction withMnemonic(Character ch) {
+    myMnemonic = ch;
+    return this;
+  }
+
+  public TerminalAction withMnemonicKey(Integer key) {
+    myMnemonicKey = key;
+    return this;
+  }
+
+  public boolean isEnabled() {
+    if (myEnabledSupplier != null) {
+      return myEnabledSupplier.get();
+    }
+    return true;
+  }
+  
+  public TerminalAction withEnabledSupplier(Supplier<Boolean> enabledSupplier) {
+    myEnabledSupplier = enabledSupplier;
+    return this;
+  }
+  
+  public JMenuItem toMenuItem() {
+    JMenuItem menuItem = new JMenuItem(myName);
+
+    if (myMnemonic != null) {
+      menuItem.setMnemonic(myMnemonic);
+    }
+    if (myMnemonicKey != null) {
+      menuItem.setMnemonic(myMnemonicKey);
+    }
+
+    if (myKeyStrokes.length > 0) {
+      menuItem.setAccelerator(myKeyStrokes[0]);
+    }
+
+    menuItem.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent actionEvent) {
+        myRunnable.apply(null);
+      }
+    });
+    menuItem.setEnabled(isEnabled());
+    
+    return menuItem;
   }
 }

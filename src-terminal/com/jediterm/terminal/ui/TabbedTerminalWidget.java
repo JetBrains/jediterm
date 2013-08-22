@@ -32,10 +32,13 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
 
   private List<TabListener> myTabListeners = Lists.newArrayList();
   private TerminalActionProvider myNextActionProvider;
+  
+  private final Runnable myCreateNewSessionRunnable;
 
-  public TabbedTerminalWidget(@NotNull SystemSettingsProvider settingsProvider) {
+  public TabbedTerminalWidget(@NotNull SystemSettingsProvider settingsProvider, @NotNull Runnable createNewSessionRunnable) {
     super(new BorderLayout());
     mySettingsProvider = settingsProvider;
+    myCreateNewSessionRunnable = createNewSessionRunnable;
   }
 
   @Override
@@ -77,8 +80,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
       }
 
       onSessionChanged();
-    }
-    else {
+    } else {
       if (myTabbedPane == null) {
         myTabbedPane = setupTabbedPane();
       }
@@ -155,35 +157,20 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     return new JTabbedPane();
   }
 
-  private JPopupMenu createPopup(final JediTermWidget terminal) {
+  private JPopupMenu createPopup() {
     JPopupMenu popupMenu = new JPopupMenu();
 
-    JMenuItem newSession = new JMenuItem(mySettingsProvider.getNewSessionAction());
-    if (mySettingsProvider.getNewSessionKeyStrokes().length > 0) {
-      newSession.setAccelerator(mySettingsProvider.getNewSessionKeyStrokes()[0]);
-    }
-    popupMenu.add(newSession);
+    TerminalAction.addToMenu(popupMenu, this);
 
-    JMenuItem rename = new JMenuItem("Rename");
+    JMenuItem rename = new JMenuItem("Rename Tab");
     rename.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent actionEvent) {
         renameTab();
       }
     });
-    JMenuItem close = new JMenuItem("Close");
-    close.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent event) {
-        close(terminal);
-      }
-    });
-    if (mySettingsProvider.getCloseSessionKeyStrokes().length > 0) {
-      close.setAccelerator(mySettingsProvider.getCloseSessionKeyStrokes()[0]);
-    }
 
     popupMenu.add(rename);
-    popupMenu.add(close);
 
     return popupMenu;
   }
@@ -206,12 +193,10 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
           if (keyEvent.getKeyCode() == KeyEvent.VK_ESCAPE) {
             jTextField.removeFocusListener(focusAdapter);
             finishRename(selectedIndex, component, null);
-          }
-          else if (keyEvent.getKeyCode() == KeyEvent.VK_ENTER) {
+          } else if (keyEvent.getKeyCode() == KeyEvent.VK_ENTER) {
             jTextField.removeFocusListener(focusAdapter);
             finishRename(selectedIndex, component, jTextField.getText());
-          }
-          else {
+          } else {
             super.keyPressed(keyEvent);
           }
         }
@@ -234,8 +219,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
       terminal.close();
       if (myTabbedPane != null) {
         removeTab(terminal);
-      }
-      else {
+      } else {
         myTermWidget = null;
       }
       fireTabClosed(terminal);
@@ -263,20 +247,20 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   @Override
   public List<TerminalAction> getActions() {
     return Lists.newArrayList(
-      new TerminalAction(mySettingsProvider.getNewSessionKeyStrokes(), new Predicate<KeyEvent>() {
-        @Override
-        public boolean apply(KeyEvent input) {
-          handleNewSession();
-          return true;
-        }
-      }),
-      new TerminalAction(mySettingsProvider.getCloseSessionKeyStrokes(), new Predicate<KeyEvent>() {
-        @Override
-        public boolean apply(KeyEvent input) {
-          handleCloseSession();
-          return true;
-        }
-      })
+        new TerminalAction("New Session", mySettingsProvider.getNewSessionKeyStrokes(), new Predicate<KeyEvent>() {
+          @Override
+          public boolean apply(KeyEvent input) {
+            handleNewSession();
+            return true;
+          }
+        }).withMnemonicKey(KeyEvent.VK_N),
+        new TerminalAction("Close Session", mySettingsProvider.getCloseSessionKeyStrokes(), new Predicate<KeyEvent>() {
+          @Override
+          public boolean apply(KeyEvent input) {
+            handleCloseSession();
+            return true;
+          }
+        }).withMnemonicKey(KeyEvent.VK_S)
     );
   }
 
@@ -296,7 +280,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   }
 
   private void handleNewSession() {
-    mySettingsProvider.getNewSessionAction().actionPerformed(null);
+    myCreateNewSessionRunnable.run();
   }
 
   private class TabComponent extends JPanel implements FocusListener {
@@ -342,10 +326,9 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
 
         private void handleMouse(MouseEvent event) {
           if (event.isPopupTrigger()) {
-            JPopupMenu menu = createPopup(terminal);
+            JPopupMenu menu = createPopup();
             menu.show(event.getComponent(), event.getX(), event.getY());
-          }
-          else {
+          } else {
             pane.setSelectedComponent(terminal);
             if (event.getClickCount() == 2 && !event.isConsumed()) {
               event.consume();
@@ -396,8 +379,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   public JediTermWidget getCurrentSession() {
     if (myTabbedPane != null) {
       return getTerminalPanel(myTabbedPane.getSelectedIndex());
-    }
-    else {
+    } else {
       return myTermWidget;
     }
   }
@@ -405,9 +387,8 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   @Nullable
   private JediTermWidget getTerminalPanel(int index) {
     if (index < myTabbedPane.getTabCount() && index >= 0) {
-      return (JediTermWidget)myTabbedPane.getComponentAt(index);
-    }
-    else {
+      return (JediTermWidget) myTabbedPane.getComponentAt(index);
+    } else {
       return null;
     }
   }

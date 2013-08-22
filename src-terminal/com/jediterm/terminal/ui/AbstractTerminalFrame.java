@@ -74,7 +74,12 @@ public abstract class AbstractTerminalFrame {
   public abstract TtyConnector createTtyConnector();
 
   protected AbstractTerminalFrame() {
-    myTerminal = new TabbedTerminalWidget(new MySystemSettingsProvider());
+    myTerminal = new TabbedTerminalWidget(new MySystemSettingsProvider(), new Runnable() {
+      @Override
+      public void run() {
+        openSession();
+      }
+    });
 
     final JFrame frame = new JFrame("JediTerm");
 
@@ -152,11 +157,6 @@ public abstract class AbstractTerminalFrame {
   }
 
   private class MySystemSettingsProvider extends AbstractSystemSettingsProvider {
-    @Override
-    public AbstractAction getNewSessionAction() {
-      return myOpenAction;
-    }
-
     @Override
     public KeyStroke[] getCopyKeyStrokes() {
       return new KeyStroke[]{UIUtil.isMac

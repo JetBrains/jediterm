@@ -32,7 +32,6 @@ public class JSchTtyConnector implements TtyConnector {
   private InputStreamReader myInputStreamReader;
   private OutputStreamWriter myOutputStreamWriter;
 
-
   public JSchTtyConnector() {
 
   }
@@ -81,7 +80,6 @@ public class JSchTtyConnector implements TtyConnector {
       myChannelShell.setPtyType("xterm");
       myChannelShell.connect();
       resizeImmediately();
-      isInitiated.set(true);
       return true;
     }
     catch (final IOException e) {
@@ -93,6 +91,9 @@ public class JSchTtyConnector implements TtyConnector {
       q.showMessage(e.getMessage());
       LOG.error("Error opening session or channel", e);
       return false;
+    }
+    finally {
+      isInitiated.set(true);
     }
   }
 

@@ -5,11 +5,11 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
 import com.jediterm.terminal.*;
+import com.jediterm.terminal.TextStyle.Option;
 import com.jediterm.terminal.display.*;
 import com.jediterm.terminal.emulator.ColorPalette;
 import com.jediterm.terminal.emulator.mouse.TerminalMouseListener;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
-import com.jediterm.terminal.ui.settings.SystemSettingsProvider;
 import com.jediterm.terminal.util.Pair;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -44,15 +44,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private Font myNormalFont;
   private Font myBoldFont;
   private int myDescent = 0;
-  private float myLineSpace = 0;
   protected Dimension myCharSize = new Dimension();
   protected Dimension myTermSize = new Dimension(80, 24);
-  private boolean myAntialiasing = true;
 
   private TerminalStarter myTerminalStarter = null;
 
   private TerminalSelection mySelection = null;
-  private TextStyle mySelectionColor = new TextStyle(TerminalColor.WHITE, TerminalColor.rgb(82, 109, 165));
   private Clipboard myClipboard;
 
   private TerminalPanelListener myTerminalPanelListener;
@@ -198,16 +195,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     repaint();
   }
 
-  public String getFontName() {
-    if (UIUtil.isWindows) {
-      return "Consolas-14";
-    } else if (UIUtil.isMac) {
-      return "Menlo-14";
-    } else {
-      return "Monospaced-14";
-    }
-  }
-
   static class WeakRedrawTimer implements ActionListener {
 
     private WeakReference<TerminalPanel> ref;
@@ -234,7 +221,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   protected Font createFont() {
-    return Font.decode(getFontName());
+    return mySettingsProvider.getTerminalFont();
   }
 
   protected Point panelToCharCoords(final Point p) {
@@ -337,7 +324,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     Graphics2D gfx = image.createGraphics();
 
-    setupAntialiasing(gfx, myAntialiasing);
+    setupAntialiasing(gfx);
 
     gfx.setColor(getBackground());
 
@@ -412,21 +399,21 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     final Graphics2D graphics = img.createGraphics();
     graphics.setFont(myNormalFont);
 
+    final float lineSpace = mySettingsProvider.getLineSpace();
     final FontMetrics fo = graphics.getFontMetrics();
     myDescent = fo.getDescent();
     myCharSize.width = fo.charWidth('@');
-    myCharSize.height = fo.getHeight() + (int) (myLineSpace * 2);
-    myDescent += myLineSpace;
+    myCharSize.height = fo.getHeight() + (int) (lineSpace * 2);
+    myDescent += lineSpace;
 
     img.flush();
     graphics.dispose();
   }
 
-  protected void setupAntialiasing(Graphics graphics, boolean antialiasing) {
-    myAntialiasing = antialiasing;
+  protected void setupAntialiasing(Graphics graphics) {
     if (graphics instanceof Graphics2D) {
       Graphics2D myGfx = (Graphics2D) graphics;
-      final Object mode = antialiasing ? RenderingHints.VALUE_TEXT_ANTIALIAS_ON
+      final Object mode = mySettingsProvider.useAntialiasing() ? RenderingHints.VALUE_TEXT_ANTIALIAS_ON
           : RenderingHints.VALUE_TEXT_ANTIALIAS_OFF;
       final RenderingHints hints = new RenderingHints(
           RenderingHints.KEY_TEXT_ANTIALIASING, mode);
@@ -436,12 +423,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   @Override
   public Color getBackground() {
-    return getPalette().getColor(myStyleState.getCurrent().getDefaultBackground());
+    return getPalette().getColor(myStyleState.getBackground());
   }
 
   @Override
   public Color getForeground() {
-    return getPalette().getColor(myStyleState.getCurrent().getDefaultForeground());
+    return getPalette().getColor(myStyleState.getForeground());
   }
 
   @Override
@@ -661,9 +648,19 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
     if (myGfxForSelection != null) {
       TextStyle selectionStyle = style.clone();
-      selectionStyle.setBackground(mySelectionColor.getBackground());
-      selectionStyle.setForeground(mySelectionColor.getForeground());
-
+      if(mySettingsProvider.useInverseSelectionColor()) {
+        selectionStyle.setOption(Option.INVERSE, !selectionStyle.hasOption(Option.INVERSE));
+        if (selectionStyle.getForeground() == null) {
+          selectionStyle.setForeground(myStyleState.getForeground());
+        }
+        if (selectionStyle.getBackground() == null) {
+          selectionStyle.setBackground(myStyleState.getBackground());
+        }
+      } else {
+        TextStyle mySelectionStyle = mySettingsProvider.getSelectionColor();
+        selectionStyle.setBackground(mySelectionStyle.getBackground());
+        selectionStyle.setForeground(mySelectionStyle.getForeground());
+      }
       drawCharacters(x, y, selectionStyle, buf, myGfxForSelection);
     }
   }
@@ -877,10 +874,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     Toolkit.getDefaultToolkit().beep();
   }
 
-  public void setLineSpace(final float foo) {
-    myLineSpace = foo;
-  }
-
   public BoundedRangeModel getBoundedRangeModel() {
     return myBoundedRangeModel;
   }
@@ -945,11 +938,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       myTerminalPanelListener.onTitleChanged(myWindowTitle);
     }
   }
-
-  public void setSelectionColor(TextStyle selectionColor) {
-    mySelectionColor = selectionColor;
-  }
-
 
   @Override
   public List<TerminalAction> getActions() {

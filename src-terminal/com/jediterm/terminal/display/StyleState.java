@@ -4,8 +4,6 @@ import com.jediterm.terminal.TerminalColor;
 import com.jediterm.terminal.TextStyle;
 import org.jetbrains.annotations.NotNull;
 
-import java.awt.*;
-
 public class StyleState {
   private TextStyle myCurrentStyle = TextStyle.EMPTY;
   private TextStyle myDefaultStyle = TextStyle.EMPTY;
@@ -49,14 +47,22 @@ public class StyleState {
     myMergedStyle = null;
   }
 
+  public TerminalColor getBackground() {
+    return getBackground(null);
+  }
+
   public TerminalColor getBackground(TerminalColor color) {
     return color != null ? color : myDefaultStyle.getBackground();
+  }
+
+  public TerminalColor getForeground() {
+    return getForeground(null);
   }
 
   public TerminalColor getForeground(TerminalColor color) {
     return color != null ? color : myDefaultStyle.getForeground();
   }
-  
+
   public StyleState clone() {
     return new StyleState(myCurrentStyle);
   }

@@ -46,11 +46,11 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   public JediTermWidget(int columns, int lines, SettingsProvider settingsProvider) {
     super(new BorderLayout());
 
-    StyleState styleState = createDefaultStyle();
+    mySettingsProvider = settingsProvider;
 
+    StyleState styleState = createDefaultStyle();
     BackBuffer backBuffer = new BackBuffer(columns, lines, styleState);
 
-    mySettingsProvider = settingsProvider;
     myTerminalPanel = createTerminalPanel(mySettingsProvider, styleState, backBuffer);
     myTerminal = new JediTerminal(myTerminalPanel, backBuffer, styleState);
 
@@ -78,7 +78,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   protected StyleState createDefaultStyle() {
     StyleState styleState = new StyleState();
-    styleState.setDefaultStyle(new TextStyle(TextStyle.FOREGROUND, TextStyle.BACKGROUND));
+    styleState.setDefaultStyle(mySettingsProvider.getDefaultStyle());
     return styleState;
   }
 

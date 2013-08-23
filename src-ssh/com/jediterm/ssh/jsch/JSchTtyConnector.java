@@ -10,6 +10,7 @@ import org.apache.log4j.Logger;
 
 import java.awt.*;
 import java.io.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class JSchTtyConnector implements TtyConnector {
   public static final Logger LOG = Logger.getLogger(JSchTtyConnector.class);
@@ -18,6 +19,7 @@ public class JSchTtyConnector implements TtyConnector {
   private OutputStream myOutputStream = null;
   private Session mySession;
   private ChannelShell myChannelShell;
+  private AtomicBoolean isInitiated = new AtomicBoolean(false);
 
   private int myPort = 22;
 
@@ -29,7 +31,6 @@ public class JSchTtyConnector implements TtyConnector {
   private Dimension myPendingPixelSize;
   private InputStreamReader myInputStreamReader;
   private OutputStreamWriter myOutputStreamWriter;
-
 
   public JSchTtyConnector() {
 
@@ -91,6 +92,9 @@ public class JSchTtyConnector implements TtyConnector {
       LOG.error("Error opening session or channel", e);
       return false;
     }
+    finally {
+      isInitiated.set(true);
+    }
   }
 
   private Session connectSession(Questioner questioner) throws JSchException {
@@ -143,7 +147,7 @@ public class JSchTtyConnector implements TtyConnector {
       if (myUser == null) {
         myUser = q.questionVisible("user:", System.getProperty("user.name").toLowerCase());
       }
-      if (myHost == null || myHost.length() == 0) {
+      if (myUser == null || myUser.length() == 0) {
         continue;
       }
       break;
@@ -151,7 +155,7 @@ public class JSchTtyConnector implements TtyConnector {
   }
 
   public String getName() {
-    return myHost;
+    return myHost != null ? myHost : "Remote";
   }
 
   @Override
@@ -180,13 +184,13 @@ public class JSchTtyConnector implements TtyConnector {
 
   @Override
   public int waitFor() throws InterruptedException {
-    while (isRunning(myChannelShell)) {
+    while (!isInitiated.get() || isRunning(myChannelShell)) {
       Thread.sleep(100); //TODO: remove busy wait
     }
     return myChannelShell.getExitStatus();
   }
 
   private static boolean isRunning(Channel channel) {
-    return channel.getExitStatus() < 0 && channel.isConnected();
+    return channel != null && channel.getExitStatus() < 0 && channel.isConnected();
   }
 }

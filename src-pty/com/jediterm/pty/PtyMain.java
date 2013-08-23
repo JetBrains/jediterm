@@ -44,11 +44,6 @@ public class PtyMain extends AbstractTerminalFrame {
     }
   }
 
-  @Override
-  protected ColorPalette getTerminalColorPalette() {
-    return Platform.isWindows() ? ColorPalette.WINDOWS_PALETTE : ColorPalette.XTERM_PALETTE;
-  }
-
   public static void main(final String[] arg) {
     BasicConfigurator.configure();
     Logger.getRootLogger().setLevel(Level.INFO);

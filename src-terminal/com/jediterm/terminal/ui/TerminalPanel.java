@@ -8,6 +8,8 @@ import com.jediterm.terminal.*;
 import com.jediterm.terminal.display.*;
 import com.jediterm.terminal.emulator.ColorPalette;
 import com.jediterm.terminal.emulator.mouse.TerminalMouseListener;
+import com.jediterm.terminal.ui.settings.SettingsProvider;
+import com.jediterm.terminal.ui.settings.SystemSettingsProvider;
 import com.jediterm.terminal.util.Pair;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -55,7 +57,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private TerminalPanelListener myTerminalPanelListener;
 
-  private SystemSettingsProvider mySettingsProvider;
+  private SettingsProvider mySettingsProvider;
   final private BackBuffer myBackBuffer;
 
   final private StyleState myStyleState;
@@ -77,7 +79,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private TerminalActionProvider myNextActionProvider;
 
-  public TerminalPanel(@NotNull SystemSettingsProvider settingsProvider, @NotNull BackBuffer backBuffer, @NotNull StyleState styleState) {
+  public TerminalPanel(@NotNull SettingsProvider settingsProvider, @NotNull BackBuffer backBuffer, @NotNull StyleState styleState) {
     mySettingsProvider = settingsProvider;
     myBackBuffer = backBuffer;
     myStyleState = styleState;
@@ -686,7 +688,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   private ColorPalette getPalette() {
-    return mySettingsProvider.getPalette();
+    return mySettingsProvider.getTerminalColorPalette();
   }
 
   private void clientScrollOriginChanged(int oldOrigin) {

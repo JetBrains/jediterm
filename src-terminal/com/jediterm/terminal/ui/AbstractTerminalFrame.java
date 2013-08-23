@@ -3,7 +3,8 @@ package com.jediterm.terminal.ui;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.debug.BufferPanel;
-import com.jediterm.terminal.emulator.ColorPalette;
+import com.jediterm.terminal.ui.settings.SettingsUtil;
+
 import org.apache.log4j.Logger;
 
 import javax.swing.*;
@@ -74,7 +75,7 @@ public abstract class AbstractTerminalFrame {
   public abstract TtyConnector createTtyConnector();
 
   protected AbstractTerminalFrame() {
-    myTerminal = new TabbedTerminalWidget(new MySystemSettingsProvider(), new Runnable() {
+    myTerminal = new TabbedTerminalWidget(SettingsUtil.getDefaultSettingsProvider(), new Runnable() {
       @Override
       public void run() {
         openSession();
@@ -156,26 +157,4 @@ public abstract class AbstractTerminalFrame {
     });
   }
 
-  private class MySystemSettingsProvider extends AbstractSystemSettingsProvider {
-    @Override
-    public KeyStroke[] getCopyKeyStrokes() {
-      return new KeyStroke[]{UIUtil.isMac
-                             ? KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.META_DOWN_MASK)
-                             : KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK)};
-    }
-
-    @Override
-    public KeyStroke[] getPasteKeyStrokes() {
-      return new KeyStroke[]{UIUtil.isMac
-                             ? KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.META_DOWN_MASK)
-                             : KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK)};
-    }
-
-    @Override
-    public ColorPalette getPalette() {
-      return getTerminalColorPalette();
-    }
-  }
-
-  protected abstract ColorPalette getTerminalColorPalette();
 }

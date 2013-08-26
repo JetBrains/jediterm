@@ -739,13 +739,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   private void copyAndClearAreaOnScroll(int dy, Graphics2D gfx, BufferedImage image) {
-    if (!UIUtil.isRetina()) {
-      gfx.copyArea(0, Math.max(0, dy),
-          getPixelWidth(), getPixelHeight() - Math.abs(dy),
-          0, -dy);
-    } else {
-      copyArea(gfx, image, getPixelWidth(), getPixelHeight(), dy);
-    }
+    copyArea(gfx, image, 0, Math.max(0, dy),
+        getPixelWidth(), getPixelHeight() - Math.abs(dy),
+        0, -dy);
 
     //clear rect before drawing scroll buffer on it
     gfx.setColor(getBackground());
@@ -756,15 +752,20 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
   }
 
-  private void copyArea(Graphics2D gfx, BufferedImage image, int width, int height, int dy) {
-    Pair<BufferedImage, Graphics2D> pair = createAndInitImage(width, height);
+  private void copyArea(Graphics2D gfx, BufferedImage image, int x, int y, int width, int height, int dx, int dy) {
+    if (UIUtil.isRetina()) {
+      Pair<BufferedImage, Graphics2D> pair = createAndInitImage(x + width, y + height);
 
-    drawImage(pair.second, image,
-        0, Math.max(0, -dy), width, Math.min(height, height - dy), //destination
-        0, Math.max(0, dy), width, Math.min(height, height + dy)   //source
-    );
-    drawImage(gfx, pair.first,
-        0, Math.max(0, -dy), width, Math.min(height, height - dy));
+      drawImage(pair.second, image,
+          x, y, x + width, y + height
+      );
+      drawImage(gfx, pair.first,
+          x + dx, y + dy, x + dx + width, y + dy + height, //destination
+          x, y, x + width, y + height   //source
+      );
+    } else {
+      gfx.copyArea(x, y, width, height, dx, dy);
+    }
   }
 
   int myNoDamage = 0;
@@ -795,7 +796,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     try {
       myFramesSkipped = 0;
 
-      boolean serverScroll = pendingScrolls.enact(myGfx, getPixelWidth(), myCharSize.height);
+      boolean serverScroll = pendingScrolls.enact(myGfx, myImage, getPixelWidth(), myCharSize.height);
 
       boolean clientScroll = myClientScrollOrigin != newOrigin;
       if (clientScroll) {
@@ -852,7 +853,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
   }
 
-  private static class PendingScrolls {
+  private class PendingScrolls {
     int[] ys = new int[10];
     int[] hs = new int[10];
     int[] dys = new int[10];
@@ -882,10 +883,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       }
     }
 
-    boolean enact(Graphics2D gfx, int width, int charHeight) {
+    boolean enact(Graphics2D gfx, BufferedImage image, int width, int charHeight) {
       if (scrollCount < 0) return false;
       for (int i = 0; i <= scrollCount; i++) {
-        gfx.copyArea(0, ys[i] * charHeight, width, hs[i] * charHeight, 0, dys[i] * charHeight);
+        copyArea(gfx, image, 0, ys[i] * charHeight, width, hs[i] * charHeight, 0, dys[i] * charHeight);
       }
       scrollCount = -1;
       return true;

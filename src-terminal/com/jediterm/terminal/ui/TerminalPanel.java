@@ -647,10 +647,17 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
   }
 
-  private void copyImage(Graphics2D g, BufferedImage image, int x, int y, int width, int height) {
-    g.drawImage(image, x, y, x + width, y + height, x, y, x + width, y + height, null);
+  private void drawImage(Graphics2D g, BufferedImage image, int x1, int y1, int x2, int y2) {
+    drawImage(g, image, x1, y1, x2, y2, x1, y1, x2, y2);
   }
 
+  private void drawImage(Graphics2D g, BufferedImage image, int dx1, int dy1, int dx2, int dy2, int sx1, int sy1, int sx2, int sy2) {
+    g.drawImage(image, dx1, dy1, dx2, dy2, sx1, sy1, sx2, sy2, null);
+  }
+
+  private void copyImage(Graphics2D g, BufferedImage image, int x, int y, int width, int height) {
+    drawImage(g, image, x, y, x + width, y + height, x, y, x + width, y + height);
+  }
 
   @Override
   public void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer buf, int startRow) {
@@ -694,8 +701,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     int dyPix = dy * myCharSize.height;
 
-    copyAndClearAreaOnScroll(dy, dyPix, myGfx);
-    copyAndClearAreaOnScroll(dy, dyPix, myGfxForSelection);
+    copyAndClearAreaOnScroll(dyPix, myGfx, myImage);
+    copyAndClearAreaOnScroll(dyPix, myGfxForSelection, myImageForSelection);
 
     if (dy < 0) {
       // Scrolling up; Copied down
@@ -726,17 +733,33 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
   }
 
-  private void copyAndClearAreaOnScroll(int dy, int dyPix, Graphics2D gfx) {
-    gfx.copyArea(0, Math.max(0, dyPix),
-        getPixelWidth(), getPixelHeight() - Math.abs(dyPix),
-        0, -dyPix);
+  private void copyAndClearAreaOnScroll(int dy, Graphics2D gfx, BufferedImage image) {
+    if (!UIUtil.isRetina()) {
+      gfx.copyArea(0, Math.max(0, dy),
+          getPixelWidth(), getPixelHeight() - Math.abs(dy),
+          0, -dy);
+    } else {
+      copyArea(gfx, image, getPixelWidth(), getPixelHeight(), dy);
+    }
+
     //clear rect before drawing scroll buffer on it
     gfx.setColor(getBackground());
     if (dy < 0) {
-      gfx.fillRect(0, 0, getPixelWidth(), Math.abs(dyPix));
+      gfx.fillRect(0, 0, getPixelWidth(), Math.abs(dy));
     } else {
-      gfx.fillRect(0, getPixelHeight() - dyPix, getPixelWidth(), dyPix);
+      gfx.fillRect(0, getPixelHeight() - dy, getPixelWidth(), dy);
     }
+  }
+
+  private void copyArea(Graphics2D gfx, BufferedImage image, int width, int height, int dy) {
+    Pair<BufferedImage, Graphics2D> pair = createAndInitImage(width, height);
+
+    drawImage(pair.second, image,
+        0, Math.max(0, -dy), width, Math.min(height, height - dy), //destination
+        0, Math.max(0, dy), width, Math.min(height, height + dy)   //source
+    );
+    drawImage(gfx, pair.first,
+        0, Math.max(0, -dy), width, Math.min(height, height - dy));
   }
 
   int myNoDamage = 0;
@@ -906,7 +929,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   protected JPopupMenu createPopupMenu() {
     JPopupMenu popup = new JPopupMenu();
-    
+
     TerminalAction.addToMenu(popup, this);
 
     return popup;

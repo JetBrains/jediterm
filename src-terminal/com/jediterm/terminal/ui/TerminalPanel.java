@@ -19,6 +19,7 @@ import java.awt.*;
 import java.awt.datatransfer.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
+import java.awt.image.ImageObserver;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.List;
@@ -325,9 +326,13 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
   }
 
-  protected void drawImage(Graphics2D gfx, BufferedImage image) {
-    gfx.drawImage(image, 0, 0,
-        image.getWidth(), image.getHeight(), myTerminalPanel);
+  private void drawImage(Graphics2D gfx, BufferedImage image) {
+    drawImage(gfx, image, 0, 0, myTerminalPanel);
+  }
+
+  protected void drawImage(Graphics2D gfx, BufferedImage image, int x, int y, ImageObserver observer) {
+    gfx.drawImage(image, x, y,
+        image.getWidth(), image.getHeight(), observer);
   }
 
   private Pair<BufferedImage, Graphics2D> createAndInitImage(int width, int height) {

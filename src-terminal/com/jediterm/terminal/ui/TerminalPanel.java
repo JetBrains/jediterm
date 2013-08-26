@@ -955,8 +955,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         new TerminalAction("Copy", mySettingsProvider.getCopyKeyStrokes(), new Predicate<KeyEvent>() {
           @Override
           public boolean apply(KeyEvent input) {
-            handleCopy(input);
-            return true;
+            return handleCopy(input);
           }
         }).withMnemonicKey(KeyEvent.VK_C).withEnabledSupplier(new Supplier<Boolean>() {
           @Override
@@ -1037,10 +1036,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
 
     public void keyPressed(final KeyEvent e) {
-
-      TerminalAction.processEvent(TerminalPanel.this, e);
-
-      processTerminalKeyPressed(e);
+      if (!TerminalAction.processEvent(TerminalPanel.this, e)) {
+        processTerminalKeyPressed(e);
+      }
     }
 
     public void keyTyped(final KeyEvent e) {
@@ -1056,13 +1054,13 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     pasteSelection();
   }
 
-  private void handleCopy(final KeyEvent e) {
+  private boolean handleCopy(final KeyEvent e) {
     if (mySelection != null) {
       copySelection(mySelection.getStart(), mySelection.getEnd());
       mySelection = null;
       repaint();
-    } else {
-      processTerminalKeyPressed(e);
+      return true;
     }
+    return false;
   }
 }

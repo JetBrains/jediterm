@@ -163,14 +163,14 @@ public abstract class AbstractTerminalFrame {
     public KeyStroke[] getCopyKeyStrokes() {
       return new KeyStroke[]{UIUtil.isMac
                              ? KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.META_DOWN_MASK)
-                             : KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK)};
+                             : KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK)};
     }
 
     @Override
     public KeyStroke[] getPasteKeyStrokes() {
       return new KeyStroke[]{UIUtil.isMac
                              ? KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.META_DOWN_MASK)
-                             : KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK)};
+                             : KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK)};
     }
 
     @Override

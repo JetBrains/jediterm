@@ -35,22 +35,19 @@ public class TerminalAction {
     return false;
   }
 
-  public void perform(KeyEvent e) {
-    myRunnable.apply(e);
+  public boolean perform(KeyEvent e) {
+    return myRunnable.apply(e);
   }
 
   public static boolean processEvent(TerminalActionProvider actionProvider, final KeyEvent e) {
     for (TerminalAction a : actionProvider.getActions()) {
       if (a.matches(e)) {
-        a.perform(e);
-        return true;
+        return a.perform(e);
       }
     }
 
     if (actionProvider.getNextProvider() != null) {
-      if (processEvent(actionProvider.getNextProvider(), e)) {
-        return true;
-      }
+      return processEvent(actionProvider.getNextProvider(), e);
     }
 
     return false;

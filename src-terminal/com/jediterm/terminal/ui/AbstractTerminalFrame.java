@@ -1,5 +1,6 @@
 package com.jediterm.terminal.ui;
 
+import com.google.common.base.Predicate;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.debug.BufferPanel;
@@ -20,7 +21,7 @@ public abstract class AbstractTerminalFrame {
   
   private AbstractAction myOpenAction = new AbstractAction("New Session") {
     public void actionPerformed(final ActionEvent e) {
-      openSession();
+      openSession(myTerminal);
     }
   };
 
@@ -60,9 +61,9 @@ public abstract class AbstractTerminalFrame {
     return mb;
   }
 
-  private void openSession() {
-    if (myTerminal.canOpenSession()) {
-      openSession(myTerminal, createTtyConnector());
+  private void openSession(TerminalWidget terminal) {
+    if (terminal.canOpenSession()) {
+      openSession(terminal, createTtyConnector());
     }
   }
 
@@ -74,10 +75,11 @@ public abstract class AbstractTerminalFrame {
   public abstract TtyConnector createTtyConnector();
 
   protected AbstractTerminalFrame() {
-    myTerminal = new TabbedTerminalWidget(new MySystemSettingsProvider(), new Runnable() {
+    myTerminal = new TabbedTerminalWidget(new MySystemSettingsProvider(), new Predicate<TerminalWidget>() {
       @Override
-      public void run() {
-        openSession();
+      public boolean apply(TerminalWidget terminalWidget) {
+        openSession(terminalWidget);
+        return true;
       }
     });
 
@@ -119,7 +121,7 @@ public abstract class AbstractTerminalFrame {
       }
     });
 
-    openSession();
+    openSession(myTerminal);
   }
 
   private void sizeFrameForTerm(final JFrame frame) {

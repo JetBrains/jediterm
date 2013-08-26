@@ -33,12 +33,12 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   private List<TabListener> myTabListeners = Lists.newArrayList();
   private TerminalActionProvider myNextActionProvider;
   
-  private final Runnable myCreateNewSessionRunnable;
+  private final Predicate<TerminalWidget> myCreateNewSessionAction;
 
-  public TabbedTerminalWidget(@NotNull SystemSettingsProvider settingsProvider, @NotNull Runnable createNewSessionRunnable) {
+  public TabbedTerminalWidget(@NotNull SystemSettingsProvider settingsProvider, @NotNull Predicate<TerminalWidget> createNewSessionAction) {
     super(new BorderLayout());
     mySettingsProvider = settingsProvider;
-    myCreateNewSessionRunnable = createNewSessionRunnable;
+    myCreateNewSessionAction = createNewSessionAction;
   }
 
   @Override
@@ -280,7 +280,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   }
 
   private void handleNewSession() {
-    myCreateNewSessionRunnable.run();
+    myCreateNewSessionAction.apply(this);
   }
 
   private class TabComponent extends JPanel implements FocusListener {

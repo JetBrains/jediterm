@@ -74,8 +74,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private String myWindowTitle = "Terminal";
 
-  private static final int SCALE = UIUtil.isRetina() ? 1 : 1;
-
   private TerminalActionProvider myNextActionProvider;
 
   public TerminalPanel(@NotNull SystemSettingsProvider settingsProvider, @NotNull BackBuffer backBuffer, @NotNull StyleState styleState) {
@@ -205,6 +203,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     } else {
       return "Monospaced-14";
     }
+  }
+
+  protected boolean isRetina() {
+    return UIUtil.isRetina();
   }
 
   static class WeakRedrawTimer implements ActionListener {
@@ -551,8 +553,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
           } else {
             g.setColor(getPalette().getColor(current.getBackground()));
           }
-          g.fillRect(myCursorCoordinates.x * myCharSize.width * SCALE, y * myCharSize.height * SCALE,
-              myCharSize.width * SCALE, myCharSize.height * SCALE);
+          g.fillRect(myCursorCoordinates.x * myCharSize.width, y * myCharSize.height,
+              myCharSize.width, myCharSize.height);
 
           myCursorIsShown = isCursorShown;
           myLastCursorChange = System.currentTimeMillis();
@@ -753,7 +755,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   private void copyArea(Graphics2D gfx, BufferedImage image, int x, int y, int width, int height, int dx, int dy) {
-    if (UIUtil.isRetina()) {
+    if (isRetina()) {
       Pair<BufferedImage, Graphics2D> pair = createAndInitImage(x + width, y + height);
 
       drawImage(pair.second, image,

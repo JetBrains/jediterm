@@ -94,8 +94,11 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
   private void wrapLines() {
     if (myCursorX >= myTerminalWidth) {
       myCursorX = 0;
+      // clear the end of the line in the text buffer 
+      myBackBuffer.getLine(myCursorY - 1).deleteCharacters(myTerminalWidth);
       if (isAutoWrap()) {
-         myCursorY += 1;
+        myBackBuffer.getLine(myCursorY - 1).setWrapped(true);
+        myCursorY += 1;
       }
     }
   }

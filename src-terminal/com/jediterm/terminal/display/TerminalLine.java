@@ -45,6 +45,7 @@ public class TerminalLine {
 
   public void clear() {
     myTextEntries.clear();
+    setWrapped(false);
   }
 
   public void writeString(int x, @NotNull String str, @NotNull TextStyle style) {
@@ -109,6 +110,8 @@ public class TerminalLine {
 
   public void deleteCharacters(int x) {
     deleteCharacters(x, myTextEntries.length() - x);
+    // delete to the end of line : line is no more wrapped
+    setWrapped(false);
   }
 
   public void deleteCharacters(int x, int count) {

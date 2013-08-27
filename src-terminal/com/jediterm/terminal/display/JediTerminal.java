@@ -383,6 +383,8 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
           if (myCursorX < myTerminalWidth) {
             myBackBuffer.eraseCharacters(myCursorX, myTerminalWidth, myCursorY - 1);
           }
+          // delete to the end of line : line is no more wrapped
+          myBackBuffer.getLine(myCursorY - 1).setWrapped(false);
           break;
         case 1:
           final int extent = Math.min(myCursorX + 1, myTerminalWidth);

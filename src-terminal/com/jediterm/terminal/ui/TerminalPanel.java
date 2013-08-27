@@ -5,9 +5,11 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
 import com.jediterm.terminal.*;
+import com.jediterm.terminal.TextStyle.Option;
 import com.jediterm.terminal.display.*;
 import com.jediterm.terminal.emulator.ColorPalette;
 import com.jediterm.terminal.emulator.mouse.TerminalMouseListener;
+import com.jediterm.terminal.ui.settings.SettingsProvider;
 import com.jediterm.terminal.util.Pair;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -43,20 +45,17 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private Font myNormalFont;
   private Font myBoldFont;
   private int myDescent = 0;
-  private float myLineSpace = 0;
   protected Dimension myCharSize = new Dimension();
   protected Dimension myTermSize = new Dimension(80, 24);
-  private boolean myAntialiasing = true;
 
   private TerminalStarter myTerminalStarter = null;
 
   private TerminalSelection mySelection = null;
-  private TextStyle mySelectionColor = new TextStyle(TerminalColor.WHITE, TerminalColor.rgb(82, 109, 165));
   private Clipboard myClipboard;
 
   private TerminalPanelListener myTerminalPanelListener;
 
-  private SystemSettingsProvider mySettingsProvider;
+  private SettingsProvider mySettingsProvider;
   final private BackBuffer myBackBuffer;
 
   final private StyleState myStyleState;
@@ -74,11 +73,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private String myWindowTitle = "Terminal";
 
-  private static final int SCALE = UIUtil.isRetina() ? 1 : 1;
-
   private TerminalActionProvider myNextActionProvider;
 
-  public TerminalPanel(@NotNull SystemSettingsProvider settingsProvider, @NotNull BackBuffer backBuffer, @NotNull StyleState styleState) {
+  public TerminalPanel(@NotNull SettingsProvider settingsProvider, @NotNull BackBuffer backBuffer, @NotNull StyleState styleState) {
     mySettingsProvider = settingsProvider;
     myBackBuffer = backBuffer;
     myStyleState = styleState;
@@ -114,6 +111,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         }
         repaint();
         mySelection.updateEnd(charCoords, myTermSize.width);
+        if (mySettingsProvider.emulateX11CopyPaste()) {
+          handleCopy(false);
+        }
 
         if (e.getPoint().y < 0) {
           moveScrollBar((int) ((e.getPoint().y) * SCROLL_SPEED));
@@ -163,12 +163,20 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             Point stop = SelectionUtil.getNextSeparator(charCoords, myBackBuffer);
             mySelection = new TerminalSelection(start);
             mySelection.updateEnd(stop, myTermSize.width);
+            if (mySettingsProvider.emulateX11CopyPaste()) {
+              handleCopy(false);
+            }
           } else if (count == 3) {
             // select line
             final Point charCoords = panelToCharCoords(e.getPoint());
             mySelection = new TerminalSelection(new Point(0, charCoords.y));
             mySelection.updateEnd(new Point(myTermSize.width, charCoords.y), myTermSize.width);
+            if (mySettingsProvider.emulateX11CopyPaste()) {
+              handleCopy(false);
           }
+          }
+        } else if (e.getButton() == MouseEvent.BUTTON2 && mySettingsProvider.emulateX11CopyPaste()) {
+          handlePaste();
         } else if (e.getButton() == MouseEvent.BUTTON3) {
           JPopupMenu popup = createPopupMenu();
           popup.show(e.getComponent(), e.getX(), e.getY());
@@ -211,7 +219,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     @Override
     public void actionPerformed(ActionEvent e) {
-      TerminalPanel terminalPanel = (TerminalPanel) ref.get();
+      TerminalPanel terminalPanel = ref.get();
       if (terminalPanel != null) {
         terminalPanel.redraw();
       } else { // terminalPanel was garbage collected
@@ -227,7 +235,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   protected Font createFont() {
-    return Font.decode(getFontName());
+    return mySettingsProvider.getTerminalFont();
   }
 
   protected Point panelToCharCoords(final Point p) {
@@ -334,7 +342,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     Graphics2D gfx = image.createGraphics();
 
-    setupAntialiasing(gfx, myAntialiasing);
+    setupAntialiasing(gfx);
 
     gfx.setColor(getBackground());
 
@@ -409,21 +417,21 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     final Graphics2D graphics = img.createGraphics();
     graphics.setFont(myNormalFont);
 
+    final float lineSpace = mySettingsProvider.getLineSpace();
     final FontMetrics fo = graphics.getFontMetrics();
     myDescent = fo.getDescent();
     myCharSize.width = fo.charWidth('@');
-    myCharSize.height = fo.getHeight() + (int) (myLineSpace * 2);
-    myDescent += myLineSpace;
+    myCharSize.height = fo.getHeight() + (int) (lineSpace * 2);
+    myDescent += lineSpace;
 
     img.flush();
     graphics.dispose();
   }
 
-  protected void setupAntialiasing(Graphics graphics, boolean antialiasing) {
-    myAntialiasing = antialiasing;
+  protected void setupAntialiasing(Graphics graphics) {
     if (graphics instanceof Graphics2D) {
       Graphics2D myGfx = (Graphics2D) graphics;
-      final Object mode = antialiasing ? RenderingHints.VALUE_TEXT_ANTIALIAS_ON
+      final Object mode = mySettingsProvider.useAntialiasing() ? RenderingHints.VALUE_TEXT_ANTIALIAS_ON
           : RenderingHints.VALUE_TEXT_ANTIALIAS_OFF;
       final RenderingHints hints = new RenderingHints(
           RenderingHints.KEY_TEXT_ANTIALIASING, mode);
@@ -433,12 +441,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   @Override
   public Color getBackground() {
-    return getPalette().getColor(myStyleState.getCurrent().getDefaultBackground());
+    return getPalette().getColor(myStyleState.getBackground());
   }
 
   @Override
   public Color getForeground() {
-    return getPalette().getColor(myStyleState.getCurrent().getDefaultForeground());
+    return getPalette().getColor(myStyleState.getForeground());
   }
 
   @Override
@@ -545,8 +553,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
           } else {
             g.setColor(getPalette().getColor(current.getBackground()));
           }
-          g.fillRect(myCursorCoordinates.x * myCharSize.width * SCALE, y * myCharSize.height * SCALE,
-              myCharSize.width * SCALE, myCharSize.height * SCALE);
+          g.fillRect(myCursorCoordinates.x * myCharSize.width, y * myCharSize.height,
+              myCharSize.width, myCharSize.height);
 
           myCursorIsShown = isCursorShown;
           myLastCursorChange = System.currentTimeMillis();
@@ -665,9 +673,19 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
     if (myGfxForSelection != null) {
       TextStyle selectionStyle = style.clone();
-      selectionStyle.setBackground(mySelectionColor.getBackground());
-      selectionStyle.setForeground(mySelectionColor.getForeground());
-
+      if(mySettingsProvider.useInverseSelectionColor()) {
+        selectionStyle.setOption(Option.INVERSE, !selectionStyle.hasOption(Option.INVERSE));
+        if (selectionStyle.getForeground() == null) {
+          selectionStyle.setForeground(myStyleState.getForeground());
+        }
+        if (selectionStyle.getBackground() == null) {
+          selectionStyle.setBackground(myStyleState.getBackground());
+        }
+      } else {
+        TextStyle mySelectionStyle = mySettingsProvider.getSelectionColor();
+        selectionStyle.setBackground(mySelectionStyle.getBackground());
+        selectionStyle.setForeground(mySelectionStyle.getForeground());
+      }
       drawCharacters(x, y, selectionStyle, buf, myGfxForSelection);
     }
   }
@@ -692,7 +710,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   private ColorPalette getPalette() {
-    return mySettingsProvider.getPalette();
+    return mySettingsProvider.getTerminalColorPalette();
   }
 
   private void clientScrollOriginChanged(int oldOrigin) {
@@ -747,7 +765,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   private void copyArea(Graphics2D gfx, BufferedImage image, int x, int y, int width, int height, int dx, int dy) {
-    if (UIUtil.isRetina()) {
+    if (isRetina()) {
       Pair<BufferedImage, Graphics2D> pair = createAndInitImage(x + width, y + height);
 
       drawImage(pair.second, image,
@@ -898,10 +916,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     Toolkit.getDefaultToolkit().beep();
   }
 
-  public void setLineSpace(final float foo) {
-    myLineSpace = foo;
-  }
-
   public BoundedRangeModel getBoundedRangeModel() {
     return myBoundedRangeModel;
   }
@@ -967,18 +981,13 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
   }
 
-  public void setSelectionColor(TextStyle selectionColor) {
-    mySelectionColor = selectionColor;
-  }
-
-
   @Override
   public List<TerminalAction> getActions() {
     return Lists.newArrayList(
         new TerminalAction("Copy", mySettingsProvider.getCopyKeyStrokes(), new Predicate<KeyEvent>() {
           @Override
           public boolean apply(KeyEvent input) {
-            return handleCopy(input);
+            return handleCopy(true);
           }
         }).withMnemonicKey(KeyEvent.VK_C).withEnabledSupplier(new Supplier<Boolean>() {
           @Override
@@ -1077,11 +1086,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     pasteSelection();
   }
 
-  private boolean handleCopy(final KeyEvent e) {
+  // "unselect" is needed to handle Ctrl+C copy shortcut collision with ^C signal shortcut
+  private boolean handleCopy(boolean unselect) {
     if (mySelection != null) {
       copySelection(mySelection.getStart(), mySelection.getEnd());
+      if (unselect) {
       mySelection = null;
       repaint();
+      }
       return true;
     }
     return false;

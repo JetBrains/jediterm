@@ -24,8 +24,4 @@ public class SshMain extends AbstractTerminalFrame {
     return new JSchTtyConnector();
   }
 
-  @Override
-  protected ColorPalette getTerminalColorPalette() {
-    return ColorPalette.XTERM_PALETTE;
-  }
 }

@@ -2,7 +2,6 @@ package com.jediterm.terminal.ui;
 
 import com.google.common.collect.Lists;
 import com.jediterm.terminal.TerminalStarter;
-import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.debug.DebugBufferType;
 import com.jediterm.terminal.display.BackBuffer;

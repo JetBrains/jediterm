@@ -3,7 +3,7 @@ package com.jediterm.terminal.ui;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.debug.BufferPanel;
-import com.jediterm.terminal.ui.settings.SettingsUtil;
+import com.jediterm.terminal.ui.settings.DefaultSettingsProvider;
 
 import org.apache.log4j.Logger;
 
@@ -75,7 +75,7 @@ public abstract class AbstractTerminalFrame {
   public abstract TtyConnector createTtyConnector();
 
   protected AbstractTerminalFrame() {
-    myTerminal = new TabbedTerminalWidget(SettingsUtil.getDefaultSettingsProvider(), new Runnable() {
+    myTerminal = new TabbedTerminalWidget(new DefaultSettingsProvider(), new Runnable() {
       @Override
       public void run() {
         openSession();

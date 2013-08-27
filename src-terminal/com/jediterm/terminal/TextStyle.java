@@ -1,20 +1,13 @@
-/**
- *
- */
 package com.jediterm.terminal;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.awt.*;
 import java.lang.ref.WeakReference;
 import java.util.EnumSet;
 import java.util.WeakHashMap;
 
 public class TextStyle implements Cloneable {
   public static final EnumSet<Option> NO_OPTIONS = EnumSet.noneOf(Option.class);
-
-  public static final TerminalColor FOREGROUND = TerminalColor.BLACK;
-  public static final TerminalColor BACKGROUND = TerminalColor.WHITE;
 
   public static final TextStyle EMPTY = new TextStyle();
 
@@ -36,14 +29,6 @@ public class TextStyle implements Cloneable {
     myForeground = foreground;
     myBackground = background;
     myOptions = options.clone();
-  }
-
-  public TerminalColor getDefaultForeground() {
-    return FOREGROUND;
-  }
-
-  public TerminalColor getDefaultBackground() {
-    return BACKGROUND;
   }
 
   public void setBackground(TerminalColor background) {
@@ -121,8 +106,8 @@ public class TextStyle implements Cloneable {
     return hashCode();
   }
 
-  public boolean hasOption(final Option bold) {
-    return myOptions.contains(bold);
+  public boolean hasOption(final Option option) {
+    return myOptions.contains(option);
   }
 
   @Override

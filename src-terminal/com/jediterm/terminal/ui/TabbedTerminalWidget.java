@@ -6,6 +6,7 @@ import com.google.common.collect.Sets;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.TtyConnectorWaitFor;
+import com.jediterm.terminal.ui.settings.SettingsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,14 +29,14 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
 
   private JTabbedPane myTabbedPane;
 
-  private SystemSettingsProvider mySettingsProvider;
+  private SettingsProvider mySettingsProvider;
 
   private List<TabListener> myTabListeners = Lists.newArrayList();
   private TerminalActionProvider myNextActionProvider;
   
   private final Predicate<TerminalWidget> myCreateNewSessionAction;
 
-  public TabbedTerminalWidget(@NotNull SystemSettingsProvider settingsProvider, @NotNull Predicate<TerminalWidget> createNewSessionAction) {
+  public TabbedTerminalWidget(@NotNull SettingsProvider settingsProvider, @NotNull Predicate<TerminalWidget> createNewSessionAction) {
     super(new BorderLayout());
     mySettingsProvider = settingsProvider;
     myCreateNewSessionAction = createNewSessionAction;
@@ -392,11 +393,6 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
       return null;
     }
   }
-
-  public SystemSettingsProvider getSystemSettingsProvider() {
-    return mySettingsProvider;
-  }
-
 
   public void addTabListener(TabListener listener) {
     myTabListeners.add(listener);

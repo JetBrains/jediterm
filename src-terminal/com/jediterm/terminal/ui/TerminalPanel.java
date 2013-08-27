@@ -74,6 +74,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private String myWindowTitle = "Terminal";
 
+  private static final int SCALE = UIUtil.isRetina() ? 1 : 1;
+
   private TerminalActionProvider myNextActionProvider;
 
   public TerminalPanel(@NotNull SystemSettingsProvider settingsProvider, @NotNull BackBuffer backBuffer, @NotNull StyleState styleState) {
@@ -193,16 +195,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     setDoubleBuffered(true);
     redrawTimer.start();
     repaint();
-  }
-
-  public String getFontName() {
-    if (UIUtil.isWindows) {
-      return "Consolas-14";
-    } else if (UIUtil.isMac) {
-      return "Menlo-14";
-    } else {
-      return "Monospaced-14";
-    }
   }
 
   protected boolean isRetina() {
@@ -553,8 +545,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
           } else {
             g.setColor(getPalette().getColor(current.getBackground()));
           }
-          g.fillRect(myCursorCoordinates.x * myCharSize.width, y * myCharSize.height,
-              myCharSize.width, myCharSize.height);
+          g.fillRect(myCursorCoordinates.x * myCharSize.width * SCALE, y * myCharSize.height * SCALE,
+              myCharSize.width * SCALE, myCharSize.height * SCALE);
 
           myCursorIsShown = isCursorShown;
           myLastCursorChange = System.currentTimeMillis();
@@ -755,7 +747,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   private void copyArea(Graphics2D gfx, BufferedImage image, int x, int y, int width, int height, int dx, int dy) {
-    if (isRetina()) {
+    if (UIUtil.isRetina()) {
       Pair<BufferedImage, Graphics2D> pair = createAndInitImage(x + width, y + height);
 
       drawImage(pair.second, image,

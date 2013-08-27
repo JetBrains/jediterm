@@ -113,6 +113,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         }
         repaint();
         mySelection.updateEnd(charCoords, myTermSize.width);
+        if (mySettingsProvider.emulateX11CopyPaste()) {
+          handleCopy(false);
+        }
 
         if (e.getPoint().y < 0) {
           moveScrollBar((int) ((e.getPoint().y) * SCROLL_SPEED));
@@ -162,12 +165,20 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             Point stop = SelectionUtil.getNextSeparator(charCoords, myBackBuffer);
             mySelection = new TerminalSelection(start);
             mySelection.updateEnd(stop, myTermSize.width);
+            if (mySettingsProvider.emulateX11CopyPaste()) {
+              handleCopy(false);
+            }
           } else if (count == 3) {
             // select line
             final Point charCoords = panelToCharCoords(e.getPoint());
             mySelection = new TerminalSelection(new Point(0, charCoords.y));
             mySelection.updateEnd(new Point(myTermSize.width, charCoords.y), myTermSize.width);
+            if (mySettingsProvider.emulateX11CopyPaste()) {
+              handleCopy(false);
+            }
           }
+        } else if (e.getButton() == MouseEvent.BUTTON2 && mySettingsProvider.emulateX11CopyPaste()) {
+          handlePaste();
         } else if (e.getButton() == MouseEvent.BUTTON3) {
           JPopupMenu popup = createPopupMenu();
           popup.show(e.getComponent(), e.getX(), e.getY());
@@ -974,7 +985,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         new TerminalAction("Copy", mySettingsProvider.getCopyKeyStrokes(), new Predicate<KeyEvent>() {
           @Override
           public boolean apply(KeyEvent input) {
-            return handleCopy(input);
+            return handleCopy(true);
           }
         }).withMnemonicKey(KeyEvent.VK_C).withEnabledSupplier(new Supplier<Boolean>() {
           @Override
@@ -1073,11 +1084,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     pasteSelection();
   }
 
-  private boolean handleCopy(final KeyEvent e) {
+  // "unselect" is needed to handle Ctrl+C copy shortcut collision with ^C signal shortcut
+  private boolean handleCopy(boolean unselect) {
     if (mySelection != null) {
       copySelection(mySelection.getStart(), mySelection.getEnd());
-      mySelection = null;
-      repaint();
+      if (unselect) {
+        mySelection = null;
+        repaint();
+      }
       return true;
     }
     return false;

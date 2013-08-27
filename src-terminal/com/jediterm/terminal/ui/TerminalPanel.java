@@ -73,8 +73,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private String myWindowTitle = "Terminal";
 
-  private static final int SCALE = UIUtil.isRetina() ? 1 : 1;
-
   private TerminalActionProvider myNextActionProvider;
 
   public TerminalPanel(@NotNull SettingsProvider settingsProvider, @NotNull BackBuffer backBuffer, @NotNull StyleState styleState) {
@@ -113,6 +111,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         }
         repaint();
         mySelection.updateEnd(charCoords, myTermSize.width);
+        if (mySettingsProvider.emulateX11CopyPaste()) {
+          handleCopy(false);
+        }
 
         if (e.getPoint().y < 0) {
           moveScrollBar((int) ((e.getPoint().y) * SCROLL_SPEED));
@@ -162,6 +163,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             Point stop = SelectionUtil.getNextSeparator(charCoords, myBackBuffer);
             mySelection = new TerminalSelection(start);
             mySelection.updateEnd(stop, myTermSize.width);
+
+            if (mySettingsProvider.emulateX11CopyPaste()) {
+              handleCopy(false);
+            }
           } else if (count == 3) {
             // select line
             final Point charCoords = panelToCharCoords(e.getPoint());
@@ -177,7 +182,13 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             }
             mySelection = new TerminalSelection(new Point(0, startLine));
             mySelection.updateEnd(new Point(myTermSize.width, endLine), myTermSize.width);
+
+            if (mySettingsProvider.emulateX11CopyPaste()) {
+              handleCopy(false);
+            }
           }
+        } else if (e.getButton() == MouseEvent.BUTTON2 && mySettingsProvider.emulateX11CopyPaste()) {
+          handlePaste();
         } else if (e.getButton() == MouseEvent.BUTTON3) {
           JPopupMenu popup = createPopupMenu();
           popup.show(e.getComponent(), e.getX(), e.getY());
@@ -206,6 +217,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     repaint();
   }
 
+  protected boolean isRetina() {
+    return UIUtil.isRetina();
+  }
+
   static class WeakRedrawTimer implements ActionListener {
 
     private WeakReference<TerminalPanel> ref;
@@ -216,7 +231,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     @Override
     public void actionPerformed(ActionEvent e) {
-      TerminalPanel terminalPanel = (TerminalPanel) ref.get();
+      TerminalPanel terminalPanel = ref.get();
       if (terminalPanel != null) {
         terminalPanel.redraw();
       } else { // terminalPanel was garbage collected
@@ -550,8 +565,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
           } else {
             g.setColor(getPalette().getColor(current.getBackground()));
           }
-          g.fillRect(myCursorCoordinates.x * myCharSize.width * SCALE, y * myCharSize.height * SCALE,
-              myCharSize.width * SCALE, myCharSize.height * SCALE);
+          g.fillRect(myCursorCoordinates.x * myCharSize.width, y * myCharSize.height,
+              myCharSize.width, myCharSize.height);
 
           myCursorIsShown = isCursorShown;
           myLastCursorChange = System.currentTimeMillis();
@@ -762,7 +777,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   private void copyArea(Graphics2D gfx, BufferedImage image, int x, int y, int width, int height, int dx, int dy) {
-    if (UIUtil.isRetina()) {
+    if (isRetina()) {
       Pair<BufferedImage, Graphics2D> pair = createAndInitImage(x + width, y + height);
 
       drawImage(pair.second, image,
@@ -984,7 +999,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         new TerminalAction("Copy", mySettingsProvider.getCopyKeyStrokes(), new Predicate<KeyEvent>() {
           @Override
           public boolean apply(KeyEvent input) {
-            return handleCopy(input);
+            return handleCopy(true);
           }
         }).withMnemonicKey(KeyEvent.VK_C).withEnabledSupplier(new Supplier<Boolean>() {
           @Override
@@ -1083,11 +1098,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     pasteSelection();
   }
 
-  private boolean handleCopy(final KeyEvent e) {
+  // "unselect" is needed to handle Ctrl+C copy shortcut collision with ^C signal shortcut
+  private boolean handleCopy(boolean unselect) {
     if (mySelection != null) {
       copySelection(mySelection.getStart(), mySelection.getEnd());
-      mySelection = null;
-      repaint();
+      if (unselect) {
+        mySelection = null;
+        repaint();
+      }
       return true;
     }
     return false;

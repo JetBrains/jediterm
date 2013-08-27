@@ -21,6 +21,8 @@ public interface UserSettingsProvider {
 
   boolean useInverseSelectionColor();
 
+  public boolean emulateX11CopyPaste();
+
   boolean useAntialiasing();
 
   boolean shouldCloseTabOnLogout(TtyConnector ttyConnector);

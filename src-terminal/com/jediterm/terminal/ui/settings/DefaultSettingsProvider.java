@@ -91,6 +91,11 @@ public class DefaultSettingsProvider implements SettingsProvider {
   }
 
   @Override
+  public boolean emulateX11CopyPaste() {
+    return true;
+  }
+
+  @Override
   public boolean useAntialiasing() {
     return true;
   }

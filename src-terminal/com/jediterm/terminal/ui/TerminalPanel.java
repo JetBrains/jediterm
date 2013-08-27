@@ -165,8 +165,18 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
           } else if (count == 3) {
             // select line
             final Point charCoords = panelToCharCoords(e.getPoint());
-            mySelection = new TerminalSelection(new Point(0, charCoords.y));
-            mySelection.updateEnd(new Point(myTermSize.width, charCoords.y), myTermSize.width);
+            int startLine = charCoords.y;
+            while (startLine > - getScrollBuffer().getLineCount() 
+                && myBackBuffer.getLine(startLine - 1).isWrapped()) {
+              startLine--;
+            }
+            int endLine = charCoords.y;
+            while (endLine < myBackBuffer.getHeight()
+                && myBackBuffer.getLine(endLine).isWrapped()) {
+              endLine++;
+            }
+            mySelection = new TerminalSelection(new Point(0, startLine));
+            mySelection.updateEnd(new Point(myTermSize.width, endLine), myTermSize.width);
           }
         } else if (e.getButton() == MouseEvent.BUTTON3) {
           JPopupMenu popup = createPopupMenu();

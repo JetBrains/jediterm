@@ -2,19 +2,18 @@ package com.jediterm.terminal.ui;
 
 import com.google.common.collect.Lists;
 import com.jediterm.terminal.TerminalStarter;
-import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.debug.DebugBufferType;
 import com.jediterm.terminal.display.BackBuffer;
 import com.jediterm.terminal.display.JediTerminal;
 import com.jediterm.terminal.display.StyleState;
+import com.jediterm.terminal.ui.settings.SettingsProvider;
+
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.KeyEvent;
-import java.util.*;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -32,25 +31,25 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   private TtyConnector myTtyConnector;
   private TerminalStarter myTerminalStarter;
   private Thread myEmuThread;
-  private final SystemSettingsProvider mySettingsProvider;
+  private final SettingsProvider mySettingsProvider;
   private TerminalActionProvider myNextActionProvider;
 
-  public JediTermWidget(@NotNull SystemSettingsProvider settingsProvider) {
+  public JediTermWidget(@NotNull SettingsProvider settingsProvider) {
     this(80, 24, settingsProvider);
   }
 
-  public JediTermWidget(Dimension dimension, SystemSettingsProvider settingsProvider) {
+  public JediTermWidget(Dimension dimension, SettingsProvider settingsProvider) {
     this(dimension.width, dimension.height, settingsProvider);
   }
 
-  public JediTermWidget(int columns, int lines, SystemSettingsProvider settingsProvider) {
+  public JediTermWidget(int columns, int lines, SettingsProvider settingsProvider) {
     super(new BorderLayout());
 
-    StyleState styleState = createDefaultStyle();
+    mySettingsProvider = settingsProvider;
 
+    StyleState styleState = createDefaultStyle();
     BackBuffer backBuffer = new BackBuffer(columns, lines, styleState);
 
-    mySettingsProvider = settingsProvider;
     myTerminalPanel = createTerminalPanel(mySettingsProvider, styleState, backBuffer);
     myTerminal = new JediTerminal(myTerminalPanel, backBuffer, styleState);
 
@@ -78,11 +77,11 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   protected StyleState createDefaultStyle() {
     StyleState styleState = new StyleState();
-    styleState.setDefaultStyle(new TextStyle(TextStyle.FOREGROUND, TextStyle.BACKGROUND));
+    styleState.setDefaultStyle(mySettingsProvider.getDefaultStyle());
     return styleState;
   }
 
-  protected TerminalPanel createTerminalPanel(SystemSettingsProvider settingsProvider, StyleState styleState, BackBuffer backBuffer) {
+  protected TerminalPanel createTerminalPanel(SettingsProvider settingsProvider, StyleState styleState, BackBuffer backBuffer) {
     return new TerminalPanel(settingsProvider, backBuffer, styleState);
   }
 

@@ -1,6 +1,5 @@
 package com.jediterm.terminal.display;
 
-import com.jediterm.terminal.SelectionTextAppender;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
@@ -41,48 +40,37 @@ public class SelectionUtil {
                                         final BackBuffer backBuffer) {
     Point top;
     Point bottom;
-    int terminalWidth = backBuffer.getWidth();
 
-    if (selectionStart.y == selectionEnd.y) {                        /* same line */
-      top = selectionStart.x < selectionEnd.x ? selectionStart
-                                              : selectionEnd;
-      bottom = selectionStart.x >= selectionEnd.x ? selectionStart
-                                                  : selectionEnd;
+    if (selectionStart.y == selectionEnd.y) { /* same line */
+      top = selectionStart.x < selectionEnd.x ? selectionStart : selectionEnd;
+      bottom = selectionStart.x >= selectionEnd.x ? selectionStart : selectionEnd;
     }
     else {
-      top = selectionStart.y < selectionEnd.y ? selectionStart
-                                              : selectionEnd;
-      bottom = selectionStart.y > selectionEnd.y ? selectionStart
-                                                 : selectionEnd;
+      top = selectionStart.y < selectionEnd.y ? selectionStart : selectionEnd;
+      bottom = selectionStart.y > selectionEnd.y ? selectionStart : selectionEnd;
     }
 
     final StringBuilder selectionText = new StringBuilder();
 
-    if (top.y < 0) {  //add lines from scroll buffer
-      final Point scrollEnd = bottom.y >= 0 ? new Point(terminalWidth, -1) : bottom;
-      SelectionTextAppender scrollText = new SelectionTextAppender(top, scrollEnd);
-      backBuffer.getScrollBuffer().processLines(top.y, scrollEnd.y - top.y + 1,
-                                                scrollText);
-      selectionText.append(scrollText.getText());
-    }
-
-    if (bottom.y >= 0) {
-      final Point backBegin = top.y < 0 ? new Point(0, 0) : top;
-      SelectionTextAppender selectionTextAppender = new SelectionTextAppender(backBegin, bottom);
-      for (int y = backBegin.y; y <= bottom.y; y++) {
-        if (backBuffer.checkTextBufferIsValid(y)) {
-          backBuffer.processTextBufferLines(y, 1, selectionTextAppender, 0);
-        }
-        else {
-          LOG.error("Text buffer has invalid content");
-          backBuffer.processBufferRow(y, selectionTextAppender);
+    for (int i = top.y; i <= bottom.y; i++) {
+      TerminalLine line = backBuffer.getLine(i);
+      String text = line.getText();
+      if (i == top.y) {
+        if (i == bottom.y) {
+          selectionText.append(text.substring(Math.min(text.length(), top.x), Math.min(text.length(), bottom.x)));
+        } else {
+          selectionText.append(text.substring(Math.min(text.length(), top.x)));
         }
       }
-
-      if (selectionText.length() > 0) {
+      else if (i == bottom.y) {
+        selectionText.append(text.substring(0, Math.min(text.length(), bottom.x)));
+      }
+      else {
+        selectionText.append(line.getText());
+      }
+      if (!line.isWrapped() && i < bottom.y) {
         selectionText.append("\n");
       }
-      selectionText.append(selectionTextAppender.getText());
     }
 
     return selectionText.toString();

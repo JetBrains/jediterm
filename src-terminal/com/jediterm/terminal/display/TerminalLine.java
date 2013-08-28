@@ -11,6 +11,7 @@ import java.util.*;
 public class TerminalLine {
   
   private TextEntries myTextEntries = new TextEntries();
+  private boolean wrapped = false;
 
   public TerminalLine(@NotNull TextEntry entry) {
     myTextEntries.add(entry);
@@ -30,12 +31,21 @@ public class TerminalLine {
     return sb.toString();
   }
 
+  public boolean isWrapped() {
+    return wrapped;
+  }
+
+  public void setWrapped(boolean wrapped) {
+    this.wrapped = wrapped;
+  }
+
   public Iterator<TextEntry> entriesIterator() {
     return myTextEntries.iterator();
   }
 
   public void clear() {
     myTextEntries.clear();
+    setWrapped(false);
   }
 
   public void writeString(int x, @NotNull String str, @NotNull TextStyle style) {
@@ -96,6 +106,12 @@ public class TerminalLine {
     result.add(new TextEntry(curStyle, new CharBuffer(buf, start, buf.length - start)));
 
     return result;
+  }
+
+  public void deleteCharacters(int x) {
+    deleteCharacters(x, myTextEntries.length() - x);
+    // delete to the end of line : line is no more wrapped
+    setWrapped(false);
   }
 
   public void deleteCharacters(int x, int count) {
@@ -165,7 +181,7 @@ public class TerminalLine {
   }
 
   public void clearArea(int leftX, int rightX, @NotNull TextStyle style) {
-    writeCharacters(leftX, style, new CharBuffer(' ', rightX - leftX));
+    writeCharacters(leftX, style, new CharBuffer(' ', Math.min(myTextEntries.length(), rightX) - leftX));
   }
 
   static class TextEntry {

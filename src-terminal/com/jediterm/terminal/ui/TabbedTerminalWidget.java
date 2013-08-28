@@ -44,7 +44,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
 
   @Override
   public TerminalSession createTerminalSession(final TtyConnector ttyConnector) {
-    final JediTermWidget terminal = createInnerTerminalWidget();
+    final JediTermWidget terminal = createInnerTerminalWidget(mySettingsProvider);
     terminal.setTtyConnector(ttyConnector);
     terminal.setNextProvider(this);
 
@@ -59,7 +59,10 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
                 removeTab(terminal);
               }
             });
+          } else {
+            myTermWidget = null;
           }
+          fireTabClosed(terminal);
         }
         return true;
       }
@@ -91,8 +94,8 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     return terminal;
   }
 
-  protected JediTermWidget createInnerTerminalWidget() {
-    return new JediTermWidget(mySettingsProvider);
+  protected JediTermWidget createInnerTerminalWidget(SettingsProvider settingsProvider) {
+    return new JediTermWidget(settingsProvider);
   }
 
   private void addTab(JediTermWidget terminal, JTabbedPane tabbedPane) {
@@ -102,7 +105,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     tabbedPane.setSelectedComponent(terminal);
   }
 
-  private String generateUniqueName(String suggestedName, JTabbedPane tabbedPane) {
+  private static String generateUniqueName(String suggestedName, JTabbedPane tabbedPane) {
     final Set<String> names = Sets.newHashSet();
     for (int i = 0; i < tabbedPane.getTabCount(); i++) {
       names.add(tabbedPane.getTitleAt(i));

@@ -1,5 +1,6 @@
 package com.jediterm.terminal.display;
 
+import com.jediterm.terminal.util.Pair;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
@@ -34,22 +35,26 @@ public class SelectionUtil {
   public static List<Character> getDefaultSeparators() {
     return new ArrayList<Character>(SEPARATORS);
   }
+  
+  public static Pair<Point, Point> sortPoints(Point a, Point b) {
+    if (a.y == b.y) { /* same line */
+      return Pair.create(a.x < b.x ? a : b, a.x >= b.x ? a : b);
+    }
+    else {
+      return Pair.create(a.y < b.y ? a : b, a.y > b.y ? a : b);
+    }
+  }
 
   public static String getSelectionText(final Point selectionStart,
                                         final Point selectionEnd,
                                         final BackBuffer backBuffer) {
-    Point top;
-    Point bottom;
+    
 
-    if (selectionStart.y == selectionEnd.y) { /* same line */
-      top = selectionStart.x < selectionEnd.x ? selectionStart : selectionEnd;
-      bottom = selectionStart.x >= selectionEnd.x ? selectionStart : selectionEnd;
-    }
-    else {
-      top = selectionStart.y < selectionEnd.y ? selectionStart : selectionEnd;
-      bottom = selectionStart.y > selectionEnd.y ? selectionStart : selectionEnd;
-    }
+    Pair<Point, Point> pair = sortPoints(selectionStart, selectionEnd);
 
+    Point top = pair.first;
+    Point bottom = pair.second;
+    
     final StringBuilder selectionText = new StringBuilder();
 
     for (int i = top.y; i <= bottom.y; i++) {

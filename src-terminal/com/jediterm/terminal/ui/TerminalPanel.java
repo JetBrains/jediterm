@@ -35,9 +35,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   /*images*/
   private BufferedImage myImage;
-  private BufferedImage myImageForSelection;
   protected Graphics2D myGfx;
+  private BufferedImage myImageForSelection;
   private Graphics2D myGfxForSelection;
+  private BufferedImage myImageForCursor;
+  private Graphics2D myGfxForCursor;
 
   private final Component myTerminalPanel = this;
 
@@ -173,7 +175,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             mySelection.updateEnd(new Point(myTermSize.width, charCoords.y), myTermSize.width);
             if (mySettingsProvider.emulateX11CopyPaste()) {
               handleCopy(false);
-          }
+            }
           }
         } else if (e.getButton() == MouseEvent.BUTTON2 && mySettingsProvider.emulateX11CopyPaste()) {
           handlePaste();
@@ -322,6 +324,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       myImageForSelection = imageAndGfx.first;
       myGfxForSelection = imageAndGfx.second;
 
+      imageAndGfx = createAndInitImage(width, height);
+
+      myImageForCursor = imageAndGfx.first;
+      myGfxForCursor = imageAndGfx.second;
+
       if (oldImage != null) {
         drawImage(myGfx, oldImage);
       }
@@ -456,7 +463,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       drawImage(gfx, myImage);
       drawMargins(gfx, myImage.getWidth(), myImage.getHeight());
       drawSelection(myImageForSelection, gfx);
-      myCursor.drawCursor(gfx);
+      myCursor.drawCursor(gfx, myImageForCursor, myImage);
     }
   }
 
@@ -538,23 +545,23 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       return myBlinking && (currentTime - myLastCursorChange > CURSOR_BLINK_PERIOD);
     }
 
-    public void drawCursor(Graphics2D g) {
+    public void drawCursor(Graphics2D g, BufferedImage imageForCursor, BufferedImage normalImage) {
       if (needsRepaint()) {
         final int y = getCoordY();
+        final int x = getCoordX();
 
         if (y >= 0 && y < myTermSize.height) {
-          TextStyle current = myStyleState.getCurrent();
-
           boolean isCursorShown = calculateIsCursorShown(System.currentTimeMillis());
 
-          g.setXORMode(getPalette().getColor(current.getBackground()));
+          BufferedImage imageToDraw;
           if (isCursorShown) {
-            g.setColor(getPalette().getColor(current.getForeground()));
+            imageToDraw = imageForCursor;
           } else {
-            g.setColor(getPalette().getColor(current.getBackground()));
+            imageToDraw = normalImage;
           }
-          g.fillRect(myCursorCoordinates.x * myCharSize.width, y * myCharSize.height,
-              myCharSize.width, myCharSize.height);
+
+          drawImage(g, imageToDraw, x * myCharSize.width, y * myCharSize.height,
+              (x + 1) * myCharSize.width, (y + 1) * myCharSize.height);
 
           myCursorIsShown = isCursorShown;
           myLastCursorChange = System.currentTimeMillis();
@@ -673,14 +680,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
     if (myGfxForSelection != null) {
       TextStyle selectionStyle = style.clone();
-      if(mySettingsProvider.useInverseSelectionColor()) {
-        selectionStyle.setOption(Option.INVERSE, !selectionStyle.hasOption(Option.INVERSE));
-        if (selectionStyle.getForeground() == null) {
-          selectionStyle.setForeground(myStyleState.getForeground());
-        }
-        if (selectionStyle.getBackground() == null) {
-          selectionStyle.setBackground(myStyleState.getBackground());
-        }
+      if (mySettingsProvider.useInverseSelectionColor()) {
+        selectionStyle = getInversedStyle(style);
       } else {
         TextStyle mySelectionStyle = mySettingsProvider.getSelectionColor();
         selectionStyle.setBackground(mySelectionStyle.getBackground());
@@ -688,6 +689,23 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       }
       drawCharacters(x, y, selectionStyle, buf, myGfxForSelection);
     }
+    if (myGfxForCursor != null) {
+      TextStyle cursorStyle = getInversedStyle(style);
+      drawCharacters(x, y, cursorStyle, buf, myGfxForCursor);
+    }
+  }
+
+  private TextStyle getInversedStyle(TextStyle style) {
+    TextStyle selectionStyle;
+    selectionStyle = style.clone();
+    selectionStyle.setOption(Option.INVERSE, !selectionStyle.hasOption(Option.INVERSE));
+    if (selectionStyle.getForeground() == null) {
+      selectionStyle.setForeground(myStyleState.getForeground());
+    }
+    if (selectionStyle.getBackground() == null) {
+      selectionStyle.setBackground(myStyleState.getBackground());
+    }
+    return selectionStyle;
   }
 
   private void drawCharacters(int x, int y, TextStyle style, CharBuffer buf, Graphics2D gfx) {
@@ -720,6 +738,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     copyAndClearAreaOnScroll(dyPix, myGfx, myImage);
     copyAndClearAreaOnScroll(dyPix, myGfxForSelection, myImageForSelection);
+    copyAndClearAreaOnScroll(dyPix, myGfxForCursor, myImageForCursor);
 
     if (dy < 0) {
       // Scrolling up; Copied down
@@ -1091,8 +1110,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     if (mySelection != null) {
       copySelection(mySelection.getStart(), mySelection.getEnd());
       if (unselect) {
-      mySelection = null;
-      repaint();
+        mySelection = null;
+        repaint();
       }
       return true;
     }

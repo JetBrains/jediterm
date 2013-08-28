@@ -40,6 +40,8 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     super(new BorderLayout());
     mySettingsProvider = settingsProvider;
     myCreateNewSessionAction = createNewSessionAction;
+    
+    setFocusTraversalPolicy(new DefaultFocusTraversalPolicy());
   }
 
   @Override
@@ -285,6 +287,10 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
 
   private void handleNewSession() {
     myCreateNewSessionAction.apply(this);
+  }
+
+  public Component getFocusableComponent() {
+    return myTabbedPane != null ? myTabbedPane : myTermWidget != null ? myTermWidget : this;
   }
 
   private class TabComponent extends JPanel implements FocusListener {

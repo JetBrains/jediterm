@@ -74,11 +74,17 @@ public class TerminalStarter implements TerminalOutputStream {
   }
 
   public void postResize(final Dimension dimension, final RequestOrigin origin) {
-    Dimension pixelSize;
-    synchronized (myTerminal) {
-      pixelSize = myTerminal.resize(dimension, origin);
-    }
-    myTtyChannel.postResize(dimension, pixelSize);
+    execute(new Runnable() {
+      @Override
+      public void run() {
+        final Dimension pixelSize;
+        synchronized (myTerminal) {
+          pixelSize = myTerminal.resize(dimension, origin);
+        }
+
+        myTtyChannel.postResize(dimension, pixelSize);
+      }
+    });
   }
 
   @Override

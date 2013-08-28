@@ -5,7 +5,6 @@ import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.emulator.ColorPalette;
 import com.jediterm.terminal.ui.UIUtil;
-import com.sun.jna.Platform;
 
 import javax.swing.*;
 
@@ -46,7 +45,7 @@ public class DefaultSettingsProvider implements SettingsProvider {
 
   @Override
   public ColorPalette getTerminalColorPalette() {
-    return Platform.isWindows() ? ColorPalette.WINDOWS_PALETTE : ColorPalette.XTERM_PALETTE;
+    return UIUtil.isWindows ? ColorPalette.WINDOWS_PALETTE : ColorPalette.XTERM_PALETTE;
   }
 
   @Override

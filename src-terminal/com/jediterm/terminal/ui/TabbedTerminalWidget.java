@@ -23,6 +23,8 @@ import java.util.concurrent.Executors;
  * @author traff
  */
 public class TabbedTerminalWidget extends JPanel implements TerminalWidget, TerminalActionProvider {
+  private final Object myLock = new Object();
+
   private TerminalPanelListener myTerminalPanelListener = null;
 
   private JediTermWidget myTermWidget = null;
@@ -245,16 +247,19 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   }
 
   private void removeTab(JediTermWidget terminal) {
-    myTabbedPane.remove(terminal);
-    if (myTabbedPane.getTabCount() == 1) {
-      myTermWidget = getTerminalPanel(0);
-      myTabbedPane.removeAll();
-      remove(myTabbedPane);
-      myTabbedPane = null;
-      add(myTermWidget.getComponent(), BorderLayout.CENTER);
+    synchronized (myLock) {
+      if (myTabbedPane != null) {
+        myTabbedPane.remove(terminal);
+        if (myTabbedPane.getTabCount() == 1) {
+          myTermWidget = getTerminalPanel(0);
+          myTabbedPane.removeAll();
+          remove(myTabbedPane);
+          myTabbedPane = null;
+          add(myTermWidget.getComponent(), BorderLayout.CENTER);
+        }
+      }
+      onSessionChanged();
     }
-
-    onSessionChanged();
   }
 
   @Override

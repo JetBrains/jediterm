@@ -623,6 +623,10 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
       myCursorY = scrollingRegionBottom();
     }
 
+    if (myCursorX > myTerminalWidth) {
+      myCursorX = myTerminalWidth;
+    }
+
     myDisplay.setCursor(myCursorX, myCursorY);
   }
 

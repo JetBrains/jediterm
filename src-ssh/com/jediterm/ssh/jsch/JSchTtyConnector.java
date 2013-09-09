@@ -168,8 +168,10 @@ public class JSchTtyConnector implements TtyConnector {
   }
 
   public void write(byte[] bytes) throws IOException {
-    myOutputStream.write(bytes);
-    myOutputStream.flush();
+    if (myOutputStream != null) {
+      myOutputStream.write(bytes);
+      myOutputStream.flush();
+    }
   }
 
   @Override

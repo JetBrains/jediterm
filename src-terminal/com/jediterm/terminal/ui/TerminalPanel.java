@@ -52,6 +52,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private TerminalStarter myTerminalStarter = null;
 
+  private Point mySelectionStartPoint = null;
   private TerminalSelection mySelection = null;
   private Clipboard myClipboard;
 
@@ -109,10 +110,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         final Point charCoords = panelToCharCoords(e.getPoint());
 
         if (mySelection == null) {
-          mySelection = new TerminalSelection(new Point(charCoords));
+          mySelection = new TerminalSelection(new Point(mySelectionStartPoint));
         }
         repaint();
-        mySelection.updateEnd(charCoords, myTermSize.width);
+        mySelection.updateEnd(charCoords);
         if (mySettingsProvider.emulateX11CopyPaste()) {
           handleCopy(false);
         }
@@ -139,6 +140,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       public void mousePressed(final MouseEvent e) {
         if (e.getButton() == MouseEvent.BUTTON1) {
           if (e.getClickCount() == 1) {
+            mySelectionStartPoint = panelToCharCoords(e.getPoint());
             mySelection = null;
             repaint();
           }
@@ -164,7 +166,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             Point start = SelectionUtil.getPreviousSeparator(charCoords, myBackBuffer);
             Point stop = SelectionUtil.getNextSeparator(charCoords, myBackBuffer);
             mySelection = new TerminalSelection(start);
-            mySelection.updateEnd(stop, myTermSize.width);
+            mySelection.updateEnd(stop);
 
             if (mySettingsProvider.emulateX11CopyPaste()) {
               handleCopy(false);
@@ -183,7 +185,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
               endLine++;
             }
             mySelection = new TerminalSelection(new Point(0, startLine));
-            mySelection.updateEnd(new Point(myTermSize.width, endLine), myTermSize.width);
+            mySelection.updateEnd(new Point(myTermSize.width, endLine));
 
             if (mySettingsProvider.emulateX11CopyPaste()) {
               handleCopy(false);
@@ -254,6 +256,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   protected Point panelToCharCoords(final Point p) {
     int x = Math.min(p.x / myCharSize.width, getColumnCount() - 1);
+    x = Math.max(0, x);
     int y = Math.min(p.y / myCharSize.height, getRowCount() - 1) + myClientScrollOrigin;
     return new Point(x, y);
   }
@@ -475,12 +478,16 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       drawImage(gfx, myImage);
       drawMargins(gfx, myImage.getWidth(), myImage.getHeight());
       drawSelection(myImageForSelection, gfx);
-      myCursor.drawCursor(gfx, myImageForCursor, inSelection(myCursor.getCoordX(), myCursor.getCoordY())? myImageForSelection : myImage);
-    }
+      if (mySettingsProvider.useInverseSelectionColor()) {
+        myCursor.drawCursor(gfx, myImageForSelection, myImage);
+      } else {
+        myCursor.drawCursor(gfx, myImageForCursor, inSelection(myCursor.getCoordX(), myCursor.getCoordY()) ? myImageForSelection : myImage);
+      }
+     }
   }
 
   private boolean inSelection(int x, int y) {
-    return mySelection != null && mySelection.contains(x, y);
+    return mySelection != null && mySelection.contains(new Point(x, y));
   }
 
   @Override
@@ -643,36 +650,31 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       return;
     }
 
-    Point start = mySelection.getStart();
-    Point end = mySelection.getEnd();
+    Pair<Point, Point> points = mySelection.pointsForRun(myTermSize.width);
+    Point start = points.first;
+    Point end = points.second;
 
-    if (start.y == end.y) {
-                        /* same line */
+    if (start.y == end.y) { /* same line */
       if (start.x == end.x) {
         return;
       }
-      top = start.x < end.x ? start : end;
-      bottom = start.x >= end.x ? start : end;
 
-      copyImage(g, imageForSelection, top.x * myCharSize.width, (top.y - myClientScrollOrigin) * myCharSize.height,
-          (bottom.x - top.x) * myCharSize.width, myCharSize.height);
+      copyImage(g, imageForSelection, start.x * myCharSize.width, (start.y - myClientScrollOrigin) * myCharSize.height,
+          (end.x - start.x) * myCharSize.width, myCharSize.height);
     } else {
-      top = start.y < end.y ? start : end;
-      bottom = start.y > end.y ? start : end;
-                        /* to end of first line */
-      copyImage(g, imageForSelection, top.x * myCharSize.width, (top.y - myClientScrollOrigin) * myCharSize.height,
-          (myTermSize.width - top.x) * myCharSize.width, myCharSize.height);
+      /* to end of first line */
+      copyImage(g, imageForSelection, start.x * myCharSize.width, (start.y - myClientScrollOrigin) * myCharSize.height,
+          (myTermSize.width - start.x) * myCharSize.width, myCharSize.height);
 
-      if (bottom.y - top.y > 1) {
+      if (end.y - start.y > 1) {
         /* intermediate lines */
-        copyImage(g, imageForSelection, 0, (top.y + 1 - myClientScrollOrigin) * myCharSize.height,
-            myTermSize.width * myCharSize.width, (bottom.y - top.y - 1)
+        copyImage(g, imageForSelection, 0, (start.y + 1 - myClientScrollOrigin) * myCharSize.height,
+            myTermSize.width * myCharSize.width, (end.y - start.y - 1)
             * myCharSize.height);
       }
 
       /* from beginning of last line */
-
-      copyImage(g, imageForSelection, 0, (bottom.y - myClientScrollOrigin) * myCharSize.height, bottom.x
+      copyImage(g, imageForSelection, 0, (end.y - myClientScrollOrigin) * myCharSize.height, end.x
           * myCharSize.width, myCharSize.height);
     }
   }
@@ -1128,7 +1130,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   // "unselect" is needed to handle Ctrl+C copy shortcut collision with ^C signal shortcut
   private boolean handleCopy(boolean unselect) {
     if (mySelection != null) {
-      copySelection(mySelection.getStart(), mySelection.getEnd());
+      Pair<Point, Point> points = mySelection.pointsForRun(myTermSize.width);
+      copySelection(points.first, points.second);
       if (unselect) {
         mySelection = null;
         repaint();

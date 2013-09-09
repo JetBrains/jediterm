@@ -38,7 +38,7 @@ public class SelectionUtil {
   
   public static Pair<Point, Point> sortPoints(Point a, Point b) {
     if (a.y == b.y) { /* same line */
-      return Pair.create(a.x < b.x ? a : b, a.x >= b.x ? a : b);
+      return Pair.create(a.x <= b.x ? a : b, a.x > b.x ? a : b);
     }
     else {
       return Pair.create(a.y < b.y ? a : b, a.y > b.y ? a : b);
@@ -48,13 +48,13 @@ public class SelectionUtil {
   public static String getSelectionText(final Point selectionStart,
                                         final Point selectionEnd,
                                         final BackBuffer backBuffer) {
-    
 
     Pair<Point, Point> pair = sortPoints(selectionStart, selectionEnd);
 
     Point top = pair.first;
+    top.y = Math.max(top.y, - backBuffer.getScrollBufferLinesCount());
     Point bottom = pair.second;
-    
+
     final StringBuilder selectionText = new StringBuilder();
 
     for (int i = top.y; i <= bottom.y; i++) {

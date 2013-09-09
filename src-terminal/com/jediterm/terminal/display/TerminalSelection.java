@@ -34,14 +34,8 @@ public class TerminalSelection {
     return p;
   }
 
-  public boolean contains(int x, int y) {
-    Pair<Point, Point> p = SelectionUtil.sortPoints(myStart, myEnd);
-    if (y == p.first.y) {
-      return x >= p.first.x;
-    }
-    if (y == p.second.y) {
-      return x <= p.second.x;
-    }
-    return p.first.y < y && y < p.second.y;
+  public boolean contains(Point toTest) {
+    return SelectionUtil.sortPoints(myStart, toTest).first == myStart
+        && SelectionUtil.sortPoints(toTest, myEnd).second == myEnd;
   }
 }

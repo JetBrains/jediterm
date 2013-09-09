@@ -478,12 +478,16 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       drawImage(gfx, myImage);
       drawMargins(gfx, myImage.getWidth(), myImage.getHeight());
       drawSelection(myImageForSelection, gfx);
-      myCursor.drawCursor(gfx, myImageForCursor, inSelection(myCursor.getCoordX(), myCursor.getCoordY())? myImageForSelection : myImage);
-    }
+      if (mySettingsProvider.useInverseSelectionColor()) {
+        myCursor.drawCursor(gfx, myImageForSelection, myImage);
+      } else {
+        myCursor.drawCursor(gfx, myImageForCursor, inSelection(myCursor.getCoordX(), myCursor.getCoordY()) ? myImageForSelection : myImage);
+      }
+     }
   }
 
   private boolean inSelection(int x, int y) {
-    return mySelection != null && mySelection.contains(x, y);
+    return mySelection != null && mySelection.contains(new Point(x, y));
   }
 
   @Override

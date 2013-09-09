@@ -22,7 +22,6 @@ import java.awt.datatransfer.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.ImageObserver;
-import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.List;
 
@@ -52,7 +51,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private TerminalStarter myTerminalStarter = null;
 
-  private TerminalSelection mySelection = null;
+  protected TerminalSelection mySelection = null;
   private Clipboard myClipboard;
 
   private TerminalPanelListener myTerminalPanelListener;
@@ -291,7 +290,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   protected void pasteSelection() {
-    final String selection = getClipboardString();
+    final String selection = getClipboardContent();
 
     try {
       myTerminalStarter.sendString(selection);
@@ -300,16 +299,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
   }
 
-  private String getClipboardString() {
-    try {
-      return getClipboardContent();
-    } catch (final Exception e) {
-      LOG.info(e);
-    }
-    return null;
-  }
-
-  protected String getClipboardContent() throws IOException, UnsupportedFlavorException {
+  protected String getClipboardContent() {
     try {
       return (String) myClipboard.getData(DataFlavor.stringFlavor);
     } catch (Exception e) {
@@ -1039,7 +1029,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         }).withMnemonicKey(KeyEvent.VK_P).withEnabledSupplier(new Supplier<Boolean>() {
           @Override
           public Boolean get() {
-            return getClipboardString() != null;
+            return getClipboardContent() != null;
           }
         }));
   }

@@ -959,6 +959,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     return myBackBuffer;
   }
 
+  public TerminalSelection getSelection() {
+    return mySelection;
+  }
+
   public LinesBuffer getScrollBuffer() {
     return myBackBuffer.getScrollBuffer();
   }

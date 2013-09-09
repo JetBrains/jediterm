@@ -24,9 +24,14 @@ public class TerminalSelection {
     return myEnd;
   }
 
-  public void updateEnd(Point end, int width) {
+  public void updateEnd(Point end) {
     myEnd = end;
-    myEnd.x = Math.min(myEnd.x + 1, width);
+  }
+
+  public Pair<Point, Point> pointsForRun(int width) {
+    Pair<Point, Point> p = SelectionUtil.sortPoints(new Point(myStart), new Point(myEnd));
+    p.second.x = Math.min(p.second.x + 1, width);
+    return p;
   }
 
   public boolean contains(int x, int y) {

@@ -543,28 +543,27 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   }
 
   private boolean deviceStatusReport(ControlSequence args) {
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Sending Device Report Status");
-    }
-
     if (args.startsWithQuestionMark()) {
       LOG.error("Don't support DEC-specific Device Report Status");
-
       return false;
     }
     int c = args.getArg(0, 0);
     if (c == 5) {
-      myOutputStream.sendString("\033[0n");
+      String str = "\033[0n";
+      LOG.debug("Sending Device Report Status : " + str);
+      myOutputStream.sendString(str);
       return true;
     }
     else if (c == 6) {
       int row = myTerminal.getCursorY();
       int column = myTerminal.getCursorX();
-      myOutputStream.sendString("\033[" + row + ";" + column + "R");
+      String str = "\033[" + row + ";" + column + "R";
+      LOG.debug("Sending Device Report Status : " + str);
+      myOutputStream.sendString(str);
       return true;
     }
     else {
-      LOG.error("Unsupported parameter: " + args.toString());
+      LOG.error("Sending Device Report Status : unsupported parameter: " + args.toString());
       return false;
     }
   }

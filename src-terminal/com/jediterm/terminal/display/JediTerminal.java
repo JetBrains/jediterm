@@ -611,7 +611,6 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
 
   @Override
   public void cursorPosition(int x, int y) {
-    myCursorX = x - 1;
     if (isOriginMode()) {
       myCursorY = y + scrollingRegionTop() - 1;
     }
@@ -623,9 +622,9 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
       myCursorY = scrollingRegionBottom();
     }
 
-    if (myCursorX > myTerminalWidth) {
-      myCursorX = myTerminalWidth;
-    }
+    // avoid issue due to malformed sequence
+    myCursorX = Math.max(0, x - 1); 
+    myCursorX = Math.min(myCursorX, myTerminalWidth); 
 
     myDisplay.setCursor(myCursorX, myCursorY);
   }

@@ -17,7 +17,7 @@ public class TerminalKeyEncoder {
   private final Map<Integer, byte[]> myKeyCodes = new HashMap<Integer, byte[]>();
 
   public TerminalKeyEncoder() {
-    putCode(VK_ENTER, Ascii.CR);
+    setAutoNewLine(false);
     arrowKeysApplicationSequences();
     keypadApplicationSequences();
     putCode(VK_F1, ESC, 'O', 'P');

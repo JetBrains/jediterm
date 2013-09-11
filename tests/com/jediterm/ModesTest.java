@@ -25,7 +25,7 @@ public class ModesTest extends TestCase {
     assertEquals("long line \n" +
                  "          \n" +
                  "          \n", backBuffer.getLines());
-    assertEquals(9, terminal.getCursorX());
+    assertEquals(10, terminal.getCursorX());
     assertEquals(1, terminal.getCursorY());
 
     terminal.cursorPosition(1, 1);
@@ -38,7 +38,7 @@ public class ModesTest extends TestCase {
     assertEquals("this is a \n" +
                  "long line \n" +
                  "          \n", backBuffer.getLines());
-    assertEquals(9, terminal.getCursorX());
+    assertEquals(10, terminal.getCursorX());
     assertEquals(2, terminal.getCursorY());
   }
 

@@ -758,6 +758,9 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
     myModes.clear();
     setModeEnabled(TerminalMode.AutoNewLine, true);
     setModeEnabled(TerminalMode.AutoWrap, true);
+    setModeEnabled(TerminalMode.AutoNewLine, false);
+    setModeEnabled(TerminalMode.CursorVisible, true);
+    setModeEnabled(TerminalMode.CursorBlinking, true);
   }
 
   public boolean isAutoNewLine() {

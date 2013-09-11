@@ -1,6 +1,8 @@
 package com.jediterm.terminal.ui;
 
 import com.google.common.collect.Lists;
+import com.jediterm.terminal.Terminal;
+import com.jediterm.terminal.TerminalDisplay;
 import com.jediterm.terminal.TerminalStarter;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.debug.DebugBufferType;
@@ -89,6 +91,10 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     return new PreConnectHandler(terminal);
   }
 
+  public TerminalDisplay getTerminalDisplay() {
+    return getTerminalPanel();
+  }
+
   public TerminalPanel getTerminalPanel() {
     return myTerminalPanel;
   }
@@ -104,8 +110,14 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     return new TerminalStarter(terminal, connector);
   }
 
+  @Override
   public TtyConnector getTtyConnector() {
     return myTtyConnector;
+  }
+
+  @Override
+  public Terminal getTerminal() {
+    return myTerminal;
   }
 
   @Override

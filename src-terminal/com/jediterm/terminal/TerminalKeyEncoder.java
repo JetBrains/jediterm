@@ -21,6 +21,7 @@ public class TerminalKeyEncoder {
     putCode(VK_ENTER, Ascii.CR);
     arrowKeysApplicationSequences();
     keypadApplicationSequences();
+    putCode(VK_BACK_SPACE, Ascii.DEL);
     putCode(VK_F1, ESC, 'O', 'P');
     putCode(VK_F2, ESC, 'O', 'Q');
     putCode(VK_F3, ESC, 'O', 'R');

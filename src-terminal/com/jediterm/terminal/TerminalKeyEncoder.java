@@ -14,11 +14,10 @@ public class TerminalKeyEncoder {
   public static final int ESC = Ascii.ESC;
   public static final int DEL = Ascii.DEL;
 
-
   private final Map<Integer, byte[]> myKeyCodes = new HashMap<Integer, byte[]>();
 
   public TerminalKeyEncoder() {
-    putCode(VK_ENTER, Ascii.CR);
+    setAutoNewLine(false);
     arrowKeysApplicationSequences();
     keypadApplicationSequences();
     putCode(VK_F1, ESC, 'O', 'P');
@@ -91,4 +90,13 @@ public class TerminalKeyEncoder {
     putCode(VK_KP_UP, 8); //8
     //9
   }
+
+  public void setAutoNewLine(boolean enabled) {
+    if (enabled) {
+      putCode(VK_ENTER, Ascii.CR, Ascii.LF);
+    } else {
+      putCode(VK_ENTER, Ascii.CR);
+    }
+  }
+
 }

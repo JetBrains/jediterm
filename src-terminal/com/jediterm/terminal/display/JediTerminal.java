@@ -375,6 +375,11 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
     }
   }
 
+  @Override
+  public void setAutoNewLine(boolean enabled) {
+    myTerminalKeyEncoder.setAutoNewLine(enabled);
+  }
+
   public void eraseInLine(int arg) {
     myBackBuffer.lock();
     try {
@@ -756,7 +761,6 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
 
   private void initModes() {
     myModes.clear();
-    setModeEnabled(TerminalMode.AutoNewLine, true);
     setModeEnabled(TerminalMode.AutoWrap, true);
   }
 

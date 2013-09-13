@@ -942,7 +942,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
 
   @Override
   public int getCursorX() {
-    return myCursorX;
+    return myCursorX + 1;
   }
 
   @Override

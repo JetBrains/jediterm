@@ -46,6 +46,38 @@ public abstract class AbstractTerminalFrame {
     }
   };
 
+  private AbstractAction myDumpDimension = new AbstractAction("Dump terminal dimension") {
+    public void actionPerformed(final ActionEvent e) {
+      LOG.info(myTerminal.getTerminalDisplay().getColumnCount() +
+          "x" + myTerminal.getTerminalDisplay().getRowCount());
+    }
+  };
+  
+  private AbstractAction myDumpCursorPosition = new AbstractAction("Dump cursor position") {
+    public void actionPerformed(final ActionEvent e) {
+      LOG.info(myTerminal.getCurrentSession().getTerminal().getCursorX() +
+          "x" + myTerminal.getCurrentSession().getTerminal().getCursorY());
+    }
+  };
+
+  private AbstractAction myCursor0x0 = new AbstractAction("1x1") {
+    public void actionPerformed(final ActionEvent e) {
+         myTerminal.getCurrentSession().getTerminal().cursorPosition(1, 1);
+    }
+  };
+
+  private AbstractAction myCursor10x10 = new AbstractAction("10x10") {
+    public void actionPerformed(final ActionEvent e) {
+         myTerminal.getCurrentSession().getTerminal().cursorPosition(10, 10);
+    }
+  };
+
+  private AbstractAction myCursor80x24 = new AbstractAction("80x24") {
+    public void actionPerformed(final ActionEvent e) {
+         myTerminal.getCurrentSession().getTerminal().cursorPosition(80, 24);
+    }
+  };
+
   private JMenuBar getJMenuBar() {
     final JMenuBar mb = new JMenuBar();
     final JMenu m = new JMenu("File");
@@ -57,6 +89,15 @@ public abstract class AbstractTerminalFrame {
     dm.add(myShowBuffersAction);
     dm.add(myResetDamage);
     dm.add(myDrawDamage);
+    dm.addSeparator();
+    dm.add(myDumpDimension);
+    dm.add(myDumpCursorPosition);
+    
+    JMenu cursorPosition = new JMenu("Set cursor position ...");
+    cursorPosition.add(myCursor0x0);
+    cursorPosition.add(myCursor10x10);
+    cursorPosition.add(myCursor80x24);
+    dm.add(cursorPosition);
     mb.add(dm);
 
     return mb;

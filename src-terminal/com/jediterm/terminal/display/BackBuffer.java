@@ -212,7 +212,7 @@ public class BackBuffer implements StyledTextConsumer {
       System.arraycopy(myBuf, from, myBuf, to, remain);
       Arrays.fill(myBuf, to + remain, (y + 1) * myWidth, EMPTY_CHAR);
       System.arraycopy(myStyleBuf, from, myStyleBuf, to, remain);
-      Arrays.fill(myStyleBuf, to + remain, (y + 1) * myWidth, TextStyle.EMPTY);
+      Arrays.fill(myStyleBuf, to + remain, (y + 1) * myWidth, createEmptyStyleWithCurrentColor());
 
       myTextBuffer.deleteCharacters(x, y, count);
 

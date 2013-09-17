@@ -8,8 +8,11 @@ import java.awt.*;
  * @author traff
  */
 @SuppressWarnings("UseJBColor")
-public enum ColorPalette {
-  XTERM_PALETTE {
+public abstract class ColorPalette {
+  private final String myName;
+  
+  
+  public static final ColorPalette XTERM_PALETTE = new ColorPalette("XTerm") {
     @Override
     public Color[] getIndexColors() {
       return new Color[]{
@@ -32,9 +35,9 @@ public enum ColorPalette {
           new Color(0xffffff), //White
       };
     }
-  },
+  };
 
-  WINDOWS_PALETTE {
+  public static final ColorPalette WINDOWS_PALETTE = new ColorPalette("Windows") {
     @Override
     public Color[] getIndexColors() {
       return new Color[]{
@@ -58,6 +61,14 @@ public enum ColorPalette {
       };
     }
   };
+
+  protected ColorPalette(String name) {
+    myName = name;
+  }
+
+  public String getName() {
+    return myName;
+  }
 
   public abstract Color[] getIndexColors();
 

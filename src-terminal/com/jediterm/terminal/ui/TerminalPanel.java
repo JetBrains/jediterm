@@ -811,6 +811,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   private void copyArea(Graphics2D gfx, BufferedImage image, int x, int y, int width, int height, int dx, int dy) {
+    if (height<=0) {
+      LOG.warn("Negative height argument in copyArea: " + height);
+      return;
+    }
     if (isRetina()) {
       Pair<BufferedImage, Graphics2D> pair = createAndInitImage(x + width, y + height);
 

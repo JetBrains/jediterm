@@ -237,7 +237,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     public void actionPerformed(ActionEvent e) {
       TerminalPanel terminalPanel = ref.get();
       if (terminalPanel != null) {
-        terminalPanel.redraw();
+        try {
+          terminalPanel.redraw();
+        }
+        catch (Exception ex) {
+          LOG.error(ex);
+        }
       } else { // terminalPanel was garbage collected
         Timer timer = (Timer) e.getSource();
         timer.removeActionListener(this);

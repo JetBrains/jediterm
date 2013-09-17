@@ -1,5 +1,6 @@
 package com.jediterm.terminal.ui;
 
+import com.jediterm.terminal.TerminalDisplay;
 import com.jediterm.terminal.TtyConnector;
 
 import javax.swing.*;
@@ -20,4 +21,6 @@ public interface TerminalWidget {
   Dimension getPreferredSize();
 
   TerminalSession getCurrentSession();
+
+  TerminalDisplay getTerminalDisplay();
 }

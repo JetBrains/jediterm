@@ -375,6 +375,11 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
     }
   }
 
+  @Override
+  public void setAutoNewLine(boolean enabled) {
+    myTerminalKeyEncoder.setAutoNewLine(enabled);
+  }
+
   public void eraseInLine(int arg) {
     myBackBuffer.lock();
     try {
@@ -611,7 +616,6 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
 
   @Override
   public void cursorPosition(int x, int y) {
-    myCursorX = x - 1;
     if (isOriginMode()) {
       myCursorY = y + scrollingRegionTop() - 1;
     }
@@ -622,6 +626,10 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
     if (myCursorY > scrollingRegionBottom()) {
       myCursorY = scrollingRegionBottom();
     }
+
+    // avoid issue due to malformed sequence
+    myCursorX = Math.max(0, x - 1); 
+    myCursorX = Math.min(myCursorX, myTerminalWidth); 
 
     myDisplay.setCursor(myCursorX, myCursorY);
   }
@@ -752,8 +760,10 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
 
   private void initModes() {
     myModes.clear();
-    setModeEnabled(TerminalMode.AutoNewLine, true);
     setModeEnabled(TerminalMode.AutoWrap, true);
+    setModeEnabled(TerminalMode.AutoNewLine, false);
+    setModeEnabled(TerminalMode.CursorVisible, true);
+    setModeEnabled(TerminalMode.CursorBlinking, true);
   }
 
   public boolean isAutoNewLine() {
@@ -938,7 +948,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
 
   @Override
   public int getCursorX() {
-    return myCursorX;
+    return myCursorX + 1;
   }
 
   @Override

@@ -485,6 +485,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   @Override
   public void processKeyEvent(final KeyEvent e) {
+    handleKeyEvent(e);
+    e.consume();
+  }
+
+  public void handleKeyEvent(KeyEvent e) {
     final int id = e.getID();
     if (id == KeyEvent.KEY_PRESSED) {
       myKeyListener.keyPressed(e);
@@ -493,7 +498,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     } else if (id == KeyEvent.KEY_TYPED) {
       myKeyListener.keyTyped(e);
     }
-    e.consume();
   }
 
   public int getPixelWidth() {

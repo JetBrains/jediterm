@@ -35,7 +35,8 @@ public class StyleState {
   }
 
   public void reset() {
-    myCurrentStyle = new TextStyle();
+    myCurrentStyle = myDefaultStyle.clone();
+    myMergedStyle = null;
   }
 
   public void set(StyleState styleState) {

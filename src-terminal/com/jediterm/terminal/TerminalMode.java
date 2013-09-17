@@ -82,7 +82,7 @@ public enum TerminalMode {
   AutoNewLine {
     @Override
     public void setEnabled(Terminal terminal, boolean enabled) {
-      //we do nothing just switching the mode
+      terminal.setAutoNewLine(enabled);
     }
   }, 
   KeyboardAction, 

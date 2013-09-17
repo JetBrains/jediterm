@@ -111,6 +111,8 @@ public interface Terminal {
 
   void setApplicationKeypad(boolean enabled);
 
+  void setAutoNewLine(boolean enabled);
+
   StyleState getStyleState();
 
   void insertLines(int count);
@@ -136,4 +138,5 @@ public interface Terminal {
   void setMouseMode(@NotNull MouseMode mode);
 
   void setMouseFormat(MouseFormat mouseFormat);
+
 }

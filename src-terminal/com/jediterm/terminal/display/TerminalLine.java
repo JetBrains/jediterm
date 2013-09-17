@@ -181,7 +181,9 @@ public class TerminalLine {
   }
 
   public void clearArea(int leftX, int rightX, @NotNull TextStyle style) {
-    writeCharacters(leftX, style, new CharBuffer(' ', Math.min(myTextEntries.length(), rightX) - leftX));
+    if (leftX < myTextEntries.length()) {
+      writeCharacters(leftX, style, new CharBuffer(' ', Math.min(myTextEntries.length(), rightX) - leftX));
+    }
   }
 
   static class TextEntry {

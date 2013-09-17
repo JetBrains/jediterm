@@ -24,19 +24,18 @@ public class TerminalSelection {
     return myEnd;
   }
 
-  public void updateEnd(Point end, int width) {
+  public void updateEnd(Point end) {
     myEnd = end;
-    myEnd.x = Math.min(myEnd.x + 1, width);
   }
 
-  public boolean contains(int x, int y) {
-    Pair<Point, Point> p = SelectionUtil.sortPoints(myStart, myEnd);
-    if (y == p.first.y) {
-      return x >= p.first.x;
-    }
-    if (y == p.second.y) {
-      return x <= p.second.x;
-    }
-    return p.first.y < y && y < p.second.y;
+  public Pair<Point, Point> pointsForRun(int width) {
+    Pair<Point, Point> p = SelectionUtil.sortPoints(new Point(myStart), new Point(myEnd));
+    p.second.x = Math.min(p.second.x + 1, width);
+    return p;
+  }
+
+  public boolean contains(Point toTest) {
+    return SelectionUtil.sortPoints(myStart, toTest).first == myStart
+        && SelectionUtil.sortPoints(toTest, myEnd).second == myEnd;
   }
 }

@@ -4,6 +4,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.jediterm.terminal.RequestOrigin;
+import com.jediterm.terminal.TerminalDisplay;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.TtyConnectorWaitFor;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
@@ -406,6 +407,11 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     else {
       return myTermWidget;
     }
+  }
+
+  @Override
+  public TerminalDisplay getTerminalDisplay() {
+    return getCurrentSession().getTerminalDisplay();
   }
 
   @Nullable

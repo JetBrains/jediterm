@@ -9,10 +9,7 @@ import java.awt.*;
  */
 @SuppressWarnings("UseJBColor")
 public abstract class ColorPalette {
-  private final String myName;
-  
-  
-  public static final ColorPalette XTERM_PALETTE = new ColorPalette("XTerm") {
+  public static final ColorPalette XTERM_PALETTE = new ColorPalette() {
     @Override
     public Color[] getIndexColors() {
       return new Color[]{
@@ -37,7 +34,7 @@ public abstract class ColorPalette {
     }
   };
 
-  public static final ColorPalette WINDOWS_PALETTE = new ColorPalette("Windows") {
+  public static final ColorPalette WINDOWS_PALETTE = new ColorPalette() {
     @Override
     public Color[] getIndexColors() {
       return new Color[]{
@@ -61,14 +58,6 @@ public abstract class ColorPalette {
       };
     }
   };
-
-  protected ColorPalette(String name) {
-    myName = name;
-  }
-
-  public String getName() {
-    return myName;
-  }
 
   public abstract Color[] getIndexColors();
 

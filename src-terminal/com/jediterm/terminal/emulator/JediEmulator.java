@@ -21,6 +21,10 @@ import java.io.IOException;
 public class JediEmulator extends DataStreamIteratingEmulator {
   private static final Logger LOG = Logger.getLogger(JediEmulator.class);
 
+  private static int logThrottlerCounter = 0;
+  private static int logThrottlerRatio = 100;
+  private static int logThrottlerLimit = logThrottlerRatio;
+
   private final TerminalOutputStream myOutputStream;
 
   public JediEmulator(TerminalDataStream dataStream, TerminalOutputStream outputStream, Terminal terminal) {
@@ -71,7 +75,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         if (ch <= Ascii.US) {
           StringBuilder sb = new StringBuilder("Unhandled control character:");
           CharacterUtils.appendChar(sb, CharacterUtils.CharacterType.NONE, ch);
-          LOG.error(sb.toString());
+          unhandledLogThrottler(sb.toString());
         }
         else { // Plain characters
           myDataStream.pushChar(ch);
@@ -292,7 +296,21 @@ public class JediEmulator extends DataStreamIteratingEmulator {
    * @param msg The message describing the sequence
    */
   private static void unsupported(String msg) {
-    LOG.error("Unsupported control characters: " + msg);
+    unhandledLogThrottler("Unsupported control characters: " + msg);
+  }
+
+  private static void unhandledLogThrottler(String msg) {
+    logThrottlerCounter++;
+    if (logThrottlerCounter < logThrottlerLimit) {
+      if (logThrottlerCounter % (logThrottlerLimit / logThrottlerRatio) == 0) {
+        if (logThrottlerLimit / logThrottlerRatio > 1 ) {
+          msg += " and "+ ( logThrottlerLimit / logThrottlerRatio ) + " more...";
+        }
+        LOG.error(msg);
+      }
+    } else {
+      logThrottlerLimit *= 10;
+    }
   }
 
   private static String escapeSequenceToString(final char... b) {

@@ -175,7 +175,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             // select line
             final Point charCoords = panelToCharCoords(e.getPoint());
             int startLine = charCoords.y;
-            while (startLine > - getScrollBuffer().getLineCount() 
+            while (startLine > -getScrollBuffer().getLineCount()
                 && myBackBuffer.getLine(startLine - 1).isWrapped()) {
               startLine--;
             }
@@ -239,8 +239,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       if (terminalPanel != null) {
         try {
           terminalPanel.redraw();
-        }
-        catch (Exception ex) {
+        } catch (Exception ex) {
           LOG.error(ex);
         }
       } else { // terminalPanel was garbage collected
@@ -488,7 +487,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       } else {
         myCursor.drawCursor(gfx, myImageForCursor, inSelection(myCursor.getCoordX(), myCursor.getCoordY()) ? myImageForSelection : myImage);
       }
-     }
+    }
   }
 
   private boolean inSelection(int x, int y) {
@@ -797,24 +796,22 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   private void copyAndClearAreaOnScroll(int dy, Graphics2D gfx, BufferedImage image) {
-    copyArea(gfx, image, 0, Math.max(0, dy),
-        getPixelWidth(), getPixelHeight() - Math.abs(dy),
-        0, -dy);
+    if (getPixelHeight() > Math.abs(dy)) {
+      copyArea(gfx, image, 0, Math.max(0, dy),
+          getPixelWidth(), getPixelHeight() - Math.abs(dy),
+          0, -dy);
+    }
 
     //clear rect before drawing scroll buffer on it
     gfx.setColor(getBackground());
     if (dy < 0) {
-      gfx.fillRect(0, 0, getPixelWidth(), Math.abs(dy));
+      gfx.fillRect(0, 0, getPixelWidth(), Math.min(getPixelHeight(), Math.abs(dy)));
     } else {
-      gfx.fillRect(0, getPixelHeight() - dy, getPixelWidth(), dy);
+      gfx.fillRect(0, Math.max(getPixelHeight() - dy, 0), getPixelWidth(), Math.min(getPixelHeight(), dy));
     }
   }
 
   private void copyArea(Graphics2D gfx, BufferedImage image, int x, int y, int width, int height, int dx, int dy) {
-    if (height<=0) {
-      LOG.warn("Negative height argument in copyArea: " + height);
-      return;
-    }
     if (isRetina()) {
       Pair<BufferedImage, Graphics2D> pair = createAndInitImage(x + width, y + height);
 

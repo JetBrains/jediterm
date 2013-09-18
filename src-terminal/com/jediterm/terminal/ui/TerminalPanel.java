@@ -110,6 +110,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         final Point charCoords = panelToCharCoords(e.getPoint());
 
         if (mySelection == null) {
+          // prevent unlikely case where drag started outside terminal panel
+          if (mySelectionStartPoint == null) {
+            mySelectionStartPoint = charCoords;
+          }
           mySelection = new TerminalSelection(new Point(mySelectionStartPoint));
         }
         repaint();

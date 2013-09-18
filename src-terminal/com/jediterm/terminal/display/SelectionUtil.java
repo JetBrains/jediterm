@@ -45,6 +45,10 @@ public class SelectionUtil {
     }
   }
 
+  public static String getSelectionText(TerminalSelection selection, BackBuffer backBuffer) {
+    return getSelectionText(selection.getStart(), selection.getEnd(), backBuffer);
+  }
+  
   public static String getSelectionText(final Point selectionStart,
                                         final Point selectionEnd,
                                         final BackBuffer backBuffer) {

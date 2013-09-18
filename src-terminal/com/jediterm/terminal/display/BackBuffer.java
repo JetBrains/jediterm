@@ -4,6 +4,7 @@ import com.google.common.collect.Maps;
 import com.jediterm.terminal.*;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.util.Arrays;
@@ -69,7 +70,8 @@ public class BackBuffer implements StyledTextConsumer {
   public Dimension resize(@NotNull final Dimension pendingResize,
                           @NotNull final RequestOrigin origin,
                           final int cursorY,
-                          @NotNull JediTerminal.ResizeHandler resizeHandler) {
+                          @NotNull JediTerminal.ResizeHandler resizeHandler, 
+                          @Nullable TerminalSelection mySelection) {
     final char[] oldBuf = myBuf;
     final TextStyle[] oldStyleBuf = myStyleBuf;
     final int oldHeight = myHeight;
@@ -88,12 +90,18 @@ public class BackBuffer implements StyledTextConsumer {
       if (!myAlternateBuffer) {
         myTextBuffer.moveTopLinesTo(count, myScrollBuffer);
       }
+      if (mySelection != null) {
+        mySelection.shiftY(-count);
+      }
     }
     else if (newHeight > cursorY && myScrollBuffer.getLineCount() > 0) {
       //we need to move lines from scroll buffer to the text buffer
       if (!myAlternateBuffer) {
         myScrollBuffer.moveBottomLinesTo(newHeight - cursorY, myTextBuffer);
         textBufferUpdated = true;
+      }
+      if (mySelection != null) {
+        mySelection.shiftY(newHeight - cursorY);
       }
     }
 

@@ -4,6 +4,7 @@ import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TerminalDisplay;
 import com.jediterm.terminal.display.BackBuffer;
 import com.jediterm.terminal.display.JediTerminal;
+import com.jediterm.terminal.display.TerminalSelection;
 
 import java.awt.*;
 
@@ -12,6 +13,7 @@ import java.awt.*;
  */
 public class BackBufferDisplay implements TerminalDisplay {
   private final BackBuffer myBackBuffer;
+  private TerminalSelection mySelection = null;
 
   public BackBufferDisplay(BackBuffer backBuffer) {
     myBackBuffer = backBuffer;
@@ -39,7 +41,7 @@ public class BackBufferDisplay implements TerminalDisplay {
 
   @Override
   public Dimension requestResize(Dimension pendingResize, RequestOrigin origin, int cursorY, JediTerminal.ResizeHandler resizeHandler) {
-    return myBackBuffer.resize(pendingResize, origin, cursorY, resizeHandler);
+    return myBackBuffer.resize(pendingResize, origin, cursorY, resizeHandler, mySelection);
   }
 
   @Override
@@ -62,5 +64,13 @@ public class BackBufferDisplay implements TerminalDisplay {
   @Override
   public void setWindowTitle(String name) {
     
+  }
+
+  public TerminalSelection getSelection() {
+    return mySelection;
+  }
+
+  public void setSelection(TerminalSelection mySelection) {
+    this.mySelection = mySelection;
   }
 }

@@ -1,10 +1,8 @@
 package com.jediterm;
 
 import com.jediterm.terminal.RequestOrigin;
-import com.jediterm.terminal.display.BackBuffer;
-import com.jediterm.terminal.display.JediTerminal;
-import com.jediterm.terminal.display.LinesBuffer;
-import com.jediterm.terminal.display.StyleState;
+import com.jediterm.terminal.display.*;
+import com.jediterm.util.BackBufferDisplay;
 import com.jediterm.util.BackBufferTerminal;
 import com.jediterm.util.CharBufferUtil;
 import junit.framework.TestCase;
@@ -213,5 +211,56 @@ public class BufferResizeTest extends TestCase {
         ">line4\n" +
         ">line5\n" +
         ">     \n", backBuffer.getLines());
+  }
+
+  public void testSelectionAfterResize() {
+    StyleState state = new StyleState();
+
+    BackBuffer backBuffer = new BackBuffer(6, 3, state);
+
+    BackBufferDisplay display = new BackBufferDisplay(backBuffer);
+    JediTerminal terminal = new JediTerminal(display, backBuffer, state);
+
+    terminal.writeString(">line1");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString(">line2");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString(">line3");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString(">line4");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString(">line5");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString(">");
+
+    display.setSelection(new TerminalSelection(new Point(1, 0), new Point(5, 1)));
+
+    String selectionText = SelectionUtil.getSelectionText(display.getSelection(), backBuffer);
+
+    assertEquals("line4\n" +
+        ">line", selectionText);
+
+
+    terminal.resize(new Dimension(6, 5), RequestOrigin.User);
+
+    assertEquals(selectionText, SelectionUtil.getSelectionText(display.getSelection(), backBuffer));
+
+
+    display.setSelection(new TerminalSelection(new Point(1, 0), new Point(5, 1)));
+
+    selectionText = SelectionUtil.getSelectionText(display.getSelection(), backBuffer);
+
+    assertEquals("line2\n" +
+        ">line", selectionText);
+
+
+    terminal.resize(new Dimension(6, 2), RequestOrigin.User);
+
+    assertEquals(selectionText, SelectionUtil.getSelectionText(display.getSelection(), backBuffer));
   }
 }

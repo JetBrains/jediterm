@@ -16,6 +16,11 @@ public class TerminalSelection {
     myStart = start;
   }
 
+  public TerminalSelection(Point start, Point end) {
+    myStart = start;
+    myEnd = end;
+  }
+
   public Point getStart() {
     return myStart;
   }
@@ -37,5 +42,10 @@ public class TerminalSelection {
   public boolean contains(Point toTest) {
     return SelectionUtil.sortPoints(myStart, toTest).first == myStart
         && SelectionUtil.sortPoints(toTest, myEnd).second == myEnd;
+  }
+
+  public void shiftY(int dy) {
+    myStart.y += dy;
+    myEnd.y += dy;
   }
 }

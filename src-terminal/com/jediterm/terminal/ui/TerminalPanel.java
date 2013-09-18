@@ -415,7 +415,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     if (!newSize.equals(myTermSize)) {
       myBackBuffer.lock();
       try {
-        myBackBuffer.resize(newSize, origin, cursorY, resizeHandler);
+        myBackBuffer.resize(newSize, origin, cursorY, resizeHandler, mySelection);
         myTermSize = (Dimension) newSize.clone();
         // resize images..
         setupImages();
@@ -423,7 +423,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         final Dimension pixelDimension = new Dimension(getPixelWidth(), getPixelHeight());
 
         setPreferredSize(pixelDimension);
-        if (myTerminalPanelListener != null) myTerminalPanelListener.onPanelResize(pixelDimension, origin);
+        if (myTerminalPanelListener != null) { 
+          myTerminalPanelListener.onPanelResize(pixelDimension, origin);
+        }
         SwingUtilities.invokeLater(new Runnable() {
           @Override
           public void run() {

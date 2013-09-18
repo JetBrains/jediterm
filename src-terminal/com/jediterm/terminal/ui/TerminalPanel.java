@@ -423,7 +423,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         final Dimension pixelDimension = new Dimension(getPixelWidth(), getPixelHeight());
 
         setPreferredSize(pixelDimension);
-        if (myTerminalPanelListener != null) { 
+        if (myTerminalPanelListener != null) {
           myTerminalPanelListener.onPanelResize(pixelDimension, origin);
         }
         SwingUtilities.invokeLater(new Runnable() {
@@ -541,14 +541,18 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     addMouseListener(new MouseAdapter() {
       @Override
       public void mousePressed(MouseEvent e) {
-        Point p = panelToCharCoords(e.getPoint());
-        listener.mousePressed(p.x, p.y, e);
+        if (mySettingsProvider.enableMouseReporting()) {
+          Point p = panelToCharCoords(e.getPoint());
+          listener.mousePressed(p.x, p.y, e);
+        }
       }
 
       @Override
       public void mouseReleased(MouseEvent e) {
-        Point p = panelToCharCoords(e.getPoint());
-        listener.mouseReleased(p.x, p.y, e);
+        if (mySettingsProvider.enableMouseReporting()) {
+          Point p = panelToCharCoords(e.getPoint());
+          listener.mouseReleased(p.x, p.y, e);
+        }
       }
     });
   }
@@ -558,8 +562,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   public class TerminalCursor {
-    private static final long CURSOR_BLINK_PERIOD = 505;
-
     private boolean myCursorHasChanged;
 
     protected Point myCursorCoordinates = new Point();
@@ -579,7 +581,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
 
     private boolean cursorShouldChangeBlinkState(long currentTime) {
-      return myBlinking && (currentTime - myLastCursorChange > CURSOR_BLINK_PERIOD);
+      return myBlinking && (currentTime - myLastCursorChange > mySettingsProvider.caretBlinkingMs());
     }
 
     public void drawCursor(Graphics2D g, BufferedImage imageForCursor, BufferedImage normalImage) {
@@ -643,7 +645,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
 
     private boolean noRecentResize(long time) {
-      return time - myLastResize > CURSOR_BLINK_PERIOD;
+      return time - myLastResize > mySettingsProvider.caretBlinkingMs();
     }
 
     public void setBlinking(boolean blinking) {
@@ -966,7 +968,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   public void beep() {
-    Toolkit.getDefaultToolkit().beep();
+    if (mySettingsProvider.audibleBell()) {
+      Toolkit.getDefaultToolkit().beep();
+    }
   }
 
   public BoundedRangeModel getBoundedRangeModel() {

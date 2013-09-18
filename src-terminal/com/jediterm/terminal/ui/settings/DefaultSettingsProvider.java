@@ -104,4 +104,18 @@ public class DefaultSettingsProvider implements SettingsProvider {
     return true;
   }
 
+  @Override
+  public boolean audibleBell() {
+    return true;
+  }
+
+  @Override
+  public boolean enableMouseReporting() {
+    return true;
+  }
+
+  @Override
+  public int caretBlinkingMs() {
+    return 505;
+  }
 }

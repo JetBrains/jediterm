@@ -25,8 +25,6 @@ public interface UserSettingsProvider {
 
   boolean useAntialiasing();
 
-  boolean shouldCloseTabOnLogout(TtyConnector ttyConnector);
-  
   boolean audibleBell();
   
   boolean enableMouseReporting();

@@ -100,11 +100,6 @@ public class DefaultSettingsProvider implements SettingsProvider {
   }
 
   @Override
-  public boolean shouldCloseTabOnLogout(TtyConnector ttyConnector) {
-    return true;
-  }
-
-  @Override
   public boolean audibleBell() {
     return true;
   }

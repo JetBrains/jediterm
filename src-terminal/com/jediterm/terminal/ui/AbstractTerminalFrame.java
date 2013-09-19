@@ -6,6 +6,7 @@ import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.debug.BufferPanel;
 import com.jediterm.terminal.ui.settings.DefaultSettingsProvider;
 
+import com.jediterm.terminal.ui.settings.DefaultTabbedSettingsProvider;
 import org.apache.log4j.Logger;
 
 import javax.swing.*;
@@ -117,7 +118,7 @@ public abstract class AbstractTerminalFrame {
   public abstract TtyConnector createTtyConnector();
 
   protected AbstractTerminalFrame() {
-    myTerminal = new TabbedTerminalWidget(new DefaultSettingsProvider(), new Predicate<TerminalWidget>() {
+    myTerminal = new TabbedTerminalWidget(new DefaultTabbedSettingsProvider(), new Predicate<TerminalWidget>() {
       @Override
       public boolean apply(TerminalWidget terminalWidget) {
         openSession(terminalWidget);

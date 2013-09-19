@@ -8,6 +8,7 @@ import com.jediterm.terminal.TerminalDisplay;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.TtyConnectorWaitFor;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
+import com.jediterm.terminal.ui.settings.TabbedSettingsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -32,14 +33,14 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
 
   private JTabbedPane myTabbedPane;
 
-  private SettingsProvider mySettingsProvider;
+  private TabbedSettingsProvider mySettingsProvider;
 
   private List<TabListener> myTabListeners = Lists.newArrayList();
   private TerminalActionProvider myNextActionProvider;
 
   private final Predicate<TerminalWidget> myCreateNewSessionAction;
 
-  public TabbedTerminalWidget(@NotNull SettingsProvider settingsProvider, @NotNull Predicate<TerminalWidget> createNewSessionAction) {
+  public TabbedTerminalWidget(@NotNull TabbedSettingsProvider settingsProvider, @NotNull Predicate<TerminalWidget> createNewSessionAction) {
     super(new BorderLayout());
     mySettingsProvider = settingsProvider;
     myCreateNewSessionAction = createNewSessionAction;

@@ -109,7 +109,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   }
 
   private void addTab(JediTermWidget terminal, JTabbedPane tabbedPane) {
-    tabbedPane.addTab(generateUniqueName(terminal.getSessionName(), tabbedPane), null, terminal);
+    tabbedPane.addTab(generateUniqueName(mySettingsProvider.tabName(terminal.getTtyConnector(), terminal.getSessionName()), tabbedPane), null, terminal);
 
     tabbedPane.setTabComponentAt(tabbedPane.getTabCount() - 1, new TabComponent(tabbedPane, terminal));
     tabbedPane.setSelectedComponent(terminal);

@@ -10,4 +10,9 @@ public class DefaultTabbedSettingsProvider extends DefaultSettingsProvider imple
   public boolean shouldCloseTabOnLogout(TtyConnector ttyConnector) {
     return true;
   }
+
+  @Override
+  public String tabName(TtyConnector ttyConnector, String sessionName) {
+    return sessionName;
+  }
 }

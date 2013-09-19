@@ -118,7 +118,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         }
         repaint();
         mySelection.updateEnd(charCoords);
-        if (mySettingsProvider.emulateX11CopyPaste()) {
+        if (mySettingsProvider.copyOnSelect()) {
           handleCopy(false);
         }
 
@@ -172,7 +172,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             mySelection = new TerminalSelection(start);
             mySelection.updateEnd(stop);
 
-            if (mySettingsProvider.emulateX11CopyPaste()) {
+            if (mySettingsProvider.copyOnSelect()) {
               handleCopy(false);
             }
           } else if (count == 3) {
@@ -191,11 +191,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             mySelection = new TerminalSelection(new Point(0, startLine));
             mySelection.updateEnd(new Point(myTermSize.width, endLine));
 
-            if (mySettingsProvider.emulateX11CopyPaste()) {
+            if (mySettingsProvider.copyOnSelect()) {
               handleCopy(false);
             }
           }
-        } else if (e.getButton() == MouseEvent.BUTTON2 && mySettingsProvider.emulateX11CopyPaste()) {
+        } else if (e.getButton() == MouseEvent.BUTTON2 && mySettingsProvider.pasteOnMiddleMouseClick()) {
           handlePaste();
         } else if (e.getButton() == MouseEvent.BUTTON3) {
           JPopupMenu popup = createPopupMenu();

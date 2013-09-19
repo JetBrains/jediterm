@@ -53,11 +53,9 @@ public class DefaultSettingsProvider implements SettingsProvider {
     String fontName;
     if (UIUtil.isWindows) {
       fontName = "Consolas";
-    }
-    else if (UIUtil.isMac) {
+    } else if (UIUtil.isMac) {
       fontName = "Menlo";
-    }
-    else {
+    } else {
       fontName = "Monospaced";
     }
     return Font.decode(fontName).deriveFont(getTerminalFontSize());
@@ -90,6 +88,15 @@ public class DefaultSettingsProvider implements SettingsProvider {
   }
 
   @Override
+  public boolean copyOnSelect() {
+    return emulateX11CopyPaste();
+  }
+
+  @Override
+  public boolean pasteOnMiddleMouseClick() {
+    return emulateX11CopyPaste();
+  }
+
   public boolean emulateX11CopyPaste() {
     return true;
   }

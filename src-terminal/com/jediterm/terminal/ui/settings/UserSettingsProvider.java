@@ -21,7 +21,9 @@ public interface UserSettingsProvider {
 
   boolean useInverseSelectionColor();
 
-  public boolean emulateX11CopyPaste();
+  public boolean copyOnSelect();
+  
+  public boolean pasteOnMiddleMouseClick();
 
   boolean useAntialiasing();
 

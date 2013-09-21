@@ -1,10 +1,10 @@
 package com.jediterm.terminal.ui.settings;
 
-import java.awt.Font;
-
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.emulator.ColorPalette;
+
+import java.awt.*;
 
 public interface UserSettingsProvider {
   ColorPalette getTerminalColorPalette();
@@ -26,4 +26,6 @@ public interface UserSettingsProvider {
   boolean useAntialiasing();
 
   boolean shouldCloseTabOnLogout(TtyConnector ttyConnector);
+
+  boolean drawCharsInCells();
 }

@@ -21,11 +21,19 @@ public interface UserSettingsProvider {
 
   boolean useInverseSelectionColor();
 
+  boolean copyOnSelect();
+
+  boolean pasteOnMiddleMouseClick();
+
   public boolean emulateX11CopyPaste();
 
   boolean useAntialiasing();
 
-  boolean shouldCloseTabOnLogout(TtyConnector ttyConnector);
+  boolean audibleBell();
+
+  boolean enableMouseReporting();
+
+  int caretBlinkingMs();
 
   boolean drawCharsInCells();
 }

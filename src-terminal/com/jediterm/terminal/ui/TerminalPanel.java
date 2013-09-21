@@ -261,6 +261,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
   }
 
+
+  private void scrollToBottom() {
+    myBoundedRangeModel.setValue(myTermSize.height);
+  }
+
   private void moveScrollBar(int k) {
     myBoundedRangeModel.setValue(myBoundedRangeModel.getValue() + k);
   }
@@ -979,8 +984,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   public void scrollArea(final int scrollRegionTop, final int scrollRegionSize, int dy) {
     if (dy < 0) {
       //Moving lines off the top of the screen
-      //TODO: Something to do with application keypad mode
-      //TODO: Something to do with the scroll margins
 
       SwingUtilities.invokeLater(new Runnable() {
         @Override
@@ -1189,6 +1192,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         final byte[] obuffer = new byte[1];
         obuffer[0] = (byte)keychar;
         myTerminalStarter.sendBytes(obuffer);
+        if (mySettingsProvider.scrollToBottomOnTyping()) {
+          scrollToBottom();
+        }
       }
     }
     catch (final Exception ex) {
@@ -1203,6 +1209,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       foo[0] = keychar;
       try {
         myTerminalStarter.sendString(new String(foo));
+        if (mySettingsProvider.scrollToBottomOnTyping()) {
+          scrollToBottom();
+        }
       }
       catch (final RuntimeException ex) {
         LOG.error("Error sending key to emulator", ex);

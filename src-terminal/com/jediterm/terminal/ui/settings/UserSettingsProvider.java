@@ -36,4 +36,6 @@ public interface UserSettingsProvider {
   int caretBlinkingMs();
 
   boolean drawCharsInCells();
+  
+  boolean scrollToBottomOnTyping();
 }

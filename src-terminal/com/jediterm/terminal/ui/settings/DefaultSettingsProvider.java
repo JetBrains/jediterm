@@ -123,4 +123,9 @@ public class DefaultSettingsProvider implements SettingsProvider {
   public boolean drawCharsInCells() {
     return true;
   }
+
+  @Override
+  public boolean scrollToBottomOnTyping() {
+    return true;
+  }
 }

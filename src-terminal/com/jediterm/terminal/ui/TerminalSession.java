@@ -22,4 +22,6 @@ public interface TerminalSession {
   TtyConnector getTtyConnector();
 
   String getSessionName();
+
+  void close();
 }

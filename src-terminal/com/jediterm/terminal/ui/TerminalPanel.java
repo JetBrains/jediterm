@@ -801,9 +801,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private void drawCharacters(int x, int y, TextStyle style, CharBuffer buf, Graphics2D gfx) {
     gfx.setColor(getPalette().getColor(myStyleState.getBackground(style.getBackgroundForRun())));
-    gfx
-      .fillRect(x * myCharSize.width, (y - myClientScrollOrigin) * myCharSize.height, buf.getLength() * myCharSize.width,
-                myCharSize.height);
+    gfx.setClip(x * myCharSize.width,
+        (y - myClientScrollOrigin) * myCharSize.height,
+        buf.getLength() * myCharSize.width,
+        myCharSize.height);
+    gfx.fillRect(x * myCharSize.width,
+        (y - myClientScrollOrigin) * myCharSize.height,
+        buf.getLength() * myCharSize.width,
+        myCharSize.height);
 
     gfx.setFont(style.hasOption(TextStyle.Option.BOLD) ? myBoldFont : myNormalFont);
     gfx.setColor(getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun())));

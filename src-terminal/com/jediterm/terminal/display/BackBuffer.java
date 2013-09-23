@@ -161,7 +161,7 @@ public class BackBuffer implements StyledTextConsumer {
   }
 
   private void clearArea(final int leftX, final int topY, final int rightX, final int bottomY) {
-    clearArea(leftX, topY, rightX, bottomY, TextStyle.EMPTY);
+    clearArea(leftX, topY, rightX, bottomY, createEmptyStyleWithCurrentColor()); // TODO : should keep colors? What about elsewhere?
   }
 
   private void clearArea(final int leftX, final int topY, final int rightX, final int bottomY, @NotNull TextStyle textStyle) {

@@ -1045,9 +1045,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     boolean enact(Graphics2D gfx, BufferedImage image, int width, int charHeight) {
       if (scrollCount < 0) return false;
       for (int i = 0; i <= scrollCount; i++) {
+        if (dys[i] == 0 || Math.abs(dys[i]) >= hs[i]) { // nothing to do
+          continue;
+        }
         if (dys[i] > 0) {
           copyArea(gfx, image, 0, (ys[i] - 1) * charHeight, width, (hs[i] - dys[i]) * charHeight, 0, dys[i] * charHeight);
-        } else if (dys[i] < 0) {
+        } else {
           copyArea(gfx, image, 0, (ys[i] - dys[i] - 1) * charHeight, width, (hs[i] + dys[i]) * charHeight, 0, dys[i] * charHeight);
         }
       }

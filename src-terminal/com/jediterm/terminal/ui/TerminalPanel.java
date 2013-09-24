@@ -827,6 +827,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     if (style.hasOption(TextStyle.Option.UNDERLINED)) {
       gfx.drawLine(x * myCharSize.width, baseLine + 1, (x + buf.getLength()) * myCharSize.width, baseLine + 1);
     }
+    gfx.setClip(null);
   }
 
   /**
@@ -989,7 +990,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   public void scrollArea(final int scrollRegionTop, final int scrollRegionSize, int dy) {
     if (dy < 0) {
       //Moving lines off the top of the screen
-
       SwingUtilities.invokeLater(new Runnable() {
         @Override
         public void run() {
@@ -1045,7 +1045,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     boolean enact(Graphics2D gfx, BufferedImage image, int width, int charHeight) {
       if (scrollCount < 0) return false;
       for (int i = 0; i <= scrollCount; i++) {
-        copyArea(gfx, image, 0, ys[i] * charHeight, width, hs[i] * charHeight, 0, dys[i] * charHeight);
+        if (dys[i] == 0 || Math.abs(dys[i]) >= hs[i]) { // nothing to do
+          continue;
+        }
+        if (dys[i] > 0) {
+          copyArea(gfx, image, 0, (ys[i] - 1) * charHeight, width, (hs[i] - dys[i]) * charHeight, 0, dys[i] * charHeight);
+        } else {
+          copyArea(gfx, image, 0, (ys[i] - dys[i] - 1) * charHeight, width, (hs[i] + dys[i]) * charHeight, 0, dys[i] * charHeight);
+        }
       }
       scrollCount = -1;
       return true;

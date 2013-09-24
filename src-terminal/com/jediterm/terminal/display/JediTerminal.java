@@ -746,6 +746,8 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
 
     myBackBuffer.clearAll();
 
+    myDisplay.setScrollingEnabled(true);
+
     initModes();
 
     initMouseModes();

@@ -11,6 +11,8 @@ public class CharacterUtils {
   public static final int ESC = Ascii.ESC;
   public static final int DEL = Ascii.DEL;
 
+  public static final char EMPTY_CHAR = ' '; // (char) 0x0;
+
   private CharacterUtils() {
   }
 

@@ -25,8 +25,6 @@ import java.util.concurrent.locks.ReentrantLock;
 public class BackBuffer implements StyledTextConsumer {
   private static final Logger LOG = Logger.getLogger(BackBuffer.class);
 
-  private static final char EMPTY_CHAR = ' '; // (char) 0x0;
-
   private char[] myBuf;
   private TextStyle[] myStyleBuf;
   private BitSet myDamage;
@@ -59,7 +57,7 @@ public class BackBuffer implements StyledTextConsumer {
 
   private void allocateBuffers() {
     myBuf = new char[myWidth * myHeight];
-    Arrays.fill(myBuf, EMPTY_CHAR);
+    Arrays.fill(myBuf, CharacterUtils.EMPTY_CHAR);
 
     myStyleBuf = new TextStyle[myWidth * myHeight];
     Arrays.fill(myStyleBuf, TextStyle.EMPTY);
@@ -182,7 +180,7 @@ public class BackBuffer implements StyledTextConsumer {
         Arrays.fill(myBuf,
                     y * myWidth + leftX,
                     y * myWidth + rightX,
-                    EMPTY_CHAR);
+                    CharacterUtils.EMPTY_CHAR);
 
         Arrays.fill(myStyleBuf,
                     y * myWidth + leftX,
@@ -218,7 +216,7 @@ public class BackBuffer implements StyledTextConsumer {
       LOG.debug("About to delete " + count + " chars on line " + y + ", starting from " + x +
                 " (from : " + from + " to : " + to + " remain : " + remain + ")");
       System.arraycopy(myBuf, from, myBuf, to, remain);
-      Arrays.fill(myBuf, to + remain, (y + 1) * myWidth, EMPTY_CHAR);
+      Arrays.fill(myBuf, to + remain, (y + 1) * myWidth, CharacterUtils.EMPTY_CHAR);
       System.arraycopy(myStyleBuf, from, myStyleBuf, to, remain);
       Arrays.fill(myStyleBuf, to + remain, (y + 1) * myWidth, createEmptyStyleWithCurrentColor());
 
@@ -246,7 +244,7 @@ public class BackBuffer implements StyledTextConsumer {
       LOG.debug("About to insert " + count + " blank chars on line " + y + ", starting from " + x +
                 " (from : " + from + " to : " + to + " remain : " + remain + ")");
       System.arraycopy(myBuf, from, myBuf, to, remain);
-      Arrays.fill(myBuf, from, to, EMPTY_CHAR);
+      Arrays.fill(myBuf, from, to, CharacterUtils.EMPTY_CHAR);
       System.arraycopy(myStyleBuf, from, myStyleBuf, to, remain);
       Arrays.fill(myStyleBuf, from, to, createEmptyStyleWithCurrentColor());
 
@@ -646,7 +644,7 @@ public class BackBuffer implements StyledTextConsumer {
 
   public char getBuffersCharAt(int x, int y) {
     String lineText = getLine(y).getText();
-    return x < lineText.length() ? lineText.charAt(x) : EMPTY_CHAR;
+    return x < lineText.length() ? lineText.charAt(x) : CharacterUtils.EMPTY_CHAR;
   }
 
   public TextStyle getStyleAt(int x, int y) {

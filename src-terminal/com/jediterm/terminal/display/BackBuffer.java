@@ -161,7 +161,7 @@ public class BackBuffer implements StyledTextConsumer {
   }
 
   private void clearArea(final int leftX, final int topY, final int rightX, final int bottomY) {
-    clearArea(leftX, topY, rightX, bottomY, TextStyle.EMPTY);
+    clearArea(leftX, topY, rightX, bottomY, createEmptyStyleWithCurrentColor());
   }
 
   private void clearArea(final int leftX, final int topY, final int rightX, final int bottomY, @NotNull TextStyle textStyle) {
@@ -248,7 +248,7 @@ public class BackBuffer implements StyledTextConsumer {
       System.arraycopy(myBuf, from, myBuf, to, remain);
       Arrays.fill(myBuf, from, to, EMPTY_CHAR);
       System.arraycopy(myStyleBuf, from, myStyleBuf, to, remain);
-      Arrays.fill(myStyleBuf, from, to, TextStyle.EMPTY);
+      Arrays.fill(myStyleBuf, from, to, createEmptyStyleWithCurrentColor());
 
       myTextBuffer.insertBlankCharacters(x, y, count, myWidth);
 

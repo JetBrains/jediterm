@@ -199,7 +199,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
               handleCopy(false);
             }
           }
-        } else if (e.getButton() == MouseEvent.BUTTON2 && mySettingsProvider.pasteOnMiddleMouseClick()) {
+        }
+        else if (e.getButton() == MouseEvent.BUTTON2 && mySettingsProvider.pasteOnMiddleMouseClick()) {
           handlePaste();
         }
         else if (e.getButton() == MouseEvent.BUTTON3) {
@@ -432,7 +433,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       myBackBuffer.lock();
       try {
         myBackBuffer.resize(newSize, origin, cursorY, resizeHandler, mySelection);
-        myTermSize = (Dimension) newSize.clone();
+        myTermSize = (Dimension)newSize.clone();
         // resize images..
         setupImages();
 
@@ -714,9 +715,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   public void drawSelection(BufferedImage imageForSelection, Graphics2D g) {
     /* which is the top one */
-    Point top;
-    Point bottom;
-
     if (mySelection == null) {
       return;
     }
@@ -740,8 +738,18 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
       if (end.y - start.y > 1) {
         /* intermediate lines */
-        copyImage(g, imageForSelection, 0, (start.y + 1 - myClientScrollOrigin) * myCharSize.height,
-                  myTermSize.width * myCharSize.width, (end.y - start.y - 1)
+        int startInScreen = start.y + 1 - myClientScrollOrigin;
+
+        int heightInScreen = end.y - start.y - 1;
+        if (startInScreen < 0) {
+          heightInScreen += startInScreen;
+          startInScreen = 0;
+        }
+
+        heightInScreen = Math.min(myTermSize.height - startInScreen, heightInScreen);
+
+        copyImage(g, imageForSelection, 0, startInScreen * myCharSize.height,
+                  myTermSize.width * myCharSize.width, heightInScreen
                                                        * myCharSize.height);
       }
 
@@ -802,13 +810,13 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private void drawCharacters(int x, int y, TextStyle style, CharBuffer buf, Graphics2D gfx) {
     gfx.setColor(getPalette().getColor(myStyleState.getBackground(style.getBackgroundForRun())));
     gfx.setClip(x * myCharSize.width,
-        (y - myClientScrollOrigin) * myCharSize.height,
-        buf.getLength() * myCharSize.width,
-        myCharSize.height);
+                (y - myClientScrollOrigin) * myCharSize.height,
+                buf.getLength() * myCharSize.width,
+                myCharSize.height);
     gfx.fillRect(x * myCharSize.width,
-        (y - myClientScrollOrigin) * myCharSize.height,
-        buf.getLength() * myCharSize.width,
-        myCharSize.height);
+                 (y - myClientScrollOrigin) * myCharSize.height,
+                 buf.getLength() * myCharSize.width,
+                 myCharSize.height);
 
     gfx.setFont(style.hasOption(TextStyle.Option.BOLD) ? myBoldFont : myNormalFont);
     gfx.setColor(getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun())));
@@ -832,7 +840,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   /**
    * Draw every char in separate terminal cell to guaranty equal width for different lines.
-   * Nevertheless to improve kerning we draw word characters as one block for monospaced fonts. 
+   * Nevertheless to improve kerning we draw word characters as one block for monospaced fonts.
    */
   private void drawCharsInCells(int x, int y, CharBuffer buf, Graphics2D gfx) {
     int i = -1;
@@ -1050,7 +1058,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         }
         if (dys[i] > 0) {
           copyArea(gfx, image, 0, (ys[i] - 1) * charHeight, width, (hs[i] - dys[i]) * charHeight, 0, dys[i] * charHeight);
-        } else {
+        }
+        else {
           copyArea(gfx, image, 0, (ys[i] - dys[i] - 1) * charHeight, width, (hs[i] + dys[i]) * charHeight, 0, dys[i] * charHeight);
         }
       }

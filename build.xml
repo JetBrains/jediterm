@@ -33,7 +33,7 @@
 
 
   <target name="clean">
-    <delete>
+    <delete quiet="true">
       <fileset dir="${classes}">
         <include name="**/*.class"/>
       </fileset>

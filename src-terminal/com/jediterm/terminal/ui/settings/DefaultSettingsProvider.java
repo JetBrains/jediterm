@@ -119,10 +119,6 @@ public class DefaultSettingsProvider implements SettingsProvider {
   public int caretBlinkingMs() {
     return 505;
   }
-  @Override
-  public boolean drawCharsInCells() {
-    return true;
-  }
 
   @Override
   public boolean scrollToBottomOnTyping() {

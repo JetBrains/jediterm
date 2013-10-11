@@ -1,7 +1,6 @@
 package com.jediterm.terminal.ui.settings;
 
 import com.jediterm.terminal.TextStyle;
-import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.emulator.ColorPalette;
 
 import java.awt.*;
@@ -25,7 +24,7 @@ public interface UserSettingsProvider {
 
   boolean pasteOnMiddleMouseClick();
 
-  public boolean emulateX11CopyPaste();
+  boolean emulateX11CopyPaste();
 
   boolean useAntialiasing();
 
@@ -35,7 +34,5 @@ public interface UserSettingsProvider {
 
   int caretBlinkingMs();
 
-  boolean drawCharsInCells();
-  
   boolean scrollToBottomOnTyping();
 }

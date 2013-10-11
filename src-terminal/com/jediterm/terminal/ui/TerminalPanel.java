@@ -624,6 +624,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     private boolean myBlinking = true;
 
     private boolean calculateIsCursorShown(long currentTime) {
+      if (!isBlinking()) {
+        return true;
+      }
       if (myCursorHasChanged) {
         return true;
       }
@@ -636,7 +639,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
 
     private boolean cursorShouldChangeBlinkState(long currentTime) {
-      return myBlinking && (currentTime - myLastCursorChange > mySettingsProvider.caretBlinkingMs());
+      return currentTime - myLastCursorChange > mySettingsProvider.caretBlinkingMs();
     }
 
     public void drawCursor(Graphics2D g, BufferedImage imageForCursor, BufferedImage normalImage) {
@@ -709,7 +712,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
 
     public boolean isBlinking() {
-      return myBlinking;
+      return myBlinking && (mySettingsProvider.caretBlinkingMs()>0);
     }
   }
 

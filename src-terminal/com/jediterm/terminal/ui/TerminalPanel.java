@@ -793,23 +793,29 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private void drawCharacters(int x, int y, TextStyle style, CharBuffer buf, Graphics2D gfx) {
     gfx.setColor(getPalette().getColor(myStyleState.getBackground(style.getBackgroundForRun())));
-    gfx.setClip(x * myCharSize.width,
-        (y - myClientScrollOrigin) * myCharSize.height,
-        buf.getLength() * myCharSize.width,
-        myCharSize.height);
+    int textLength = CharacterUtils.getTextLength(buf.getBuf(), buf.getStart(), buf.getLength());
+    
     gfx.fillRect(x * myCharSize.width,
-        (y - myClientScrollOrigin) * myCharSize.height,
-        buf.getLength() * myCharSize.width,
-        myCharSize.height);
+                 (y - myClientScrollOrigin) * myCharSize.height,
+                 textLength * myCharSize.width,
+                 myCharSize.height);
+    
+    drawChars(x, y, buf, style, gfx);
+
+
+    gfx.setClip(x * myCharSize.width,
+                (y - myClientScrollOrigin) * myCharSize.height,
+                textLength * myCharSize.width,
+                myCharSize.height);
+ 
 
     gfx.setColor(getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun())));
 
+
     int baseLine = (y + 1 - myClientScrollOrigin) * myCharSize.height - myDescent;
 
-    drawChars(x, baseLine, buf, style, gfx);
-
     if (style.hasOption(TextStyle.Option.UNDERLINED)) {
-      gfx.drawLine(x * myCharSize.width, baseLine + 1, (x + buf.getLength()) * myCharSize.width, baseLine + 1);
+      gfx.drawLine(x * myCharSize.width, baseLine + 1, (x + textLength) * myCharSize.width, baseLine + 1);
     }
     gfx.setClip(null);
   }
@@ -821,6 +827,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private void drawChars(int x, int y, CharBuffer buf, TextStyle style, Graphics2D gfx) {
     int newBlockLen = 1;
     int offset = 0;
+    int drawCharsOffset = 0;
     while (offset + newBlockLen <= buf.getLength()) {
       Font font = getFontToDisplay(buf.charAt(offset + newBlockLen - 1), style);
       while (myMonospaced && (offset + newBlockLen < buf.getLength()) && isWordCharacter(buf.charAt(offset + newBlockLen - 1))
@@ -828,8 +835,23 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         newBlockLen++;
       }
       gfx.setFont(font);
-      gfx.drawChars(buf.getBuf(), buf.getStart() + offset, newBlockLen, (x + offset) * myCharSize.width, y);
+      
+      int descent = gfx.getFontMetrics(font).getDescent();
+      int baseLine = (y + 1 - myClientScrollOrigin) * myCharSize.height - descent;
+      int charWidth = gfx.getFontMetrics(font).charsWidth(buf.getBuf(), buf.getStart() + offset, newBlockLen);
+
+      int xCoord = (x + drawCharsOffset) * myCharSize.width;
+      
+      gfx.setClip(xCoord,
+                  (y - myClientScrollOrigin) * myCharSize.height,
+                  charWidth,
+                  myCharSize.height);
+      gfx.setColor(getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun())));
+      gfx.drawChars(buf.getBuf(), buf.getStart() + offset, newBlockLen, xCoord, baseLine);
+      
+      drawCharsOffset += CharacterUtils.getTextLength(buf.getBuf(), buf.getStart() + offset, newBlockLen);
       offset += newBlockLen;
+      
       newBlockLen = 1;
     }
   }

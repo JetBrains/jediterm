@@ -123,7 +123,8 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
       if (length != 0) {
         myBackBuffer.writeBytes(myCursorX, myCursorY, chosenBuffer, start, length);
       }
-      myCursorX += length;
+
+      myCursorX += CharacterUtils.getTextLength(chosenBuffer, start, length);
       finishText();
     }
     finally {
@@ -628,8 +629,8 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
     }
 
     // avoid issue due to malformed sequence
-    myCursorX = Math.max(0, x - 1); 
-    myCursorX = Math.min(myCursorX, myTerminalWidth); 
+    myCursorX = Math.max(0, x - 1);
+    myCursorX = Math.min(myCursorX, myTerminalWidth);
 
     myDisplay.setCursor(myCursorX, myCursorY);
   }
@@ -650,7 +651,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
   public void scrollUp(int count) {
     myBackBuffer.lock();
     try {
-      scrollArea(myScrollRegionTop, scrollingRegionSize(), - count);
+      scrollArea(myScrollRegionTop, scrollingRegionSize(), -count);
     }
     finally {
       myBackBuffer.unlock();

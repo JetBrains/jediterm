@@ -22,7 +22,7 @@ public class CharacterUtils {
 
     final int origLen = len;
     char tmp;
-    while (maxChars > 0) {
+    while (len > 0) {
       tmp = buf[offset++];
       if (0x20 <= tmp) { //stop when we reach control chars
         len--;

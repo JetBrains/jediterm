@@ -581,7 +581,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   @Override
   public void processKeyEvent(final KeyEvent e) {
     handleKeyEvent(e);
-//    e.consume();
+    e.consume();
   }
 
   public void handleKeyEvent(KeyEvent e) {
@@ -892,10 +892,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
                   charWidth,
                   myCharSize.height);
       gfx.setColor(getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun())));
-
-//      Arrays.fill(buf.getBuf(), '放');
-
+      
       gfx.drawChars(buf.getBuf(), buf.getStart() + offset, newBlockLen, xCoord, baseLine);
+      
 
       drawCharsOffset += CharacterUtils.getTextLength(buf.getBuf(), buf.getStart() + offset, newBlockLen);
       offset += newBlockLen;

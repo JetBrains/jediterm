@@ -559,17 +559,24 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   private void drawInputMethodUncommitedChars(Graphics2D gfx) {
-    if (myInputMethodUncommitedChars != null) {
-      gfx.setColor(getForeground());
-      gfx.setFont(myNormalFont);
+    if (myInputMethodUncommitedChars != null && myInputMethodUncommitedChars.length()>0) {
       int x = myCursor.getCoordX() * myCharSize.width;
       int y = (myCursor.getCoordY()) * myCharSize.height - 2;
+
+      int len = (myInputMethodUncommitedChars.length()) * myCharSize.width;
+      
+      gfx.setColor(getBackground());
+      gfx.fillRect(x, (myCursor.getCoordY()-1)*myCharSize.height, len, myCharSize.height);
+      
+      gfx.setColor(getForeground());
+      gfx.setFont(myNormalFont);
+      
       gfx.drawString(myInputMethodUncommitedChars, x, y);
       Stroke saved = gfx.getStroke();
       BasicStroke dotted = new BasicStroke(1, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 0, new float[]{0, 2, 0, 2}, 0);
       gfx.setStroke(dotted);
-
-      gfx.drawLine(x, y, x + (myInputMethodUncommitedChars.length()) * myCharSize.width, y);
+      
+      gfx.drawLine(x, y, x + len, y);
       gfx.setStroke(saved);
     }
   }

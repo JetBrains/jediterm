@@ -53,8 +53,7 @@
   </target>
 
   <target name="jediterm-ssh.jar" depends="build-jediterm-ssh">
-    <!--<jar destfile="build/jediterm-ssh-${version}.jar"-->
-    <jar destfile="/Users/traff/Projects/IDEA/plugins/remote-run/lib/jediterm-ssh-${version}.jar"
+    <jar destfile="build/jediterm-ssh-${version}.jar"
          basedir="${jediterm-ssh-classes}"
          excludes="**/Test.class">
       <manifest>
@@ -76,8 +75,7 @@
   </target>
 
   <target name="jediterm-pty.jar" depends="build-jediterm-pty">
-    <!--<jar destfile="build/jediterm-pty-${version}.jar"-->
-    <jar destfile="/Users/traff/Projects/IDEA/community/plugins/terminal/lib/jediterm-pty-${version}.jar"
+    <jar destfile="build/jediterm-pty-${version}.jar"
          basedir="${jediterm-pty-classes}"
          excludes="**/Test.class">
       <manifest>

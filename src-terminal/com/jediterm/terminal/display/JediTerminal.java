@@ -630,7 +630,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
 
     // avoid issue due to malformed sequence
     myCursorX = Math.max(0, x - 1);
-    myCursorX = Math.min(myCursorX, myTerminalWidth);
+    myCursorX = Math.min(myCursorX, myTerminalWidth - 1);
 
     myDisplay.setCursor(myCursorX, myCursorY);
   }
@@ -918,6 +918,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
         myTerminalWidth = termWidth;
         myTerminalHeight = termHeight;
         myCursorY = cursorY;
+        myCursorX = Math.min(myCursorX, myTerminalWidth - 1);
 
         myTabulator.resize(myTerminalWidth);
       }

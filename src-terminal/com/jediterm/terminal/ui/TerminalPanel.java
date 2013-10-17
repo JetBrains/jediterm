@@ -8,6 +8,7 @@ import com.jediterm.terminal.*;
 import com.jediterm.terminal.TextStyle.Option;
 import com.jediterm.terminal.display.*;
 import com.jediterm.terminal.emulator.ColorPalette;
+import com.jediterm.terminal.emulator.mouse.MouseMode;
 import com.jediterm.terminal.emulator.mouse.TerminalMouseListener;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
 import com.jediterm.terminal.util.Pair;
@@ -58,6 +59,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private TerminalStarter myTerminalStarter = null;
 
+  private MouseMode myMouseMode = MouseMode.MOUSE_REPORTING_NONE;
   private Point mySelectionStartPoint = null;
   private TerminalSelection mySelection = null;
   private Clipboard myClipboard;
@@ -118,6 +120,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     addMouseMotionListener(new MouseMotionAdapter() {
       @Override
       public void mouseDragged(final MouseEvent e) {
+        if (isMouseReporting()) {
+          return;
+        }
+
         final Point charCoords = panelToCharCoords(e.getPoint());
 
         if (mySelection == null) {
@@ -176,7 +182,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
           if (count == 1) {
             // do nothing
           }
-          else if (count == 2) {
+          else if (count == 2 && !isMouseReporting()) {
             // select word
             final Point charCoords = panelToCharCoords(e.getPoint());
             Point start = SelectionUtil.getPreviousSeparator(charCoords, myBackBuffer);
@@ -188,7 +194,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
               handleCopy(false);
             }
           }
-          else if (count == 3) {
+          else if (count == 3 && !isMouseReporting()) {
             // select line
             final Point charCoords = panelToCharCoords(e.getPoint());
             int startLine = charCoords.y;
@@ -209,7 +215,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             }
           }
         }
-        else if (e.getButton() == MouseEvent.BUTTON2 && mySettingsProvider.pasteOnMiddleMouseClick()) {
+        else if (e.getButton() == MouseEvent.BUTTON2 && mySettingsProvider.pasteOnMiddleMouseClick() && !isMouseReporting()) {
           handlePaste();
         }
         else if (e.getButton() == MouseEvent.BUTTON3) {
@@ -271,6 +277,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
   }
 
+  @Override
+  public void terminalMouseModeSet(MouseMode mode) {
+    myMouseMode = mode;
+  }
+
+  private boolean isMouseReporting() {
+    return myMouseMode != MouseMode.MOUSE_REPORTING_NONE;
+  }
 
   private void scrollToBottom() {
     myBoundedRangeModel.setValue(myTermSize.height);

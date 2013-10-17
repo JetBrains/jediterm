@@ -854,22 +854,13 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     drawChars(x, y, buf, style, gfx);
 
-
-    gfx.setClip(x * myCharSize.width,
-                (y - myClientScrollOrigin) * myCharSize.height,
-                textLength * myCharSize.width,
-                myCharSize.height);
-
-
     gfx.setColor(getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun())));
-
 
     int baseLine = (y + 1 - myClientScrollOrigin) * myCharSize.height - myDescent;
 
     if (style.hasOption(TextStyle.Option.UNDERLINED)) {
       gfx.drawLine(x * myCharSize.width, baseLine + 1, (x + textLength) * myCharSize.width, baseLine + 1);
     }
-    gfx.setClip(null);
   }
 
   /**
@@ -890,24 +881,23 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
       int descent = gfx.getFontMetrics(font).getDescent();
       int baseLine = (y + 1 - myClientScrollOrigin) * myCharSize.height - descent;
-      int charWidth = gfx.getFontMetrics(font).charsWidth(buf.getBuf(), buf.getStart() + offset, newBlockLen);
-
       int xCoord = (x + drawCharsOffset) * myCharSize.width;
+      int textLength = CharacterUtils.getTextLength(buf.getBuf(), buf.getStart() + offset, newBlockLen);
 
       gfx.setClip(xCoord,
                   (y - myClientScrollOrigin) * myCharSize.height,
-                  charWidth,
+                  textLength * myCharSize.width,
                   myCharSize.height);
       gfx.setColor(getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun())));
-      
-      gfx.drawChars(buf.getBuf(), buf.getStart() + offset, newBlockLen, xCoord, baseLine);
-      
 
-      drawCharsOffset += CharacterUtils.getTextLength(buf.getBuf(), buf.getStart() + offset, newBlockLen);
+      gfx.drawChars(buf.getBuf(), buf.getStart() + offset, newBlockLen, xCoord, baseLine);
+
+      drawCharsOffset += textLength;
       offset += newBlockLen;
 
       newBlockLen = 1;
     }
+    gfx.setClip(null);
   }
 
   protected Font getFontToDisplay(char c, TextStyle style) {

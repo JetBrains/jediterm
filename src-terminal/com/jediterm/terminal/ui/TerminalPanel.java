@@ -875,7 +875,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     
     // workaround to fix Swing bad rendering of bold special chars on Linux
     CharBuffer renderingBuffer;
-    if(style.hasOption(TextStyle.Option.BOLD)) {
+    if(mySettingsProvider.DECCompatibilityMode() && style.hasOption(TextStyle.Option.BOLD)) {
       renderingBuffer = CharacterUtils.heavyDecCompatibleBuffer(buf);
     } else {
       renderingBuffer = buf;
@@ -913,7 +913,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   protected Font getFontToDisplay(char c, TextStyle style) {
     boolean bold = style.hasOption(TextStyle.Option.BOLD);
     // workaround to fix Swing bad rendering of bold special chars on Linux
-    if (bold && CharacterSets.isDecSpecialChar(c)) {
+    if (bold && mySettingsProvider.DECCompatibilityMode() && CharacterSets.isDecSpecialChar(c)) {
       return myNormalFont;
     }
     return bold ? myBoldFont : myNormalFont;

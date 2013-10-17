@@ -96,6 +96,7 @@ public class DefaultSettingsProvider implements SettingsProvider {
     return emulateX11CopyPaste();
   }
 
+  @Override
   public boolean emulateX11CopyPaste() {
     return true;
   }
@@ -124,4 +125,10 @@ public class DefaultSettingsProvider implements SettingsProvider {
   public boolean scrollToBottomOnTyping() {
     return true;
   }
+
+  @Override
+  public boolean DECCompatibilityMode() {
+    return true;
+  }
+
 }

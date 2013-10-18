@@ -1,6 +1,7 @@
 package com.jediterm.terminal;
 
 import com.jediterm.terminal.display.JediTerminal;
+import com.jediterm.terminal.emulator.mouse.MouseMode;
 
 import java.awt.*;
 
@@ -25,4 +26,6 @@ public interface TerminalDisplay {
   void setBlinkingCursor(boolean enabled);
 
   void setWindowTitle(String name);
+
+  void terminalMouseModeSet(MouseMode mode);
 }

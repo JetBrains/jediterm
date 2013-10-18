@@ -493,10 +493,10 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           return true;
         case 1003:
           if (enabled) {
-            myTerminal.setMouseMode(MouseMode.MOUSE_REPORTING_ALL_MOTION);
+            setMouseMode(MouseMode.MOUSE_REPORTING_ALL_MOTION);
           }
           else {
-            myTerminal.setMouseMode(MouseMode.MOUSE_REPORTING_NONE);
+            setMouseMode(MouseMode.MOUSE_REPORTING_NONE);
           }
           return true;
         case 1005:

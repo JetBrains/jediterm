@@ -96,6 +96,7 @@ public final class CharacterSets {
 
   /**
    * The DEC special characters (only the last 32 characters).
+   * Contains [light][heavy] flavors for box drawing
    */
   public static final Object[][] DEC_SPECIAL_CHARS = {{'\u25c6', null}, // black_diamond
     {'\u2592', null}, // Medium Shade
@@ -107,21 +108,21 @@ public final class CharacterSets {
     {'\u00b1', null}, // Plus/minus sign
     {'\u2424', null}, // New Line (NL)
     {'\u240b', null}, // Vertical Tab (VT)
-    {'\u2518', null}, // Forms light up and left
-    {'\u2510', null}, // Forms light down and left
-    {'\u250c', null}, // Forms light down and right
-    {'\u2514', null}, // Forms light up and right
-    {'\u253c', null}, // Forms light vertical and horizontal
+    {'\u2518', '\u251b'}, // Forms up and left
+    {'\u2510', '\u2513'}, // Forms down and left
+    {'\u250c', '\u250f'}, // Forms down and right
+    {'\u2514', '\u2517'}, // Forms up and right
+    {'\u253c', '\u254b'}, // Forms vertical and horizontal
     {'\u23ba', null}, // Scan 1
     {'\u23bb', null}, // Scan 3
-    {'\u2500', null}, // Scan 5 / Horizontal bar
+    {'\u2500', '\u2501'}, // Scan 5 / Horizontal bar
     {'\u23bc', null}, // Scan 7
     {'\u23bd', null}, // Scan 9
-    {'\u251c', null}, // Forms light vertical and right
-    {'\u2524', null}, // Forms light vertical and left
-    {'\u2534', null}, // Forms light up and horizontal
-    {'\u252c', null}, // Forms light down and horizontal
-    {'\u2502', null}, // vertical bar
+    {'\u251c', '\u2523'}, // Forms vertical and right
+    {'\u2524', '\u252b'}, // Forms vertical and left
+    {'\u2534', '\u253b'}, // Forms up and horizontal
+    {'\u252c', '\u2533'}, // Forms down and horizontal
+    {'\u2502', '\u2503'}, // vertical bar
     {'\u2264', null}, // less than or equal sign
     {'\u2265', null}, // greater than or equal sign
     {'\u03c0', null}, // pi
@@ -130,6 +131,24 @@ public final class CharacterSets {
     {'\u00b7', null}, // middle dot
     {' ', null}, //
   };
+
+  public static boolean isDecSpecialChar(char c) {
+    for (Object[] o : DEC_SPECIAL_CHARS) {
+      if (c == (Character) o[0]) {
+        return true;
+      }
+    }
+    return false;
+  }
+  
+  public static char getHeavyDecSpecialChar(char c) {
+    for (Object[] o : DEC_SPECIAL_CHARS) {
+      if (c == (Character) o[0]) {
+        return o[1] != null ? (Character) o[1] : c;
+      }
+    }
+    return c;
+  }
 
   /**
    * Creates a new {@link CharacterSets} instance, never used.

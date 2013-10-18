@@ -9,6 +9,7 @@ import com.jediterm.terminal.TextStyle.Option;
 import com.jediterm.terminal.display.*;
 import com.jediterm.terminal.emulator.ColorPalette;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
+import com.jediterm.terminal.emulator.charset.CharacterSets;
 import com.jediterm.terminal.emulator.mouse.TerminalMouseListener;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
 import com.jediterm.terminal.util.Pair;
@@ -885,6 +886,15 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     int newBlockLen = 1;
     int offset = 0;
     int drawCharsOffset = 0;
+    
+    // workaround to fix Swing bad rendering of bold special chars on Linux
+    CharBuffer renderingBuffer;
+    if(mySettingsProvider.DECCompatibilityMode() && style.hasOption(TextStyle.Option.BOLD)) {
+      renderingBuffer = CharacterUtils.heavyDecCompatibleBuffer(buf);
+    } else {
+      renderingBuffer = buf;
+    }
+    
     while (offset + newBlockLen <= buf.getLength()) {
       Font font = getFontToDisplay(buf.charAt(offset + newBlockLen - 1), style);
       while (myMonospaced && (offset + newBlockLen < buf.getLength()) && isWordCharacter(buf.charAt(offset + newBlockLen - 1))
@@ -904,7 +914,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
                   myCharSize.height);
       gfx.setColor(getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun())));
 
-      gfx.drawChars(buf.getBuf(), buf.getStart() + offset, newBlockLen, xCoord, baseLine);
+      gfx.drawChars(renderingBuffer.getBuf(), buf.getStart() + offset, newBlockLen, xCoord, baseLine);
 
       drawCharsOffset += textLength;
       offset += newBlockLen;
@@ -915,7 +925,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   protected Font getFontToDisplay(char c, TextStyle style) {
-    return style.hasOption(TextStyle.Option.BOLD) ? myBoldFont : myNormalFont;
+    boolean bold = style.hasOption(TextStyle.Option.BOLD);
+    // workaround to fix Swing bad rendering of bold special chars on Linux
+    if (bold && mySettingsProvider.DECCompatibilityMode() && CharacterSets.isDecSpecialChar(c)) {
+      return myNormalFont;
+    }
+    return bold ? myBoldFont : myNormalFont;
   }
 
   private ColorPalette getPalette() {

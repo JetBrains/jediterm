@@ -1,6 +1,10 @@
 package com.jediterm.terminal;
 
+import java.util.Arrays;
+
 import com.google.common.base.Ascii;
+import com.jediterm.terminal.display.CharBuffer;
+import com.jediterm.terminal.emulator.charset.CharacterSets;
 
 public class CharacterUtils {
 
@@ -245,4 +249,13 @@ public class CharacterUtils {
 
     return NO;
   }
+
+  public static CharBuffer heavyDecCompatibleBuffer(CharBuffer buf) {
+    char[] c = Arrays.copyOfRange(buf.getBuf(), 0, buf.getBuf().length);
+    for(int i = 0; i < c.length; i++) {
+      c[i] = CharacterSets.getHeavyDecSpecialChar(c[i]);
+    }
+    return new CharBuffer(c, buf.getStart(), buf.getLength());
+  }
+
 }

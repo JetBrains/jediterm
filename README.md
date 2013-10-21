@@ -1,7 +1,7 @@
 JediTerm
 ========
 
-[![Build Status](https://travis-ci.org/traff/jediterm.png?branch=master)](https://travis-ci.org/JetBrains/jediterm)
+[![Build Status](https://travis-ci.org/JetBrains/jediterm.png?branch=master)](https://travis-ci.org/JetBrains/jediterm)
 
 The main purpose of the project is to provide a pure Java terminal widget ready
 to embed into IDE. From this comes the name

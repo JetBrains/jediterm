@@ -7,7 +7,8 @@ import com.jediterm.terminal.debug.BufferPanel;
 import com.jediterm.terminal.ui.settings.DefaultSettingsProvider;
 
 import com.jediterm.terminal.ui.settings.DefaultTabbedSettingsProvider;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.awt.*;
@@ -15,7 +16,7 @@ import java.awt.event.*;
 
 
 public abstract class AbstractTerminalFrame {
-  public static final Logger LOG = Logger.getLogger(AbstractTerminalFrame.class);
+  public static final Logger LOG = LoggerFactory.getLogger(AbstractTerminalFrame.class);
 
   private JFrame myBufferFrame;
 

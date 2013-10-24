@@ -1,7 +1,8 @@
 package com.jediterm.terminal.display;
 
 import com.jediterm.terminal.util.Pair;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
@@ -12,7 +13,7 @@ import java.util.List;
  * @author traff
  */
 public class SelectionUtil {
-  private static final Logger LOG = Logger.getLogger(SelectionUtil.class);
+  private static final Logger LOG = LoggerFactory.getLogger(SelectionUtil.class);
   
   private static final List<Character> SEPARATORS = new ArrayList<Character>();
   static {

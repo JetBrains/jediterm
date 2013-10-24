@@ -3,7 +3,8 @@ package com.jediterm.terminal.display;
 import com.google.common.collect.Lists;
 import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.TextStyle;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -14,7 +15,7 @@ import java.util.List;
  * Holds styled characters lines
  */
 public class LinesBuffer {
-  private static final Logger LOG = Logger.getLogger(LinesBuffer.class);
+  private static final Logger LOG = LoggerFactory.getLogger(LinesBuffer.class);
 
   private static final int BUFFER_MAX_LINES = 1000;
 

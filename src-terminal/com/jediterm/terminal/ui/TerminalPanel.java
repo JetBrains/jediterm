@@ -11,13 +11,6 @@ import com.jediterm.terminal.emulator.ColorPalette;
 import com.jediterm.terminal.emulator.mouse.TerminalMouseListener;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
 import com.jediterm.terminal.util.Pair;
-import org.apache.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.datatransfer.*;
 import java.awt.event.*;
@@ -30,9 +23,16 @@ import java.lang.ref.WeakReference;
 import java.text.AttributedCharacterIterator;
 import java.text.CharacterIterator;
 import java.util.List;
+import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TerminalPanel extends JComponent implements TerminalDisplay, ClipboardOwner, StyledTextConsumer, TerminalActionProvider {
-  private static final Logger LOG = Logger.getLogger(TerminalPanel.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TerminalPanel.class);
   private static final long serialVersionUID = -1048763516632093014L;
   private static final double FPS = 50;
 
@@ -331,7 +331,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       myTerminalStarter.sendString(selection);
     }
     catch (RuntimeException e) {
-      LOG.info(e);
+      LOG.info(e.getLocalizedMessage(), e);
     }
   }
 
@@ -340,7 +340,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       return getClipboardContent();
     }
     catch (final Exception e) {
-      LOG.info(e);
+      LOG.info(e.getLocalizedMessage(), e);
     }
     return null;
   }
@@ -350,7 +350,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       return (String)myClipboard.getData(DataFlavor.stringFlavor);
     }
     catch (Exception e) {
-      LOG.info(e);
+      LOG.info(e.getLocalizedMessage(), e);
       return null;
     }
   }

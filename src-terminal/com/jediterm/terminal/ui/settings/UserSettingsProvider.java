@@ -35,4 +35,6 @@ public interface UserSettingsProvider {
   int caretBlinkingMs();
 
   boolean scrollToBottomOnTyping();
+
+  boolean DECCompatibilityMode();
 }

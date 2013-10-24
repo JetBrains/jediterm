@@ -758,8 +758,8 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
   }
 
   private void initMouseModes() {
-    myMouseMode = MouseMode.MOUSE_REPORTING_NONE;
-    myMouseFormat = MouseFormat.MOUSE_FORMAT_XTERM;
+    setMouseMode(MouseMode.MOUSE_REPORTING_NONE);
+    setMouseFormat(MouseFormat.MOUSE_FORMAT_XTERM);
   }
 
   private void initModes() {
@@ -897,6 +897,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
   @Override
   public void setMouseMode(@NotNull MouseMode mode) {
     myMouseMode = mode;
+    myDisplay.terminalMouseModeSet(mode);
   }
 
   @Override

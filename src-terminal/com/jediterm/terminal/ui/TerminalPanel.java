@@ -8,8 +8,8 @@ import com.jediterm.terminal.*;
 import com.jediterm.terminal.TextStyle.Option;
 import com.jediterm.terminal.display.*;
 import com.jediterm.terminal.emulator.ColorPalette;
-import com.jediterm.terminal.emulator.mouse.MouseMode;
 import com.jediterm.terminal.emulator.charset.CharacterSets;
+import com.jediterm.terminal.emulator.mouse.MouseMode;
 import com.jediterm.terminal.emulator.mouse.TerminalMouseListener;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
 import com.jediterm.terminal.util.Pair;
@@ -1285,6 +1285,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       final byte[] code = myTerminalStarter.getCode(keycode);
       if (code != null) {
         myTerminalStarter.sendBytes(code);
+        if (mySettingsProvider.scrollToBottomOnTyping() && isCodeThatScrolls(keycode)) {
+          scrollToBottom();
+        }
       }
       else if ((keychar & 0xff00) == 0) {
         final byte[] obuffer = new byte[1];
@@ -1298,6 +1301,15 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     catch (final Exception ex) {
       LOG.error("Error sending key to emulator", ex);
     }
+  }
+
+  private static boolean isCodeThatScrolls(int keycode) {
+    return keycode == KeyEvent.VK_UP
+      || keycode == KeyEvent.VK_DOWN
+      || keycode == KeyEvent.VK_LEFT
+      || keycode == KeyEvent.VK_RIGHT
+      || keycode == KeyEvent.VK_BACK_SPACE
+      || keycode == KeyEvent.VK_DELETE;
   }
 
   private void processTerminalKeyTyped(KeyEvent e) {

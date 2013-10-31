@@ -74,7 +74,7 @@ public abstract class ColorPalette {
   }
 
   private static TerminalColor getXTerm256(int index) {
-    return COL_RES_256[index - 16];
+    return index < 256 ? COL_RES_256[index - 16] : null;
   }
 
   //The code below is translation of xterm's 256colres.pl

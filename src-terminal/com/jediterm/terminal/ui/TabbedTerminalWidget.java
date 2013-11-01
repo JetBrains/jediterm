@@ -160,75 +160,12 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
       if (myTerminalPanelListener != null) {
         myTerminalPanelListener.onSessionChanged(session);
       }
-      doRequestFocus(session.getTerminalPanel());
+      session.getTerminalPanel().requestFocusInWindow();
     }
-  }
-
-  protected void doRequestFocus(JComponent component) {
-    component.requestFocusInWindow();
   }
 
   protected TerminalTabs createTabbedPane() {
     return new TerminalTabsImpl();
-  }
-
-  private JPopupMenu createPopup() {
-    JPopupMenu popupMenu = new JPopupMenu();
-
-    TerminalAction.addToMenu(popupMenu, this);
-
-    JMenuItem rename = new JMenuItem("Rename Tab");
-    rename.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent actionEvent) {
-        renameTab();
-      }
-    });
-
-    popupMenu.add(rename);
-
-    return popupMenu;
-  }
-
-  private void renameTab() {
-    if (myTabs != null) {
-      final int selectedIndex = myTabs.getSelectedIndex();
-      final Component component = myTabs.getTabComponentAt(selectedIndex);
-      final JTextField jTextField = new JTextField(myTabs.getTitleAt(selectedIndex));
-      final FocusAdapter focusAdapter = new FocusAdapter() {
-        @Override
-        public void focusLost(FocusEvent focusEvent) {
-          finishRename(selectedIndex, component, jTextField.getText());
-        }
-      };
-      jTextField.addFocusListener(focusAdapter);
-      jTextField.addKeyListener(new KeyAdapter() {
-        @Override
-        public void keyPressed(KeyEvent keyEvent) {
-          if (keyEvent.getKeyCode() == KeyEvent.VK_ESCAPE) {
-            jTextField.removeFocusListener(focusAdapter);
-            finishRename(selectedIndex, component, null);
-          }
-          else if (keyEvent.getKeyCode() == KeyEvent.VK_ENTER) {
-            jTextField.removeFocusListener(focusAdapter);
-            finishRename(selectedIndex, component, jTextField.getText());
-          }
-          else {
-            super.keyPressed(keyEvent);
-          }
-        }
-      });
-      myTabs.setTabComponentAt(myTabs.getSelectedIndex(), jTextField);
-      jTextField.requestFocus();
-      jTextField.selectAll();
-    }
-  }
-
-  private void finishRename(int selectedIndex, Component component, String newName) {
-    myTabs.setTabComponentAt(selectedIndex, component);
-    if (newName != null) {
-      myTabs.setTitleAt(selectedIndex, newName);
-    }
   }
 
   private void close(JediTermWidget terminal) {
@@ -329,11 +266,94 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     return myTabs != null ? myTabs.getComponent() : myTermWidget != null ? myTermWidget : this;
   }
 
+
+  public static class TabRenamer {
+
+    public interface RenameCallBack {
+
+      void setComponent(Component c);
+
+      void setNewName(int index, String name);
+    }
+
+    public void install(final int selectedIndex, final String text, final Component label, final RenameCallBack callBack) {
+      final JTextField jTextField = createTextField(text);
+      final FocusAdapter focusAdapter = new FocusAdapter() {
+        @Override
+        public void focusLost(FocusEvent focusEvent) {
+          finishRename(selectedIndex, label, jTextField.getText(), callBack);
+        }
+      };
+      jTextField.addFocusListener(focusAdapter);
+      jTextField.addKeyListener(new KeyAdapter() {
+        @Override
+        public void keyPressed(KeyEvent keyEvent) {
+          if (keyEvent.getKeyCode() == KeyEvent.VK_ESCAPE) {
+            jTextField.removeFocusListener(focusAdapter);
+            finishRename(selectedIndex, label, null, callBack);
+          }
+          else if (keyEvent.getKeyCode() == KeyEvent.VK_ENTER) {
+            jTextField.removeFocusListener(focusAdapter);
+            finishRename(selectedIndex, label, jTextField.getText(), callBack);
+          }
+          else {
+            super.keyPressed(keyEvent);
+          }
+        }
+      });
+
+      callBack.setComponent(jTextField);
+
+
+      jTextField.requestFocus();
+      jTextField.selectAll();
+    }
+
+    protected JTextField createTextField(@NotNull String text) {
+      return new JTextField(text);
+    }
+
+    private static void finishRename(int index, Component label, String newName, RenameCallBack callBack) {
+      if (newName != null) {
+        callBack.setNewName(index, newName);
+      }
+      callBack.setComponent(label);
+    }
+  }
+
   private class TabComponent extends JPanel implements FocusListener {
 
     private JediTermWidget myTerminal;
 
-    private TabComponent(final @NotNull TerminalTabs pane, final JediTermWidget terminal) {
+    private MyLabelHolder myLabelHolder = new MyLabelHolder();
+
+    private class MyLabelHolder extends JPanel {
+
+      public void set(Component c) {
+        myLabelHolder.removeAll();
+        myLabelHolder.add(c);
+        myLabelHolder.validate();
+        myLabelHolder.repaint();
+      }
+    }
+
+    class TabComponentLabel extends JLabel {
+      TabComponent getTabComponent() {
+        return TabComponent.this;
+      }
+
+      public String getText() {
+        if (myTabs != null) {
+          int i = myTabs.indexOfTabComponent(TabComponent.this);
+          if (i != -1) {
+            return myTabs.getTitleAt(i);
+          }
+        }
+        return null;
+      }
+    }
+
+    private TabComponent(final @NotNull TerminalTabs tabs, final JediTermWidget terminal) {
       super(new FlowLayout(FlowLayout.LEFT, 0, 0));
       myTerminal = terminal;
       setOpaque(false);
@@ -343,15 +363,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
       addFocusListener(this);
 
       //make JLabel read titles from JTabbedPane
-      JLabel label = new JLabel() {
-        public String getText() {
-          int i = pane.indexOfTabComponent(TabComponent.this);
-          if (i != -1) {
-            return pane.getTitleAt(i);
-          }
-          return null;
-        }
-      };
+      JLabel label = new TabComponentLabel();
 
       label.addFocusListener(this);
 
@@ -367,31 +379,69 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
 
         @Override
         public void mousePressed(MouseEvent event) {
+          tabs.setSelectedComponent(terminal);
           handleMouse(event);
-        }
-
-        private void handleMouse(MouseEvent event) {
-          if (event.isPopupTrigger()) {
-            JPopupMenu menu = createPopup();
-            menu.show(event.getComponent(), event.getX(), event.getY());
-          }
-          else {
-            pane.setSelectedComponent(terminal);
-            if (event.getClickCount() == 2 && !event.isConsumed()) {
-              event.consume();
-              renameTab();
-            }
-          }
         }
       });
 
+      myLabelHolder.set(label);
+      add(myLabelHolder);
+    }
 
-      add(label);
+    protected void handleMouse(MouseEvent event) {
+      if (event.isPopupTrigger()) {
+        JPopupMenu menu = createPopup();
+        menu.show(event.getComponent(), event.getX(), event.getY());
+      }
+      else {
+        if (event.getClickCount() == 2 && !event.isConsumed()) {
+          event.consume();
+          renameTab();
+        }
+      }
+    }
+
+    protected JPopupMenu createPopup() {
+      JPopupMenu popupMenu = new JPopupMenu();
+
+      TerminalAction.addToMenu(popupMenu, TabbedTerminalWidget.this);
+
+      JMenuItem rename = new JMenuItem("Rename Tab");
+
+      rename.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent actionEvent) {
+          renameTab();
+        }
+      });
+
+      popupMenu.add(rename);
+
+      return popupMenu;
+    }
+
+    private void renameTab() {
+      final int selectedIndex = myTabs.getSelectedIndex();
+      final JLabel label = (JLabel)myLabelHolder.getComponent(0);
+
+      new TabRenamer().install(selectedIndex, label.getText(), label, new TabRenamer.RenameCallBack() {
+        @Override
+        public void setComponent(Component c) {
+          myLabelHolder.set(c);
+        }
+
+        @Override
+        public void setNewName(int index, String name) {
+          if (myTabs != null) {
+            myTabs.setTitleAt(index, name);
+          }
+        }
+      });
     }
 
     @Override
     public void focusGained(FocusEvent e) {
-      doRequestFocus(myTerminal.getComponent());
+      myTerminal.getComponent().requestFocusInWindow();
     }
 
     @Override

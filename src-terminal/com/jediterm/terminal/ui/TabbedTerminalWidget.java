@@ -9,6 +9,7 @@ import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.TtyConnectorWaitFor;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
 import com.jediterm.terminal.ui.settings.TabbedSettingsProvider;
+import com.jediterm.terminal.util.JTextFieldLimit;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -266,7 +267,6 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     return myTabs != null ? myTabs.getComponent() : myTermWidget != null ? myTermWidget : this;
   }
 
-
   public static class TabRenamer {
 
     public interface RenameCallBack {
@@ -277,24 +277,27 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     }
 
     public void install(final int selectedIndex, final String text, final Component label, final RenameCallBack callBack) {
-      final JTextField jTextField = createTextField(text);
+      final JTextField textField = createTextField();
+      textField.setDocument(new JTextFieldLimit(50));
+      textField.setText(text);
+
       final FocusAdapter focusAdapter = new FocusAdapter() {
         @Override
         public void focusLost(FocusEvent focusEvent) {
-          finishRename(selectedIndex, label, jTextField.getText(), callBack);
+          finishRename(selectedIndex, label, textField.getText(), callBack);
         }
       };
-      jTextField.addFocusListener(focusAdapter);
-      jTextField.addKeyListener(new KeyAdapter() {
+      textField.addFocusListener(focusAdapter);
+      textField.addKeyListener(new KeyAdapter() {
         @Override
         public void keyPressed(KeyEvent keyEvent) {
           if (keyEvent.getKeyCode() == KeyEvent.VK_ESCAPE) {
-            jTextField.removeFocusListener(focusAdapter);
+            textField.removeFocusListener(focusAdapter);
             finishRename(selectedIndex, label, null, callBack);
           }
           else if (keyEvent.getKeyCode() == KeyEvent.VK_ENTER) {
-            jTextField.removeFocusListener(focusAdapter);
-            finishRename(selectedIndex, label, jTextField.getText(), callBack);
+            textField.removeFocusListener(focusAdapter);
+            finishRename(selectedIndex, label, textField.getText(), callBack);
           }
           else {
             super.keyPressed(keyEvent);
@@ -302,15 +305,15 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
         }
       });
 
-      callBack.setComponent(jTextField);
+      callBack.setComponent(textField);
 
 
-      jTextField.requestFocus();
-      jTextField.selectAll();
+      textField.requestFocus();
+      textField.selectAll();
     }
 
-    protected JTextField createTextField(@NotNull String text) {
-      return new JTextField(text);
+    protected JTextField createTextField() {
+      return new JTextField();
     }
 
     private static void finishRename(int index, Component label, String newName, RenameCallBack callBack) {

@@ -15,6 +15,8 @@ public interface AbstractTabs<T extends Component> {
   String getTitleAt(int index);
 
   int getSelectedIndex();
+  
+  void setSelectedIndex(int index);
 
   void setTabComponentAt(int index, Component component);
 

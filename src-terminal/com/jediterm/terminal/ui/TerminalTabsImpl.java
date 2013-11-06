@@ -31,6 +31,11 @@ public class TerminalTabsImpl implements TerminalTabs {
   }
 
   @Override
+  public void setSelectedIndex(int index) {
+    myTabbedPane.setSelectedIndex(index);
+  }
+
+  @Override
   public void setTabComponentAt(int index, Component component) {
     myTabbedPane.setTabComponentAt(index, component);
   }

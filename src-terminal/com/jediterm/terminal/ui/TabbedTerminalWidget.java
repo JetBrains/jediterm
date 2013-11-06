@@ -1,6 +1,7 @@
 package com.jediterm.terminal.ui;
 
 import com.google.common.base.Predicate;
+import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.jediterm.terminal.RequestOrigin;
@@ -40,6 +41,8 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   private TerminalActionProvider myNextActionProvider;
 
   private final Predicate<TerminalWidget> myCreateNewSessionAction;
+  
+  private JPanel myPanel;
 
   public TabbedTerminalWidget(@NotNull TabbedSettingsProvider settingsProvider, @NotNull Predicate<TerminalWidget> createNewSessionAction) {
     super(new BorderLayout());
@@ -47,6 +50,9 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     myCreateNewSessionAction = createNewSessionAction;
 
     setFocusTraversalPolicy(new DefaultFocusTraversalPolicy());
+    
+    myPanel = new JPanel(new BorderLayout());
+    myPanel.add(this, BorderLayout.CENTER);
   }
 
   @Override
@@ -240,8 +246,40 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
           handleCloseSession();
           return true;
         }
-      }).withMnemonicKey(KeyEvent.VK_S)
+      }).withMnemonicKey(KeyEvent.VK_S),
+      new TerminalAction("Next Tab", mySettingsProvider.getNextTabKeyStrokes(), new Predicate<KeyEvent>() {
+        @Override
+        public boolean apply(KeyEvent input) {
+          selectNextTab();
+          return true;
+        }
+      }).withEnabledSupplier(new Supplier<Boolean>() {
+        @Override
+        public Boolean get() {
+          return myTabs.getSelectedIndex()<myTabs.getTabCount()-1;
+        }
+      }),
+      new TerminalAction("Previous Tab", mySettingsProvider.getPreviousTabKeyStrokes(), new Predicate<KeyEvent>() {
+        @Override
+        public boolean apply(KeyEvent input) {
+          selectPreviousTab();
+          return true;
+        }
+      }).withEnabledSupplier(new Supplier<Boolean>() {
+        @Override
+        public Boolean get() {
+          return myTabs.getSelectedIndex()>0;
+        }
+      })
     );
+  }
+
+  private void selectPreviousTab() {
+    myTabs.setSelectedIndex(myTabs.getSelectedIndex() - 1);
+  }
+
+  private void selectNextTab() {
+    myTabs.setSelectedIndex(myTabs.getSelectedIndex() + 1);
   }
 
   @Override
@@ -278,6 +316,9 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
 
     public void install(final int selectedIndex, final String text, final Component label, final RenameCallBack callBack) {
       final JTextField textField = createTextField();
+
+      textField.setOpaque(false);
+      
       textField.setDocument(new JTextFieldLimit(50));
       textField.setText(text);
 
@@ -419,7 +460,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
       });
 
       popupMenu.add(rename);
-
+      
       return popupMenu;
     }
 
@@ -456,7 +497,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
 
   @Override
   public JComponent getComponent() {
-    return this;
+    return myPanel;
   }
 
   @Override

@@ -36,6 +36,9 @@ public class TerminalAction {
   }
 
   public boolean perform(KeyEvent e) {
+    if (myEnabledSupplier != null && !myEnabledSupplier.get()) {
+      return false;
+    }
     return myRunnable.apply(e);
   }
 

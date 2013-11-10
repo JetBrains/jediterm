@@ -1,7 +1,6 @@
 package com.jediterm.terminal.ui;
 
 import javax.swing.*;
-import javax.swing.event.ChangeListener;
 import java.awt.*;
 
 /**
@@ -35,5 +34,11 @@ public interface AbstractTabs<T extends Component> {
 
   T getComponentAt(int index);
 
-  void addChangeListener(ChangeListener listener);
+  void addChangeListener(TabChangeListener listener);
+
+  interface TabChangeListener {
+    void tabRemoved();
+
+    void selectionChanged();
+  }
 }

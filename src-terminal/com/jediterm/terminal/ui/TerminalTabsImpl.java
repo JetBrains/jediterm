@@ -1,8 +1,11 @@
 package com.jediterm.terminal.ui;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
+import java.awt.event.ContainerEvent;
+import java.awt.event.ContainerListener;
 
 /**
  * @author traff
@@ -76,7 +79,27 @@ public class TerminalTabsImpl implements TerminalTabs {
   }
 
   @Override
-  public void addChangeListener(ChangeListener listener) {
-    myTabbedPane.addChangeListener(listener);
+  public void addChangeListener(final TabChangeListener listener) {
+    myTabbedPane.addChangeListener(new ChangeListener() {
+      @Override
+      public void stateChanged(ChangeEvent e) {
+        listener.selectionChanged();
+      }
+    });
+    
+    myTabbedPane.addContainerListener(new ContainerListener() {
+      @Override
+      public void componentAdded(ContainerEvent e) {
+                
+      }
+
+      @Override
+      public void componentRemoved(ContainerEvent e) {
+        if (e.getSource() == myTabbedPane) {
+          listener.tabRemoved();
+        }
+      }
+    });
+    
   }
 }

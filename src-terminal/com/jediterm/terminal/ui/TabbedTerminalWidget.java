@@ -15,8 +15,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.List;
@@ -153,9 +151,16 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   private TerminalTabs setupTabs() {
     final TerminalTabs tabs = createTabbedPane();
 
-    tabs.addChangeListener(new ChangeListener() {
+    tabs.addChangeListener(new AbstractTabs.TabChangeListener() {
       @Override
-      public void stateChanged(ChangeEvent event) {
+      public void tabRemoved() {
+        if (myTabs.getTabCount() == 1) {
+          removeTabbedPane();
+        }
+      }
+
+      @Override
+      public void selectionChanged() {
         onSessionChanged();
       }
     });
@@ -232,16 +237,17 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     synchronized (myLock) {
       if (myTabs != null) {
         myTabs.remove(terminal);
-        if (myTabs.getTabCount() == 1) {
-          myTermWidget = getTerminalPanel(0);
-          myTabs.removeAll();
-          remove(myTabs.getComponent());
-          myTabs = null;
-          add(myTermWidget.getComponent(), BorderLayout.CENTER);
-        }
       }
       onSessionChanged();
     }
+  }
+
+  private void removeTabbedPane() {
+    myTermWidget = getTerminalPanel(0);
+    myTabs.removeAll();
+    remove(myTabs.getComponent());
+    myTabs = null;
+    add(myTermWidget.getComponent(), BorderLayout.CENTER);
   }
 
   @Override

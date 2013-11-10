@@ -22,8 +22,8 @@ Features
 --------
 
 * Ssh using JSch from jcraft.org 
-* Local terminal using Pty4J
-* Xterm emulation
+* Local terminal for Unix, Mac and Windows using Pty4J
+* Xterm emulation - passes most of tests from vttest 
 * Xterm 256 colours
 * Scrolling
 * Copy/Paste

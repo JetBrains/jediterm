@@ -1,5 +1,6 @@
 package com.jediterm.terminal.ui;
 
+import javax.swing.*;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
 
@@ -15,7 +16,7 @@ public interface AbstractTabs<T extends Component> {
   String getTitleAt(int index);
 
   int getSelectedIndex();
-  
+
   void setSelectedIndex(int index);
 
   void setTabComponentAt(int index, Component component);
@@ -30,7 +31,7 @@ public interface AbstractTabs<T extends Component> {
 
   void setSelectedComponent(T terminal);
 
-  Component getComponent();
+  JComponent getComponent();
 
   T getComponentAt(int index);
 

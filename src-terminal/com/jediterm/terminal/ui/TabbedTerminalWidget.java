@@ -116,11 +116,25 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   }
 
   private void addTab(JediTermWidget terminal, TerminalTabs tabs) {
-    tabs.addTab(generateUniqueName(mySettingsProvider.tabName(terminal.getTtyConnector(), terminal.getSessionName()), tabs),
+    String name = generateUniqueName(mySettingsProvider.tabName(terminal.getTtyConnector(), terminal.getSessionName()), tabs);
+    
+    addTab(terminal, tabs, name);
+  }
+
+  private void addTab(JediTermWidget terminal, TerminalTabs tabs, String name) {
+    tabs.addTab(name,
                 terminal);
 
     tabs.setTabComponentAt(tabs.getTabCount() - 1, new TabComponent(tabs, terminal));
     tabs.setSelectedComponent(terminal);
+  }
+
+  public void addTab(String name, JediTermWidget terminal) {
+    if (myTabs == null) {
+      myTabs = setupTabs();
+    }
+    
+    addTab(terminal, myTabs, name);    
   }
 
   private static String generateUniqueName(String suggestedName, TerminalTabs tabs) {

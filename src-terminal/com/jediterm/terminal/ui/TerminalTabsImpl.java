@@ -66,7 +66,7 @@ public class TerminalTabsImpl implements TerminalTabs {
   }
 
   @Override
-  public Component getComponent() {
+  public JComponent getComponent() {
     return myTabbedPane;
   }
 

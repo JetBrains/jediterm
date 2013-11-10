@@ -1,3 +1,20 @@
+JediTerm 2.0
+------------
+
+This list of features planned for 2.0 version:
+
+* Refactoring of tabs
+* Memory consumption optimization - don't store bitmaps in memory, paint from text
+* Performance optimization - scrolling of a large text should be fast
+* Double-width symbols support - get rid of back-buffer
+
+To achieve those goals a huge rework is necessary. It can break compatibility and can be unstable in the
+beginning, so the changes are made in branch.
+
+While master is perserved as stable and will get only bug-fixe updates.
+
+
+
 JediTerm
 ========
 
@@ -31,13 +48,6 @@ Features
 * Terminal resizing from client or server side
 * Terminal tabs 
 
-
-JediTerm 2.0
-------------
-* Refactoring of tabs
-* Memory consumption optimization - don't store bitmaps in memory, paint from text
-* Performance optimization - scrolling of a large text should be fast
-* Double-width symbols support - get rid of back-buffer
 
 
 Links

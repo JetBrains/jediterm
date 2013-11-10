@@ -37,7 +37,9 @@ public class TtyConnectorWaitFor {
         }
         finally {
           try {
-            myTerminationCallback.take().apply(exitCode);
+            if (!myWaitForThreadFuture.isCancelled()) {
+              myTerminationCallback.take().apply(exitCode);
+            }
           }
           catch (InterruptedException e) {
             LOG.info(e);

@@ -11,7 +11,7 @@ This list of features planned for 2.0 version:
 To achieve these goals a huge rework is necessary. It can break compatibility and can be unstable in the
 beginning, so the changes are made in branch.
 
-While master is perserved as stable and will get only bug-fixe updates.
+While master is perserved as stable and will get only bug-fix updates.
 
 
 

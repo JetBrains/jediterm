@@ -36,6 +36,7 @@ JediTerm 2.0
 ------------
 * Refactoring of tabs
 * Memory consumption optimization - don't store bitmaps in memory, paint from text
+* Performance optimization - scrolling of a large text should be fast
 * Double-width symbols support - get rid of back-buffer
 
 

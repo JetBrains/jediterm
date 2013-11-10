@@ -29,7 +29,14 @@ Features
 * Copy/Paste
 * Mouse support
 * Terminal resizing from client or server side
-* Terminal tabs
+* Terminal tabs 
+
+
+JediTerm 2.0
+------------
+* Refactoring of tabs
+* Memory consumption optimization - don't store bitmaps in memory, paint from text
+* Double-width symbols support - get rid of back-buffer
 
 
 Links

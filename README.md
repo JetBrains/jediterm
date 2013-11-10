@@ -8,7 +8,7 @@ This list of features planned for 2.0 version:
 * Performance optimization - scrolling of a large text should be fast
 * Double-width symbols support - get rid of back-buffer
 
-To achieve those goals a huge rework is necessary. It can break compatibility and can be unstable in the
+To achieve these goals a huge rework is necessary. It can break compatibility and can be unstable in the
 beginning, so the changes are made in branch.
 
 While master is perserved as stable and will get only bug-fixe updates.

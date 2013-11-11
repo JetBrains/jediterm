@@ -101,6 +101,16 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     enableEvents(AWTEvent.KEY_EVENT_MASK | AWTEvent.INPUT_METHOD_EVENT_MASK);
     enableInputMethods(true);
   }
+  
+  
+  protected void reinitFontAndResize() {
+    myNormalFont = createFont();
+    myBoldFont = myNormalFont.deriveFont(Font.BOLD);
+
+    establishFontMetrics();
+    
+    sizeTerminalFromComponent();
+  } 
 
   public void init() {
     myNormalFont = createFont();

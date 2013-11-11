@@ -39,7 +39,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   private TerminalActionProvider myNextActionProvider;
 
   private final Predicate<TerminalWidget> myCreateNewSessionAction;
-  
+
   private JPanel myPanel;
 
   public TabbedTerminalWidget(@NotNull TabbedSettingsProvider settingsProvider, @NotNull Predicate<TerminalWidget> createNewSessionAction) {
@@ -48,7 +48,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     myCreateNewSessionAction = createNewSessionAction;
 
     setFocusTraversalPolicy(new DefaultFocusTraversalPolicy());
-    
+
     myPanel = new JPanel(new BorderLayout());
     myPanel.add(this, BorderLayout.CENTER);
   }
@@ -115,7 +115,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
 
   private void addTab(JediTermWidget terminal, TerminalTabs tabs) {
     String name = generateUniqueName(mySettingsProvider.tabName(terminal.getTtyConnector(), terminal.getSessionName()), tabs);
-    
+
     addTab(terminal, tabs, name);
   }
 
@@ -131,8 +131,8 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     if (myTabs == null) {
       myTabs = setupTabs();
     }
-    
-    addTab(terminal, myTabs, name);    
+
+    addTab(terminal, myTabs, name);
   }
 
   private static String generateUniqueName(String suggestedName, TerminalTabs tabs) {
@@ -276,7 +276,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
       }).withEnabledSupplier(new Supplier<Boolean>() {
         @Override
         public Boolean get() {
-          return myTabs.getSelectedIndex()<myTabs.getTabCount()-1;
+          return myTabs != null && myTabs.getSelectedIndex() < myTabs.getTabCount() - 1;
         }
       }),
       new TerminalAction("Previous Tab", mySettingsProvider.getPreviousTabKeyStrokes(), new Predicate<KeyEvent>() {
@@ -288,7 +288,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
       }).withEnabledSupplier(new Supplier<Boolean>() {
         @Override
         public Boolean get() {
-          return myTabs.getSelectedIndex()>0;
+          return myTabs != null && myTabs.getSelectedIndex() > 0;
         }
       })
     );
@@ -338,7 +338,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
       final JTextField textField = createTextField();
 
       textField.setOpaque(false);
-      
+
       textField.setDocument(new JTextFieldLimit(50));
       textField.setText(text);
 
@@ -480,7 +480,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
       });
 
       popupMenu.add(rename);
-      
+
       return popupMenu;
     }
 

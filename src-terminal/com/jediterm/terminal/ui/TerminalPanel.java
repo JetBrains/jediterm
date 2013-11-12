@@ -342,6 +342,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   protected void pasteSelection() {
     final String selection = getClipboardString();
 
+    if (selection == null) {
+      return;
+    }
+
     try {
       myTerminalStarter.sendString(selection);
     }

@@ -23,7 +23,7 @@ public class StoredCursor {
   private final int myGLMapping;
   private final int myGRMapping;
 
-  //Wrap ﬂag (autowrap or no autowrap)
+  //Wrap flag (autowrap or no autowrap)
   private final boolean myAutoWrap;
 
   //State of origin mode (DECOM)

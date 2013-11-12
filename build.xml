@@ -10,7 +10,7 @@
   <path id="common-jars">
     <fileset dir="lib" id="common-jars-fileset">
       <include name="guava*.jar"/>
-      <include name="log4*.jar"/>
+      <include name="slf4j-api*.jar"/>
       <include name="annotations.jar"/>
     </fileset>
   </path>

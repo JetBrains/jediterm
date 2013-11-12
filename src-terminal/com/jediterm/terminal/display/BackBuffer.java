@@ -2,16 +2,16 @@ package com.jediterm.terminal.display;
 
 import com.google.common.collect.Maps;
 import com.jediterm.terminal.*;
-import org.apache.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.awt.*;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Buffer for storing styled text data.
@@ -23,7 +23,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * Also handles screen damage (TODO: write about it).
  */
 public class BackBuffer implements StyledTextConsumer {
-  private static final Logger LOG = Logger.getLogger(BackBuffer.class);
+  private static final Logger LOG = LoggerFactory.getLogger(BackBuffer.class);
 
   private static final char EMPTY_CHAR = ' '; // (char) 0x0;
 
@@ -265,7 +265,7 @@ public class BackBuffer implements StyledTextConsumer {
           .append(y).append(")");
 
         CharacterUtils.appendBuf(sb, bytes, start, len);
-        LOG.debug(sb);
+        LOG.debug(sb.toString());
       }
       return;
     }

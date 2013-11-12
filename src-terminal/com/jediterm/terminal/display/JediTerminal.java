@@ -5,7 +5,8 @@ import com.jediterm.terminal.emulator.charset.CharacterSet;
 import com.jediterm.terminal.emulator.charset.GraphicSet;
 import com.jediterm.terminal.emulator.charset.GraphicSetState;
 import com.jediterm.terminal.emulator.mouse.*;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
@@ -22,7 +23,7 @@ import java.util.*;
  * @author traff
  */
 public class JediTerminal implements Terminal, TerminalMouseListener {
-  private static final Logger LOG = Logger.getLogger(JediTerminal.class.getName());
+  private static final Logger LOG = LoggerFactory.getLogger(JediTerminal.class.getName());
 
   private static final int MIN_WIDTH = 5;
 

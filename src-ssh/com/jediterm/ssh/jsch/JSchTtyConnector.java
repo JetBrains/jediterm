@@ -6,14 +6,15 @@ package com.jediterm.ssh.jsch;
 import com.jcraft.jsch.*;
 import com.jediterm.terminal.Questioner;
 import com.jediterm.terminal.TtyConnector;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.io.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class JSchTtyConnector implements TtyConnector {
-  public static final Logger LOG = Logger.getLogger(JSchTtyConnector.class);
+  public static final Logger LOG = LoggerFactory.getLogger(JSchTtyConnector.class);
 
   private InputStream myInputStream = null;
   private OutputStream myOutputStream = null;

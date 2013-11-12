@@ -51,7 +51,7 @@ public class CharacterUtils {
 
   public static CharacterType appendChar(final StringBuilder sb, final CharacterType last, final char c) {
     if (c <= 0x1F) {
-      sb.append(' ');
+      sb.append(EMPTY_CHAR);
       sb.append(NONPRINTING_NAMES[c]);
       return CharacterType.NONPRINTING;
     }
@@ -60,7 +60,7 @@ public class CharacterUtils {
       return CharacterType.NONPRINTING;
     }
     else if (c > 0x1F && c <= 0x7E) {
-      if (last != CharacterType.PRINTING) sb.append(' ');
+      if (last != CharacterType.PRINTING) sb.append(EMPTY_CHAR);
       sb.append(c);
       return CharacterType.PRINTING;
     }

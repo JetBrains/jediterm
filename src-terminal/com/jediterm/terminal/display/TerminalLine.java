@@ -1,5 +1,6 @@
 package com.jediterm.terminal.display;
 
+import com.jediterm.terminal.CharacterUtils;
 import com.jediterm.terminal.TextStyle;
 import org.jetbrains.annotations.NotNull;
 
@@ -57,7 +58,7 @@ public class TerminalLine {
 
     if (x >= len) {
       if (x - len > 0) {
-        myTextEntries.add(new TextEntry(TextStyle.EMPTY, new CharBuffer(' ', x - len)));
+        myTextEntries.add(new TextEntry(TextStyle.EMPTY, new CharBuffer(CharacterUtils.EMPTY_CHAR, x - len)));
       }
       
       myTextEntries.add(new TextEntry(style, characters));
@@ -161,7 +162,7 @@ public class TerminalLine {
       for (int i = 0; i < entry.getLength() && p < len; i++) {
         if (p == x) {
           for(int j = 0; j < count; j++) {
-            buf[p] = ' ';
+            buf[p] = CharacterUtils.EMPTY_CHAR;
             styles[p] = TextStyle.EMPTY;
             p++;
           }
@@ -182,7 +183,7 @@ public class TerminalLine {
 
   public void clearArea(int leftX, int rightX, @NotNull TextStyle style) {
     if (leftX < myTextEntries.length()) {
-      writeCharacters(leftX, style, new CharBuffer(' ', Math.min(myTextEntries.length(), rightX) - leftX));
+      writeCharacters(leftX, style, new CharBuffer(CharacterUtils.EMPTY_CHAR, Math.min(myTextEntries.length(), rightX) - leftX));
     }
   }
 

@@ -789,6 +789,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
 
   private byte[] mouseReport(int button, int x, int y) {
     StringBuilder sb = new StringBuilder();
+    String charset = "UTF-8"; // extended mode requires UTF-8 encoding
     switch (myMouseFormat) {
       case MOUSE_FORMAT_XTERM_EXT:
         sb.append(String.format("\033[M%c%c%c",
@@ -814,10 +815,12 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
         break;
       case MOUSE_FORMAT_XTERM:
       default:
+        charset = "US-ASCII"; // X10 compatibility mode requires ASCII
         sb.append(String.format("\033[M%c%c%c", (char)(32 + button), (char)(32 + x), (char)(32 + y)));
         break;
     }
-    return sb.toString().getBytes(Charset.forName("UTF-8"));
+    LOG.debug(myMouseFormat + " (" + charset + ") report : " + button + ", " + x + "x" + y + " = " + sb);
+    return sb.toString().getBytes(Charset.forName(charset));
   }
 
 

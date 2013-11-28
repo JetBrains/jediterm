@@ -101,16 +101,15 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     enableEvents(AWTEvent.KEY_EVENT_MASK | AWTEvent.INPUT_METHOD_EVENT_MASK);
     enableInputMethods(true);
   }
-  
-  
+
   protected void reinitFontAndResize() {
     myNormalFont = createFont();
     myBoldFont = myNormalFont.deriveFont(Font.BOLD);
 
     establishFontMetrics();
-    
+
     sizeTerminalFromComponent();
-  } 
+  }
 
   public void init() {
     myNormalFont = createFont();
@@ -131,7 +130,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     addMouseMotionListener(new MouseMotionAdapter() {
       @Override
       public void mouseDragged(final MouseEvent e) {
-        if (isMouseReporting()) {
+        if (!allowSelection()) {
           return;
         }
 
@@ -193,7 +192,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
           if (count == 1) {
             // do nothing
           }
-          else if (count == 2 && !isMouseReporting()) {
+          else if (count == 2 && allowSelection()) {
             // select word
             final Point charCoords = panelToCharCoords(e.getPoint());
             Point start = SelectionUtil.getPreviousSeparator(charCoords, myBackBuffer);
@@ -205,7 +204,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
               handleCopy(false);
             }
           }
-          else if (count == 3 && !isMouseReporting()) {
+          else if (count == 3 && allowSelection()) {
             // select line
             final Point charCoords = panelToCharCoords(e.getPoint());
             int startLine = charCoords.y;
@@ -226,7 +225,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             }
           }
         }
-        else if (e.getButton() == MouseEvent.BUTTON2 && mySettingsProvider.pasteOnMiddleMouseClick() && !isMouseReporting()) {
+        else if (e.getButton() == MouseEvent.BUTTON2 && mySettingsProvider.pasteOnMiddleMouseClick() && allowSelection()) {
           handlePaste();
         }
         else if (e.getButton() == MouseEvent.BUTTON3) {
@@ -255,6 +254,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     setDoubleBuffered(true);
     redrawTimer.start();
     repaint();
+  }
+
+  private boolean allowSelection() {
+    return mySettingsProvider.allowSelectionOnMouseReporting() || !isMouseReporting();
   }
 
   protected boolean isRetina() {
@@ -588,23 +591,23 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   private void drawInputMethodUncommitedChars(Graphics2D gfx) {
-    if (myInputMethodUncommitedChars != null && myInputMethodUncommitedChars.length()>0) {
+    if (myInputMethodUncommitedChars != null && myInputMethodUncommitedChars.length() > 0) {
       int x = myCursor.getCoordX() * myCharSize.width;
       int y = (myCursor.getCoordY()) * myCharSize.height - 2;
 
       int len = (myInputMethodUncommitedChars.length()) * myCharSize.width;
-      
+
       gfx.setColor(getBackground());
-      gfx.fillRect(x, (myCursor.getCoordY()-1)*myCharSize.height, len, myCharSize.height);
-      
+      gfx.fillRect(x, (myCursor.getCoordY() - 1) * myCharSize.height, len, myCharSize.height);
+
       gfx.setColor(getForeground());
       gfx.setFont(myNormalFont);
-      
+
       gfx.drawString(myInputMethodUncommitedChars, x, y);
       Stroke saved = gfx.getStroke();
       BasicStroke dotted = new BasicStroke(1, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 0, new float[]{0, 2, 0, 2}, 0);
       gfx.setStroke(dotted);
-      
+
       gfx.drawLine(x, y, x + len, y);
       gfx.setStroke(saved);
     }
@@ -900,15 +903,16 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     int newBlockLen = 1;
     int offset = 0;
     int drawCharsOffset = 0;
-    
+
     // workaround to fix Swing bad rendering of bold special chars on Linux
     CharBuffer renderingBuffer;
-    if(mySettingsProvider.DECCompatibilityMode() && style.hasOption(TextStyle.Option.BOLD)) {
+    if (mySettingsProvider.DECCompatibilityMode() && style.hasOption(TextStyle.Option.BOLD)) {
       renderingBuffer = CharacterUtils.heavyDecCompatibleBuffer(buf);
-    } else {
+    }
+    else {
       renderingBuffer = buf;
     }
-    
+
     while (offset + newBlockLen <= buf.getLength()) {
       Font font = getFontToDisplay(buf.charAt(offset + newBlockLen - 1), style);
       while (myMonospaced && (offset + newBlockLen < buf.getLength()) && isWordCharacter(buf.charAt(offset + newBlockLen - 1))
@@ -1319,11 +1323,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private static boolean isCodeThatScrolls(int keycode) {
     return keycode == KeyEvent.VK_UP
-      || keycode == KeyEvent.VK_DOWN
-      || keycode == KeyEvent.VK_LEFT
-      || keycode == KeyEvent.VK_RIGHT
-      || keycode == KeyEvent.VK_BACK_SPACE
-      || keycode == KeyEvent.VK_DELETE;
+           || keycode == KeyEvent.VK_DOWN
+           || keycode == KeyEvent.VK_LEFT
+           || keycode == KeyEvent.VK_RIGHT
+           || keycode == KeyEvent.VK_BACK_SPACE
+           || keycode == KeyEvent.VK_DELETE;
   }
 
   private void processTerminalKeyTyped(KeyEvent e) {

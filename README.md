@@ -43,6 +43,14 @@ Links
  * Control sequences visualization: http://www.gnu.org/software/teseq/
 
 
+Usages
+------
+
+JediTerm is used in IntelliJ based IDEs (IntelliJ IDEA, PyCharm, RubyMine, Web/PhpStorm)
+
+https://github.com/JetBrains/intellij-community/tree/master/plugins/terminal
+
+There you can find implementation of correct terminal component painting for Apple Retina displays.
 
 Origin
 ------

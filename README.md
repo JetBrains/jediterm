@@ -46,11 +46,9 @@ Links
 Usages
 ------
 
-JediTerm is used in IntelliJ based IDEs (IntelliJ IDEA, PyCharm, RubyMine, Web/PhpStorm)
+JediTerm is used in IntelliJ based IDEs (IntelliJ IDEA, PyCharm, RubyMine, Web/PhpStorm): https://github.com/JetBrains/intellij-community/tree/master/plugins/terminal
 
-https://github.com/JetBrains/intellij-community/tree/master/plugins/terminal
-
-There you can find implementation of correct terminal component painting for Apple Retina displays.
+There you can find implementation of correct terminal component painting for Apple Retina displays (see [JBTerminalPanel.java](https://github.com/JetBrains/intellij-community/blob/master/plugins/terminal/src/org/jetbrains/plugins/terminal/JBTerminalPanel.java) )
 
 Origin
 ------

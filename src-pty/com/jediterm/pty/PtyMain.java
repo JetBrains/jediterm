@@ -71,5 +71,17 @@ public class PtyMain extends AbstractTerminalFrame {
     public List<char[]> getChunks() {
       return Lists.newArrayList(myDataChunks);
     }
+
+    @Override
+    public void write(String string) throws IOException {
+      LOG.debug("Writing in OutputStream : " + string);
+      super.write(string);
+    }
+
+    @Override
+    public void write(byte[] bytes) throws IOException {
+      LOG.debug("Writing in OutputStream : " + Arrays.toString(bytes));
+      super.write(bytes);
+    }
   }
 }

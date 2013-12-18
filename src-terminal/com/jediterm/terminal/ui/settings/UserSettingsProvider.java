@@ -37,6 +37,4 @@ public interface UserSettingsProvider {
   boolean scrollToBottomOnTyping();
 
   boolean DECCompatibilityMode();
-
-  boolean allowSelectionOnMouseReporting();
 }

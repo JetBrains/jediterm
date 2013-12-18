@@ -130,7 +130,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     addMouseMotionListener(new MouseMotionAdapter() {
       @Override
       public void mouseDragged(final MouseEvent e) {
-        if (!allowSelection()) {
+        // TODO : button-event tracking (1002 mode)
+
+        if (!allowLocalMouseAction(e)) {
           return;
         }
 
@@ -192,7 +194,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
           if (count == 1) {
             // do nothing
           }
-          else if (count == 2 && allowSelection()) {
+          else if (count == 2 && allowLocalMouseAction(e)) {
             // select word
             final Point charCoords = panelToCharCoords(e.getPoint());
             Point start = SelectionUtil.getPreviousSeparator(charCoords, myBackBuffer);
@@ -204,7 +206,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
               handleCopy(false);
             }
           }
-          else if (count == 3 && allowSelection()) {
+          else if (count == 3 && allowLocalMouseAction(e)) {
             // select line
             final Point charCoords = panelToCharCoords(e.getPoint());
             int startLine = charCoords.y;
@@ -225,7 +227,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             }
           }
         }
-        else if (e.getButton() == MouseEvent.BUTTON2 && mySettingsProvider.pasteOnMiddleMouseClick() && allowSelection()) {
+        else if (e.getButton() == MouseEvent.BUTTON2 && mySettingsProvider.pasteOnMiddleMouseClick() && allowLocalMouseAction(e)) {
           handlePaste();
         }
         else if (e.getButton() == MouseEvent.BUTTON3) {
@@ -256,8 +258,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     repaint();
   }
 
-  private boolean allowSelection() {
-    return mySettingsProvider.allowSelectionOnMouseReporting() || !isMouseReporting();
+  private boolean allowLocalMouseAction(MouseEvent e) {
+    return e.isShiftDown() || !isMouseReporting();
   }
 
   protected boolean isRetina() {

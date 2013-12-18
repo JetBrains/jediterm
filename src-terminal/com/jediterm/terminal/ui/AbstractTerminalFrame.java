@@ -93,7 +93,7 @@ public abstract class AbstractTerminalFrame {
       logLevel.add(new AbstractAction(l.toString()) {
         @Override
         public void actionPerformed(ActionEvent e) {
-          LOG.setLevel(l);
+          Logger.getRootLogger().setLevel(l);
         }
       });
     }

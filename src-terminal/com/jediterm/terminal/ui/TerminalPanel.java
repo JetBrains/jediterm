@@ -130,9 +130,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     addMouseMotionListener(new MouseMotionAdapter() {
       @Override
       public void mouseDragged(final MouseEvent e) {
-        // TODO : button-event tracking (1002 mode)
-
-        if (!allowLocalMouseAction(e)) {
+        if (!isLocalMouseAction(e)) {
           return;
         }
 
@@ -163,8 +161,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     addMouseWheelListener(new MouseWheelListener() {
       @Override
       public void mouseWheelMoved(MouseWheelEvent e) {
-        int notches = e.getWheelRotation();
-        moveScrollBar(notches);
+        if(isLocalMouseAction(e)) {
+          int notches = e.getWheelRotation();
+          moveScrollBar(notches);
+        }
       }
     });
 
@@ -189,12 +189,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       @Override
       public void mouseClicked(final MouseEvent e) {
         requestFocusInWindow();
-        if (e.getButton() == MouseEvent.BUTTON1) {
+        if (e.getButton() == MouseEvent.BUTTON1 && isLocalMouseAction(e)) {
           int count = e.getClickCount();
           if (count == 1) {
             // do nothing
           }
-          else if (count == 2 && allowLocalMouseAction(e)) {
+          else if (count == 2) {
             // select word
             final Point charCoords = panelToCharCoords(e.getPoint());
             Point start = SelectionUtil.getPreviousSeparator(charCoords, myBackBuffer);
@@ -206,7 +206,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
               handleCopy(false);
             }
           }
-          else if (count == 3 && allowLocalMouseAction(e)) {
+          else if (count == 3) {
             // select line
             final Point charCoords = panelToCharCoords(e.getPoint());
             int startLine = charCoords.y;
@@ -227,7 +227,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             }
           }
         }
-        else if (e.getButton() == MouseEvent.BUTTON2 && mySettingsProvider.pasteOnMiddleMouseClick() && allowLocalMouseAction(e)) {
+        else if (e.getButton() == MouseEvent.BUTTON2 && mySettingsProvider.pasteOnMiddleMouseClick() && isLocalMouseAction(e)) {
           handlePaste();
         }
         else if (e.getButton() == MouseEvent.BUTTON3) {
@@ -258,8 +258,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     repaint();
   }
 
-  private boolean allowLocalMouseAction(MouseEvent e) {
-    return e.isShiftDown() || !isMouseReporting();
+  public boolean isLocalMouseAction(MouseEvent e) {
+    return isMouseReporting() == e.isShiftDown();
   }
 
   protected boolean isRetina() {
@@ -662,7 +662,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     addMouseListener(new MouseAdapter() {
       @Override
       public void mousePressed(MouseEvent e) {
-        if (mySettingsProvider.enableMouseReporting()) {
+        if (mySettingsProvider.enableMouseReporting() && !isLocalMouseAction(e)) {
           Point p = panelToCharCoords(e.getPoint());
           listener.mousePressed(p.x, p.y, e);
         }
@@ -670,9 +670,27 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
       @Override
       public void mouseReleased(MouseEvent e) {
-        if (mySettingsProvider.enableMouseReporting()) {
+        if (mySettingsProvider.enableMouseReporting() && !isLocalMouseAction(e)) {
           Point p = panelToCharCoords(e.getPoint());
           listener.mouseReleased(p.x, p.y, e);
+        }
+      }
+    });
+
+    addMouseMotionListener(new MouseMotionAdapter() {
+      @Override
+      public void mouseMoved(MouseEvent e) {
+        if (mySettingsProvider.enableMouseReporting() && !isLocalMouseAction(e)) {
+          Point p = panelToCharCoords(e.getPoint());
+          listener.mouseMoved(p.x, p.y, e);
+        }
+      }
+
+      @Override
+      public void mouseDragged(MouseEvent e) {
+        if (mySettingsProvider.enableMouseReporting() && !isLocalMouseAction(e)) {
+          Point p = panelToCharCoords(e.getPoint());
+          listener.mouseDragged(p.x, p.y, e);
         }
       }
     });

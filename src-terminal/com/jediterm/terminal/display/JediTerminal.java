@@ -15,6 +15,8 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.*;
 
+import javax.swing.SwingUtilities;
+
 /**
  * Terminal that reflects obtained commands and text at {@link TerminalDisplay}(handles change of cursor position, screen size etc)
  * and  {@link BackBuffer}(stores printed text)
@@ -54,6 +56,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
   private TerminalOutputStream myTerminalOutput = null;
 
   private MouseMode myMouseMode = MouseMode.MOUSE_REPORTING_NONE;
+  private Point myLastMotionReport = null;
 
   public JediTerminal(final TerminalDisplay display, final BackBuffer buf, final StyleState initialStyleState) {
     myDisplay = display;
@@ -776,14 +779,18 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
   }
 
   private static int createButtonCode(MouseEvent event) {
-    if ((event.getButton()) == MouseEvent.BUTTON1) {
+    // for mouse dragged, button is stored in modifiers
+    if (SwingUtilities.isLeftMouseButton(event)) {
       return MouseButtonCodes.LEFT;
     }
-    else if (event.getButton() == MouseEvent.BUTTON3) {
-      return MouseButtonCodes.NONE; //we dont handle right mouse button as it used for the context menu invocation
+    else if (SwingUtilities.isMiddleMouseButton(event)) {
+      return MouseButtonCodes.MIDDLE;
+    }
+    else if (SwingUtilities.isRightMouseButton(event)) {
+      return MouseButtonCodes.NONE; //we don't handle right mouse button as it used for the context menu invocation
     }
     else {
-      return MouseButtonCodes.RIGHT;
+      return MouseButtonCodes.NONE;
     }
   }
 
@@ -823,20 +830,28 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
     return sb.toString().getBytes(Charset.forName(charset));
   }
 
-
-  private boolean shouldSendMouseData() {
-    return myTerminalOutput != null &&
-           (myMouseMode == MouseMode.MOUSE_REPORTING_NORMAL || myMouseMode == MouseMode.MOUSE_REPORTING_ALL_MOTION ||
-            myMouseMode == MouseMode.MOUSE_REPORTING_BUTTON_MOTION);
+  private boolean shouldSendMouseData(MouseMode... eligibleModes) {
+    if (myMouseMode == MouseMode.MOUSE_REPORTING_NONE || myTerminalOutput == null) {
+      return false;
+    }
+    if (myMouseMode == MouseMode.MOUSE_REPORTING_ALL_MOTION) {
+      return true;
+    }
+    for (MouseMode m : eligibleModes) {
+      if (myMouseMode == m) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override
   public void mousePressed(int x, int y, MouseEvent event) {
-    if (shouldSendMouseData()) {
+    if (shouldSendMouseData(MouseMode.MOUSE_REPORTING_NORMAL, MouseMode.MOUSE_REPORTING_BUTTON_MOTION)) {
       int cb = createButtonCode(event);
 
       if (cb != MouseButtonCodes.NONE) {
-        if (createButtonCode(event) == MouseButtonCodes.SCROLLDOWN || createButtonCode(event) == MouseButtonCodes.SCROLLUP) {
+        if (cb == MouseButtonCodes.SCROLLDOWN || cb == MouseButtonCodes.SCROLLUP) {
           // convert x11 scroll button number to terminal button code
           int offset = MouseButtonCodes.SCROLLDOWN;
           cb -= offset;
@@ -852,7 +867,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
 
   @Override
   public void mouseReleased(int x, int y, MouseEvent event) {
-    if (shouldSendMouseData()) {
+    if (shouldSendMouseData(MouseMode.MOUSE_REPORTING_NORMAL, MouseMode.MOUSE_REPORTING_BUTTON_MOTION)) {
       int cb = createButtonCode(event);
 
       if (cb != MouseButtonCodes.NONE) {
@@ -871,6 +886,35 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
         myTerminalOutput.sendBytes(mouseReport(cb, x + 1, y + 1));
       }
     }
+    myLastMotionReport = null;
+  }
+
+  public void mouseMoved(int x, int y, MouseEvent event) {
+    if(myLastMotionReport != null && myLastMotionReport.equals(new Point(x, y))) {
+      return;
+    }
+    if (shouldSendMouseData(MouseMode.MOUSE_REPORTING_ALL_MOTION)) {
+      myTerminalOutput.sendBytes(mouseReport(MouseButtonCodes.RELEASE, x + 1, y + 1));
+    }
+    myLastMotionReport = new Point(x, y);
+  }
+
+  @Override
+  public void mouseDragged(int x, int y, MouseEvent event) {
+    if(myLastMotionReport != null && myLastMotionReport.equals(new Point(x, y))) {
+      return;
+    }
+    if (shouldSendMouseData(MouseMode.MOUSE_REPORTING_BUTTON_MOTION)) {
+      //when dragging, button is not in "button", but in "modifier"
+      int cb = createButtonCode(event);
+
+      if (cb != MouseButtonCodes.NONE) {
+        cb |= MouseButtonModifierFlags.MOUSE_BUTTON_MOTION_FLAG;
+        cb = applyModifierKeys(event, cb);
+        myTerminalOutput.sendBytes(mouseReport(cb, x + 1, y + 1));
+      }
+    }
+    myLastMotionReport = new Point(x, y);
   }
 
   private static int applyModifierKeys(MouseEvent event, int cb) {

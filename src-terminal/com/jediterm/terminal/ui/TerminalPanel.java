@@ -677,6 +677,17 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       }
     });
 
+    addMouseWheelListener(new MouseWheelListener() {
+      @Override
+      public void mouseWheelMoved(MouseWheelEvent e) {
+        if (mySettingsProvider.enableMouseReporting() && !isLocalMouseAction(e)) {
+          mySelection = null;
+          Point p = panelToCharCoords(e.getPoint());
+          listener.mouseWheelMoved(p.x, p.y, e);
+        }
+      }
+    });
+
     addMouseMotionListener(new MouseMotionAdapter() {
       @Override
       public void mouseMoved(MouseEvent e) {

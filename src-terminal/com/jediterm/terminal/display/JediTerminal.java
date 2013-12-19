@@ -11,6 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseWheelEvent;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.*;
@@ -789,9 +790,15 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
     else if (SwingUtilities.isRightMouseButton(event)) {
       return MouseButtonCodes.NONE; //we don't handle right mouse button as it used for the context menu invocation
     }
-    else {
-      return MouseButtonCodes.NONE;
+    else if (event instanceof MouseWheelEvent) {
+      if (((MouseWheelEvent) event).getWheelRotation() > 0) {
+        return MouseButtonCodes.SCROLLUP;
+      }
+      else {
+        return MouseButtonCodes.SCROLLDOWN;
+      }
     }
+    return MouseButtonCodes.NONE;
   }
 
   private byte[] mouseReport(int button, int x, int y) {
@@ -915,6 +922,12 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
       }
     }
     myLastMotionReport = new Point(x, y);
+  }
+
+  @Override
+  public void mouseWheelMoved(int x, int y, MouseWheelEvent event) {
+    // mousePressed() handles mouse wheel using SCROLLDOWN and SCROLLUP buttons 
+    mousePressed(x, y, event);
   }
 
   private static int applyModifierKeys(MouseEvent event, int cb) {

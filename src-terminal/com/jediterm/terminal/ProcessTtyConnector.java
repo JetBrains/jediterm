@@ -60,8 +60,7 @@ public abstract class ProcessTtyConnector implements TtyConnector {
 
   @Override
   public void write(String string) throws IOException {
-    myOutputStream.write(string.getBytes(myCharset));
-    myOutputStream.flush();
+    write(string.getBytes(myCharset));
   }
 
   protected void setPendingTermSize(Dimension pendingTermSize) {

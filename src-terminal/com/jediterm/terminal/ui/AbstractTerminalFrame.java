@@ -4,9 +4,9 @@ import com.google.common.base.Predicate;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.debug.BufferPanel;
-import com.jediterm.terminal.ui.settings.DefaultSettingsProvider;
 
 import com.jediterm.terminal.ui.settings.DefaultTabbedSettingsProvider;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import javax.swing.*;
@@ -86,6 +86,19 @@ public abstract class AbstractTerminalFrame {
     m.add(myOpenAction);
     mb.add(m);
     final JMenu dm = new JMenu("Debug");
+
+    JMenu logLevel = new JMenu("Set log level ...");
+    Level[] levels = new Level[] {Level.ALL, Level.DEBUG, Level.INFO, Level.WARN, Level.ERROR, Level.FATAL, Level.OFF};
+    for(final Level l : levels) {
+      logLevel.add(new AbstractAction(l.toString()) {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          Logger.getRootLogger().setLevel(l);
+        }
+      });
+    }
+    dm.add(logLevel);
+    dm.addSeparator();
 
     dm.add(myShowBuffersAction);
     dm.add(myResetDamage);

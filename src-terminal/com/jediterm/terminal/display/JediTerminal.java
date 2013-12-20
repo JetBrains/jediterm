@@ -815,7 +815,10 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
         break;
       case MOUSE_FORMAT_XTERM:
       default:
-        charset = "US-ASCII"; // X10 compatibility mode requires ASCII
+        // X10 compatibility mode requires ASCII
+        // US-ASCII is only 7 bits, so we use ISO-8859-1 (8 bits with ASCII transparency)
+        // to handle positions greater than 95 (= 127-32)
+        charset = "ISO-8859-1";
         sb.append(String.format("\033[M%c%c%c", (char)(32 + button), (char)(32 + x), (char)(32 + y)));
         break;
     }

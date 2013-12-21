@@ -259,7 +259,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   public boolean isLocalMouseAction(MouseEvent e) {
-    return isMouseReporting() == e.isShiftDown();
+    return mySettingsProvider.forceActionOnMouseReporting() || (isMouseReporting() == e.isShiftDown());
+  }
+
+  public boolean isRemoteMouseAction(MouseEvent e) {
+    return isMouseReporting() && !e.isShiftDown();
   }
 
   protected boolean isRetina() {
@@ -662,7 +666,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     addMouseListener(new MouseAdapter() {
       @Override
       public void mousePressed(MouseEvent e) {
-        if (mySettingsProvider.enableMouseReporting() && !isLocalMouseAction(e)) {
+        if (mySettingsProvider.enableMouseReporting() && isRemoteMouseAction(e)) {
           Point p = panelToCharCoords(e.getPoint());
           listener.mousePressed(p.x, p.y, e);
         }
@@ -670,7 +674,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
       @Override
       public void mouseReleased(MouseEvent e) {
-        if (mySettingsProvider.enableMouseReporting() && !isLocalMouseAction(e)) {
+        if (mySettingsProvider.enableMouseReporting() && isRemoteMouseAction(e)) {
           Point p = panelToCharCoords(e.getPoint());
           listener.mouseReleased(p.x, p.y, e);
         }
@@ -680,7 +684,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     addMouseWheelListener(new MouseWheelListener() {
       @Override
       public void mouseWheelMoved(MouseWheelEvent e) {
-        if (mySettingsProvider.enableMouseReporting() && !isLocalMouseAction(e)) {
+        if (mySettingsProvider.enableMouseReporting() && isRemoteMouseAction(e)) {
           mySelection = null;
           Point p = panelToCharCoords(e.getPoint());
           listener.mouseWheelMoved(p.x, p.y, e);
@@ -691,7 +695,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     addMouseMotionListener(new MouseMotionAdapter() {
       @Override
       public void mouseMoved(MouseEvent e) {
-        if (mySettingsProvider.enableMouseReporting() && !isLocalMouseAction(e)) {
+        if (mySettingsProvider.enableMouseReporting() && isRemoteMouseAction(e)) {
           Point p = panelToCharCoords(e.getPoint());
           listener.mouseMoved(p.x, p.y, e);
         }
@@ -699,7 +703,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
       @Override
       public void mouseDragged(MouseEvent e) {
-        if (mySettingsProvider.enableMouseReporting() && !isLocalMouseAction(e)) {
+        if (mySettingsProvider.enableMouseReporting() && isRemoteMouseAction(e)) {
           Point p = panelToCharCoords(e.getPoint());
           listener.mouseDragged(p.x, p.y, e);
         }

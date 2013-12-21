@@ -130,4 +130,9 @@ public class DefaultSettingsProvider implements SettingsProvider {
   public boolean DECCompatibilityMode() {
     return true;
   }
+
+  @Override
+  public boolean forceActionOnMouseReporting() {
+    return false;
+  }
 }

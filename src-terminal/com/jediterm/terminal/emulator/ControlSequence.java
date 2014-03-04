@@ -26,7 +26,7 @@ public class ControlSequence {
 
 
   ControlSequence(final TerminalDataStream channel) throws IOException {
-    myArgv = new int[10];
+    myArgv = new int[5];
     myArgc = 0;
 
     readControlSequence(channel);
@@ -52,6 +52,11 @@ public class ControlSequence {
       else if (b == ';') {
         if (digit > 0) {
           myArgc++;
+          if (myArgc == myArgv.length) {
+            int[] replacement = new int[myArgv.length * 2];
+            System.arraycopy(myArgv, 0, replacement, 0, myArgv.length);
+            myArgv = replacement;
+          }
           myArgv[myArgc] = 0;
           digit = 0;
         }

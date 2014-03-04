@@ -6,7 +6,6 @@ import com.jediterm.terminal.emulator.mouse.MouseFormat;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
 import org.apache.log4j.Logger;
 
-import java.awt.*;
 import java.io.IOException;
 
 /**
@@ -283,7 +282,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
 
   /**
    * This method is used to handle unknown sequences. Can be overriden.
-   * 
+   *
    * @param sequenceChars are the characters of the unhandled sequence following the ESC character
    *                      (first ESC is excluded from the sequenceChars)
    */
@@ -747,10 +746,14 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       textStyle = new TextStyle();
     }
 
-    for (int i = 0; i < argCount; i++) {
+    int i = 0;
+    while (i < argCount) {
+      int step = 1;
+
       final int arg = args.getArg(i, -1);
       if (arg == -1) {
         LOG.error("Error in processing char attributes, arg " + i);
+        i++;
         continue;
       }
 
@@ -767,13 +770,13 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 4:// Underlined
           textStyle.setOption(TextStyle.Option.UNDERLINED, true);
           break;
-        case 5:// Blink (appears as Bold) 
+        case 5:// Blink (appears as Bold)
           textStyle.setOption(TextStyle.Option.BLINK, true);
           break;
-        case 7:// Inverse 
+        case 7:// Inverse
           textStyle.setOption(TextStyle.Option.INVERSE, true);
           break;
-        case 8: // Invisible (hidden)  
+        case 8: // Invisible (hidden)
           textStyle.setOption(TextStyle.Option.HIDDEN, true);
           break;
         case 22: //Normal (neither bold nor faint)
@@ -803,9 +806,10 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           textStyle.setForeground(TerminalColor.index(arg - 30));
           break;
         case 38: // Set xterm-256 text color
-          TerminalColor color256 = getColor256(args);
+          TerminalColor color256 = getColor256(args, i);
           if (color256 != null) {
             textStyle.setForeground(color256);
+            step = getColor256Step(args, i);
           }
           break;
         case 39: // Default (original) foreground
@@ -822,9 +826,10 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           textStyle.setBackground(TerminalColor.index(arg - 40));
           break;
         case 48: // Set xterm-256 background color
-          TerminalColor bgColor256 = getColor256(args);
+          TerminalColor bgColor256 = getColor256(args, i);
           if (bgColor256 != null) {
             textStyle.setBackground(bgColor256);
+            step = getColor256Step(args, i);
           }
           break;
         case 49: //Default (original) foreground
@@ -855,18 +860,19 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         default:
           LOG.error("Unknown character attribute:" + arg);
       }
+      i = i + step;
     }
     return textStyle;
   }
 
-  private static TerminalColor getColor256(ControlSequence args) {
-    int code = args.getArg(1, 0);
+  private static TerminalColor getColor256(ControlSequence args, int index) {
+    int code = args.getArg(index + 1, 0);
 
     if (code == 2) {
       /* direct color in rgb space */
-      int val0 = args.getArg(2, -1);
-      int val1 = args.getArg(3, -1);
-      int val2 = args.getArg(4, -1);
+      int val0 = args.getArg(index + 2, -1);
+      int val1 = args.getArg(index + 3, -1);
+      int val2 = args.getArg(index + 4, -1);
       if ((val0 >= 0 && val0 < 256) &&
           (val1 >= 0 && val1 < 256) &&
           (val2 >= 0 && val2 < 256)) {
@@ -879,12 +885,22 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     }
     else if (code == 5) {
       /* indexed color */
-      return ColorPalette.getIndexedColor(args.getArg(2, 0));
+      return ColorPalette.getIndexedColor(args.getArg(index + 2, 0));
     }
     else {
       LOG.error("Unsupported code for color attribute " + args.toString());
       return null;
     }
+  }
+
+  private static int getColor256Step(ControlSequence args, int i) {
+    int code = args.getArg(i + 1, 0);
+    if (code == 2) {
+      return 5;
+    } else if (code == 5) {
+      return 3;
+    }
+    return 1;
   }
 
   private boolean cursorUp(ControlSequence cs) {

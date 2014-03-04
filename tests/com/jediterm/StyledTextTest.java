@@ -1,22 +1,35 @@
 package com.jediterm;
 
+import com.jediterm.terminal.ArrayTerminalDataStream;
 import com.jediterm.terminal.TerminalColor;
+import com.jediterm.terminal.TerminalOutputStream;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.display.BackBuffer;
 import com.jediterm.terminal.display.JediTerminal;
 import com.jediterm.terminal.display.StyleState;
+import com.jediterm.terminal.emulator.Emulator;
+import com.jediterm.terminal.emulator.JediEmulator;
 import com.jediterm.util.BackBufferDisplay;
 import junit.framework.TestCase;
+import org.apache.log4j.BasicConfigurator;
 
-import java.awt.*;
+import java.io.IOException;
 
 /**
  * @author traff
  */
 public class StyledTextTest extends TestCase {
+  private static final String CSI = "" + ((char) 27) + "[";
+
   private static final TextStyle GREEN = new TextStyle(TerminalColor.index(2), null);
   private static final TextStyle BLACK = new TextStyle(TerminalColor.BLACK, null);
 
+  @Override
+  public void setUp() throws Exception
+  {
+    super.setUp();
+    BasicConfigurator.configure();
+  }
 
   public void testStyledTest1() {
     final int width = 12;
@@ -48,5 +61,65 @@ public class StyledTextTest extends TestCase {
     backBuffer.processDamagedCells(backBuffer2);
 
     assertEquals(colors, backBuffer2.getStyleLines());
+  }
+
+  public void test24BitForegroundColourParsing() throws IOException {
+    BackBuffer backBuffer = getBufferFor(12, 1, CSI + "38;2;0;128;0mHello");
+    TextStyle style = backBuffer.getStyleAt(0, 0);
+    assertEquals(new TerminalColor(0, 128, 0), style.getForeground());
+  }
+
+  public void test24BitBackgroundColourParsing() throws IOException {
+    BackBuffer backBuffer = getBufferFor(12, 1, CSI + "48;2;0;128;0mHello");
+    TextStyle style = backBuffer.getStyleAt(0, 0);
+    assertEquals(new TerminalColor(0, 128, 0), style.getBackground());
+  }
+
+  public void test24BitCombinedColourParsing() throws IOException {
+    BackBuffer backBuffer = getBufferFor(12, 1, CSI + "0;38;2;0;128;0;48;2;0;255;0;1mHello");
+    TextStyle style = backBuffer.getStyleAt(0, 0);
+    assertEquals(new TerminalColor(0, 128, 0), style.getForeground());
+    assertEquals(new TerminalColor(0, 255, 0), style.getBackground());
+    assertTrue(style.hasOption(TextStyle.Option.BOLD));
+  }
+
+  public void testIndexedForegroundColourParsing() throws IOException {
+    BackBuffer backBuffer = getBufferFor(12, 1, CSI + "38;5;46mHello");
+    TextStyle style = backBuffer.getStyleAt(0, 0);
+    assertEquals(new TerminalColor(0, 255, 0), style.getForeground());
+  }
+
+  public void testIndexedBackgroundColourParsing() throws IOException {
+    BackBuffer backBuffer = getBufferFor(12, 1, CSI + "48;5;46mHello");
+    TextStyle style = backBuffer.getStyleAt(0, 0);
+    assertEquals(new TerminalColor(0, 255, 0), style.getBackground());
+  }
+
+  public void testIndexedCombinedColourParsing() throws IOException {
+    BackBuffer backBuffer = getBufferFor(12, 1, CSI + "0;38;5;46;48;5;196;1mHello");
+    TextStyle style = backBuffer.getStyleAt(0, 0);
+    assertEquals(new TerminalColor(0, 255, 0), style.getForeground());
+    assertEquals(new TerminalColor(255, 0, 0), style.getBackground());
+    assertTrue(style.hasOption(TextStyle.Option.BOLD));
+  }
+
+  private BackBuffer getBufferFor(int width, int height, String content) throws IOException {
+    StyleState state = new StyleState();
+    BackBuffer backBuffer = new BackBuffer(width, height, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+    Emulator emulator = new JediEmulator(new ArrayTerminalDataStream(content.toCharArray()),
+                                         new DevNullTerminalOutputStream(), terminal);
+    while (emulator.hasNext()) {
+      emulator.next();
+    }
+    return backBuffer;
+  }
+
+  private static class DevNullTerminalOutputStream implements TerminalOutputStream {
+    @Override
+    public void sendBytes(byte[] response) {}
+
+    @Override
+    public void sendString(String string) {}
   }
 }

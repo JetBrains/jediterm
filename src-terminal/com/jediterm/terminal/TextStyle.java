@@ -173,6 +173,7 @@ public class TextStyle implements Cloneable {
 
   public enum Option {
     BOLD,
+    ITALIC,
     BLINK,
     DIM,
     INVERSE,

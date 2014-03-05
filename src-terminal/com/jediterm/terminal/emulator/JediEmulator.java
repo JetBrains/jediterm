@@ -1,7 +1,14 @@
 package com.jediterm.terminal.emulator;
 
 import com.google.common.base.Ascii;
-import com.jediterm.terminal.*;
+import com.jediterm.terminal.CharacterUtils;
+import com.jediterm.terminal.DataStreamIteratingEmulator;
+import com.jediterm.terminal.Terminal;
+import com.jediterm.terminal.TerminalColor;
+import com.jediterm.terminal.TerminalDataStream;
+import com.jediterm.terminal.TerminalMode;
+import com.jediterm.terminal.TerminalOutputStream;
+import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.emulator.mouse.MouseFormat;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
 import org.apache.log4j.Logger;
@@ -767,6 +774,9 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 2:// Dim
           textStyle.setOption(TextStyle.Option.DIM, true);
           break;
+        case 3:// Italic
+          textStyle.setOption(TextStyle.Option.ITALIC, true);
+          break;
         case 4:// Underlined
           textStyle.setOption(TextStyle.Option.UNDERLINED, true);
           break;
@@ -782,6 +792,9 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 22: //Normal (neither bold nor faint)
           textStyle.setOption(TextStyle.Option.BOLD, false);
           textStyle.setOption(TextStyle.Option.DIM, false);
+          break;
+        case 23: // Not italic
+          textStyle.setOption(TextStyle.Option.ITALIC, false);
           break;
         case 24: // Not underlined
           textStyle.setOption(TextStyle.Option.UNDERLINED, false);

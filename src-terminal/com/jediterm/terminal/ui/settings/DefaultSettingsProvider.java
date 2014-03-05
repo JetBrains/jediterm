@@ -132,7 +132,7 @@ public class DefaultSettingsProvider implements SettingsProvider {
   }
 
   @Override
-  public boolean allowSelectionOnMouseReporting() {
+  public boolean forceActionOnMouseReporting() {
     return false;
   }
 }

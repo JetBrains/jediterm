@@ -38,5 +38,5 @@ public interface UserSettingsProvider {
 
   boolean DECCompatibilityMode();
 
-  boolean allowSelectionOnMouseReporting();
+  boolean forceActionOnMouseReporting();
 }

@@ -11,6 +11,10 @@ public class MouseButtonModifierFlags {
   public static final int MOUSE_BUTTON_SHIFT_FLAG = 4;
   public static final int MOUSE_BUTTON_META_FLAG = 8;
   public static final int MOUSE_BUTTON_CTRL_FLAG = 16;
+  
+  // button motion flag
+  //  32 - this is button motion event
+  public static final int MOUSE_BUTTON_MOTION_FLAG = 32;
 
   // scroll flag
   //  64 - this is scroll event

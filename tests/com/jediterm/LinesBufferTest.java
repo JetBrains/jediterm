@@ -1,7 +1,7 @@
 package com.jediterm;
 
 import com.jediterm.terminal.TextStyle;
-import com.jediterm.terminal.display.LinesBuffer;
+import com.jediterm.terminal.model.LinesBuffer;
 import com.jediterm.util.CharBufferUtil;
 import junit.framework.TestCase;
 

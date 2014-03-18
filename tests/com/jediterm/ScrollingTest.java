@@ -1,9 +1,9 @@
 package com.jediterm;
 
 import com.jediterm.terminal.RequestOrigin;
-import com.jediterm.terminal.display.BackBuffer;
-import com.jediterm.terminal.display.JediTerminal;
-import com.jediterm.terminal.display.StyleState;
+import com.jediterm.terminal.model.TerminalTextBuffer;
+import com.jediterm.terminal.model.JediTerminal;
+import com.jediterm.terminal.model.StyleState;
 import com.jediterm.util.BackBufferDisplay;
 import junit.framework.TestCase;
 
@@ -17,9 +17,9 @@ public class ScrollingTest extends TestCase {
   public void testScrollOnNewLine() {
     StyleState state = new StyleState();
 
-    BackBuffer backBuffer = new BackBuffer(5, 3, state);
+    TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(5, 3, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
 
     terminal.writeString("line");
     terminal.newLine();
@@ -32,11 +32,11 @@ public class ScrollingTest extends TestCase {
     terminal.carriageReturn();
     terminal.writeString("line4");
 
-    assertEquals(1, backBuffer.getScrollBuffer().getLineCount());
+    assertEquals(1, terminalTextBuffer.getHistoryBuffer().getLineCount());
 
     assertEquals("line2\n" +
         "line3\n" +
-        "line4\n", backBuffer.getLines());
+        "line4\n", terminalTextBuffer.getScreenLines());
 
     assertEquals(3, terminal.getCursorY());
   }
@@ -45,9 +45,9 @@ public class ScrollingTest extends TestCase {
   public void testScrollOnTyping() {
     StyleState state = new StyleState();
 
-    BackBuffer backBuffer = new BackBuffer(5, 3, state);
+    TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(5, 3, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
 
     terminal.writeString("line");
     terminal.newLine();
@@ -62,11 +62,11 @@ public class ScrollingTest extends TestCase {
     terminal.writeString("4");
     terminal.writeString("4");
 
-    assertEquals(2, backBuffer.getScrollBuffer().getLineCount());
+    assertEquals(2, terminalTextBuffer.getHistoryBuffer().getLineCount());
 
     assertEquals("line3\n" +
         "line4\n" +
-        "44   \n", backBuffer.getLines());
+        "44   \n", terminalTextBuffer.getScreenLines());
 
     assertEquals(3, terminal.getCursorY());
   }
@@ -74,9 +74,9 @@ public class ScrollingTest extends TestCase {
   public void testScrollAndResize() {
     StyleState state = new StyleState();
 
-    BackBuffer backBuffer = new BackBuffer(10, 3, state);
+    TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(10, 3, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(backBuffer), backBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
 
     terminal.writeString("1234567890");
     terminal.newLine();
@@ -93,11 +93,8 @@ public class ScrollingTest extends TestCase {
 
     assertEquals("2345678\n" +
         "3456789\n" +
-        "       \n", backBuffer.getLines());
+        "       \n", terminalTextBuffer.getScreenLines());
 
-    assertEquals("2345678901\n" +
-        "3456789\n", backBuffer.getTextBufferLines());
-
-    assertEquals("1234567890", backBuffer.getScrollBuffer().getLines());
+    assertEquals("1234567890", terminalTextBuffer.getHistoryBuffer().getLines());
   }
 }

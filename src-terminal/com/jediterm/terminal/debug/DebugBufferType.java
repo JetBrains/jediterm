@@ -9,7 +9,7 @@ import com.jediterm.terminal.ui.TerminalSession;
 public enum DebugBufferType {
   Back() {
     public String getValue(TerminalSession session) {
-      return session.getBackBuffer().getLines();
+      return session.getBackBuffer().getScreenLines();
     }
   },
   BackStyle() {
@@ -24,12 +24,7 @@ public enum DebugBufferType {
   },
   Scroll() {
     public String getValue(TerminalSession session) {
-      return session.getBackBuffer().getScrollBuffer().getLines();
-    }
-  },
-  Text() {
-    public String getValue(TerminalSession session) {
-      return session.getBackBuffer().getTextBufferLines();
+      return session.getBackBuffer().getHistoryBuffer().getLines();
     }
   },
 

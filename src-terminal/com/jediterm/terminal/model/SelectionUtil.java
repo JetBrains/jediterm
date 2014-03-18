@@ -1,4 +1,4 @@
-package com.jediterm.terminal.display;
+package com.jediterm.terminal.model;
 
 import com.jediterm.terminal.util.Pair;
 import org.apache.log4j.Logger;
@@ -45,24 +45,24 @@ public class SelectionUtil {
     }
   }
 
-  public static String getSelectionText(TerminalSelection selection, BackBuffer backBuffer) {
-    return getSelectionText(selection.getStart(), selection.getEnd(), backBuffer);
+  public static String getSelectionText(TerminalSelection selection, TerminalTextBuffer terminalTextBuffer) {
+    return getSelectionText(selection.getStart(), selection.getEnd(), terminalTextBuffer);
   }
   
   public static String getSelectionText(final Point selectionStart,
                                         final Point selectionEnd,
-                                        final BackBuffer backBuffer) {
+                                        final TerminalTextBuffer terminalTextBuffer) {
 
     Pair<Point, Point> pair = sortPoints(selectionStart, selectionEnd);
 
     Point top = pair.first;
-    top.y = Math.max(top.y, - backBuffer.getScrollBufferLinesCount());
+    top.y = Math.max(top.y, - terminalTextBuffer.getHistoryLinesCount());
     Point bottom = pair.second;
 
     final StringBuilder selectionText = new StringBuilder();
 
     for (int i = top.y; i <= bottom.y; i++) {
-      TerminalLine line = backBuffer.getLine(i);
+      TerminalLine line = terminalTextBuffer.getLine(i);
       String text = line.getText();
       if (i == top.y) {
         if (i == bottom.y) {
@@ -85,30 +85,30 @@ public class SelectionUtil {
     return selectionText.toString();
   }
 
-  public static Point getPreviousSeparator(Point charCoords, BackBuffer backBuffer) {
-    return getPreviousSeparator(charCoords, backBuffer, SEPARATORS);
+  public static Point getPreviousSeparator(Point charCoords, TerminalTextBuffer terminalTextBuffer) {
+    return getPreviousSeparator(charCoords, terminalTextBuffer, SEPARATORS);
   }
 
-  public static Point getPreviousSeparator(Point charCoords, BackBuffer backBuffer, @NotNull List<Character> separators) {
+  public static Point getPreviousSeparator(Point charCoords, TerminalTextBuffer terminalTextBuffer, @NotNull List<Character> separators) {
     int x = charCoords.x;
     int y = charCoords.y;
-    int terminalWidth = backBuffer.getWidth();
+    int terminalWidth = terminalTextBuffer.getWidth();
 
-    if (separators.contains(backBuffer.getBuffersCharAt(x, y))) {
+    if (separators.contains(terminalTextBuffer.getBuffersCharAt(x, y))) {
       return new Point(x, y);
     }
 
-    String line = backBuffer.getLine(y).getText();
+    String line = terminalTextBuffer.getLine(y).getText();
     while (x < line.length() && !separators.contains(line.charAt(x))) {
       x--;
       if (x < 0) {
-        if (y <= - backBuffer.getScrollBufferLinesCount()) {
+        if (y <= - terminalTextBuffer.getHistoryLinesCount()) {
           return new Point(0, y);
         }
         y--;
         x = terminalWidth - 1;
 
-        line = backBuffer.getLine(y).getText();
+        line = terminalTextBuffer.getLine(y).getText();
       }
     }
 
@@ -121,21 +121,21 @@ public class SelectionUtil {
     return new Point(x, y);
   }
 
-  public static Point getNextSeparator(Point charCoords, BackBuffer backBuffer) {
-    return getNextSeparator(charCoords, backBuffer, SEPARATORS);
+  public static Point getNextSeparator(Point charCoords, TerminalTextBuffer terminalTextBuffer) {
+    return getNextSeparator(charCoords, terminalTextBuffer, SEPARATORS);
   }
 
-  public static Point getNextSeparator(Point charCoords, BackBuffer backBuffer, @NotNull List<Character> separators) {
+  public static Point getNextSeparator(Point charCoords, TerminalTextBuffer terminalTextBuffer, @NotNull List<Character> separators) {
     int x = charCoords.x;
     int y = charCoords.y;
-    int terminalWidth = backBuffer.getWidth();
-    int terminalHeight = backBuffer.getHeight();
+    int terminalWidth = terminalTextBuffer.getWidth();
+    int terminalHeight = terminalTextBuffer.getHeight();
 
-    if (separators.contains(backBuffer.getBuffersCharAt(x, y))) {
+    if (separators.contains(terminalTextBuffer.getBuffersCharAt(x, y))) {
       return new Point(x, y);
     }
 
-    String line = backBuffer.getLine(y).getText();
+    String line = terminalTextBuffer.getLine(y).getText();
     while (x < line.length() && !separators.contains(line.charAt(x))) {
       x++;
       if (x >= terminalWidth) {
@@ -145,7 +145,7 @@ public class SelectionUtil {
         y++;
         x = 0;
         
-        line = backBuffer.getLine(y).getText();
+        line = terminalTextBuffer.getLine(y).getText();
       }
     }
 

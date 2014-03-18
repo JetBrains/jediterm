@@ -2,7 +2,6 @@ package com.jediterm.terminal.ui.settings;
 
 import com.jediterm.terminal.TerminalColor;
 import com.jediterm.terminal.TextStyle;
-import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.emulator.ColorPalette;
 import com.jediterm.terminal.ui.UIUtil;
 

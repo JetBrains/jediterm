@@ -2,9 +2,9 @@ package com.jediterm.util;
 
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TerminalDisplay;
-import com.jediterm.terminal.display.BackBuffer;
-import com.jediterm.terminal.display.JediTerminal;
-import com.jediterm.terminal.display.TerminalSelection;
+import com.jediterm.terminal.model.TerminalTextBuffer;
+import com.jediterm.terminal.model.JediTerminal;
+import com.jediterm.terminal.model.TerminalSelection;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
 
 import java.awt.*;
@@ -13,21 +13,21 @@ import java.awt.*;
  * @author traff
  */
 public class BackBufferDisplay implements TerminalDisplay {
-  private final BackBuffer myBackBuffer;
+  private final TerminalTextBuffer myTerminalTextBuffer;
   private TerminalSelection mySelection = null;
 
-  public BackBufferDisplay(BackBuffer backBuffer) {
-    myBackBuffer = backBuffer;
+  public BackBufferDisplay(TerminalTextBuffer terminalTextBuffer) {
+    myTerminalTextBuffer = terminalTextBuffer;
   }
 
   @Override
   public int getRowCount() {
-    return myBackBuffer.getHeight();
+    return myTerminalTextBuffer.getHeight();
   }
 
   @Override
   public int getColumnCount() {
-    return myBackBuffer.getWidth();
+    return myTerminalTextBuffer.getWidth();
   }
 
   @Override
@@ -40,7 +40,7 @@ public class BackBufferDisplay implements TerminalDisplay {
 
   @Override
   public Dimension requestResize(Dimension pendingResize, RequestOrigin origin, int cursorY, JediTerminal.ResizeHandler resizeHandler) {
-    return myBackBuffer.resize(pendingResize, origin, cursorY, resizeHandler, mySelection);
+    return myTerminalTextBuffer.resize(pendingResize, origin, cursorY, resizeHandler, mySelection);
   }
 
   @Override

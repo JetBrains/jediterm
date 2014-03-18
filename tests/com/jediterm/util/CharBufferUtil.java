@@ -1,6 +1,6 @@
 package com.jediterm.util;
 
-import com.jediterm.terminal.display.CharBuffer;
+import com.jediterm.terminal.model.CharBuffer;
 
 /**
  * @author traff

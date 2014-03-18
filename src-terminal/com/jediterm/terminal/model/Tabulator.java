@@ -1,4 +1,4 @@
-package com.jediterm.terminal.display;
+package com.jediterm.terminal.model;
 
 
 /**

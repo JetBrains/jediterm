@@ -6,7 +6,7 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
 import com.jediterm.terminal.*;
 import com.jediterm.terminal.TextStyle.Option;
-import com.jediterm.terminal.display.*;
+import com.jediterm.terminal.model.*;
 import com.jediterm.terminal.emulator.ColorPalette;
 import com.jediterm.terminal.emulator.charset.CharacterSets;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
@@ -70,7 +70,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private TerminalPanelListener myTerminalPanelListener;
 
   private SettingsProvider mySettingsProvider;
-  final private BackBuffer myBackBuffer;
+  final private TerminalTextBuffer myTerminalTextBuffer;
 
   final private StyleState myStyleState;
 
@@ -91,12 +91,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private String myInputMethodUncommitedChars;
 
 
-  public TerminalPanel(@NotNull SettingsProvider settingsProvider, @NotNull BackBuffer backBuffer, @NotNull StyleState styleState) {
+  public TerminalPanel(@NotNull SettingsProvider settingsProvider, @NotNull TerminalTextBuffer terminalTextBuffer, @NotNull StyleState styleState) {
     mySettingsProvider = settingsProvider;
-    myBackBuffer = backBuffer;
+    myTerminalTextBuffer = terminalTextBuffer;
     myStyleState = styleState;
-    myTermSize.width = backBuffer.getWidth();
-    myTermSize.height = backBuffer.getHeight();
+    myTermSize.width = terminalTextBuffer.getWidth();
+    myTermSize.height = terminalTextBuffer.getHeight();
 
     updateScrolling();
 
@@ -202,8 +202,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
           } else if (count == 2) {
             // select word
             final Point charCoords = panelToCharCoords(e.getPoint());
-            Point start = SelectionUtil.getPreviousSeparator(charCoords, myBackBuffer);
-            Point stop = SelectionUtil.getNextSeparator(charCoords, myBackBuffer);
+            Point start = SelectionUtil.getPreviousSeparator(charCoords, myTerminalTextBuffer);
+            Point stop = SelectionUtil.getNextSeparator(charCoords, myTerminalTextBuffer);
             mySelection = new TerminalSelection(start);
             mySelection.updateEnd(stop);
 
@@ -215,12 +215,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             final Point charCoords = panelToCharCoords(e.getPoint());
             int startLine = charCoords.y;
             while (startLine > -getScrollBuffer().getLineCount()
-              && myBackBuffer.getLine(startLine - 1).isWrapped()) {
+              && myTerminalTextBuffer.getLine(startLine - 1).isWrapped()) {
               startLine--;
             }
             int endLine = charCoords.y;
-            while (endLine < myBackBuffer.getHeight()
-              && myBackBuffer.getLine(endLine).isWrapped()) {
+            while (endLine < myTerminalTextBuffer.getHeight()
+              && myTerminalTextBuffer.getLine(endLine).isWrapped()) {
               endLine++;
             }
             mySelection = new TerminalSelection(new Point(0, startLine));
@@ -342,7 +342,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
 
     final String selectionText = SelectionUtil
-      .getSelectionText(selectionStart, selectionEnd, myBackBuffer);
+      .getSelectionText(selectionStart, selectionEnd, myTerminalTextBuffer);
 
     if (selectionText.length() != 0) {
       try {
@@ -473,9 +473,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
                                  int cursorY,
                                  JediTerminal.ResizeHandler resizeHandler) {
     if (!newSize.equals(myTermSize)) {
-      myBackBuffer.lock();
+      myTerminalTextBuffer.lock();
       try {
-        myBackBuffer.resize(newSize, origin, cursorY, resizeHandler, mySelection);
+        myTerminalTextBuffer.resize(newSize, origin, cursorY, resizeHandler, mySelection);
         myTermSize = (Dimension) newSize.clone();
         // resize images..
         setupImages();
@@ -493,7 +493,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
           }
         });
       } finally {
-        myBackBuffer.unlock();
+        myTerminalTextBuffer.unlock();
       }
     }
 
@@ -994,7 +994,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       // New area at the top to be filled in - can only be from scroll buffer
       //
 
-      myBackBuffer.getScrollBuffer().processLines(myClientScrollOrigin, -dy, this);
+      myTerminalTextBuffer.getHistoryBuffer().processLines(myClientScrollOrigin, -dy, this);
     } else {
       // Scrolling down; Copied up
       // New area at the bottom to be filled - can be from both
@@ -1009,11 +1009,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       int portionInBackBuffer = dy - portionInScroll;
 
       if (portionInScroll > 0) {
-        myBackBuffer.getScrollBuffer().processLines(oldEnd, portionInScroll, this);
+        myTerminalTextBuffer.getHistoryBuffer().processLines(oldEnd, portionInScroll, this);
       }
 
       if (portionInBackBuffer > 0) {
-        myBackBuffer.processBufferRows(oldEnd + portionInScroll, portionInBackBuffer, this);
+        myTerminalTextBuffer.processBufferRows(oldEnd + portionInScroll, portionInBackBuffer, this);
       }
     }
   }
@@ -1067,9 +1067,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
    */
   private boolean tryRedrawDamagedPartFromBuffer() {
     final int newOrigin = newClientScrollOrigin;
-    if (!myBackBuffer.tryLock()) {
+    if (!myTerminalTextBuffer.tryLock()) {
       if (myFramesSkipped >= 5) {
-        myBackBuffer.lock();
+        myTerminalTextBuffer.lock();
       } else {
         myFramesSkipped++;
         return false;
@@ -1087,19 +1087,19 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         clientScrollOriginChanged(oldOrigin);
       }
 
-      boolean hasDamage = myBackBuffer.hasDamage();
+      boolean hasDamage = myTerminalTextBuffer.hasDamage();
       if (hasDamage) {
         myNoDamage = 0;
 
-        myBackBuffer.processDamagedCells(this);
-        myBackBuffer.resetDamage();
+        myTerminalTextBuffer.processDamagedCells(this);
+        myTerminalTextBuffer.resetDamage();
       } else {
         myNoDamage++;
       }
 
       return serverScroll || clientScroll || hasDamage;
     } finally {
-      myBackBuffer.unlock();
+      myTerminalTextBuffer.unlock();
     }
   }
 
@@ -1126,7 +1126,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private void updateScrolling() {
     if (myScrollingEnabled) {
       myBoundedRangeModel
-        .setRangeProperties(0, myTermSize.height, -myBackBuffer.getScrollBuffer().getLineCount(), myTermSize.height, false);
+        .setRangeProperties(0, myTermSize.height, -myTerminalTextBuffer.getHistoryBuffer().getLineCount(), myTermSize.height, false);
     } else {
       myBoundedRangeModel.setRangeProperties(0, myTermSize.height, 0, myTermSize.height, false);
     }
@@ -1196,8 +1196,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     return myBoundedRangeModel;
   }
 
-  public BackBuffer getBackBuffer() {
-    return myBackBuffer;
+  public TerminalTextBuffer getBackBuffer() {
+    return myTerminalTextBuffer;
   }
 
   public TerminalSelection getSelection() {
@@ -1205,15 +1205,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   public LinesBuffer getScrollBuffer() {
-    return myBackBuffer.getScrollBuffer();
-  }
-
-  public void lock() {
-    myBackBuffer.lock();
-  }
-
-  public void unlock() {
-    myBackBuffer.unlock();
+    return myTerminalTextBuffer.getHistoryBuffer();
   }
 
   @Override

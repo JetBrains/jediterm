@@ -1,4 +1,4 @@
-package com.jediterm.terminal.display;
+package com.jediterm.terminal.model;
 
 import com.jediterm.terminal.*;
 import com.jediterm.terminal.emulator.charset.CharacterSet;
@@ -20,7 +20,7 @@ import javax.swing.SwingUtilities;
 
 /**
  * Terminal that reflects obtained commands and text at {@link TerminalDisplay}(handles change of cursor position, screen size etc)
- * and  {@link BackBuffer}(stores printed text)
+ * and  {@link TerminalTextBuffer}(stores printed text)
  *
  * @author traff
  */
@@ -38,7 +38,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
   private int myTerminalHeight = 24;
 
   private final TerminalDisplay myDisplay;
-  private final BackBuffer myBackBuffer;
+  private final TerminalTextBuffer myTerminalTextBuffer;
 
   private final StyleState myStyleState;
 
@@ -59,9 +59,9 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
   private MouseMode myMouseMode = MouseMode.MOUSE_REPORTING_NONE;
   private Point myLastMotionReport = null;
 
-  public JediTerminal(final TerminalDisplay display, final BackBuffer buf, final StyleState initialStyleState) {
+  public JediTerminal(final TerminalDisplay display, final TerminalTextBuffer buf, final StyleState initialStyleState) {
     myDisplay = display;
-    myBackBuffer = buf;
+    myTerminalTextBuffer = buf;
     myStyleState = initialStyleState;
 
     myTerminalWidth = display.getColumnCount();
@@ -99,9 +99,9 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
     if (myCursorX >= myTerminalWidth) {
       myCursorX = 0;
       // clear the end of the line in the text buffer 
-      myBackBuffer.getLine(myCursorY - 1).deleteCharacters(myTerminalWidth);
+      myTerminalTextBuffer.getLine(myCursorY - 1).deleteCharacters(myTerminalWidth);
       if (isAutoWrap()) {
-        myBackBuffer.getLine(myCursorY - 1).setWrapped(true);
+        myTerminalTextBuffer.getLine(myCursorY - 1).setWrapped(true);
         myCursorY += 1;
       }
     }
@@ -119,20 +119,20 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
 
   private void writeCharacters(final char[] chosenBuffer, final int start,
                                final int length) {
-    myBackBuffer.lock();
+    myTerminalTextBuffer.lock();
     try {
       wrapLines();
       scrollY();
 
       if (length != 0) {
-        myBackBuffer.writeBytes(myCursorX, myCursorY, chosenBuffer, start, length);
+        myTerminalTextBuffer.writeBytes(myCursorX, myCursorY, chosenBuffer, start, length);
       }
 
       myCursorX += CharacterUtils.getTextLength(chosenBuffer, start, length);
       finishText();
     }
     finally {
-      myBackBuffer.unlock();
+      myTerminalTextBuffer.unlock();
     }
   }
 
@@ -155,17 +155,17 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
   }
 
   private void doWriteString(String string) {
-    myBackBuffer.lock();
+    myTerminalTextBuffer.lock();
     try {
       wrapLines();
       scrollY();
 
-      myBackBuffer.writeString(myCursorX, myCursorY, string);
+      myTerminalTextBuffer.writeString(myCursorX, myCursorY, string);
       myCursorX += string.length();
       finishText();
     }
     finally {
-      myBackBuffer.unlock();
+      myTerminalTextBuffer.unlock();
     }
   }
 
@@ -183,7 +183,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
 
 
   public void scrollY() {
-    myBackBuffer.lock();
+    myTerminalTextBuffer.lock();
     try {
       if (myCursorY > myScrollRegionBottom) {
         final int dy = myScrollRegionBottom - myCursorY;
@@ -196,7 +196,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
       }
     }
     finally {
-      myBackBuffer.unlock();
+      myTerminalTextBuffer.unlock();
     }
   }
 
@@ -286,7 +286,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
 
   @Override
   public void eraseInDisplay(final int arg) {
-    myBackBuffer.lock();
+    myTerminalTextBuffer.lock();
     try {
       int beginY;
       int endY;
@@ -295,7 +295,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
         case 0:
           // Initial line
           if (myCursorX < myTerminalWidth) {
-            myBackBuffer.eraseCharacters(myCursorX, myTerminalWidth, myCursorY - 1);
+            myTerminalTextBuffer.eraseCharacters(myCursorX, myTerminalWidth, myCursorY - 1);
           }
           // Rest
           beginY = myCursorY;
@@ -304,7 +304,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
           break;
         case 1:
           // initial line
-          myBackBuffer.eraseCharacters(0, myCursorX + 1, myCursorY - 1);
+          myTerminalTextBuffer.eraseCharacters(0, myCursorX + 1, myCursorY - 1);
 
           beginY = 0;
           endY = myCursorY - 1;
@@ -325,17 +325,17 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
       }
     }
     finally {
-      myBackBuffer.unlock();
+      myTerminalTextBuffer.unlock();
     }
   }
 
   public void clearLines(final int beginY, final int endY) {
-    myBackBuffer.lock();
+    myTerminalTextBuffer.lock();
     try {
-      myBackBuffer.clearLines(beginY, endY);
+      myTerminalTextBuffer.clearLines(beginY, endY);
     }
     finally {
-      myBackBuffer.unlock();
+      myTerminalTextBuffer.unlock();
     }
   }
 
@@ -351,7 +351,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
 
   @Override
   public void useAlternateBuffer(boolean enabled) {
-    myBackBuffer.useAlternateBuffer(enabled);
+    myTerminalTextBuffer.useAlternateBuffer(enabled);
     myDisplay.setScrollingEnabled(!enabled);
   }
 
@@ -386,22 +386,22 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
   }
 
   public void eraseInLine(int arg) {
-    myBackBuffer.lock();
+    myTerminalTextBuffer.lock();
     try {
       switch (arg) {
         case 0:
           if (myCursorX < myTerminalWidth) {
-            myBackBuffer.eraseCharacters(myCursorX, myTerminalWidth, myCursorY - 1);
+            myTerminalTextBuffer.eraseCharacters(myCursorX, myTerminalWidth, myCursorY - 1);
           }
           // delete to the end of line : line is no more wrapped
-          myBackBuffer.getLine(myCursorY - 1).setWrapped(false);
+          myTerminalTextBuffer.getLine(myCursorY - 1).setWrapped(false);
           break;
         case 1:
           final int extent = Math.min(myCursorX + 1, myTerminalWidth);
-          myBackBuffer.eraseCharacters(0, extent, myCursorY - 1);
+          myTerminalTextBuffer.eraseCharacters(0, extent, myCursorY - 1);
           break;
         case 2:
-          myBackBuffer.eraseCharacters(0, myTerminalWidth, myCursorY - 1);
+          myTerminalTextBuffer.eraseCharacters(0, myTerminalWidth, myCursorY - 1);
           break;
         default:
           LOG.error("Unsupported erase in line mode:" + arg);
@@ -409,31 +409,31 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
       }
     }
     finally {
-      myBackBuffer.unlock();
+      myTerminalTextBuffer.unlock();
     }
   }
 
   @Override
   public void deleteCharacters(int count) {
-    myBackBuffer.lock();
+    myTerminalTextBuffer.lock();
     try {
       final int extent = Math.min(count, myTerminalWidth - myCursorX);
-      myBackBuffer.deleteCharacters(myCursorX, myCursorY - 1, extent);
+      myTerminalTextBuffer.deleteCharacters(myCursorX, myCursorY - 1, extent);
     }
     finally {
-      myBackBuffer.unlock();
+      myTerminalTextBuffer.unlock();
     }
   }
 
   @Override
   public void insertBlankCharacters(int count) {
-    myBackBuffer.lock();
+    myTerminalTextBuffer.lock();
     try {
       final int extent = Math.min(count, myTerminalWidth - myCursorX);
-      myBackBuffer.insertBlankCharacters(myCursorX, myCursorY - 1, extent);
+      myTerminalTextBuffer.insertBlankCharacters(myCursorX, myCursorY - 1, extent);
     }
     finally {
-      myBackBuffer.unlock();
+      myTerminalTextBuffer.unlock();
     }
   }
 
@@ -441,13 +441,13 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
   public void eraseCharacters(int count) {
     //Clear the next n characters on the cursor's line, including the cursor's
     //position.
-    myBackBuffer.lock();
+    myTerminalTextBuffer.lock();
     try {
       final int extent = Math.min(count, myTerminalWidth - myCursorX);
-      myBackBuffer.eraseCharacters(myCursorX, myCursorX + extent, myCursorY - 1);
+      myTerminalTextBuffer.eraseCharacters(myCursorX, myCursorX + extent, myCursorY - 1);
     }
     finally {
-      myBackBuffer.unlock();
+      myTerminalTextBuffer.unlock();
     }
   }
 
@@ -468,23 +468,23 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
 
   @Override
   public void insertLines(int count) {
-    myBackBuffer.lock();
+    myTerminalTextBuffer.lock();
     try {
-      myBackBuffer.insertLines(myCursorY - 1, count, myScrollRegionBottom);
+      myTerminalTextBuffer.insertLines(myCursorY - 1, count, myScrollRegionBottom);
     }
     finally {
-      myBackBuffer.unlock();
+      myTerminalTextBuffer.unlock();
     }
   }
 
   @Override
   public void deleteLines(int count) {
-    myBackBuffer.lock();
+    myTerminalTextBuffer.lock();
     try {
-      myBackBuffer.deleteLines(myCursorY - 1, count, myScrollRegionBottom);
+      myTerminalTextBuffer.deleteLines(myCursorY - 1, count, myScrollRegionBottom);
     }
     finally {
-      myBackBuffer.unlock();
+      myTerminalTextBuffer.unlock();
     }
   }
 
@@ -495,27 +495,27 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
 
   @Override
   public void cursorUp(final int countY) {
-    myBackBuffer.lock();
+    myTerminalTextBuffer.lock();
     try {
       myCursorY -= countY;
       myCursorY = Math.max(myCursorY, scrollingRegionTop());
       myDisplay.setCursor(myCursorX, myCursorY);
     }
     finally {
-      myBackBuffer.unlock();
+      myTerminalTextBuffer.unlock();
     }
   }
 
   @Override
   public void cursorDown(final int dY) {
-    myBackBuffer.lock();
+    myTerminalTextBuffer.lock();
     try {
       myCursorY += dY;
       myCursorY = Math.min(myCursorY, scrollingRegionBottom());
       myDisplay.setCursor(myCursorX, myCursorY);
     }
     finally {
-      myBackBuffer.unlock();
+      myTerminalTextBuffer.unlock();
     }
   }
 
@@ -524,7 +524,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
     //Moves the cursor down one line in the
     //same column. If the cursor is at the
     //bottom margin, the page scrolls up
-    myBackBuffer.lock();
+    myTerminalTextBuffer.lock();
     try {
       if (myCursorY == myScrollRegionBottom) {
         scrollArea(myScrollRegionTop, scrollingRegionSize(), -1);
@@ -535,18 +535,18 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
       }
     }
     finally {
-      myBackBuffer.unlock();
+      myTerminalTextBuffer.unlock();
     }
   }
 
   private void scrollArea(int scrollRegionTop, int scrollRegionSize, int dy) {
     myDisplay.scrollArea(scrollRegionTop, scrollRegionSize, dy);
-    myBackBuffer.scrollArea(scrollRegionTop, dy, scrollRegionTop + scrollRegionSize - 1);
+    myTerminalTextBuffer.scrollArea(scrollRegionTop, dy, scrollRegionTop + scrollRegionSize - 1);
   }
 
   @Override
   public void nextLine() {
-    myBackBuffer.lock();
+    myTerminalTextBuffer.lock();
     try {
       myCursorX = 0;
       if (myCursorY == myScrollRegionBottom) {
@@ -558,7 +558,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
       myDisplay.setCursor(myCursorX, myCursorY);
     }
     finally {
-      myBackBuffer.unlock();
+      myTerminalTextBuffer.unlock();
     }
   }
 
@@ -571,7 +571,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
     //Moves the cursor up one line in the same
     //column. If the cursor is at the top margin,
     //the page scrolls down.
-    myBackBuffer.lock();
+    myTerminalTextBuffer.lock();
     try {
       if (myCursorY == myScrollRegionTop) {
         scrollArea(myScrollRegionTop, scrollingRegionSize(), 1);
@@ -582,7 +582,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
       }
     }
     finally {
-      myBackBuffer.unlock();
+      myTerminalTextBuffer.unlock();
     }
   }
 
@@ -658,12 +658,12 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
 
   @Override
   public void scrollDown(int count) {
-    myBackBuffer.lock();
+    myTerminalTextBuffer.lock();
     try {
       scrollArea(myScrollRegionTop, scrollingRegionSize(), count);
     }
     finally {
-      myBackBuffer.unlock();
+      myTerminalTextBuffer.unlock();
     }
   }
 
@@ -743,7 +743,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
 
     myStyleState.reset();
 
-    myBackBuffer.clearAll();
+    myTerminalTextBuffer.clearAll();
 
     myDisplay.setScrollingEnabled(true);
 
@@ -988,18 +988,18 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
 
   @Override
   public void fillScreen(final char c) {
-    myBackBuffer.lock();
+    myTerminalTextBuffer.lock();
     try {
       final char[] chars = new char[myTerminalWidth];
       Arrays.fill(chars, c);
       final String str = new String(chars);
 
       for (int row = 1; row <= myTerminalHeight; row++) {
-        myBackBuffer.writeString(0, row, str);
+        myTerminalTextBuffer.writeString(0, row, str);
       }
     }
     finally {
-      myBackBuffer.unlock();
+      myTerminalTextBuffer.unlock();
     }
   }
 

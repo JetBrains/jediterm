@@ -1,6 +1,6 @@
 package com.jediterm;
 
-import com.jediterm.terminal.display.BackBuffer;
+import com.jediterm.terminal.model.TerminalTextBuffer;
 import com.jediterm.terminal.emulator.ColorPalette;
 import testData.TestPathsManager;
 
@@ -26,11 +26,11 @@ public class EmulatorTest extends EmulatorTestAbstract {
   }
 
   public void testMidnightCommanderOnXTerm() throws IOException {
-    BackBuffer backBuffer = doTest();
+    TerminalTextBuffer terminalTextBuffer = doTest();
 
-    assertColor(backBuffer.getStyleAt(8, 2), ColorPalette.getIndexedColor(3), ColorPalette.getIndexedColor(4));
-    assertColor(backBuffer.getStyleAt(23, 4), ColorPalette.getIndexedColor(7), ColorPalette.getIndexedColor(4));
-    assertColor(backBuffer.getStyleAt(2, 0), ColorPalette.getIndexedColor(0), ColorPalette.getIndexedColor(6));
+    assertColor(terminalTextBuffer.getStyleAt(8, 2), ColorPalette.getIndexedColor(3), ColorPalette.getIndexedColor(4));
+    assertColor(terminalTextBuffer.getStyleAt(23, 4), ColorPalette.getIndexedColor(7), ColorPalette.getIndexedColor(4));
+    assertColor(terminalTextBuffer.getStyleAt(2, 0), ColorPalette.getIndexedColor(0), ColorPalette.getIndexedColor(6));
   }
 
   @Override

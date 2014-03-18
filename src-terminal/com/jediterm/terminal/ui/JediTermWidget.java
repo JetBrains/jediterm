@@ -6,9 +6,9 @@ import com.jediterm.terminal.TerminalDisplay;
 import com.jediterm.terminal.TerminalStarter;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.debug.DebugBufferType;
-import com.jediterm.terminal.display.BackBuffer;
-import com.jediterm.terminal.display.JediTerminal;
-import com.jediterm.terminal.display.StyleState;
+import com.jediterm.terminal.model.TerminalTextBuffer;
+import com.jediterm.terminal.model.JediTerminal;
+import com.jediterm.terminal.model.StyleState;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
 
 import org.apache.log4j.Logger;
@@ -50,10 +50,10 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     mySettingsProvider = settingsProvider;
 
     StyleState styleState = createDefaultStyle();
-    BackBuffer backBuffer = new BackBuffer(columns, lines, styleState);
+    TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(columns, lines, styleState);
 
-    myTerminalPanel = createTerminalPanel(mySettingsProvider, styleState, backBuffer);
-    myTerminal = new JediTerminal(myTerminalPanel, backBuffer, styleState);
+    myTerminalPanel = createTerminalPanel(mySettingsProvider, styleState, terminalTextBuffer);
+    myTerminal = new JediTerminal(myTerminalPanel, terminalTextBuffer, styleState);
 
     myTerminalPanel.addTerminalMouseListener(myTerminal);
     myTerminalPanel.setNextProvider(this);
@@ -83,8 +83,8 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     return styleState;
   }
 
-  protected TerminalPanel createTerminalPanel(SettingsProvider settingsProvider, StyleState styleState, BackBuffer backBuffer) {
-    return new TerminalPanel(settingsProvider, backBuffer, styleState);
+  protected TerminalPanel createTerminalPanel(SettingsProvider settingsProvider, StyleState styleState, TerminalTextBuffer terminalTextBuffer) {
+    return new TerminalPanel(settingsProvider, terminalTextBuffer, styleState);
   }
 
   protected PreConnectHandler createPreConnectHandler(JediTerminal terminal) {
@@ -158,7 +158,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   }
 
   @Override
-  public BackBuffer getBackBuffer() {
+  public TerminalTextBuffer getBackBuffer() {
     return myTerminalPanel.getBackBuffer();
   }
 

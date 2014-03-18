@@ -1,7 +1,8 @@
-package com.jediterm.terminal.display;
+package com.jediterm.terminal.model;
 
 import com.jediterm.terminal.CharacterUtils;
 import com.jediterm.terminal.TextStyle;
+import com.jediterm.terminal.util.Pair;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -10,16 +11,19 @@ import java.util.*;
  * @author traff
  */
 public class TerminalLine {
-  
+
   private TextEntries myTextEntries = new TextEntries();
-  private boolean wrapped = false;
+  private boolean myWrapped = false;
+
+  public TerminalLine() {
+  }
 
   public TerminalLine(@NotNull TextEntry entry) {
     myTextEntries.add(entry);
   }
 
   public static TerminalLine createEmpty() {
-    return new TerminalLine(TextEntry.EMPTY);
+    return new TerminalLine();
   }
 
   public String getText() {
@@ -33,11 +37,11 @@ public class TerminalLine {
   }
 
   public boolean isWrapped() {
-    return wrapped;
+    return myWrapped;
   }
 
   public void setWrapped(boolean wrapped) {
-    this.wrapped = wrapped;
+    myWrapped = wrapped;
   }
 
   public Iterator<TextEntry> entriesIterator() {
@@ -60,34 +64,38 @@ public class TerminalLine {
       if (x - len > 0) {
         myTextEntries.add(new TextEntry(TextStyle.EMPTY, new CharBuffer(CharacterUtils.EMPTY_CHAR, x - len)));
       }
-      
+
       myTextEntries.add(new TextEntry(style, characters));
-    }
-    else {
+    } else {
       len = Math.max(len, x + characters.length());
       myTextEntries = merge(x, characters, style, myTextEntries, len);
     }
   }
 
   private static TextEntries merge(int x, @NotNull CharBuffer str, @NotNull TextStyle style, @NotNull TextEntries entries, int lineLength) {
-    char[] buf = new char[lineLength];
-    TextStyle[] styles = new TextStyle[lineLength];
+    Pair<char[], TextStyle[]> pair = toBuf(entries, lineLength);
+
+    for (int i = 0; i < str.length(); i++) {
+      pair.first[i + x] = str.charAt(i);
+      pair.second[i + x] = style;
+    }
+
+    return collectFromBuffer(pair.first, pair.second);
+  }
+
+  private static Pair<char[], TextStyle[]> toBuf(TextEntries entries, int lineLength) {
+    Pair<char[], TextStyle[]> pair = Pair.create(new char[lineLength], new TextStyle[lineLength]);
+
 
     int p = 0;
     for (TextEntry entry : entries) {
       for (int i = 0; i < entry.getLength(); i++) {
-        buf[p + i] = entry.getText().charAt(i);
-        styles[p + i] = entry.getStyle();
+        pair.first[p + i] = entry.getText().charAt(i);
+        pair.second[p + i] = entry.getStyle();
       }
       p += entry.getLength();
     }
-
-    for (int i = 0; i < str.length(); i++) {
-      buf[i + x] = str.charAt(i);
-      styles[i + x] = style;
-    }
-
-    return collectFromBuffer(buf, styles);
+    return pair;
   }
 
   private static TextEntries collectFromBuffer(@NotNull char[] buf, @NotNull TextStyle[] styles) {
@@ -118,7 +126,7 @@ public class TerminalLine {
   public void deleteCharacters(int x, int count) {
     int p = 0;
     TextEntries newEntries = new TextEntries();
-    
+
     for (TextEntry entry : myTextEntries) {
       if (count == 0) {
         newEntries.add(entry);
@@ -131,7 +139,7 @@ public class TerminalLine {
         continue;
       }
       int dx = x - p; //>=0
-      if (dx>0) {
+      if (dx > 0) {
         //part of entry before x
         newEntries.add(new TextEntry(entry.getStyle(), entry.getText().subBuffer(0, dx)));
         p = x;
@@ -140,9 +148,8 @@ public class TerminalLine {
         //part that left after deleting count 
         newEntries.add(new TextEntry(entry.getStyle(), entry.getText().subBuffer(dx + count, len - (dx + count))));
         count = 0;
-      }
-      else {
-        count -= (len-dx);
+      } else {
+        count -= (len - dx);
         p = x;
       }
     }
@@ -161,7 +168,7 @@ public class TerminalLine {
     for (TextEntry entry : myTextEntries) {
       for (int i = 0; i < entry.getLength() && p < len; i++) {
         if (p == x) {
-          for(int j = 0; j < count; j++) {
+          for (int j = 0; j < count; j++) {
             buf[p] = CharacterUtils.EMPTY_CHAR;
             styles[p] = TextStyle.EMPTY;
             p++;
@@ -187,9 +194,12 @@ public class TerminalLine {
     }
   }
 
-  static class TextEntry {
-    public static final TextEntry EMPTY = new TextEntry(TextStyle.EMPTY, CharBuffer.EMPTY);
+  public TextStyle getStyleAt(int x) {
+    Pair<char[], TextStyle[]> pair = toBuf(myTextEntries, myTextEntries.length());
+    return pair.second[x];
+  }
 
+  static class TextEntry {
     private final TextStyle myStyle;
     private final CharBuffer myText;
 
@@ -212,15 +222,15 @@ public class TerminalLine {
   }
 
   private static class TextEntries implements Iterable<TextEntry> {
-    private Deque<TextEntry> myTextEntries = new ArrayDeque<TextEntry>();
+    private ArrayList<TextEntry> myTextEntries = new ArrayList<TextEntry>();
 
     private int myLength = 0;
-    
+
     public void add(TextEntry entry) {
       myTextEntries.add(entry);
-      myLength+=entry.getLength();
+      myLength += entry.getLength();
     }
-    
+
     private Collection<TextEntry> entries() {
       return Collections.unmodifiableCollection(myTextEntries);
     }

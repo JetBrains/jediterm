@@ -1,6 +1,6 @@
 package com.jediterm.terminal;
 
-import com.jediterm.terminal.display.CharBuffer;
+import com.jediterm.terminal.model.CharBuffer;
 import org.jetbrains.annotations.NotNull;
 
 /**

@@ -1,6 +1,6 @@
 package com.jediterm.terminal;
 
-import com.jediterm.terminal.display.JediTerminal;
+import com.jediterm.terminal.model.JediTerminal;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
 
 import java.awt.*;

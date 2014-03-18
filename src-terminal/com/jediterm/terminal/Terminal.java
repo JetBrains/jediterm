@@ -1,6 +1,6 @@
 package com.jediterm.terminal;
 
-import com.jediterm.terminal.display.StyleState;
+import com.jediterm.terminal.model.StyleState;
 import com.jediterm.terminal.emulator.mouse.MouseFormat;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
 import org.jetbrains.annotations.NotNull;

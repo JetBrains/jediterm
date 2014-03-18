@@ -1,7 +1,7 @@
 /**
  * 
  */
-package com.jediterm.terminal.display;
+package com.jediterm.terminal.model;
 
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.emulator.charset.CharacterSet;

@@ -77,6 +77,8 @@ public class JSchTtyConnector implements TtyConnector {
       myInputStream = myChannelShell.getInputStream();
       myOutputStream = myChannelShell.getOutputStream();
       myInputStreamReader = new InputStreamReader(myInputStream, "utf-8");
+      String lang = System.getenv().get("LANG");
+      myChannelShell.setEnv("LANG", lang != null ? lang : "en_US.UTF-8");
       myChannelShell.setPtyType("xterm");
       myChannelShell.connect();
       resizeImmediately();

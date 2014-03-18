@@ -96,6 +96,7 @@ public class DefaultSettingsProvider implements SettingsProvider {
     return emulateX11CopyPaste();
   }
 
+  @Override
   public boolean emulateX11CopyPaste() {
     return true;
   }
@@ -119,13 +120,15 @@ public class DefaultSettingsProvider implements SettingsProvider {
   public int caretBlinkingMs() {
     return 505;
   }
-  @Override
-  public boolean drawCharsInCells() {
-    return true;
-  }
 
   @Override
   public boolean scrollToBottomOnTyping() {
     return true;
   }
+
+  @Override
+  public boolean DECCompatibilityMode() {
+    return true;
+  }
+
 }

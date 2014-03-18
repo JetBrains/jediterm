@@ -44,7 +44,7 @@
   <target name="build-jediterm-ssh" depends="clean">
     <property name="jediterm-ssh-classes" value="${classes}/jediterm-ssh"/>
     <mkdir dir="${jediterm-ssh-classes}"/>
-    <javac destdir="${jediterm-ssh-classes}" source="1.5" target="1.5">
+    <javac destdir="${jediterm-ssh-classes}" source="1.5" target="1.5" debug="true">
       <src path="${src-terminal}"/>
       <src path="${src-ssh}"/>
       <classpath refid="common-jars"/>
@@ -66,7 +66,7 @@
   <target name="build-jediterm-pty" depends="clean">
     <property name="jediterm-pty-classes" value="${classes}/jediterm-pty"/>
     <mkdir dir="${jediterm-pty-classes}"/>
-    <javac destdir="${jediterm-pty-classes}" source="1.5" target="1.5">
+    <javac destdir="${jediterm-pty-classes}" source="1.5" target="1.5" debug="true">
       <src path="${src-terminal}"/>
       <src path="${src-pty}"/>
       <classpath refid="common-jars"/>

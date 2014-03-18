@@ -1,5 +1,26 @@
 ChangeLog of JediTerm
 
+30/10/2013 1.0
+==============================
+- Copy-paste and selection improved
+- Added user and system settings
+- Panel redraw fixed
+- Line-wrapping improved
+- Cursor redraw fixed
+- Fixed a hang on resize 
+- Fixed Line Feed/New Line mode
+- Fixed backspace key handling
+- Fixed loosing color style problem
+- Key-events handling reworked
+- Advanced char drawing(works for non-monospaced fonts)
+- Fixed chars clipping problem
+- Scroll to bottom on typing
+- Fixed redraw on scrolling
+- Support of input method
+- Dec special characters printing improved
+- and many other fixes
+
+
 ==============================
 16/08/2013 0.08
 -Switched to pty4j to run local terminal

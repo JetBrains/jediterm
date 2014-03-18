@@ -5,6 +5,7 @@ import com.jediterm.terminal.TerminalDisplay;
 import com.jediterm.terminal.display.BackBuffer;
 import com.jediterm.terminal.display.JediTerminal;
 import com.jediterm.terminal.display.TerminalSelection;
+import com.jediterm.terminal.emulator.mouse.MouseMode;
 
 import java.awt.*;
 
@@ -31,12 +32,10 @@ public class BackBufferDisplay implements TerminalDisplay {
 
   @Override
   public void setCursor(int x, int y) {
-
   }
 
   @Override
   public void beep() {
-
   }
 
   @Override
@@ -58,12 +57,10 @@ public class BackBufferDisplay implements TerminalDisplay {
 
   @Override
   public void setBlinkingCursor(boolean enabled) {
-
   }
 
   @Override
   public void setWindowTitle(String name) {
-    
   }
 
   public TerminalSelection getSelection() {
@@ -72,5 +69,9 @@ public class BackBufferDisplay implements TerminalDisplay {
 
   public void setSelection(TerminalSelection mySelection) {
     this.mySelection = mySelection;
+  }
+
+  @Override
+  public void terminalMouseModeSet(MouseMode mode) {
   }
 }

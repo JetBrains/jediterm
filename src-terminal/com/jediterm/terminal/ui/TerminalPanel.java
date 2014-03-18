@@ -8,11 +8,14 @@ import com.jediterm.terminal.*;
 import com.jediterm.terminal.TextStyle.Option;
 import com.jediterm.terminal.display.*;
 import com.jediterm.terminal.emulator.ColorPalette;
+import com.jediterm.terminal.emulator.charset.CharacterSets;
+import com.jediterm.terminal.emulator.mouse.MouseMode;
 import com.jediterm.terminal.emulator.mouse.TerminalMouseListener;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
 import com.jediterm.terminal.util.Pair;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
@@ -20,10 +23,14 @@ import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.datatransfer.*;
 import java.awt.event.*;
+import java.awt.font.TextHitInfo;
+import java.awt.im.InputMethodRequests;
 import java.awt.image.BufferedImage;
 import java.awt.image.ImageObserver;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.text.AttributedCharacterIterator;
+import java.text.CharacterIterator;
 import java.util.List;
 
 public class TerminalPanel extends JComponent implements TerminalDisplay, ClipboardOwner, StyledTextConsumer, TerminalActionProvider {
@@ -45,7 +52,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   /*font related*/
   private Font myNormalFont;
+  private Font myItalicFont;
   private Font myBoldFont;
+  private Font myBoldItalicFont;
   private int myDescent = 0;
   protected Dimension myCharSize = new Dimension();
   private boolean myMonospaced;
@@ -53,6 +62,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private TerminalStarter myTerminalStarter = null;
 
+  private MouseMode myMouseMode = MouseMode.MOUSE_REPORTING_NONE;
   private Point mySelectionStartPoint = null;
   private TerminalSelection mySelection = null;
   private Clipboard myClipboard;
@@ -78,6 +88,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private String myWindowTitle = "Terminal";
 
   private TerminalActionProvider myNextActionProvider;
+  private String myInputMethodUncommitedChars;
 
 
   public TerminalPanel(@NotNull SettingsProvider settingsProvider, @NotNull BackBuffer backBuffer, @NotNull StyleState styleState) {
@@ -88,11 +99,16 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     myTermSize.height = backBuffer.getHeight();
 
     updateScrolling();
+
+    enableEvents(AWTEvent.KEY_EVENT_MASK | AWTEvent.INPUT_METHOD_EVENT_MASK);
+    enableInputMethods(true);
   }
 
   public void init() {
     myNormalFont = createFont();
     myBoldFont = myNormalFont.deriveFont(Font.BOLD);
+    myItalicFont = myNormalFont.deriveFont(Font.ITALIC);
+    myBoldItalicFont = myBoldFont.deriveFont(Font.ITALIC);
 
     establishFontMetrics();
 
@@ -109,6 +125,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     addMouseMotionListener(new MouseMotionAdapter() {
       @Override
       public void mouseDragged(final MouseEvent e) {
+        if (isMouseReporting()) {
+          return;
+        }
+
         final Point charCoords = panelToCharCoords(e.getPoint());
 
         if (mySelection == null) {
@@ -167,7 +187,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
           if (count == 1) {
             // do nothing
           }
-          else if (count == 2) {
+          else if (count == 2 && !isMouseReporting()) {
             // select word
             final Point charCoords = panelToCharCoords(e.getPoint());
             Point start = SelectionUtil.getPreviousSeparator(charCoords, myBackBuffer);
@@ -179,7 +199,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
               handleCopy(false);
             }
           }
-          else if (count == 3) {
+          else if (count == 3 && !isMouseReporting()) {
             // select line
             final Point charCoords = panelToCharCoords(e.getPoint());
             int startLine = charCoords.y;
@@ -200,7 +220,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             }
           }
         }
-        else if (e.getButton() == MouseEvent.BUTTON2 && mySettingsProvider.pasteOnMiddleMouseClick()) {
+        else if (e.getButton() == MouseEvent.BUTTON2 && mySettingsProvider.pasteOnMiddleMouseClick() && !isMouseReporting()) {
           handlePaste();
         }
         else if (e.getButton() == MouseEvent.BUTTON3) {
@@ -251,7 +271,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
           terminalPanel.redraw();
         }
         catch (Exception ex) {
-          LOG.error(ex);
+          LOG.error("Error while terminal panel redraw", ex);
         }
       }
       else { // terminalPanel was garbage collected
@@ -262,6 +282,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
   }
 
+  @Override
+  public void terminalMouseModeSet(MouseMode mode) {
+    myMouseMode = mode;
+  }
+
+  private boolean isMouseReporting() {
+    return myMouseMode != MouseMode.MOUSE_REPORTING_NONE;
+  }
 
   private void scrollToBottom() {
     myBoundedRangeModel.setValue(myTermSize.height);
@@ -317,6 +345,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   protected void pasteSelection() {
     final String selection = getClipboardString();
+
+    if (selection == null) {
+      return;
+    }
 
     try {
       myTerminalStarter.sendString(selection);
@@ -546,6 +578,30 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       else {
         myCursor.drawCursor(gfx, myImageForCursor, inSelection(myCursor.getCoordX(), myCursor.getCoordY()) ? myImageForSelection : myImage);
       }
+      drawInputMethodUncommitedChars(gfx);
+    }
+  }
+
+  private void drawInputMethodUncommitedChars(Graphics2D gfx) {
+    if (myInputMethodUncommitedChars != null && myInputMethodUncommitedChars.length()>0) {
+      int x = myCursor.getCoordX() * myCharSize.width;
+      int y = (myCursor.getCoordY()) * myCharSize.height - 2;
+
+      int len = (myInputMethodUncommitedChars.length()) * myCharSize.width;
+      
+      gfx.setColor(getBackground());
+      gfx.fillRect(x, (myCursor.getCoordY()-1)*myCharSize.height, len, myCharSize.height);
+      
+      gfx.setColor(getForeground());
+      gfx.setFont(myNormalFont);
+      
+      gfx.drawString(myInputMethodUncommitedChars, x, y);
+      Stroke saved = gfx.getStroke();
+      BasicStroke dotted = new BasicStroke(1, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 0, new float[]{0, 2, 0, 2}, 0);
+      gfx.setStroke(dotted);
+      
+      gfx.drawLine(x, y, x + len, y);
+      gfx.setStroke(saved);
     }
   }
 
@@ -625,6 +681,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     private boolean myBlinking = true;
 
     private boolean calculateIsCursorShown(long currentTime) {
+      if (!isBlinking()) {
+        return true;
+      }
       if (myCursorHasChanged) {
         return true;
       }
@@ -637,7 +696,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
 
     private boolean cursorShouldChangeBlinkState(long currentTime) {
-      return myBlinking && (currentTime - myLastCursorChange > mySettingsProvider.caretBlinkingMs());
+      return currentTime - myLastCursorChange > mySettingsProvider.caretBlinkingMs();
     }
 
     public void drawCursor(Graphics2D g, BufferedImage imageForCursor, BufferedImage normalImage) {
@@ -710,7 +769,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
 
     public boolean isBlinking() {
-      return myBlinking;
+      return myBlinking && (mySettingsProvider.caretBlinkingMs() > 0);
     }
   }
 
@@ -810,51 +869,81 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private void drawCharacters(int x, int y, TextStyle style, CharBuffer buf, Graphics2D gfx) {
     gfx.setColor(getPalette().getColor(myStyleState.getBackground(style.getBackgroundForRun())));
-    gfx.setClip(x * myCharSize.width,
-                (y - myClientScrollOrigin) * myCharSize.height,
-                buf.getLength() * myCharSize.width,
-                myCharSize.height);
+    int textLength = CharacterUtils.getTextLength(buf.getBuf(), buf.getStart(), buf.getLength());
+
     gfx.fillRect(x * myCharSize.width,
                  (y - myClientScrollOrigin) * myCharSize.height,
-                 buf.getLength() * myCharSize.width,
+                 textLength * myCharSize.width,
                  myCharSize.height);
 
-    gfx.setFont(style.hasOption(TextStyle.Option.BOLD) ? myBoldFont : myNormalFont);
+    drawChars(x, y, buf, style, gfx);
+
     gfx.setColor(getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun())));
 
     int baseLine = (y + 1 - myClientScrollOrigin) * myCharSize.height - myDescent;
 
-
-    if (mySettingsProvider.drawCharsInCells()) {
-      drawCharsInCells(x, baseLine, buf, gfx);
-    }
-    else {
-      gfx.drawChars(buf.getBuf(), buf.getStart(), buf.getLength(), x * myCharSize.width, baseLine);
-    }
-
-
     if (style.hasOption(TextStyle.Option.UNDERLINED)) {
-      gfx.drawLine(x * myCharSize.width, baseLine + 1, (x + buf.getLength()) * myCharSize.width, baseLine + 1);
+      gfx.drawLine(x * myCharSize.width, baseLine + 1, (x + textLength) * myCharSize.width, baseLine + 1);
     }
-    gfx.setClip(null);
   }
 
   /**
    * Draw every char in separate terminal cell to guaranty equal width for different lines.
    * Nevertheless to improve kerning we draw word characters as one block for monospaced fonts.
    */
-  private void drawCharsInCells(int x, int y, CharBuffer buf, Graphics2D gfx) {
-    int i = -1;
-    int delta = 0;
-    while (delta + i < buf.getLength()) {
-      i++;
-      while (myMonospaced && (delta + i < buf.getLength()) && isWordCharacter(buf.charAt(delta + i))) {
-        i++;
-      }
-      gfx.drawChars(buf.getBuf(), buf.getStart() + delta, i, (x + delta) * myCharSize.width, y);
-      delta += i;
-      i = 0;
+  private void drawChars(int x, int y, CharBuffer buf, TextStyle style, Graphics2D gfx) {
+    int newBlockLen = 1;
+    int offset = 0;
+    int drawCharsOffset = 0;
+    
+    // workaround to fix Swing bad rendering of bold special chars on Linux
+    // TODO required for italic?
+    CharBuffer renderingBuffer;
+    if(mySettingsProvider.DECCompatibilityMode() && style.hasOption(TextStyle.Option.BOLD)) {
+      renderingBuffer = CharacterUtils.heavyDecCompatibleBuffer(buf);
+    } else {
+      renderingBuffer = buf;
     }
+    
+    while (offset + newBlockLen <= buf.getLength()) {
+      Font font = getFontToDisplay(buf.charAt(offset + newBlockLen - 1), style);
+      while (myMonospaced && (offset + newBlockLen < buf.getLength()) && isWordCharacter(buf.charAt(offset + newBlockLen - 1))
+             && (font == getFontToDisplay(buf.charAt(offset + newBlockLen - 1), style))) {
+        newBlockLen++;
+      }
+      gfx.setFont(font);
+
+      int descent = gfx.getFontMetrics(font).getDescent();
+      int baseLine = (y + 1 - myClientScrollOrigin) * myCharSize.height - descent;
+      int xCoord = (x + drawCharsOffset) * myCharSize.width;
+      int textLength = CharacterUtils.getTextLength(buf.getBuf(), buf.getStart() + offset, newBlockLen);
+
+      gfx.setClip(xCoord,
+                  (y - myClientScrollOrigin) * myCharSize.height,
+                  textLength * myCharSize.width,
+                  myCharSize.height);
+      gfx.setColor(getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun())));
+
+      gfx.drawChars(renderingBuffer.getBuf(), buf.getStart() + offset, newBlockLen, xCoord, baseLine);
+
+      drawCharsOffset += textLength;
+      offset += newBlockLen;
+
+      newBlockLen = 1;
+    }
+    gfx.setClip(null);
+  }
+
+  protected Font getFontToDisplay(char c, TextStyle style) {
+    boolean bold = style.hasOption(TextStyle.Option.BOLD);
+    boolean italic = style.hasOption(TextStyle.Option.ITALIC);
+    // workaround to fix Swing bad rendering of bold special chars on Linux
+    // TODO required for italic?
+    if (bold && mySettingsProvider.DECCompatibilityMode() && CharacterSets.isDecSpecialChar(c)) {
+      return myNormalFont;
+    }
+    return bold ? (italic ? myBoldItalicFont : myBoldFont)
+                : (italic ? myItalicFont : myNormalFont);
   }
 
   private ColorPalette getPalette() {
@@ -1209,6 +1298,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       final byte[] code = myTerminalStarter.getCode(keycode);
       if (code != null) {
         myTerminalStarter.sendBytes(code);
+        if (mySettingsProvider.scrollToBottomOnTyping() && isCodeThatScrolls(keycode)) {
+          scrollToBottom();
+        }
       }
       else if ((keychar & 0xff00) == 0) {
         final byte[] obuffer = new byte[1];
@@ -1222,6 +1314,15 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     catch (final Exception ex) {
       LOG.error("Error sending key to emulator", ex);
     }
+  }
+
+  private static boolean isCodeThatScrolls(int keycode) {
+    return keycode == KeyEvent.VK_UP
+      || keycode == KeyEvent.VK_DOWN
+      || keycode == KeyEvent.VK_LEFT
+      || keycode == KeyEvent.VK_RIGHT
+      || keycode == KeyEvent.VK_BACK_SPACE
+      || keycode == KeyEvent.VK_DELETE;
   }
 
   private void processTerminalKeyTyped(KeyEvent e) {
@@ -1277,5 +1378,92 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       return true;
     }
     return false;
+  }
+
+  /**
+   * InputMethod implementation
+   * For details read http://docs.oracle.com/javase/7/docs/technotes/guides/imf/api-tutorial.html
+   */
+  @Override
+  protected void processInputMethodEvent(InputMethodEvent e) {
+    int commitCount = e.getCommittedCharacterCount();
+
+    if (commitCount > 0) {
+      myInputMethodUncommitedChars = null;
+      AttributedCharacterIterator text = e.getText();
+      if (text != null) {
+        //noinspection ForLoopThatDoesntUseLoopVariable
+        for (char c = text.first(); commitCount > 0; c = text.next(), commitCount--) {
+          if (c >= 0x20 && c != 0x7F) { // Hack just like in javax.swing.text.DefaultEditorKit.DefaultKeyTypedAction
+            int id = (c & 0xff00) == 0 ? KeyEvent.KEY_PRESSED : KeyEvent.KEY_TYPED;
+            handleKeyEvent(new KeyEvent(this, id, e.getWhen(), 0, 0, c));
+          }
+        }
+      }
+    }
+    else {
+      myInputMethodUncommitedChars = uncommitedChars(e.getText());
+    }
+  }
+
+  private static String uncommitedChars(AttributedCharacterIterator text) {
+    StringBuilder sb = new StringBuilder();
+
+    for (char c = text.first(); c != CharacterIterator.DONE; c = text.next()) {
+      if (c >= 0x20 && c != 0x7F) { // Hack just like in javax.swing.text.DefaultEditorKit.DefaultKeyTypedAction
+        sb.append(c);
+      }
+    }
+
+    return sb.toString();
+  }
+
+  @Override
+  public InputMethodRequests getInputMethodRequests() {
+    return new MyInputMethodRequests();
+  }
+
+  private class MyInputMethodRequests implements InputMethodRequests {
+    @Override
+    public Rectangle getTextLocation(TextHitInfo offset) {
+      Rectangle r = new Rectangle(myCursor.getCoordX() * myCharSize.width, (myCursor.getCoordY() + 1) * myCharSize.height,
+                                  0, 0);
+      Point p = TerminalPanel.this.getLocationOnScreen();
+      r.translate(p.x, p.y);
+      return r;
+    }
+
+    @Nullable
+    @Override
+    public TextHitInfo getLocationOffset(int x, int y) {
+      return null;
+    }
+
+    @Override
+    public int getInsertPositionOffset() {
+      return 0;
+    }
+
+    @Override
+    public AttributedCharacterIterator getCommittedText(int beginIndex, int endIndex, AttributedCharacterIterator.Attribute[] attributes) {
+      return null;
+    }
+
+    @Override
+    public int getCommittedTextLength() {
+      return 0;
+    }
+
+    @Nullable
+    @Override
+    public AttributedCharacterIterator cancelLatestCommittedText(AttributedCharacterIterator.Attribute[] attributes) {
+      return null;
+    }
+
+    @Nullable
+    @Override
+    public AttributedCharacterIterator getSelectedText(AttributedCharacterIterator.Attribute[] attributes) {
+      return null;
+    }
   }
 }

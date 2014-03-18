@@ -1,7 +1,7 @@
 JediTerm
 ========
 
-[![Build Status](https://travis-ci.org/traff/jediterm.png?branch=master)](https://travis-ci.org/traff/jediterm)
+[![Build Status](https://travis-ci.org/JetBrains/jediterm.png?branch=master)](https://travis-ci.org/JetBrains/jediterm)
 
 The main purpose of the project is to provide a pure Java terminal widget ready
 to embed into IDE. From this comes the name
@@ -43,6 +43,12 @@ Links
  * Control sequences visualization: http://www.gnu.org/software/teseq/
 
 
+Usages
+------
+
+JediTerm is used in IntelliJ based IDEs (IntelliJ IDEA, PyCharm, RubyMine, Web/PhpStorm): https://github.com/JetBrains/intellij-community/tree/master/plugins/terminal
+
+There you can find implementation of correct terminal component painting for Apple Retina displays (see [JBTerminalPanel.java](https://github.com/JetBrains/intellij-community/blob/master/plugins/terminal/src/org/jetbrains/plugins/terminal/JBTerminalPanel.java) )
 
 Origin
 ------

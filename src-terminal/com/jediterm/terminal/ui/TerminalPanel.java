@@ -465,6 +465,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private void establishFontMetrics() {
     final BufferedImage img = createBufferedImage(1, 1);
     final Graphics2D graphics = img.createGraphics();
+    setupAntialiasing(graphics);
     graphics.setFont(myNormalFont);
 
     final float lineSpace = mySettingsProvider.getLineSpace();

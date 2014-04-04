@@ -552,7 +552,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         int row = y - startRow;
         drawCharacters(x, row, style, characters, gfx);
         if (mySelection != null) {
-          Pair<Integer, Integer> interval = mySelection.intersect(x, row, characters.getLength());
+          Pair<Integer, Integer> interval = mySelection.intersect(x, row + myClientScrollOrigin, characters.getLength());
           if (interval != null) {
             TextStyle selectionStyle = style.clone();
             if (mySettingsProvider.useInverseSelectionColor()) {

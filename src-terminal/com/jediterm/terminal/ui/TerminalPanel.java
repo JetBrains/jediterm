@@ -746,8 +746,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       myShouldDrawCursor = shouldDrawCursor;
     }
 
-    public boolean isShouldDrawCursor() {
-      return myShouldDrawCursor;
+    public boolean shouldDrawCursor() {
+      return myShouldDrawCursor && isFocusOwner();
     }
 
     private boolean noRecentResize(long time) {
@@ -772,6 +772,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
 
     public void drawCursor(char c, Graphics2D gfx, TextStyle style, TextStyle inversedStyle) {
+      if (!shouldDrawCursor()) {
+        return;
+      }
       final int y = getCoordY();
       final int x = getCoordX();
 

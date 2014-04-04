@@ -795,10 +795,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     g.drawImage(image, dx1, dy1, dx2, dy2, sx1, sy1, sx2, sy2, null);
   }
 
-  private void copyImage(Graphics2D g, BufferedImage image, int x, int y, int width, int height) {
-    drawImage(g, image, x, y, x + width, y + height, x, y, x + width, y + height);
-  }
-
   private TextStyle getInversedStyle(TextStyle style) {
     TextStyle selectionStyle;
     selectionStyle = style.clone();

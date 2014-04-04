@@ -121,7 +121,7 @@ public class TerminalTextBuffer {
   public void deleteCharacters(final int x, final int y, final int count) {
     if (y > myHeight - 1 || y < 0) {
       LOG.error("attempt to delete in line " + y + "\n" +
-        "args were x:" + x + " count:" + count);
+              "args were x:" + x + " count:" + count);
     } else if (count < 0) {
       LOG.error("Attempt to delete negative chars number: count:" + count);
     } else if (count == 0) { //nothing to do
@@ -131,7 +131,7 @@ public class TerminalTextBuffer {
       int from = to + count;
       int remain = myWidth - x - count;
       LOG.debug("About to delete " + count + " chars on line " + y + ", starting from " + x +
-        " (from : " + from + " to : " + to + " remain : " + remain + ")");
+              " (from : " + from + " to : " + to + " remain : " + remain + ")");
 
       myScreenBuffer.deleteCharacters(x, y, count);
 
@@ -142,7 +142,7 @@ public class TerminalTextBuffer {
   public void insertBlankCharacters(final int x, final int y, final int count) {
     if (y > myHeight - 1 || y < 0) {
       LOG.error("attempt to insert blank chars in line " + y + "\n" +
-        "args were x:" + x + " count:" + count);
+              "args were x:" + x + " count:" + count);
     } else if (count < 0) {
       LOG.error("Attempt to insert negative blank chars number: count:" + count);
     } else if (count > 0) { //nothing to do
@@ -159,8 +159,8 @@ public class TerminalTextBuffer {
     if (adjY >= myHeight || adjY < 0) {
       if (LOG.isDebugEnabled()) {
         StringBuilder sb = new StringBuilder("Attempt to draw line ")
-          .append(adjY).append(" at (").append(x).append(",")
-          .append(y).append(")");
+                .append(adjY).append(" at (").append(x).append(",")
+                .append(y).append(")");
 
         CharacterUtils.appendBuf(sb, bytes, start, len);
         LOG.debug(sb);
@@ -225,7 +225,8 @@ public class TerminalTextBuffer {
   }
 
   /**
-   * Returns terminal lines. Negative indexes are for history buffer. Non-negative for screen buffer. 
+   * Returns terminal lines. Negative indexes are for history buffer. Non-negative for screen buffer.
+   *
    * @param index index of line
    * @return history lines for index<0, screen line for index>=0
    */
@@ -251,11 +252,11 @@ public class TerminalTextBuffer {
       final StringBuilder sb = new StringBuilder();
       for (int row = 0; row < myHeight; row++) {
         StringBuilder line = new StringBuilder(myScreenBuffer.getLine(row).getText());
-        
-        for (int i = line.length(); i<myWidth; i++) {
+
+        for (int i = line.length(); i < myWidth; i++) {
           line.append(' ');
         }
-        if (line.length()>myWidth) {
+        if (line.length() > myWidth) {
           line.setLength(myWidth);
         }
 
@@ -335,20 +336,15 @@ public class TerminalTextBuffer {
   }
 
   private void processStyledText(StyledTextConsumer consumer, int startRow, int endRow) {
-    myLock.lock();
-    try {
-      for (int row = startRow; row < endRow; row++) {
-        TerminalLine line = myScreenBuffer.getLine(row);
-        Iterator<TerminalLine.TextEntry> iterator = line.entriesIterator();
-        int x = 0;
-        while (iterator.hasNext()) {
-          TerminalLine.TextEntry te = iterator.next();
-          consumer.consume(x, row, te.getStyle(), te.getText(), startRow);
-          x += te.getLength();
-        }
+    for (int row = startRow; row < endRow; row++) {
+      TerminalLine line = myScreenBuffer.getLine(row);
+      Iterator<TerminalLine.TextEntry> iterator = line.entriesIterator();
+      int x = 0;
+      while (iterator.hasNext()) {
+        TerminalLine.TextEntry te = iterator.next();
+        consumer.consume(x, row, te.getStyle(), te.getText(), startRow);
+        x += te.getLength();
       }
-    } finally {
-      myLock.unlock();
     }
   }
 
@@ -446,5 +442,13 @@ public class TerminalTextBuffer {
 
   public void clearAll() {
     myScreenBuffer.clearAll();
+  }
+
+  public void processHistoryAndScreenLines(int scrollOrigin, StyledTextConsumer consumer) {
+    int linesFromHistory = Math.min(-scrollOrigin, myHeight);
+    myHistoryBuffer.processLines(myHistoryBuffer.getLineCount() + scrollOrigin, linesFromHistory, consumer, myHistoryBuffer.getLineCount() + scrollOrigin);
+    if (myHeight - linesFromHistory > 0) {
+      myScreenBuffer.processLines(0, myHeight - linesFromHistory, consumer, -linesFromHistory+1);
+    }
   }
 }

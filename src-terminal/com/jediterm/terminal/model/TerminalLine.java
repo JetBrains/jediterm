@@ -4,6 +4,7 @@ import com.jediterm.terminal.CharacterUtils;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.util.Pair;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
@@ -194,9 +195,10 @@ public class TerminalLine {
     }
   }
 
+  @Nullable
   public TextStyle getStyleAt(int x) {
     Pair<char[], TextStyle[]> pair = toBuf(myTextEntries, myTextEntries.length());
-    return pair.second[x];
+    return x<pair.second.length ? pair.second[x]: null;
   }
 
   static class TextEntry {

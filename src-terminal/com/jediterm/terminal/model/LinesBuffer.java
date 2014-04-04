@@ -179,15 +179,15 @@ public class LinesBuffer {
       public void process(int x, int y, @NotNull TerminalLine.TextEntry entry) {
         consumer.consume(x, y, entry.getStyle(), entry.getText(), startRow);
       }
-    }, startRow);
+    });
   }
 
   public synchronized void processLines(final int yStart, final int yCount, @NotNull final StyledTextConsumer consumer) {
     processLines(yStart, yCount, consumer, -getLineCount());
   }
 
-  public synchronized void iterateLines(final int firstLine, final int count, @NotNull TextEntryProcessor processor, int startRow) {
-    int y = startRow-1;
+  public synchronized void iterateLines(final int firstLine, final int count, @NotNull TextEntryProcessor processor) {
+    int y = 0;
 
     int x;
 

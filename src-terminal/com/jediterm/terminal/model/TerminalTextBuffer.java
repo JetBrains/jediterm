@@ -447,8 +447,8 @@ public class TerminalTextBuffer {
   public void processHistoryAndScreenLines(int scrollOrigin, StyledTextConsumer consumer) {
     int linesFromHistory = Math.min(-scrollOrigin, myHeight);
     myHistoryBuffer.processLines(myHistoryBuffer.getLineCount() + scrollOrigin, linesFromHistory, consumer, myHistoryBuffer.getLineCount() + scrollOrigin);
-    if (myHeight - linesFromHistory > 0) {
-      myScreenBuffer.processLines(0, myHeight - linesFromHistory, consumer, -linesFromHistory+1);
+    if (myHeight - linesFromHistory + 1 > 0) {
+      myScreenBuffer.processLines(0, myHeight - linesFromHistory + 1, consumer, -linesFromHistory+1);
     }
   }
 }

@@ -1,5 +1,10 @@
 ChangeLog of JediTerm
 
+05/04/2014 2.0
+==============================
+- Rendering rewritten from scratch: it is much simpler now,
+less code and consumes less memory
+
 30/10/2013 1.0
 ==============================
 - Copy-paste and selection improved

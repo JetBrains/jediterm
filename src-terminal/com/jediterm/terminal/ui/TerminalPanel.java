@@ -719,10 +719,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       if (!isBlinking()) {
         return true;
       }
-      if (myCursorHasChanged) {
-        return true;
-      }
-      return myCursorIsShown;
+      return myCursorHasChanged || myCursorIsShown;
     }
 
     private boolean cursorShouldChangeBlinkState(long currentTime) {

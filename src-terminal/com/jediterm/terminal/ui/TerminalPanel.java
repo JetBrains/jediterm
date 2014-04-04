@@ -772,6 +772,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       if (cursorShouldChangeBlinkState(currentTime)) {
         myCursorIsShown = !myCursorIsShown;
         myLastCursorChange = currentTime;
+        myCursorHasChanged = false;
       }
     }
 
@@ -785,8 +786,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         TextStyle styleToDraw = isCursorShown ? getInversedStyle(style) : style;
 
         drawCharacters(x, y, styleToDraw, new CharBuffer(c, 1), gfx);
-
-        myCursorHasChanged = false;
       }
     }
   }

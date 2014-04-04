@@ -33,7 +33,7 @@ import java.text.AttributedCharacterIterator;
 import java.text.CharacterIterator;
 import java.util.List;
 
-public class TerminalPanel extends JComponent implements TerminalDisplay, ClipboardOwner, StyledTextConsumer, TerminalActionProvider {
+public class TerminalPanel extends JComponent implements TerminalDisplay, ClipboardOwner, TerminalActionProvider {
   private static final Logger LOG = Logger.getLogger(TerminalPanel.class);
   private static final long serialVersionUID = -1048763516632093014L;
   private static final double FPS = 50;
@@ -70,7 +70,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   final private TerminalCursor myCursor = new TerminalCursor();
   private final BoundedRangeModel myBoundedRangeModel = new DefaultBoundedRangeModel(0, 80, 0, 80);
   protected int myClientScrollOrigin;
-  protected int newClientScrollOrigin;
   protected KeyListener myKeyListener;
   private long myLastCursorChange;
   private boolean myCursorIsShown;
@@ -788,52 +787,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
   }
 
-  public void drawSelection(BufferedImage imageForSelection, Graphics2D g) {
-    /* which is the top one */
-    if (mySelection == null) {
-      return;
-    }
-
-    Pair<Point, Point> points = mySelection.pointsForRun(myTermSize.width);
-    Point start = points.first;
-    Point end = points.second;
-
-    if (start.y == end.y) { /* same line */
-      if (start.x == end.x) {
-        return;
-      }
-
-      copyImage(g, imageForSelection, start.x * myCharSize.width, (start.y - myClientScrollOrigin) * myCharSize.height,
-              (end.x - start.x) * myCharSize.width, myCharSize.height);
-    } else {
-      /* to end of first line */
-      copyImage(g, imageForSelection, start.x * myCharSize.width, (start.y - myClientScrollOrigin) * myCharSize.height,
-              (myTermSize.width - start.x) * myCharSize.width, myCharSize.height);
-
-      if (end.y - start.y > 1) {
-        /* intermediate lines */
-        int startInScreen = start.y + 1 - myClientScrollOrigin;
-
-        int heightInScreen = end.y - start.y - 1;
-        if (startInScreen < 0) {
-          heightInScreen += startInScreen;
-          startInScreen = 0;
-        }
-
-        heightInScreen = Math.min(myTermSize.height - startInScreen, heightInScreen);
-
-        copyImage(g, imageForSelection, 0, startInScreen * myCharSize.height,
-                myTermSize.width * myCharSize.width, heightInScreen
-                        * myCharSize.height
-        );
-      }
-
-      /* from beginning of last line */
-      copyImage(g, imageForSelection, 0, (end.y - myClientScrollOrigin) * myCharSize.height, end.x
-              * myCharSize.width, myCharSize.height);
-    }
-  }
-
   private void drawImage(Graphics2D g, BufferedImage image, int x1, int y1, int x2, int y2) {
     drawImage(g, image, x1, y1, x2, y2, x1, y1, x2, y2);
   }
@@ -844,28 +797,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private void copyImage(Graphics2D g, BufferedImage image, int x, int y, int width, int height) {
     drawImage(g, image, x, y, x + width, y + height, x, y, x + width, y + height);
-  }
-
-  @Override
-  public void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer buf, int startRow) {
-//    if (myGfx != null) {
-    //
-//    }
-//    if (myGfxForSelection != null) {
-//      TextStyle selectionStyle = style.clone();
-//      if (mySettingsProvider.useInverseSelectionColor()) {
-//        selectionStyle = getInversedStyle(style);
-//      } else {
-//        TextStyle mySelectionStyle = mySettingsProvider.getSelectionColor();
-//        selectionStyle.setBackground(mySelectionStyle.getBackground());
-//        selectionStyle.setForeground(mySelectionStyle.getForeground());
-//      }
-//      drawCharacters(x, y, selectionStyle, buf, myGfxForSelection);
-//    }
-//    if (myGfxForCursor != null) {
-//      TextStyle cursorStyle = getInversedStyle(style);
-//      drawCharacters(x, y, cursorStyle, buf, myGfxForCursor);
-//    }
   }
 
   private TextStyle getInversedStyle(TextStyle style) {
@@ -1000,7 +931,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       });
     }
     mySelection = null;
-    pendingScrolls.add(scrollRegionTop, scrollRegionSize, dy);
   }
 
   private void updateScrolling() {
@@ -1011,55 +941,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       myBoundedRangeModel.setRangeProperties(0, myTermSize.height, 0, myTermSize.height, false);
     }
   }
-
-  private class PendingScrolls {
-    int[] ys = new int[10];
-    int[] hs = new int[10];
-    int[] dys = new int[10];
-    int scrollCount = -1;
-
-    void ensureArrays(int index) {
-      int curLen = ys.length;
-      if (index >= curLen) {
-        ys = Util.copyOf(ys, curLen * 2);
-        hs = Util.copyOf(hs, curLen * 2);
-        dys = Util.copyOf(dys, curLen * 2);
-      }
-    }
-
-    void add(int y, int h, int dy) {
-      if (dy == 0) return;
-      if (scrollCount >= 0 &&
-              y == ys[scrollCount] &&
-              h == hs[scrollCount]) {
-        dys[scrollCount] += dy;
-      } else {
-        scrollCount++;
-        ensureArrays(scrollCount);
-        ys[scrollCount] = y;
-        hs[scrollCount] = h;
-        dys[scrollCount] = dy;
-      }
-    }
-
-    boolean enact(Graphics2D gfx, BufferedImage image, int width, int charHeight) {
-      if (scrollCount < 0) return false;
-      for (int i = 0; i <= scrollCount; i++) {
-        if (dys[i] == 0 || Math.abs(dys[i]) >= hs[i]) { // nothing to do
-          continue;
-        }
-        if (dys[i] > 0) {
-          copyArea(gfx, image, 0, (ys[i] - 1) * charHeight, width, (hs[i] - dys[i]) * charHeight, 0, dys[i] * charHeight);
-        } else {
-          copyArea(gfx, image, 0, (ys[i] - dys[i] - 1) * charHeight, width, (hs[i] + dys[i]) * charHeight, 0, dys[i] * charHeight);
-        }
-      }
-      scrollCount = -1;
-      return true;
-    }
-  }
-
-  final PendingScrolls pendingScrolls = new PendingScrolls();
 
   public void setCursor(final int x, final int y) {
     myCursor.setX(x);

@@ -549,14 +549,32 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     myTerminalTextBuffer.processHistoryAndScreenLines(myClientScrollOrigin, new StyledTextConsumer() {
       @Override
       public void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
-        drawCharacters(x, y - startRow, style, characters, gfx);
+        int row = y - startRow;
+        drawCharacters(x, row, style, characters, gfx);
+        if (mySelection != null) {
+          Pair<Integer, Integer> interval = mySelection.intersect(x, row, characters.getLength());
+          if (interval != null) {
+            TextStyle selectionStyle = style.clone();
+            if (mySettingsProvider.useInverseSelectionColor()) {
+              selectionStyle = getInversedStyle(style);
+            } else {
+              TextStyle mySelectionStyle = mySettingsProvider.getSelectionColor();
+              selectionStyle.setBackground(mySelectionStyle.getBackground());
+              selectionStyle.setForeground(mySelectionStyle.getForeground());
+            }
+
+            drawCharacters(interval.first, row, selectionStyle, characters.subBuffer(interval.first - x, interval.second), gfx);
+          }
+        }
       }
     });
 
-    if (myClientScrollOrigin + getRowCount() > myCursor.getCoordY()) {
+    int cursorY = myCursor.getCoordY();
+    if (myClientScrollOrigin + getRowCount() > cursorY) {
       myCursor.changeStateIfNeeded();
-      TextStyle s = myTerminalTextBuffer.getStyleAt(myCursor.getCoordX(), myCursor.getCoordY());
-      char c = myTerminalTextBuffer.getBuffersCharAt(myCursor.getCoordX(), myCursor.getCoordY());
+      int cursorX = myCursor.getCoordX();
+      TextStyle s = myTerminalTextBuffer.getStyleAt(cursorX, cursorY);
+      char c = myTerminalTextBuffer.getBuffersCharAt(cursorX, cursorY);
       myCursor.drawCursor(s != null ? s : myStyleState.getCurrent(), c, gfx);
     }
 //    if (myImage != null) {

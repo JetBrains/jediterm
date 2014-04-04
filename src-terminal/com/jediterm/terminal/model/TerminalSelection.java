@@ -1,6 +1,7 @@
 package com.jediterm.terminal.model;
 
 import com.jediterm.terminal.util.Pair;
+import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 
@@ -41,11 +42,39 @@ public class TerminalSelection {
 
   public boolean contains(Point toTest) {
     return SelectionUtil.sortPoints(myStart, toTest).first == myStart
-        && SelectionUtil.sortPoints(toTest, myEnd).second == myEnd;
+            && SelectionUtil.sortPoints(toTest, myEnd).second == myEnd;
   }
 
   public void shiftY(int dy) {
     myStart.y += dy;
     myEnd.y += dy;
+  }
+
+  public boolean intersects(int x, int row, int length) {
+    return null != intersect(x, row, length);
+  }
+
+  @Nullable
+  public Pair<Integer, Integer> intersect(int x, int row, int length) {
+    int newX = x;
+    int newLength;
+
+    Pair<Point, Point> p = SelectionUtil.sortPoints(new Point(myStart), new Point(myEnd));
+
+    if (p.first.y == row) {
+      newX = Math.max(x, p.first.x);
+    }
+
+    if (p.second.y == row) {
+      newLength = Math.min(p.second.x, x + length - 1) - newX + 1;
+    } else {
+      newLength = length - newX + x;
+    }
+
+
+    if (newLength<=0 || row < p.first.y || row > p.second.y) {
+      return null;
+    } else
+      return Pair.create(newX, newLength);
   }
 }

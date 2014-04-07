@@ -17,11 +17,6 @@ public enum DebugBufferType {
       return session.getBackBuffer().getStyleLines();
     }
   },
-  Damage() {
-    public String getValue(TerminalSession session) {
-      return session.getBackBuffer().getDamageLines();
-    }
-  },
   Scroll() {
     public String getValue(TerminalSession session) {
       return session.getBackBuffer().getHistoryBuffer().getLines();

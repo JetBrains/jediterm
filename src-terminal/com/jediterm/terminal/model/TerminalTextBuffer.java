@@ -28,8 +28,6 @@ import java.util.concurrent.locks.ReentrantLock;
 public class TerminalTextBuffer {
   private static final Logger LOG = Logger.getLogger(TerminalTextBuffer.class);
 
-  private BitSet myDamage;
-
   @NotNull
   private final StyleState myStyleState;
 
@@ -55,8 +53,6 @@ public class TerminalTextBuffer {
     myHeight = height;
 
     myScreenBuffer = new LinesBuffer();
-
-    myDamage = new BitSet(myWidth * myHeight);
   }
 
   public Dimension resize(@NotNull final Dimension pendingResize,
@@ -95,23 +91,15 @@ public class TerminalTextBuffer {
     myWidth = newWidth;
     myHeight = newHeight;
 
-    myDamage = new BitSet(myWidth * myHeight);
-
     if (myScreenBuffer.getLineCount() > myHeight) {
       myScreenBuffer.moveTopLinesTo(myScreenBuffer.getLineCount() - myHeight, myHistoryBuffer);
     }
 
     int myCursorY = cursorY + (myScreenBuffer.getLineCount() - textLinesCountOld);
 
-    setDamage();
-
     resizeHandler.sizeUpdated(myWidth, myHeight, myCursorY);
 
     return pendingResize;
-  }
-
-  private void setDamage() {
-    myDamage.set(0, myWidth * myHeight - 1, true);
   }
 
   private TextStyle createEmptyStyleWithCurrentColor() {
@@ -134,8 +122,6 @@ public class TerminalTextBuffer {
               " (from : " + from + " to : " + to + " remain : " + remain + ")");
 
       myScreenBuffer.deleteCharacters(x, y, count);
-
-      myDamage.set(to, (y + 1) * myWidth, true);
     }
   }
 
@@ -149,8 +135,6 @@ public class TerminalTextBuffer {
       int from = y * myWidth + x;
 
       myScreenBuffer.insertBlankCharacters(x, y, count, myWidth);
-
-      myDamage.set(from, (y + 1) * myWidth, true);
     }
   }
 
@@ -171,8 +155,6 @@ public class TerminalTextBuffer {
     TextStyle style = myStyleState.getCurrent();
 
     myScreenBuffer.writeString(x, adjY, new String(bytes, start, len), style); //TODO: make write bytes method
-
-    myDamage.set(adjY * myWidth + x, adjY * myWidth + x + len);
   }
 
   public void writeString(final int x, final int y, @NotNull final String str) {
@@ -269,38 +251,8 @@ public class TerminalTextBuffer {
     }
   }
 
-  public String getDamageLines() {
-    myLock.lock();
-    try {
-      final StringBuilder sb = new StringBuilder();
-      for (int row = 0; row < myHeight; row++) {
-        for (int col = 0; col < myWidth; col++) {
-          boolean isDamaged = myDamage.get(row * myWidth + col);
-          sb.append(isDamaged ? 'X' : '-');
-        }
-        sb.append("\n");
-      }
-      return sb.toString();
-    } finally {
-      myLock.unlock();
-    }
-  }
-
-  public void resetDamage() {
-    myLock.lock();
-    try {
-      myDamage.clear();
-    } finally {
-      myLock.unlock();
-    }
-  }
-
   public void processScreenLines(final int yStart, final int yCount, @NotNull final StyledTextConsumer consumer) {
     myScreenBuffer.processLines(yStart - getScreenLinesCount(), Math.min(yCount, myScreenBuffer.getLineCount()), consumer);
-  }
-
-  public void processBufferRows(final int startRow, final int height, final StyledTextConsumer consumer) {
-    processScreenLine(startRow, height, consumer);
   }
 
   public void processScreenLine(final int startRow,
@@ -324,17 +276,6 @@ public class TerminalTextBuffer {
     myScreenBuffer.processLines(line, 1, consumer);
   }
 
-  /**
-   * Cell is a styled block of text
-   *
-   * @param consumer
-   */
-  public void processDamagedCells(final StyledTextConsumer consumer) {
-    final int startRow = 0;
-    final int endRow = myHeight;
-    processStyledText(consumer, startRow, endRow);
-  }
-
   private void processStyledText(StyledTextConsumer consumer, int startRow, int endRow) {
     for (int row = startRow; row < endRow; row++) {
       TerminalLine line = myScreenBuffer.getLine(row);
@@ -346,10 +287,6 @@ public class TerminalTextBuffer {
         x += te.getLength();
       }
     }
-  }
-
-  public boolean hasDamage() {
-    return myDamage.nextSetBit(0) != -1;
   }
 
   public void lock() {
@@ -399,7 +336,6 @@ public class TerminalTextBuffer {
         myScreenBuffer = new LinesBuffer();
         myHistoryBuffer = new LinesBuffer();
         myUsingAlternateBuffer = true;
-        setDamage();
       }
     } else {
       if (myUsingAlternateBuffer) {
@@ -408,7 +344,6 @@ public class TerminalTextBuffer {
         myUsingAlternateBuffer = false;
         myScreenBufferBackup = new LinesBuffer();
         myHistoryBufferBackup = new LinesBuffer();
-        setDamage();
       }
     }
   }

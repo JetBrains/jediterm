@@ -60,12 +60,9 @@ public class TerminalTextBuffer {
                           final int cursorY,
                           @NotNull JediTerminal.ResizeHandler resizeHandler,
                           @Nullable TerminalSelection mySelection) {
-    final int oldHeight = myHeight;
-    final int oldWidth = myWidth;
 
     final int newWidth = pendingResize.width;
     final int newHeight = pendingResize.height;
-    final int scrollLinesCountOld = myHistoryBuffer.getLineCount();
     final int textLinesCountOld = myScreenBuffer.getLineCount();
 
 
@@ -255,38 +252,9 @@ public class TerminalTextBuffer {
     myScreenBuffer.processLines(yStart - getScreenLinesCount(), Math.min(yCount, myScreenBuffer.getLineCount()), consumer);
   }
 
-  public void processScreenLine(final int startRow,
-                                final int height,
-                                final StyledTextConsumer consumer) {
-
-    final int endRow = startRow + height;
-
-    myLock.lock();
-    try {
-      for (int row = startRow; row < endRow; row++) {
-        processScreenLine(row, consumer);
-      }
-    } finally {
-      myLock.unlock();
-    }
-  }
-
 
   public void processScreenLine(int line, StyledTextConsumer consumer) {
     myScreenBuffer.processLines(line, 1, consumer);
-  }
-
-  private void processStyledText(StyledTextConsumer consumer, int startRow, int endRow) {
-    for (int row = startRow; row < endRow; row++) {
-      TerminalLine line = myScreenBuffer.getLine(row);
-      Iterator<TerminalLine.TextEntry> iterator = line.entriesIterator();
-      int x = 0;
-      while (iterator.hasNext()) {
-        TerminalLine.TextEntry te = iterator.next();
-        consumer.consume(x, row, te.getStyle(), te.getText(), startRow);
-        x += te.getLength();
-      }
-    }
   }
 
   public void lock() {

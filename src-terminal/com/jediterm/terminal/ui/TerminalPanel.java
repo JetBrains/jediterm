@@ -52,7 +52,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   /*font related*/
   private Font myNormalFont;
+  private Font myItalicFont;
   private Font myBoldFont;
+  private Font myBoldItalicFont;
   private int myDescent = 0;
   protected Dimension myCharSize = new Dimension();
   private boolean myMonospaced;
@@ -105,6 +107,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   public void init() {
     myNormalFont = createFont();
     myBoldFont = myNormalFont.deriveFont(Font.BOLD);
+    myItalicFont = myNormalFont.deriveFont(Font.ITALIC);
+    myBoldItalicFont = myBoldFont.deriveFont(Font.ITALIC);
 
     establishFontMetrics();
 
@@ -493,6 +497,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private void establishFontMetrics() {
     final BufferedImage img = createBufferedImage(1, 1);
     final Graphics2D graphics = img.createGraphics();
+    setupAntialiasing(graphics);
     graphics.setFont(myNormalFont);
 
     final float lineSpace = mySettingsProvider.getLineSpace();
@@ -892,6 +897,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     int drawCharsOffset = 0;
     
     // workaround to fix Swing bad rendering of bold special chars on Linux
+    // TODO required for italic?
     CharBuffer renderingBuffer;
     if(mySettingsProvider.DECCompatibilityMode() && style.hasOption(TextStyle.Option.BOLD)) {
       renderingBuffer = CharacterUtils.heavyDecCompatibleBuffer(buf);
@@ -930,11 +936,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   protected Font getFontToDisplay(char c, TextStyle style) {
     boolean bold = style.hasOption(TextStyle.Option.BOLD);
+    boolean italic = style.hasOption(TextStyle.Option.ITALIC);
     // workaround to fix Swing bad rendering of bold special chars on Linux
+    // TODO required for italic?
     if (bold && mySettingsProvider.DECCompatibilityMode() && CharacterSets.isDecSpecialChar(c)) {
       return myNormalFont;
     }
-    return bold ? myBoldFont : myNormalFont;
+    return bold ? (italic ? myBoldItalicFont : myBoldFont)
+                : (italic ? myItalicFont : myNormalFont);
   }
 
   private ColorPalette getPalette() {

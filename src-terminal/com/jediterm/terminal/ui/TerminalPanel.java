@@ -393,20 +393,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             image.getWidth(), image.getHeight(), observer);
   }
 
-  private Pair<BufferedImage, Graphics2D> createAndInitImage(int width, int height) {
-    BufferedImage image = createBufferedImage(width, height);
-
-    Graphics2D gfx = image.createGraphics();
-
-    setupAntialiasing(gfx);
-
-    gfx.setColor(getBackground());
-
-    gfx.fillRect(0, 0, width, height);
-
-    return Pair.create(image, gfx);
-  }
-
   protected BufferedImage createBufferedImage(int width, int height) {
     return new BufferedImage(width, height,
             BufferedImage.TYPE_INT_RGB);
@@ -541,6 +527,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   public void paintComponent(final Graphics g) {
     final Graphics2D gfx = (Graphics2D) g;
 
+    setupAntialiasing(gfx);
+
     gfx.setColor(getBackground());
 
     gfx.fillRect(0, 0, getWidth(), getHeight());
@@ -573,6 +561,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
 
     drawInputMethodUncommitedChars(gfx);
+
+    drawMargins(gfx, getWidth(), getHeight());
   }
 
   private TextStyle getSelectionStyle(TextStyle style) {
@@ -888,22 +878,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private ColorPalette getPalette() {
     return mySettingsProvider.getTerminalColorPalette();
-  }
-
-  private void copyArea(Graphics2D gfx, BufferedImage image, int x, int y, int width, int height, int dx, int dy) {
-    if (isRetina()) {
-      Pair<BufferedImage, Graphics2D> pair = createAndInitImage(x + width, y + height);
-
-      drawImage(pair.second, image,
-              x, y, x + width, y + height
-      );
-      drawImage(gfx, pair.first,
-              x + dx, y + dy, x + dx + width, y + dy + height, //destination
-              x, y, x + width, y + height   //source
-      );
-    } else {
-      gfx.copyArea(x, y, width, height, dx, dy);
-    }
   }
 
   public void redraw() {

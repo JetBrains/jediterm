@@ -837,11 +837,18 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   private void drawCharacters(int x, int y, TextStyle style, CharBuffer buf, Graphics2D gfx) {
+    int xCoord = x * myCharSize.width;
+    int yCoord = y * myCharSize.height;
+
+    if (xCoord < 0 || xCoord > getWidth() || yCoord < 0 || yCoord > getHeight()) {
+      return;
+    }
+
     gfx.setColor(getPalette().getColor(myStyleState.getBackground(style.getBackgroundForRun())));
     int textLength = CharacterUtils.getTextLength(buf.getBuf(), buf.getStart(), buf.length());
 
-    gfx.fillRect(x * myCharSize.width,
-            y * myCharSize.height,
+    gfx.fillRect(xCoord,
+            yCoord,
             textLength * myCharSize.width,
             myCharSize.height);
 
@@ -852,7 +859,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     int baseLine = (y + 1) * myCharSize.height - myDescent;
 
     if (style.hasOption(TextStyle.Option.UNDERLINED)) {
-      gfx.drawLine(x * myCharSize.width, baseLine + 1, (x + textLength) * myCharSize.width, baseLine + 1);
+      gfx.drawLine(xCoord, baseLine + 1, (x + textLength) * myCharSize.width, baseLine + 1);
     }
   }
 
@@ -887,10 +894,13 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       int xCoord = (x + drawCharsOffset) * myCharSize.width;
       int textLength = CharacterUtils.getTextLength(buf.getBuf(), buf.getStart() + offset, newBlockLen);
 
+      int yCoord = y * myCharSize.height;
+
       gfx.setClip(xCoord,
-              y * myCharSize.height,
-              textLength * myCharSize.width,
-              myCharSize.height);
+              yCoord,
+              Math.min(textLength * myCharSize.width, getWidth() - xCoord),
+              Math.min(myCharSize.height, getHeight() - yCoord));
+
       gfx.setColor(getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun())));
 
       gfx.drawChars(renderingBuffer.getBuf(), buf.getStart() + offset, newBlockLen, xCoord, baseLine);

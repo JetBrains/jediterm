@@ -81,6 +81,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private TerminalActionProvider myNextActionProvider;
   private String myInputMethodUncommitedChars;
 
+  private int myBlinkingPeriod = 500;
+  private Timer myRepaintTimer;
+
 
   public TerminalPanel(@NotNull SettingsProvider settingsProvider, @NotNull TerminalTextBuffer terminalTextBuffer, @NotNull StyleState styleState) {
     mySettingsProvider = settingsProvider;
@@ -93,6 +96,13 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     enableEvents(AWTEvent.KEY_EVENT_MASK | AWTEvent.INPUT_METHOD_EVENT_MASK);
     enableInputMethods(true);
+
+    terminalTextBuffer.addModelListener(new TerminalModelListener() {
+      @Override
+      public void modelChanged() {
+        repaint();
+      }
+    });
   }
 
   @Deprecated
@@ -120,6 +130,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     setFocusable(true);
     enableInputMethods(true);
+    setDoubleBuffered(true);
 
     setFocusTraversalKeysEnabled(false);
 
@@ -241,13 +252,21 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     myBoundedRangeModel.addChangeListener(new ChangeListener() {
       public void stateChanged(final ChangeEvent e) {
         myClientScrollOrigin = myBoundedRangeModel.getValue();
+        repaint();
       }
     });
 
-    Timer redrawTimer = new Timer((int) (1000 / FPS), new WeakRedrawTimer(this));
-    setDoubleBuffered(true);
-    redrawTimer.start();
+    createRepaintTimer();
+
     repaint();
+  }
+
+  private void createRepaintTimer() {
+    if (myRepaintTimer != null) {
+      myRepaintTimer.stop();
+    }
+    myRepaintTimer = new Timer(myBlinkingPeriod > 40 ? myBlinkingPeriod / 2 : 20, new WeakRedrawTimer(this));
+    myRepaintTimer.start();
   }
 
   public boolean isLocalMouseAction(MouseEvent e) {
@@ -260,6 +279,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   protected boolean isRetina() {
     return UIUtil.isRetina();
+  }
+
+  public void setBlinkingPeriod(int blinkingPeriod) {
+    myBlinkingPeriod = blinkingPeriod;
+    createRepaintTimer();
   }
 
   static class WeakRedrawTimer implements ActionListener {
@@ -710,7 +734,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
 
     private boolean cursorShouldChangeBlinkState(long currentTime) {
-      return currentTime - myLastCursorChange > mySettingsProvider.caretBlinkingMs();
+      return currentTime - myLastCursorChange > getBlinkingPeriod();
     }
 
     public void setX(int x) {
@@ -740,7 +764,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
 
     private boolean noRecentResize(long time) {
-      return time - myLastResize > mySettingsProvider.caretBlinkingMs();
+      return time - myLastResize > getBlinkingPeriod();
     }
 
     public void setBlinking(boolean blinking) {
@@ -748,7 +772,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
 
     public boolean isBlinking() {
-      return myBlinking && (mySettingsProvider.caretBlinkingMs() > 0);
+      return myBlinking && (getBlinkingPeriod() > 0);
     }
 
     public void changeStateIfNeeded() {
@@ -775,6 +799,13 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         drawCharacters(x, y, styleToDraw, new CharBuffer(c, 1), gfx);
       }
     }
+  }
+
+  private int getBlinkingPeriod() {
+    if (myBlinkingPeriod != mySettingsProvider.caretBlinkingMs()) {
+      setBlinkingPeriod(mySettingsProvider.caretBlinkingMs());
+    }
+    return myBlinkingPeriod;
   }
 
   private void drawImage(Graphics2D g, BufferedImage image, int x1, int y1, int x2, int y2) {

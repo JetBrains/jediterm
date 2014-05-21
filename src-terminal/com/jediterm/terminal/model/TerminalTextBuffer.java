@@ -1,5 +1,6 @@
 package com.jediterm.terminal.model;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.jediterm.terminal.CharacterUtils;
 import com.jediterm.terminal.RequestOrigin;
@@ -9,10 +10,9 @@ import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.swing.event.ChangeListener;
 import java.awt.*;
-import java.util.BitSet;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -46,6 +46,8 @@ public class TerminalTextBuffer {
   private boolean myAlternateBuffer = false;
 
   private boolean myUsingAlternateBuffer = false;
+
+  private java.util.List<TerminalModelListener> myListeners = Lists.newArrayList();
 
   public TerminalTextBuffer(final int width, final int height, @NotNull StyleState styleState) {
     myStyleState = styleState;
@@ -96,7 +98,24 @@ public class TerminalTextBuffer {
 
     resizeHandler.sizeUpdated(myWidth, myHeight, myCursorY);
 
+
+    fireModelChangeEvent();
+
     return pendingResize;
+  }
+
+  public void addModelListener(TerminalModelListener listener) {
+    myListeners.add(listener);
+  }
+
+  public void removeModelListener(TerminalModelListener listener) {
+    myListeners.remove(listener);
+  }
+
+  private void fireModelChangeEvent() {
+    for (TerminalModelListener modelListener: myListeners) {
+      modelListener.modelChanged();
+    }
   }
 
   private TextStyle createEmptyStyleWithCurrentColor() {
@@ -119,6 +138,8 @@ public class TerminalTextBuffer {
               " (from : " + from + " to : " + to + " remain : " + remain + ")");
 
       myScreenBuffer.deleteCharacters(x, y, count);
+
+      fireModelChangeEvent();
     }
   }
 
@@ -132,6 +153,8 @@ public class TerminalTextBuffer {
       int from = y * myWidth + x;
 
       myScreenBuffer.insertBlankCharacters(x, y, count, myWidth);
+
+      fireModelChangeEvent();
     }
   }
 
@@ -152,6 +175,8 @@ public class TerminalTextBuffer {
     TextStyle style = myStyleState.getCurrent();
 
     myScreenBuffer.writeString(x, adjY, new String(bytes, start, len), style); //TODO: make write bytes method
+
+    fireModelChangeEvent();
   }
 
   public void writeString(final int x, final int y, @NotNull final String str) {
@@ -160,6 +185,8 @@ public class TerminalTextBuffer {
 
   private void writeString(int x, int y, @NotNull String str, @NotNull TextStyle style) {
     myScreenBuffer.writeString(x, y - 1, str, style);
+
+    fireModelChangeEvent();
   }
 
   public void scrollArea(final int scrollRegionTop, final int dy, int scrollRegionBottom) {
@@ -173,6 +200,8 @@ public class TerminalTextBuffer {
       if (scrollRegionTop == 1) {
         removed.moveTopLinesTo(removed.getLineCount(), myHistoryBuffer);
       }
+
+      fireModelChangeEvent();
     }
   }
 
@@ -314,6 +343,7 @@ public class TerminalTextBuffer {
         myHistoryBufferBackup = new LinesBuffer();
       }
     }
+    fireModelChangeEvent();
   }
 
   public LinesBuffer getHistoryBuffer() {
@@ -322,15 +352,20 @@ public class TerminalTextBuffer {
 
   public void insertLines(int y, int count, int scrollRegionBottom) {
     myScreenBuffer.insertLines(y, count, scrollRegionBottom - 1);
+
+    fireModelChangeEvent();
   }
 
   // returns deleted lines
   public LinesBuffer deleteLines(int y, int count, int scrollRegionBottom) {
-    return myScreenBuffer.deleteLines(y, count, scrollRegionBottom - 1);
+    LinesBuffer linesBuffer = myScreenBuffer.deleteLines(y, count, scrollRegionBottom - 1);
+    fireModelChangeEvent();
+    return linesBuffer;
   }
 
   public void clearLines(int startRow, int endRow) {
     myScreenBuffer.clearLines(startRow, endRow);
+    fireModelChangeEvent();
   }
 
 
@@ -338,6 +373,7 @@ public class TerminalTextBuffer {
     TextStyle style = createEmptyStyleWithCurrentColor();
     if (y >= 0) {
       myScreenBuffer.clearArea(leftX, y, rightX, y + 1, style);
+      fireModelChangeEvent();
     } else {
       LOG.error("Attempt to erase characters in line: " + y);
     }
@@ -345,6 +381,7 @@ public class TerminalTextBuffer {
 
   public void clearAll() {
     myScreenBuffer.clearAll();
+    fireModelChangeEvent();
   }
 
   public void processHistoryAndScreenLines(int scrollOrigin, StyledTextConsumer consumer) {

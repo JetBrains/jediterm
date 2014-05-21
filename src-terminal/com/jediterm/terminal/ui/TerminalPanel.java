@@ -849,8 +849,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     gfx.fillRect(xCoord,
             yCoord,
-            textLength * myCharSize.width,
-            myCharSize.height);
+            Math.min(textLength * myCharSize.width, getWidth() - xCoord),
+            Math.min(myCharSize.height, getHeight() - yCoord));
 
     drawChars(x, y, buf, style, gfx);
 

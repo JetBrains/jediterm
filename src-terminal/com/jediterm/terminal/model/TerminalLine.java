@@ -201,6 +201,14 @@ public class TerminalLine {
     return x<pair.second.length ? pair.second[x]: null;
   }
 
+  public void process(int y, LinesBuffer.TextEntryProcessor processor) {
+    int x = 0;
+    for (TextEntry te: myTextEntries) {
+      processor.process(x, y, te);
+      x+=te.getLength();
+    }
+  }
+
   static class TextEntry {
     private final TextStyle myStyle;
     private final CharBuffer myText;

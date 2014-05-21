@@ -190,21 +190,7 @@ public class LinesBuffer {
     for (int y = firstLine; y<Math.min(firstLine+count, myLines.size()); y++) {
       TerminalLine line = myLines.get(y);
 
-      int x = 0;
-
-      Iterator<TerminalLine.TextEntry> it = line.entriesIterator();
-
-      while (it.hasNext()) {
-        TerminalLine.TextEntry textEntry = it.next();
-
-        if (y >= firstLine + count) {
-          break;
-        }
-
-        processor.process(x, y, textEntry);
-
-        x += textEntry.getText().length();
-      }
+      line.process(y, processor);
     }
   }
 

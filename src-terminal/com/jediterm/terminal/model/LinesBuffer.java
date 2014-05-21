@@ -187,17 +187,10 @@ public class LinesBuffer {
   }
 
   public synchronized void iterateLines(final int firstLine, final int count, @NotNull TextEntryProcessor processor) {
-    int y = 0;
+    for (int y = firstLine; y<Math.min(firstLine+count, myLines.size()); y++) {
+      TerminalLine line = myLines.get(y);
 
-    int x;
-
-    for (TerminalLine line : myLines) {
-      y++;
-      if (y < firstLine) {
-        continue;
-      }
-
-      x = 0;
+      int x = 0;
 
       Iterator<TerminalLine.TextEntry> it = line.entriesIterator();
 

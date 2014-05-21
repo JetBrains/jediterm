@@ -739,12 +739,18 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     public void setX(int x) {
       myCursorCoordinates.x = x;
-      myCursorHasChanged = true;
+      cursorChanged();
     }
+
+    private void cursorChanged() {
+      myCursorHasChanged = true;
+      myLastCursorChange = System.currentTimeMillis();
+    }
+
 
     public void setY(int y) {
       myCursorCoordinates.y = y;
-      myCursorHasChanged = true;
+      cursorChanged();
     }
 
     public int getCoordX() {

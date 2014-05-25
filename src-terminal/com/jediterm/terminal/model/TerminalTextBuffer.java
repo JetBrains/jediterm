@@ -5,6 +5,8 @@ import com.jediterm.terminal.CharacterUtils;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.TextStyle;
+import com.jediterm.terminal.util.Pair;
+
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -299,28 +301,7 @@ public class TerminalTextBuffer {
     myScreenBuffer.processLines(yStart - getScreenLinesCount(), Math.min(yCount, myScreenBuffer.getLineCount()), consumer);
   }
 
-  public void processBufferRows(final int startRow, final int height, final StyledTextConsumer consumer) {
-    processScreenLine(startRow, height, consumer);
-  }
-
-  public void processScreenLine(final int startRow,
-                                final int height,
-                                final StyledTextConsumer consumer) {
-
-    final int endRow = startRow + height;
-
-    myLock.lock();
-    try {
-      for (int row = startRow; row < endRow; row++) {
-        processScreenLine(row, consumer);
-      }
-    } finally {
-      myLock.unlock();
-    }
-  }
-
-
-  public void processScreenLine(int line, StyledTextConsumer consumer) {
+  public void processScreenLine(final int line, final StyledTextConsumer consumer) {
     myScreenBuffer.processLines(line, 1, consumer);
   }
 
@@ -381,13 +362,18 @@ public class TerminalTextBuffer {
   }
 
   public char getBuffersCharAt(int x, int y) {
-    String lineText = getLine(y).getText();
-    return x < lineText.length() ? lineText.charAt(x) : CharacterUtils.EMPTY_CHAR;
+    return getLine(y).charAt(x);
   }
 
   public TextStyle getStyleAt(int x, int y) {
-    TerminalLine line = myScreenBuffer.getLine(y);
-    return line.getStyleAt(x);
+    return getLine(y).getStyleAt(x);
+  }
+
+  public Pair<Character, TextStyle> getStyledCharAt(int x, int y) {
+    synchronized (myScreenBuffer) {
+      TerminalLine line = getLine(y);
+      return new Pair<Character, TextStyle>(line.charAt(x), line.getStyleAt(x));
+    }
   }
 
   public void useAlternateBuffer(boolean enabled) {

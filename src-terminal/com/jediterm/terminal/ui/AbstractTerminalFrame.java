@@ -27,12 +27,6 @@ public abstract class AbstractTerminalFrame {
     }
   };
 
-  private AbstractAction myResetDamage = new AbstractAction("Reset damage") {
-    public void actionPerformed(final ActionEvent e) {
-      myTerminal.getCurrentSession().getBackBuffer().resetDamage();
-    }
-  };
-
   private AbstractAction myDrawDamage = new AbstractAction("Draw from damage") {
     public void actionPerformed(final ActionEvent e) {
       myTerminal.getCurrentSession().redraw();
@@ -101,7 +95,6 @@ public abstract class AbstractTerminalFrame {
     dm.addSeparator();
 
     dm.add(myShowBuffersAction);
-    dm.add(myResetDamage);
     dm.add(myDrawDamage);
     dm.addSeparator();
     dm.add(myDumpDimension);

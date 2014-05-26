@@ -164,9 +164,6 @@ public class LinesBuffer {
 
 
   interface TextEntryProcessor {
-    /**
-     * @return true to remove entry
-     */
     void process(int x, int y, @NotNull TerminalLine.TextEntry entry);
   }
 

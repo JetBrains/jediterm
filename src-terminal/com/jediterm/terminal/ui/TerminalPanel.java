@@ -275,7 +275,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       TerminalPanel terminalPanel = ref.get();
       if (terminalPanel != null) {
         try {
-          terminalPanel.redraw();
+          terminalPanel.repaint();
         } catch (Exception ex) {
           LOG.error("Error while terminal panel redraw", ex);
         }
@@ -904,10 +904,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     } else {
       gfx.copyArea(x, y, width, height, dx, dy);
     }
-  }
-
-  public void redraw() {
-    repaint();
   }
 
   private void drawMargins(Graphics2D gfx, int width, int height) {

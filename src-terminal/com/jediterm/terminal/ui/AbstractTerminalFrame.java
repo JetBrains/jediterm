@@ -27,12 +27,6 @@ public abstract class AbstractTerminalFrame {
     }
   };
 
-  private AbstractAction myDrawDamage = new AbstractAction("Draw from damage") {
-    public void actionPerformed(final ActionEvent e) {
-      myTerminal.getCurrentSession().redraw();
-    }
-  };
-
   private AbstractAction myShowBuffersAction = new AbstractAction("Show buffers") {
     public void actionPerformed(final ActionEvent e) {
       if (myBufferFrame == null) {
@@ -95,7 +89,6 @@ public abstract class AbstractTerminalFrame {
     dm.addSeparator();
 
     dm.add(myShowBuffersAction);
-    dm.add(myDrawDamage);
     dm.addSeparator();
     dm.add(myDumpDimension);
     dm.add(myDumpCursorPosition);

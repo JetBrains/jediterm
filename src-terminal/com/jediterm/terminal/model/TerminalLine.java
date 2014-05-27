@@ -61,7 +61,7 @@ public class TerminalLine {
 
     if (x >= len) {
       if (x - len > 0) {
-        myTextEntries.add(new TextEntry(TextStyle.EMPTY, new CharBuffer(CharacterUtils.EMPTY_CHAR, x - len)));
+        myTextEntries.add(new TextEntry(TextStyle.EMPTY, new CharBuffer(CharacterUtils.NUL_CHAR, x - len)));
       }
 
       myTextEntries.add(new TextEntry(style, characters));
@@ -188,9 +188,7 @@ public class TerminalLine {
   }
 
   public void clearArea(int leftX, int rightX, @NotNull TextStyle style) {
-    if (leftX < myTextEntries.length()) {
-      writeCharacters(leftX, style, new CharBuffer(CharacterUtils.EMPTY_CHAR, Math.min(myTextEntries.length(), rightX) - leftX));
-    }
+    writeCharacters(leftX, style, new CharBuffer(CharacterUtils.NUL_CHAR, rightX - leftX));
   }
 
   @Nullable

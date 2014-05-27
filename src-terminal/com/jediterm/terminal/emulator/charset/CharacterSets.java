@@ -184,7 +184,7 @@ public final class CharacterSets {
       return (char)ch;
     }
 
-    return CharacterUtils.EMPTY_CHAR;
+    return CharacterUtils.NUL_CHAR;
   }
 
   /**

@@ -236,7 +236,7 @@ public class TerminalTextBuffer {
         StringBuilder line = new StringBuilder(myScreenBuffer.getLine(row).getText());
 
         for (int i = line.length(); i < myWidth; i++) {
-          line.append('.');
+          line.append(' ');
         }
         if (line.length() > myWidth) {
           line.setLength(myWidth);

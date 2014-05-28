@@ -161,33 +161,13 @@ public class LinesBuffer {
     }
   }
 
-
-  interface TextEntryProcessor {
-    /**
-     * @return true to remove entry
-     */
-    void process(int x, int y, @NotNull TerminalLine.TextEntry entry);
-  }
-
-  public synchronized void processLines(final int yStart,
-                                        final int yCount,
-                                        @NotNull final StyledTextConsumer consumer,
-                                        final int startRow) {
-    iterateLines(yStart, yCount, new TextEntryProcessor() {
-      @Override
-      public void process(int x, int y, @NotNull TerminalLine.TextEntry entry) {
-        consumer.consume(x, y, entry.getStyle(), entry.getText(), startRow);
-      }
-    });
-  }
-
   public synchronized void processLines(final int yStart, final int yCount, @NotNull final StyledTextConsumer consumer) {
     processLines(yStart, yCount, consumer, -getLineCount());
   }
 
-  public synchronized void iterateLines(final int firstLine, final int count, @NotNull TextEntryProcessor processor) {
+  public synchronized void processLines(final int firstLine, final int count, @NotNull final StyledTextConsumer consumer, final int startRow) {
     for (int y = firstLine; y < Math.min(firstLine + count, myLines.size()); y++) {
-      myLines.get(y).process(y, processor);
+      myLines.get(y).process(y, consumer, startRow);
     }
   }
 

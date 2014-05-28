@@ -1,8 +1,8 @@
 package com.jediterm.terminal.model;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.jediterm.terminal.CharacterUtils;
+import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.util.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -208,11 +208,11 @@ public class TerminalLine {
     return null;
   }
 
-  public void process(int y, LinesBuffer.TextEntryProcessor processor) {
+  public void process(int y, StyledTextConsumer consumer, int startRow) {
     int x = 0;
     for (TextEntry te: Lists.newArrayList(myTextEntries)) {
-      processor.process(x, y, te);
-      x+=te.getLength();
+      consumer.consume(x, y, te.getStyle(), te.getText(), startRow);
+      x += te.getLength();
     }
   }
 

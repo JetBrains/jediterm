@@ -107,7 +107,7 @@ public class CharBuffer implements Iterable<Character>, CharSequence {
   }
 
   public boolean isNul() {
-    return length() == 0 || myBuf[0] == CharacterUtils.NUL_CHAR;
+    return myLength > 0 && myBuf[0] == CharacterUtils.NUL_CHAR;
   }
 
   public void unNullify() {

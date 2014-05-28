@@ -567,10 +567,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       int cursorX = myCursor.getCoordX();
       Pair<Character, TextStyle> sc = myTerminalTextBuffer.getStyledCharAt(cursorX, cursorY);
       TextStyle normalStyle = sc.second != null ? sc.second : myStyleState.getCurrent();
-      TextStyle selectionStyle = getSelectionStyle(normalStyle);
-      boolean inSelection = inSelection(cursorX, cursorY);
-      myCursor.drawCursor(sc.first, gfx, inSelection ? selectionStyle : normalStyle,
-          getInversedStyle(inSelection ? selectionStyle : normalStyle));
+      myCursor.drawCursor(sc.first, gfx, inSelection(cursorX, cursorY) ? getSelectionStyle(normalStyle) : normalStyle,
+              getInversedStyle(normalStyle));
     }
 
     drawInputMethodUncommitedChars(gfx);

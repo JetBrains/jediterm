@@ -33,7 +33,12 @@ public class TerminalLine {
     final StringBuilder sb = new StringBuilder();
 
     for (TerminalLine.TextEntry textEntry : Lists.newArrayList(myTextEntries)) {
-      sb.append(textEntry.getText());
+      // NUL can only be at the end
+      if (textEntry.getText().isNul()) {
+        break;
+      } else {
+        sb.append(textEntry.getText());
+      }
     }
 
     return sb.toString();
@@ -62,8 +67,7 @@ public class TerminalLine {
     if (x >= len) {
       // fill the gap
       if (x - len > 0) {
-        myTextEntries.add(new TextEntry(TextStyle.EMPTY, new CharBuffer(
-            characters.isNul() ? CharacterUtils.NUL_CHAR : CharacterUtils.EMPTY_CHAR, x - len)));
+        myTextEntries.add(new TextEntry(TextStyle.EMPTY, new CharBuffer(CharacterUtils.NUL_CHAR, x - len)));
       }
       myTextEntries.add(new TextEntry(style, characters));
     } else {
@@ -214,6 +218,7 @@ public class TerminalLine {
       consumer.consume(x, y, te.getStyle(), te.getText(), startRow);
       x += te.getLength();
     }
+    consumer.consumeQueue(x, y, startRow);
   }
 
   static class TextEntry {
@@ -244,6 +249,14 @@ public class TerminalLine {
     private int myLength = 0;
 
     public void add(TextEntry entry) {
+      // NUL can only be at the end of the line
+      if (!entry.getText().isNul()) {
+        for (TextEntry t : myTextEntries) {
+          if (t.getText().isNul()) {
+            t.getText().unNullify();
+          }
+        }
+      }
       myTextEntries.add(entry);
       myLength += entry.getLength();
     }

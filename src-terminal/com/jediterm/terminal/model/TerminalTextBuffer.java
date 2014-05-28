@@ -223,7 +223,11 @@ public class TerminalTextBuffer {
             hashMap.put(styleNum, count++);
           }
           sb.append(String.format("%02d ", hashMap.get(styleNum)));
+        }
 
+        @Override
+        public void consumeQueue(int x, int y, int startRow) {
+          // no-op
         }
       });
       return sb.toString();

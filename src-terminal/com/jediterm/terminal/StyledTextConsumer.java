@@ -19,4 +19,7 @@ public interface StyledTextConsumer {
    *                 It can be different for different buffers, e.g. backBuffer starts from 0, textBuffer and scrollBuffer from -count
    */
   void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow);
+
+  void consumeQueue(int x, int y, int startRow);
+
 }

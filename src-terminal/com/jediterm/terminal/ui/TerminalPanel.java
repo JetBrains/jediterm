@@ -558,6 +558,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     gfx.fillRect(0, 0, getWidth(), getHeight());
 
     myTerminalTextBuffer.processHistoryAndScreenLines(myClientScrollOrigin, new StyledTextConsumer() {
+      final int textWidth = myTerminalTextBuffer.getWidth();
+      
       @Override
       public void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
         int row = y - startRow;
@@ -566,8 +568,23 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
           Pair<Integer, Integer> interval = mySelection.intersect(x, row + myClientScrollOrigin, characters.length());
           if (interval != null) {
             TextStyle selectionStyle = getSelectionStyle(style);
+            if (characters.isNul()) { // NUL area is non-breaking
+              drawCharacters(x, row, selectionStyle, characters, gfx);
+            } else {
+              drawCharacters(interval.first, row, selectionStyle, characters.subBuffer(interval.first - x, interval.second), gfx);
+            }
+          }
+        }
+      }
 
-            drawCharacters(interval.first, row, selectionStyle, characters.subBuffer(interval.first - x, interval.second), gfx);
+      @Override
+      public void consumeQueue(int x, int y, int startRow) {
+        // draw selection on the end of the line
+        int row = y - startRow;
+        if (mySelection != null) {
+          Pair<Point, Point> p = SelectionUtil.sortPoints(new Point(mySelection.getStart()), new Point(mySelection.getEnd()));
+          if ((row >= p.first.y && row < p.second.y) || (row == p.second.y && p.second.x >= x)) {
+            drawCharacters(x, row, getSelectionStyle(myStyleState.getCurrent()), new CharBuffer(CharacterUtils.EMPTY_CHAR, textWidth - x), gfx);
           }
         }
       }

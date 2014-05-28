@@ -110,6 +110,10 @@ public class CharBuffer implements Iterable<Character>, CharSequence {
     return length() == 0 || myBuf[0] == CharacterUtils.NUL_CHAR;
   }
 
+  public void unNullify() {
+    Arrays.fill(myBuf, CharacterUtils.EMPTY_CHAR);
+  }
+
   @Override
   public int length() {
     return myLength;

@@ -3,6 +3,7 @@ package com.jediterm.util;
 import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.model.CharBuffer;
+
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
@@ -27,6 +28,11 @@ public class ArrayBasedTextConsumer implements StyledTextConsumer {
     for (int i = 0; i<characters.length(); i++) {
       myBuf[y - startRow][x + i] = characters.charAt(i);
     }
+  }
+
+  @Override
+  public void consumeQueue(int x, int y, int startRow) {
+    // no-op
   }
 
   public String getLines() {

@@ -43,6 +43,11 @@ public class TerminalTextBufferTest extends TestCase {
       public void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
         assertNotNull(style);
       }
+
+      @Override
+      public void consumeQueue(int x, int y, int startRow) {
+        // no-op
+      }
     });
 
     assertEquals(

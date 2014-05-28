@@ -83,7 +83,7 @@ public class CharBuffer implements Iterable<Character>, CharSequence {
   }
 
   public CharBuffer subBuffer(int start, int length) {
-    return new CharBuffer(myBuf, start, length);
+    return new CharBuffer(myBuf, getStart() + start, length);
   }
   
   public static CharBuffer adapt(Iterable<Character> characters) {

@@ -7,7 +7,6 @@ import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -187,10 +186,8 @@ public class LinesBuffer {
   }
 
   public synchronized void iterateLines(final int firstLine, final int count, @NotNull TextEntryProcessor processor) {
-    for (int y = firstLine; y<Math.min(firstLine+count, myLines.size()); y++) {
-      TerminalLine line = myLines.get(y);
-
-      line.process(y, processor);
+    for (int y = firstLine; y < Math.min(firstLine + count, myLines.size()); y++) {
+      myLines.get(y).process(y, processor);
     }
   }
 

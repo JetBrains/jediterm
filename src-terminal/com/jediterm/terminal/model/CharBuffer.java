@@ -1,6 +1,7 @@
 package com.jediterm.terminal.model;
 
 import com.google.common.collect.Lists;
+import com.jediterm.terminal.CharacterUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
@@ -103,6 +104,10 @@ public class CharBuffer implements Iterable<Character>, CharSequence {
       buf[i++] = ch;
     }
     return new CharBuffer(buf, 0, buf.length);
+  }
+
+  public boolean isNul() {
+    return length() == 0 || myBuf[0] == CharacterUtils.NUL_CHAR;
   }
 
   @Override

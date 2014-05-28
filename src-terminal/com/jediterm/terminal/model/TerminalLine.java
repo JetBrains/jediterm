@@ -60,10 +60,11 @@ public class TerminalLine {
     int len = myTextEntries.length();
 
     if (x >= len) {
+      // fill the gap
       if (x - len > 0) {
-        myTextEntries.add(new TextEntry(TextStyle.EMPTY, new CharBuffer(CharacterUtils.NUL_CHAR, x - len)));
+        myTextEntries.add(new TextEntry(TextStyle.EMPTY, new CharBuffer(
+            characters.isNul() ? CharacterUtils.NUL_CHAR : CharacterUtils.EMPTY_CHAR, x - len)));
       }
-
       myTextEntries.add(new TextEntry(style, characters));
     } else {
       len = Math.max(len, x + characters.length());
@@ -188,7 +189,9 @@ public class TerminalLine {
   }
 
   public void clearArea(int leftX, int rightX, @NotNull TextStyle style) {
-    writeCharacters(leftX, style, new CharBuffer(CharacterUtils.NUL_CHAR, rightX - leftX));
+    writeCharacters(leftX, style, new CharBuffer(
+        rightX >= myTextEntries.length() ? CharacterUtils.NUL_CHAR : CharacterUtils.EMPTY_CHAR,
+        rightX - leftX));
   }
 
   @Nullable

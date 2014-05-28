@@ -87,8 +87,11 @@ public enum TerminalMode {
   }, 
   KeyboardAction, 
   InsertMode,
-  SendReceive;
-  
+  SendReceive,
+  EightBitInput //Interpret "meta" key, sets eighth bit. (enables the eightBitInput resource).
+               // http://www.leonerd.org.uk/hacks/hints/xterm-8bit.html
+  ;
+
   private static final Logger LOG = Logger.getLogger(TerminalMode.class);
   
   public void setEnabled(Terminal terminal, boolean enabled) {

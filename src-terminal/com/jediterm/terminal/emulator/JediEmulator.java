@@ -529,6 +529,9 @@ public class JediEmulator extends DataStreamIteratingEmulator {
             myTerminal.setMouseFormat(MouseFormat.MOUSE_FORMAT_XTERM);
           }
           return true;
+        case 1034:
+          setModeEnabled(TerminalMode.EightBitInput, enabled);
+          return true;
         default:
           return false;
       }

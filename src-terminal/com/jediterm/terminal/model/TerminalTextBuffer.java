@@ -1,5 +1,6 @@
 package com.jediterm.terminal.model;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.jediterm.terminal.CharacterUtils;
 import com.jediterm.terminal.RequestOrigin;
@@ -9,10 +10,9 @@ import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.swing.event.ChangeListener;
 import java.awt.*;
-import java.util.BitSet;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -47,6 +47,8 @@ public class TerminalTextBuffer {
 
   private boolean myUsingAlternateBuffer = false;
 
+  private java.util.List<TerminalModelListener> myListeners = Lists.newArrayList();
+
   public TerminalTextBuffer(final int width, final int height, @NotNull StyleState styleState) {
     myStyleState = styleState;
     myWidth = width;
@@ -60,12 +62,9 @@ public class TerminalTextBuffer {
                           final int cursorY,
                           @NotNull JediTerminal.ResizeHandler resizeHandler,
                           @Nullable TerminalSelection mySelection) {
-    final int oldHeight = myHeight;
-    final int oldWidth = myWidth;
 
     final int newWidth = pendingResize.width;
     final int newHeight = pendingResize.height;
-    final int scrollLinesCountOld = myHistoryBuffer.getLineCount();
     final int textLinesCountOld = myScreenBuffer.getLineCount();
 
 
@@ -99,7 +98,24 @@ public class TerminalTextBuffer {
 
     resizeHandler.sizeUpdated(myWidth, myHeight, myCursorY);
 
+
+    fireModelChangeEvent();
+
     return pendingResize;
+  }
+
+  public void addModelListener(TerminalModelListener listener) {
+    myListeners.add(listener);
+  }
+
+  public void removeModelListener(TerminalModelListener listener) {
+    myListeners.remove(listener);
+  }
+
+  private void fireModelChangeEvent() {
+    for (TerminalModelListener modelListener: myListeners) {
+      modelListener.modelChanged();
+    }
   }
 
   private TextStyle createEmptyStyleWithCurrentColor() {
@@ -122,6 +138,8 @@ public class TerminalTextBuffer {
               " (from : " + from + " to : " + to + " remain : " + remain + ")");
 
       myScreenBuffer.deleteCharacters(x, y, count);
+
+      fireModelChangeEvent();
     }
   }
 
@@ -132,9 +150,9 @@ public class TerminalTextBuffer {
     } else if (count < 0) {
       LOG.error("Attempt to insert negative blank chars number: count:" + count);
     } else if (count > 0) { //nothing to do
-      int from = y * myWidth + x;
-
       myScreenBuffer.insertBlankCharacters(x, y, count, myWidth);
+
+      fireModelChangeEvent();
     }
   }
 
@@ -155,6 +173,8 @@ public class TerminalTextBuffer {
     TextStyle style = myStyleState.getCurrent();
 
     myScreenBuffer.writeString(x, adjY, new String(bytes, start, len), style); //TODO: make write bytes method
+
+    fireModelChangeEvent();
   }
 
   public void writeString(final int x, final int y, @NotNull final String str) {
@@ -163,6 +183,8 @@ public class TerminalTextBuffer {
 
   private void writeString(int x, int y, @NotNull String str, @NotNull TextStyle style) {
     myScreenBuffer.writeString(x, y - 1, str, style);
+
+    fireModelChangeEvent();
   }
 
   public void scrollArea(final int scrollRegionTop, final int dy, int scrollRegionBottom) {
@@ -176,6 +198,8 @@ public class TerminalTextBuffer {
       if (scrollRegionTop == 1) {
         removed.moveTopLinesTo(removed.getLineCount(), myHistoryBuffer);
       }
+
+      fireModelChangeEvent();
     }
   }
 
@@ -252,32 +276,7 @@ public class TerminalTextBuffer {
   }
 
   public void processScreenLines(final int yStart, final int yCount, @NotNull final StyledTextConsumer consumer) {
-    myScreenBuffer.processLines(yStart - getScreenLinesCount(), Math.min(yCount, myScreenBuffer.getLineCount()), consumer);
-  }
-
-  public void processBufferRows(final int startRow, final int height, final StyledTextConsumer consumer) {
-    processScreenLine(startRow, height, consumer);
-  }
-
-  public void processScreenLine(final int startRow,
-                                final int height,
-                                final StyledTextConsumer consumer) {
-
-    final int endRow = startRow + height;
-
-    myLock.lock();
-    try {
-      for (int row = startRow; row < endRow; row++) {
-        processScreenLine(row, consumer);
-      }
-    } finally {
-      myLock.unlock();
-    }
-  }
-
-
-  public void processScreenLine(int line, StyledTextConsumer consumer) {
-    myScreenBuffer.processLines(line, 1, consumer);
+    myScreenBuffer.processLines(yStart, yCount, consumer);
   }
 
   public void lock() {
@@ -337,6 +336,7 @@ public class TerminalTextBuffer {
         myHistoryBufferBackup = new LinesBuffer();
       }
     }
+    fireModelChangeEvent();
   }
 
   public LinesBuffer getHistoryBuffer() {
@@ -345,15 +345,20 @@ public class TerminalTextBuffer {
 
   public void insertLines(int y, int count, int scrollRegionBottom) {
     myScreenBuffer.insertLines(y, count, scrollRegionBottom - 1);
+
+    fireModelChangeEvent();
   }
 
   // returns deleted lines
   public LinesBuffer deleteLines(int y, int count, int scrollRegionBottom) {
-    return myScreenBuffer.deleteLines(y, count, scrollRegionBottom - 1);
+    LinesBuffer linesBuffer = myScreenBuffer.deleteLines(y, count, scrollRegionBottom - 1);
+    fireModelChangeEvent();
+    return linesBuffer;
   }
 
   public void clearLines(int startRow, int endRow) {
     myScreenBuffer.clearLines(startRow, endRow);
+    fireModelChangeEvent();
   }
 
 
@@ -361,6 +366,7 @@ public class TerminalTextBuffer {
     TextStyle style = createEmptyStyleWithCurrentColor();
     if (y >= 0) {
       myScreenBuffer.clearArea(leftX, y, rightX, y + 1, style);
+      fireModelChangeEvent();
     } else {
       LOG.error("Attempt to erase characters in line: " + y);
     }
@@ -368,13 +374,14 @@ public class TerminalTextBuffer {
 
   public void clearAll() {
     myScreenBuffer.clearAll();
+    fireModelChangeEvent();
   }
 
   public void processHistoryAndScreenLines(int scrollOrigin, StyledTextConsumer consumer) {
     int linesFromHistory = Math.min(-scrollOrigin, myHeight);
     myHistoryBuffer.processLines(myHistoryBuffer.getLineCount() + scrollOrigin, linesFromHistory, consumer, myHistoryBuffer.getLineCount() + scrollOrigin);
     if (myHeight - linesFromHistory + 1 > 0) {
-      myScreenBuffer.processLines(0, myHeight - linesFromHistory + 1, consumer, -linesFromHistory+1);
+      myScreenBuffer.processLines(0, myHeight - linesFromHistory, consumer, -linesFromHistory);
     }
   }
 }

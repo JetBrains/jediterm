@@ -1,5 +1,7 @@
 package com.jediterm.terminal.model;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.jediterm.terminal.CharacterUtils;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.util.Pair;
@@ -30,7 +32,7 @@ public class TerminalLine {
   public String getText() {
     final StringBuilder sb = new StringBuilder();
 
-    for (TerminalLine.TextEntry textEntry : myTextEntries) {
+    for (TerminalLine.TextEntry textEntry : Lists.newArrayList(myTextEntries)) {
       sb.append(textEntry.getText());
     }
 
@@ -43,10 +45,6 @@ public class TerminalLine {
 
   public void setWrapped(boolean wrapped) {
     myWrapped = wrapped;
-  }
-
-  public Iterator<TextEntry> entriesIterator() {
-    return myTextEntries.iterator();
   }
 
   public void clear() {
@@ -197,8 +195,24 @@ public class TerminalLine {
 
   @Nullable
   public TextStyle getStyleAt(int x) {
-    Pair<char[], TextStyle[]> pair = toBuf(myTextEntries, myTextEntries.length());
-    return x<pair.second.length ? pair.second[x]: null;
+    int i = 0;
+
+    for (TextEntry te: Lists.newArrayList(myTextEntries)) {
+      if (x>=i && x< i + te.getLength()) {
+        return te.getStyle();
+      }
+      i+=te.getLength();
+    }
+
+    return null;
+  }
+
+  public void process(int y, LinesBuffer.TextEntryProcessor processor) {
+    int x = 0;
+    for (TextEntry te: Lists.newArrayList(myTextEntries)) {
+      processor.process(x, y, te);
+      x+=te.getLength();
+    }
   }
 
   static class TextEntry {

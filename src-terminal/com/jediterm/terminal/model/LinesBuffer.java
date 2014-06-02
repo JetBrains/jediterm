@@ -3,6 +3,7 @@ package com.jediterm.terminal.model;
 import com.google.common.collect.Lists;
 import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.TextStyle;
+import com.jediterm.terminal.model.TerminalLine.TextEntry;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
@@ -71,7 +72,7 @@ public class LinesBuffer {
     return line.getText();
   }
 
-  public synchronized void insertLines(int y, int count, int lastLine) {
+  public synchronized void insertLines(int y, int count, int lastLine, @NotNull TextEntry filler) {
     LinesBuffer tail = new LinesBuffer();
 
     if (lastLine < getLineCount() - 1) {
@@ -84,7 +85,7 @@ public class LinesBuffer {
     }
 
     for (int i = 0; i < count; i++) {
-      head.addNewLine(TextStyle.EMPTY, CharBuffer.EMPTY);
+      head.addNewLine(filler);
     }
 
     head.moveBottomLinesTo(head.getLineCount(), this);
@@ -94,7 +95,7 @@ public class LinesBuffer {
     tail.moveTopLinesTo(tail.getLineCount(), this);
   }
 
-  public synchronized LinesBuffer deleteLines(int y, int count, int lastLine) {
+  public synchronized LinesBuffer deleteLines(int y, int count, int lastLine, @NotNull TextEntry filler) {
     LinesBuffer tail = new LinesBuffer();
 
     if (lastLine < getLineCount() - 1) {
@@ -114,7 +115,7 @@ public class LinesBuffer {
     head.moveBottomLinesTo(head.getLineCount(), this);
 
     for (int i = 0; i < toRemove; i++) {
-      addNewLine(TextStyle.EMPTY, CharBuffer.EMPTY);
+      addNewLine(filler);
     }
 
     tail.moveTopLinesTo(tail.getLineCount(), this);
@@ -128,15 +129,9 @@ public class LinesBuffer {
     line.writeString(x, str, style);
   }
 
-  public synchronized void clearLines(int startRow, int endRow) {
+  public synchronized void clearLines(int startRow, int endRow, @NotNull TextEntry filler) {
     for (int i = startRow; i <= endRow; i++) {
-      if (i < myLines.size()) {
-        TerminalLine line = myLines.get(i);
-        line.clear();
-      }
-      else {
-        break;
-      }
+      getLine(i).clear(filler);
     }
   }
 
@@ -144,14 +139,14 @@ public class LinesBuffer {
     myLines.clear();
   }
 
-  public synchronized void deleteCharacters(int x, int y, int count) {
+  public synchronized void deleteCharacters(int x, int y, int count, @NotNull TextStyle style) {
     TerminalLine line = getLine(y);
-    line.deleteCharacters(x, count);
+    line.deleteCharacters(x, count, style);
   }
 
-  public synchronized void insertBlankCharacters(final int x, final int y, final int count, final int maxLen) {
+  public synchronized void insertBlankCharacters(final int x, final int y, final int count, final int maxLen, @NotNull TextStyle style) {
     TerminalLine line = getLine(y);
-    line.insertBlankCharacters(x, count, maxLen);
+    line.insertBlankCharacters(x, count, maxLen, style);
   }
 
   public synchronized void clearArea(int leftX, int topY, int rightX, int bottomY, @NotNull TextStyle style) {

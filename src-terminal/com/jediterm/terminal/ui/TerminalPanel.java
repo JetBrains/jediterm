@@ -561,16 +561,19 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       final int textWidth = myTerminalTextBuffer.getWidth();
       
       @Override
-      public void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
+      public void consume(int x, int y, int nulIndex, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
         int row = y - startRow;
         drawCharacters(x, row, style, characters, gfx);
         if (mySelection != null) {
-          Pair<Integer, Integer> interval = mySelection.intersect(x, row + myClientScrollOrigin, characters.length());
-          if (interval != null) {
-            TextStyle selectionStyle = getSelectionStyle(style);
-            if (characters.isNul()) { // NUL area is non-breaking
+          TextStyle selectionStyle = getSelectionStyle(style);
+          if (characters.isNul()) { // NUL area is non-breaking
+            Pair<Integer, Integer> interval = mySelection.intersect(nulIndex, row + myClientScrollOrigin, textWidth - nulIndex);
+            if (interval != null) {
               drawCharacters(x, row, selectionStyle, characters, gfx);
-            } else {
+            }
+          } else {
+            Pair<Integer, Integer> interval = mySelection.intersect(x, row + myClientScrollOrigin, characters.length());
+            if (interval != null) {
               drawCharacters(interval.first, row, selectionStyle, characters.subBuffer(interval.first - x, interval.second), gfx);
             }
           }
@@ -578,14 +581,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       }
 
       @Override
-      public void consumeQueue(int x, int y, int startRow) {
+      public void consumeQueue(int x, int y, int nulIndex, int startRow) {
         // draw selection on the end of the line
+        if (x >= textWidth) {
+          return;
+        }
         int row = y - startRow;
-        if (mySelection != null) {
-          Pair<Point, Point> p = SelectionUtil.sortPoints(new Point(mySelection.getStart()), new Point(mySelection.getEnd()));
-          if ((row >= p.first.y && row < p.second.y) || (row == p.second.y && p.second.x >= x)) {
-            drawCharacters(x, row, getSelectionStyle(myStyleState.getCurrent()), new CharBuffer(CharacterUtils.EMPTY_CHAR, textWidth - x), gfx);
-          }
+        if (mySelection != null && mySelection.intersect(nulIndex, row + myClientScrollOrigin, textWidth - nulIndex) != null) {
+          drawCharacters(x, row, getSelectionStyle(TextStyle.EMPTY), new CharBuffer(CharacterUtils.EMPTY_CHAR, textWidth - x), gfx);
         }
       }
     });

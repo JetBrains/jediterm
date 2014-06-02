@@ -24,14 +24,14 @@ public class ArrayBasedTextConsumer implements StyledTextConsumer {
   }
 
   @Override
-  public void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
+  public void consume(int x, int y, int nulIndex, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
     for (int i = 0; i<characters.length(); i++) {
       myBuf[y - startRow][x + i] = characters.charAt(i);
     }
   }
 
   @Override
-  public void consumeQueue(int x, int y, int startRow) {
+  public void consumeQueue(int x, int y, int nulIndex, int startRow) {
     // no-op
   }
 

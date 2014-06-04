@@ -13,7 +13,6 @@ public interface StyledTextConsumer {
    *
    * @param x indicates starting column of the characters
    * @param y indicates row of the characters
-   * @param nulIndex indicates position of the first NUL char (ie. the end of actual text)
    * @param style style of characters
    * @param characters text characters
    * @param startRow number of the first row.

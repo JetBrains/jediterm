@@ -44,11 +44,6 @@ public class TerminalLine {
     return sb.toString();
   }
 
-  // return the position of the first NUL char (ie. the end of actual text)
-  public int getNulIndex() {
-    return myTextEntries.getNulIndex();
-  }
-
   public boolean isWrapped() {
     return myWrapped;
   }
@@ -241,12 +236,19 @@ public class TerminalLine {
 
   public void process(int y, StyledTextConsumer consumer, int startRow) {
     int x = 0;
-    int nulIndex = getNulIndex();
-    for (TextEntry te: Lists.newArrayList(myTextEntries)) {
-      consumer.consume(x, y, nulIndex, te.getStyle(), te.getText(), startRow);
+    int nulIndex = -1;
+    for (TextEntry te : Lists.newArrayList(myTextEntries)) {
+      if (te.getText().isNul()) {
+        if(nulIndex < 0) {
+          nulIndex = x;
+        }
+        consumer.consumeNul(x, y, nulIndex, te.getStyle(), te.getText(), startRow);
+      } else {
+        consumer.consume(x, y, te.getStyle(), te.getText(), startRow);
+      }
       x += te.getLength();
     }
-    consumer.consumeQueue(x, y, nulIndex, startRow);
+    consumer.consumeQueue(x, y, nulIndex < 0 ? x : nulIndex, startRow);
   }
 
   static class TextEntry {
@@ -275,10 +277,8 @@ public class TerminalLine {
     private ArrayList<TextEntry> myTextEntries = new ArrayList<TextEntry>();
 
     private int myLength = 0;
-    private int myNulIndex = 0;
 
     public void add(TextEntry entry) {
-      myLength += entry.getLength();
       // NUL can only be at the end of the line
       if (!entry.getText().isNul()) {
         for (TextEntry t : myTextEntries) {
@@ -286,9 +286,9 @@ public class TerminalLine {
             t.getText().unNullify();
           }
         }
-        myNulIndex = myLength;
       }
       myTextEntries.add(entry);
+      myLength += entry.getLength();
     }
 
     private Collection<TextEntry> entries() {
@@ -303,14 +303,9 @@ public class TerminalLine {
       return myLength;
     }
 
-    public int getNulIndex() {
-      return myNulIndex;
-    }
-
     public void clear() {
       myTextEntries.clear();
       myLength = 0;
-      myNulIndex = 0;
     }
   }
 }

@@ -135,6 +135,7 @@ public class LinesBuffer {
     }
   }
 
+  // used for reset, style not needed here (reseted as well)
   public synchronized void clearAll() {
     myLines.clear();
   }

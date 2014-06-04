@@ -1,17 +1,15 @@
 package com.jediterm.util;
 
-import com.jediterm.terminal.StyledTextConsumer;
+import com.jediterm.terminal.StyledTextConsumerAdapter;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.model.CharBuffer;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Arrays;
-
 /**
  * @author traff
  */
-public class ArrayBasedTextConsumer implements StyledTextConsumer {
+public class ArrayBasedTextConsumer extends StyledTextConsumerAdapter {
   private char[][] myBuf;
 
   public ArrayBasedTextConsumer(int h, int w) {
@@ -24,15 +22,10 @@ public class ArrayBasedTextConsumer implements StyledTextConsumer {
   }
 
   @Override
-  public void consume(int x, int y, int nulIndex, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
+  public void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
     for (int i = 0; i<characters.length(); i++) {
       myBuf[y - startRow][x + i] = characters.charAt(i);
     }
-  }
-
-  @Override
-  public void consumeQueue(int x, int y, int nulIndex, int startRow) {
-    // no-op
   }
 
   public String getLines() {

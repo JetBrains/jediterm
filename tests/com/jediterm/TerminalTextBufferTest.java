@@ -1,6 +1,7 @@
 package com.jediterm;
 
 import com.jediterm.terminal.StyledTextConsumer;
+import com.jediterm.terminal.StyledTextConsumerAdapter;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.model.TerminalTextBuffer;
 import com.jediterm.terminal.model.CharBuffer;
@@ -38,15 +39,10 @@ public class TerminalTextBufferTest extends TestCase {
     terminal.carriageReturn();
     terminal.writeString("  4.");
 
-    terminalTextBuffer.processScreenLines(0, 10, new StyledTextConsumer() {
+    terminalTextBuffer.processScreenLines(0, 10, new StyledTextConsumerAdapter() {
       @Override
-      public void consume(int x, int y, int nulIndex, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
+      public void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
         assertNotNull(style);
-      }
-
-      @Override
-      public void consumeQueue(int x, int y, int nulIndex, int startRow) {
-        // no-op
       }
     });
 

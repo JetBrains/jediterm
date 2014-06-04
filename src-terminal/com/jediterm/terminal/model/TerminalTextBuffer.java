@@ -5,6 +5,7 @@ import com.google.common.collect.Maps;
 import com.jediterm.terminal.CharacterUtils;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.StyledTextConsumer;
+import com.jediterm.terminal.StyledTextConsumerAdapter;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.model.TerminalLine.TextEntry;
 import org.apache.log4j.Logger;
@@ -209,11 +210,11 @@ public class TerminalTextBuffer {
     myLock.lock();
     try {
       final StringBuilder sb = new StringBuilder();
-      myScreenBuffer.processLines(0, myHeight, new StyledTextConsumer() {
+      myScreenBuffer.processLines(0, myHeight, new StyledTextConsumerAdapter() {
         int count = 0;
 
         @Override
-        public void consume(int x, int y, int nulIndex, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
+        public void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
           if (x == 0) {
             sb.append("\n");
           }
@@ -222,11 +223,6 @@ public class TerminalTextBuffer {
             hashMap.put(styleNum, count++);
           }
           sb.append(String.format("%02d ", hashMap.get(styleNum)));
-        }
-
-        @Override
-        public void consumeQueue(int x, int y, int nulIndex, int startRow) {
-          // no-op
         }
       });
       return sb.toString();

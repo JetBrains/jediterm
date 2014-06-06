@@ -178,7 +178,7 @@ public class JSchTtyConnector implements TtyConnector {
 
   @Override
   public boolean isConnected() {
-    return myChannelShell.isConnected();
+    return myChannelShell != null && myChannelShell.isConnected();
   }
 
   @Override

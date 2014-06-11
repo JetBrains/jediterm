@@ -51,7 +51,7 @@ public class LinesBuffer {
   }
 
   private synchronized void addLine(@NotNull TerminalLine line) {
-    if (myLines.size() > BUFFER_MAX_LINES) {
+    if (myLines.size() >= BUFFER_MAX_LINES) {
       removeTopLines(1);
     }
 
@@ -201,6 +201,10 @@ public class LinesBuffer {
   }
 
   public synchronized void addLines(@NotNull List<TerminalLine> lines) {
+    int count = myLines.size() + lines.size();
+    if (count >= BUFFER_MAX_LINES) {
+      removeTopLines(count - BUFFER_MAX_LINES);
+    }
     myLines.addAll(lines);
   }
 

@@ -11,7 +11,9 @@ public class CharacterUtils {
   public static final int ESC = Ascii.ESC;
   public static final int DEL = Ascii.DEL;
 
-  public static final char EMPTY_CHAR = ' '; // (char) 0x0;
+  // NUL can only be at the end of the line
+  public static final char NUL_CHAR = 0x0;
+  public static final char EMPTY_CHAR = ' ';
 
   private CharacterUtils() {
   }

@@ -558,6 +558,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     gfx.fillRect(0, 0, getWidth(), getHeight());
 
     myTerminalTextBuffer.processHistoryAndScreenLines(myClientScrollOrigin, new StyledTextConsumer() {
+      final int columnCount = getColumnCount();
+
       @Override
       public void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
         int row = y - startRow;
@@ -566,9 +568,30 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
           Pair<Integer, Integer> interval = mySelection.intersect(x, row + myClientScrollOrigin, characters.length());
           if (interval != null) {
             TextStyle selectionStyle = getSelectionStyle(style);
-
             drawCharacters(interval.first, row, selectionStyle, characters.subBuffer(interval.first - x, interval.second), gfx);
           }
+        }
+      }
+
+      @Override
+      public void consumeNul(int x, int y, int nulIndex, TextStyle style, CharBuffer characters, int startRow) {
+        int row = y - startRow;
+        if (mySelection != null) {
+          // compute intersection with all NUL areas, non-breaking
+          Pair<Integer, Integer> interval = mySelection.intersect(nulIndex, row + myClientScrollOrigin, columnCount - nulIndex);
+          if (interval != null) {
+            TextStyle selectionStyle = getSelectionStyle(style);
+            drawCharacters(x, row, selectionStyle, characters, gfx);
+            return;
+          }
+        }
+        drawCharacters(x, row, style, characters, gfx);
+      }
+
+      @Override
+      public void consumeQueue(int x, int y, int nulIndex, int startRow) {
+        if(x < columnCount) {
+          consumeNul(x, y, nulIndex, TextStyle.EMPTY, new CharBuffer(CharacterUtils.EMPTY_CHAR, columnCount - x), startRow);
         }
       }
     });

@@ -4,8 +4,9 @@ import com.google.common.base.Predicate;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.debug.BufferPanel;
-
+import com.jediterm.terminal.model.SelectionUtil;
 import com.jediterm.terminal.ui.settings.DefaultTabbedSettingsProvider;
+import com.jediterm.terminal.util.Pair;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -41,7 +42,16 @@ public abstract class AbstractTerminalFrame {
           "x" + myTerminal.getTerminalDisplay().getRowCount());
     }
   };
-  
+
+  private AbstractAction myDumpSelection = new AbstractAction("Dump selection") {
+    public void actionPerformed(final ActionEvent e) {
+      Pair<Point, Point> points = myTerminal.getTerminalDisplay()
+          .getSelection().pointsForRun(myTerminal.getTerminalDisplay().getColumnCount());
+      LOG.info(myTerminal.getTerminalDisplay().getSelection() + " : '"
+          + SelectionUtil.getSelectionText(points.first, points.second, myTerminal.getCurrentSession().getBackBuffer()) + "'");
+    }
+  };
+
   private AbstractAction myDumpCursorPosition = new AbstractAction("Dump cursor position") {
     public void actionPerformed(final ActionEvent e) {
       LOG.info(myTerminal.getCurrentSession().getTerminal().getCursorX() +
@@ -91,6 +101,7 @@ public abstract class AbstractTerminalFrame {
     dm.add(myShowBuffersAction);
     dm.addSeparator();
     dm.add(myDumpDimension);
+    dm.add(myDumpSelection);
     dm.add(myDumpCursorPosition);
     
     JMenu cursorPosition = new JMenu("Set cursor position ...");

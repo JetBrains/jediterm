@@ -299,7 +299,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       TerminalPanel terminalPanel = ref.get();
       if (terminalPanel != null) {
         try {
-          terminalPanel.redraw();
+          terminalPanel.repaint();
         } catch (Exception ex) {
           LOG.error("Error while terminal panel redraw", ex);
         }
@@ -927,10 +927,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private ColorPalette getPalette() {
     return mySettingsProvider.getTerminalColorPalette();
-  }
-
-  public void redraw() {
-    repaint();
   }
 
   private void drawMargins(Graphics2D gfx, int width, int height) {

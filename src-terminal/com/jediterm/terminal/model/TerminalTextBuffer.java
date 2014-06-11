@@ -152,8 +152,6 @@ public class TerminalTextBuffer {
     } else if (count < 0) {
       LOG.error("Attempt to insert negative blank chars number: count:" + count);
     } else if (count > 0) { //nothing to do
-      int from = y * myWidth + x;
-
       myScreenBuffer.insertBlankCharacters(x, y, count, myWidth);
 
       fireModelChangeEvent();

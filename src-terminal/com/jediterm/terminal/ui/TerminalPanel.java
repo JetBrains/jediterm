@@ -876,6 +876,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             Math.min(textLength * myCharSize.width, getWidth() - xCoord),
             Math.min(myCharSize.height, getHeight() - yCoord));
 
+    if (buf.isNul()) {
+      return; // nothing more to do
+    }
+
     drawChars(x, y, buf, style, gfx);
 
     gfx.setColor(getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun())));

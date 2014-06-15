@@ -202,7 +202,7 @@ public class TerminalLine {
   public TextStyle getStyleAt(int x) {
     int i = 0;
 
-    for (TextEntry te: myTextEntries) {
+    for (TextEntry te: Lists.newArrayList(myTextEntries)) {
       if (x>=i && x< i + te.getLength()) {
         return te.getStyle();
       }
@@ -214,7 +214,7 @@ public class TerminalLine {
 
   public void process(int y, LinesBuffer.TextEntryProcessor processor) {
     int x = 0;
-    for (TextEntry te: myTextEntries) {
+    for (TextEntry te: Lists.newArrayList(myTextEntries)) {
       processor.process(x, y, te);
       x+=te.getLength();
     }

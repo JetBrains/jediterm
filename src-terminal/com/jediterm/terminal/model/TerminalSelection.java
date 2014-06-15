@@ -71,10 +71,15 @@ public class TerminalSelection {
       newLength = length - newX + x;
     }
 
-
     if (newLength<=0 || row < p.first.y || row > p.second.y) {
       return null;
     } else
       return Pair.create(newX, newLength);
   }
+
+  @Override
+  public String toString() {
+    return "[x=" + myStart.x + ",y=" + myStart.y + "]" + " -> [x=" + myEnd.x + ",y=" + myEnd.y + "]";
+  }
+
 }

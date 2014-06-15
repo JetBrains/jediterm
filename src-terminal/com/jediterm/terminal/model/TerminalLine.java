@@ -1,8 +1,8 @@
 package com.jediterm.terminal.model;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.jediterm.terminal.CharacterUtils;
+import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.util.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -33,10 +33,20 @@ public class TerminalLine {
     final StringBuilder sb = new StringBuilder();
 
     for (TerminalLine.TextEntry textEntry : Lists.newArrayList(myTextEntries)) {
-      sb.append(textEntry.getText());
+      // NUL can only be at the end
+      if (textEntry.getText().isNul()) {
+        break;
+      } else {
+        sb.append(textEntry.getText());
+      }
     }
 
     return sb.toString();
+  }
+
+  public char charAt(int x) {
+    String text = getText();
+    return x < text.length() ? text.charAt(x) : CharacterUtils.EMPTY_CHAR;
   }
 
   public boolean isWrapped() {
@@ -47,8 +57,9 @@ public class TerminalLine {
     myWrapped = wrapped;
   }
 
-  public void clear() {
+  public void clear(@NotNull TextEntry filler) {
     myTextEntries.clear();
+    myTextEntries.add(filler);
     setWrapped(false);
   }
 
@@ -60,10 +71,10 @@ public class TerminalLine {
     int len = myTextEntries.length();
 
     if (x >= len) {
+      // fill the gap
       if (x - len > 0) {
-        myTextEntries.add(new TextEntry(TextStyle.EMPTY, new CharBuffer(CharacterUtils.EMPTY_CHAR, x - len)));
+        myTextEntries.add(new TextEntry(TextStyle.EMPTY, new CharBuffer(CharacterUtils.NUL_CHAR, x - len)));
       }
-
       myTextEntries.add(new TextEntry(style, characters));
     } else {
       len = Math.max(len, x + characters.length());
@@ -117,17 +128,23 @@ public class TerminalLine {
   }
 
   public void deleteCharacters(int x) {
-    deleteCharacters(x, myTextEntries.length() - x);
+    deleteCharacters(x, TextStyle.EMPTY);
+  }
+
+  public void deleteCharacters(int x, @NotNull TextStyle style) {
+    deleteCharacters(x, myTextEntries.length() - x, style);
     // delete to the end of line : line is no more wrapped
     setWrapped(false);
   }
 
-  public void deleteCharacters(int x, int count) {
+  public void deleteCharacters(int x, int count, @NotNull TextStyle style) {
     int p = 0;
     TextEntries newEntries = new TextEntries();
 
+    int remaining = count;
+
     for (TextEntry entry : myTextEntries) {
-      if (count == 0) {
+      if (remaining == 0) {
         newEntries.add(entry);
         continue;
       }
@@ -143,20 +160,23 @@ public class TerminalLine {
         newEntries.add(new TextEntry(entry.getStyle(), entry.getText().subBuffer(0, dx)));
         p = x;
       }
-      if (dx + count < len) {
+      if (dx + remaining < len) {
         //part that left after deleting count 
         newEntries.add(new TextEntry(entry.getStyle(), entry.getText().subBuffer(dx + count, len - (dx + count))));
-        count = 0;
+        remaining = 0;
       } else {
-        count -= (len - dx);
+        remaining -= (len - dx);
         p = x;
       }
+    }
+    if (count > 0 && style != TextStyle.EMPTY) { // apply style to the end of the line
+      newEntries.add(new TextEntry(style, new CharBuffer(CharacterUtils.NUL_CHAR, count)));
     }
 
     myTextEntries = newEntries;
   }
 
-  public void insertBlankCharacters(int x, int count, int maxLen) {
+  public void insertBlankCharacters(int x, int count, int maxLen, @NotNull TextStyle style) {
     int len = myTextEntries.length();
     len = Math.min(len + count, maxLen);
 
@@ -167,9 +187,9 @@ public class TerminalLine {
     for (TextEntry entry : myTextEntries) {
       for (int i = 0; i < entry.getLength() && p < len; i++) {
         if (p == x) {
-          for (int j = 0; j < count; j++) {
+          for (int j = 0; j < count && p < len; j++) {
             buf[p] = CharacterUtils.EMPTY_CHAR;
-            styles[p] = TextStyle.EMPTY;
+            styles[p] = style;
             p++;
           }
         }
@@ -184,20 +204,32 @@ public class TerminalLine {
       }
     }
 
+    // if not inserted yet (ie. x > len)
+    for (; p < x && p < len; p++) {
+      buf[p] = CharacterUtils.EMPTY_CHAR;
+      styles[p] = TextStyle.EMPTY;
+      p++;
+    }
+    for (; p < x + count && p < len; p++) {
+      buf[p] = CharacterUtils.EMPTY_CHAR;
+      styles[p] = style;
+      p++;
+    }
+
     myTextEntries = collectFromBuffer(buf, styles);
   }
 
   public void clearArea(int leftX, int rightX, @NotNull TextStyle style) {
-    if (leftX < myTextEntries.length()) {
-      writeCharacters(leftX, style, new CharBuffer(CharacterUtils.EMPTY_CHAR, Math.min(myTextEntries.length(), rightX) - leftX));
-    }
+    writeCharacters(leftX, style, new CharBuffer(
+        rightX >= myTextEntries.length() ? CharacterUtils.NUL_CHAR : CharacterUtils.EMPTY_CHAR,
+        rightX - leftX));
   }
 
   @Nullable
   public TextStyle getStyleAt(int x) {
     int i = 0;
 
-    for (TextEntry te: Lists.newArrayList(myTextEntries)) {
+    for (TextEntry te: myTextEntries) {
       if (x>=i && x< i + te.getLength()) {
         return te.getStyle();
       }
@@ -207,12 +239,21 @@ public class TerminalLine {
     return null;
   }
 
-  public void process(int y, LinesBuffer.TextEntryProcessor processor) {
+  public void process(int y, StyledTextConsumer consumer, int startRow) {
     int x = 0;
-    for (TextEntry te: Lists.newArrayList(myTextEntries)) {
-      processor.process(x, y, te);
-      x+=te.getLength();
+    int nulIndex = -1;
+    for (TextEntry te : Lists.newArrayList(myTextEntries)) {
+      if (te.getText().isNul()) {
+        if(nulIndex < 0) {
+          nulIndex = x;
+        }
+        consumer.consumeNul(x, y, nulIndex, te.getStyle(), te.getText(), startRow);
+      } else {
+        consumer.consume(x, y, te.getStyle(), te.getText(), startRow);
+      }
+      x += te.getLength();
     }
+    consumer.consumeQueue(x, y, nulIndex < 0 ? x : nulIndex, startRow);
   }
 
   static class TextEntry {
@@ -243,6 +284,14 @@ public class TerminalLine {
     private int myLength = 0;
 
     public void add(TextEntry entry) {
+      // NUL can only be at the end of the line
+      if (!entry.getText().isNul()) {
+        for (TextEntry t : myTextEntries) {
+          if (t.getText().isNul()) {
+            t.getText().unNullify();
+          }
+        }
+      }
       myTextEntries.add(entry);
       myLength += entry.getLength();
     }

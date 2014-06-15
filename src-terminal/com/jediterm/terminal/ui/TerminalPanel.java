@@ -299,7 +299,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       TerminalPanel terminalPanel = ref.get();
       if (terminalPanel != null) {
         try {
-          terminalPanel.redraw();
+          terminalPanel.repaint();
         } catch (Exception ex) {
           LOG.error("Error while terminal panel redraw", ex);
         }
@@ -558,6 +558,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     gfx.fillRect(0, 0, getWidth(), getHeight());
 
     myTerminalTextBuffer.processHistoryAndScreenLines(myClientScrollOrigin, new StyledTextConsumer() {
+      final int columnCount = getColumnCount();
+
       @Override
       public void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
         int row = y - startRow;
@@ -566,9 +568,30 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
           Pair<Integer, Integer> interval = mySelection.intersect(x, row + myClientScrollOrigin, characters.length());
           if (interval != null) {
             TextStyle selectionStyle = getSelectionStyle(style);
-
             drawCharacters(interval.first, row, selectionStyle, characters.subBuffer(interval.first - x, interval.second), gfx);
           }
+        }
+      }
+
+      @Override
+      public void consumeNul(int x, int y, int nulIndex, TextStyle style, CharBuffer characters, int startRow) {
+        int row = y - startRow;
+        if (mySelection != null) {
+          // compute intersection with all NUL areas, non-breaking
+          Pair<Integer, Integer> interval = mySelection.intersect(nulIndex, row + myClientScrollOrigin, columnCount - nulIndex);
+          if (interval != null) {
+            TextStyle selectionStyle = getSelectionStyle(style);
+            drawCharacters(x, row, selectionStyle, characters, gfx);
+            return;
+          }
+        }
+        drawCharacters(x, row, style, characters, gfx);
+      }
+
+      @Override
+      public void consumeQueue(int x, int y, int nulIndex, int startRow) {
+        if(x < columnCount) {
+          consumeNul(x, y, nulIndex, TextStyle.EMPTY, new CharBuffer(CharacterUtils.EMPTY_CHAR, columnCount - x), startRow);
         }
       }
     });
@@ -577,11 +600,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     if (myClientScrollOrigin + getRowCount() > cursorY) {
       myCursor.changeStateIfNeeded();
       int cursorX = myCursor.getCoordX();
-      TextStyle s = myTerminalTextBuffer.getStyleAt(cursorX, cursorY);
-      char c = myTerminalTextBuffer.getBuffersCharAt(cursorX, cursorY);
-      TextStyle normalStyle = s != null ? s : myStyleState.getCurrent();
-      myCursor.drawCursor(c, gfx, inSelection(cursorX, cursorY) ? getSelectionStyle(normalStyle) : normalStyle,
-              getInversedStyle(normalStyle));
+      Pair<Character, TextStyle> sc = myTerminalTextBuffer.getStyledCharAt(cursorX, cursorY);
+      TextStyle normalStyle = sc.second != null ? sc.second : myStyleState.getCurrent();
+      TextStyle selectionStyle = getSelectionStyle(normalStyle);
+      boolean inSelection = inSelection(cursorX, cursorY);
+      myCursor.drawCursor(sc.first, gfx, inSelection ? selectionStyle : normalStyle,
+          getInversedStyle(inSelection ? selectionStyle : normalStyle));
     }
 
     drawInputMethodUncommitedChars(gfx);
@@ -852,6 +876,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             Math.min(textLength * myCharSize.width, getWidth() - xCoord),
             Math.min(myCharSize.height, getHeight() - yCoord));
 
+    if (buf.isNul()) {
+      return; // nothing more to do
+    }
+
     drawChars(x, y, buf, style, gfx);
 
     gfx.setColor(getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun())));
@@ -926,10 +954,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private ColorPalette getPalette() {
     return mySettingsProvider.getTerminalColorPalette();
-  }
-
-  public void redraw() {
-    repaint();
   }
 
   private void drawMargins(Graphics2D gfx, int width, int height) {

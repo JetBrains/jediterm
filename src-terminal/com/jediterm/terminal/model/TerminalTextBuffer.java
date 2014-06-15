@@ -5,7 +5,10 @@ import com.google.common.collect.Maps;
 import com.jediterm.terminal.CharacterUtils;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.StyledTextConsumer;
+import com.jediterm.terminal.StyledTextConsumerAdapter;
 import com.jediterm.terminal.TextStyle;
+import com.jediterm.terminal.util.Pair;
+import com.jediterm.terminal.model.TerminalLine.TextEntry;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -122,6 +125,10 @@ public class TerminalTextBuffer {
     return myStyleState.getCurrent().createEmptyWithColors();
   }
 
+  private TextEntry createFillerEntry() {
+    return new TextEntry(createEmptyStyleWithCurrentColor(), new CharBuffer(CharacterUtils.NUL_CHAR, myWidth));
+  }
+
   public void deleteCharacters(final int x, final int y, final int count) {
     if (y > myHeight - 1 || y < 0) {
       LOG.error("attempt to delete in line " + y + "\n" +
@@ -131,13 +138,7 @@ public class TerminalTextBuffer {
     } else if (count == 0) { //nothing to do
       return;
     } else {
-      int to = y * myWidth + x;
-      int from = to + count;
-      int remain = myWidth - x - count;
-      LOG.debug("About to delete " + count + " chars on line " + y + ", starting from " + x +
-              " (from : " + from + " to : " + to + " remain : " + remain + ")");
-
-      myScreenBuffer.deleteCharacters(x, y, count);
+      myScreenBuffer.deleteCharacters(x, y, count, createEmptyStyleWithCurrentColor());
 
       fireModelChangeEvent();
     }
@@ -150,9 +151,7 @@ public class TerminalTextBuffer {
     } else if (count < 0) {
       LOG.error("Attempt to insert negative blank chars number: count:" + count);
     } else if (count > 0) { //nothing to do
-      int from = y * myWidth + x;
-
-      myScreenBuffer.insertBlankCharacters(x, y, count, myWidth);
+      myScreenBuffer.insertBlankCharacters(x, y, count, myWidth, createEmptyStyleWithCurrentColor());
 
       fireModelChangeEvent();
     }
@@ -210,7 +209,7 @@ public class TerminalTextBuffer {
     myLock.lock();
     try {
       final StringBuilder sb = new StringBuilder();
-      myScreenBuffer.processLines(0, myHeight, new StyledTextConsumer() {
+      myScreenBuffer.processLines(0, myHeight, new StyledTextConsumerAdapter() {
         int count = 0;
 
         @Override
@@ -223,7 +222,6 @@ public class TerminalTextBuffer {
             hashMap.put(styleNum, count++);
           }
           sb.append(String.format("%02d ", hashMap.get(styleNum)));
-
         }
       });
       return sb.toString();
@@ -310,13 +308,18 @@ public class TerminalTextBuffer {
   }
 
   public char getBuffersCharAt(int x, int y) {
-    String lineText = getLine(y).getText();
-    return x < lineText.length() ? lineText.charAt(x) : CharacterUtils.EMPTY_CHAR;
+    return getLine(y).charAt(x);
   }
 
   public TextStyle getStyleAt(int x, int y) {
-    TerminalLine line = myScreenBuffer.getLine(y);
-    return line.getStyleAt(x);
+    return getLine(y).getStyleAt(x);
+  }
+
+  public Pair<Character, TextStyle> getStyledCharAt(int x, int y) {
+    synchronized (myScreenBuffer) {
+      TerminalLine line = getLine(y);
+      return new Pair<Character, TextStyle>(line.charAt(x), line.getStyleAt(x));
+    }
   }
 
   public void useAlternateBuffer(boolean enabled) {
@@ -346,23 +349,22 @@ public class TerminalTextBuffer {
   }
 
   public void insertLines(int y, int count, int scrollRegionBottom) {
-    myScreenBuffer.insertLines(y, count, scrollRegionBottom - 1);
+    myScreenBuffer.insertLines(y, count, scrollRegionBottom - 1, createFillerEntry());
 
     fireModelChangeEvent();
   }
 
   // returns deleted lines
   public LinesBuffer deleteLines(int y, int count, int scrollRegionBottom) {
-    LinesBuffer linesBuffer = myScreenBuffer.deleteLines(y, count, scrollRegionBottom - 1);
+    LinesBuffer linesBuffer = myScreenBuffer.deleteLines(y, count, scrollRegionBottom - 1, createFillerEntry());
     fireModelChangeEvent();
     return linesBuffer;
   }
 
   public void clearLines(int startRow, int endRow) {
-    myScreenBuffer.clearLines(startRow, endRow);
+    myScreenBuffer.clearLines(startRow, endRow, createFillerEntry());
     fireModelChangeEvent();
   }
-
 
   public void eraseCharacters(int leftX, int rightX, int y) {
     TextStyle style = createEmptyStyleWithCurrentColor();

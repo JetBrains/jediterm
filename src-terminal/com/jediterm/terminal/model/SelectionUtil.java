@@ -77,7 +77,7 @@ public class SelectionUtil {
       else {
         selectionText.append(line.getText());
       }
-      if (!line.isWrapped() && i < bottom.y) {
+      if ((!line.isWrapped() && i < bottom.y) || bottom.x > text.length()) {
         selectionText.append("\n");
       }
     }

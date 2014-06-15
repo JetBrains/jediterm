@@ -39,11 +39,6 @@ public class TerminalLine {
     return sb.toString();
   }
 
-  public char charAt(int x) {
-    String text = getText();
-    return x < text.length() ? text.charAt(x) : CharacterUtils.EMPTY_CHAR;
-  }
-
   public boolean isWrapped() {
     return myWrapped;
   }

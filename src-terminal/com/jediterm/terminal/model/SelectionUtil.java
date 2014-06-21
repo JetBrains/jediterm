@@ -54,9 +54,10 @@ public class SelectionUtil {
                                         final TerminalTextBuffer terminalTextBuffer) {
 
     Pair<Point, Point> pair = sortPoints(selectionStart, selectionEnd);
+    pair.first.y = Math.max(pair.first.y, - terminalTextBuffer.getHistoryLinesCount());
+    pair = sortPoints(pair.first, pair.second); // previous line may have change the order
 
     Point top = pair.first;
-    top.y = Math.max(top.y, - terminalTextBuffer.getHistoryLinesCount());
     Point bottom = pair.second;
 
     final StringBuilder selectionText = new StringBuilder();

@@ -13,6 +13,7 @@ import com.jediterm.terminal.emulator.mouse.TerminalMouseListener;
 import com.jediterm.terminal.model.*;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
 import com.jediterm.terminal.util.Pair;
+
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -20,6 +21,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+
 import java.awt.*;
 import java.awt.datatransfer.*;
 import java.awt.event.*;
@@ -36,7 +38,8 @@ import java.util.List;
 public class TerminalPanel extends JComponent implements TerminalDisplay, ClipboardOwner, TerminalActionProvider {
   private static final Logger LOG = Logger.getLogger(TerminalPanel.class);
   private static final long serialVersionUID = -1048763516632093014L;
-  private static final double FPS = 50;
+
+  private static final double MAX_FPS = 50;
 
   public static final double SCROLL_SPEED = 0.05;
 
@@ -103,6 +106,20 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         repaint();
       }
     });
+  }
+
+  private long lastRepaint = 0;
+
+  @Override
+  public void repaint() {
+    long now = System.currentTimeMillis();
+    if (now > lastRepaint + 1000 / MAX_FPS) {
+      lastRepaint = now;
+      super.repaint();
+    }
+    else {
+      // TODO: post at least one repaint here
+    }
   }
 
   @Deprecated

@@ -34,12 +34,13 @@ import java.lang.ref.WeakReference;
 import java.text.AttributedCharacterIterator;
 import java.text.CharacterIterator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TerminalPanel extends JComponent implements TerminalDisplay, ClipboardOwner, TerminalActionProvider {
   private static final Logger LOG = Logger.getLogger(TerminalPanel.class);
   private static final long serialVersionUID = -1048763516632093014L;
 
-  private static final double MAX_FPS = 50;
+  private static final int MAX_FPS = 50;
 
   public static final double SCROLL_SPEED = 0.05;
 
@@ -84,9 +85,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private TerminalActionProvider myNextActionProvider;
   private String myInputMethodUncommitedChars;
 
-  private int myBlinkingPeriod = 500;
   private Timer myRepaintTimer;
+  private AtomicBoolean needRepaint = new AtomicBoolean(true);
 
+  private int myBlinkingPeriod = 500;
 
   public TerminalPanel(@NotNull SettingsProvider settingsProvider, @NotNull TerminalTextBuffer terminalTextBuffer, @NotNull StyleState styleState) {
     mySettingsProvider = settingsProvider;
@@ -108,18 +110,13 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     });
   }
 
-  private long lastRepaint = 0;
-
   @Override
   public void repaint() {
-    long now = System.currentTimeMillis();
-    if (now > lastRepaint + 1000 / MAX_FPS) {
-      lastRepaint = now;
-      super.repaint();
-    }
-    else {
-      // TODO: post at least one repaint here
-    }
+    needRepaint.set(true);
+  }
+
+  private void doRepaint() {
+    super.repaint();
   }
 
   @Deprecated
@@ -274,15 +271,13 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     });
 
     createRepaintTimer();
-
-    repaint();
   }
 
   private void createRepaintTimer() {
     if (myRepaintTimer != null) {
       myRepaintTimer.stop();
     }
-    myRepaintTimer = new Timer(myBlinkingPeriod > 40 ? myBlinkingPeriod / 2 : 20, new WeakRedrawTimer(this));
+    myRepaintTimer = new Timer(1000 / MAX_FPS, new WeakRedrawTimer(this));
     myRepaintTimer.start();
   }
 
@@ -300,7 +295,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   public void setBlinkingPeriod(int blinkingPeriod) {
     myBlinkingPeriod = blinkingPeriod;
-    createRepaintTimer();
   }
 
   static class WeakRedrawTimer implements ActionListener {
@@ -315,10 +309,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     public void actionPerformed(ActionEvent e) {
       TerminalPanel terminalPanel = ref.get();
       if (terminalPanel != null) {
-        try {
-          terminalPanel.repaint();
-        } catch (Exception ex) {
-          LOG.error("Error while terminal panel redraw", ex);
+        terminalPanel.myCursor.changeStateIfNeeded();
+        if (terminalPanel.needRepaint.getAndSet(false)) {
+          try {
+            terminalPanel.doRepaint();
+          }
+          catch (Exception ex) {
+            LOG.error("Error while terminal panel redraw", ex);
+          }
         }
       } else { // terminalPanel was garbage collected
         Timer timer = (Timer) e.getSource();
@@ -783,16 +781,15 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       cursorChanged();
     }
 
+    public void setY(int y) {
+      myCursorCoordinates.y = y;
+      cursorChanged();
+    }
+
     private void cursorChanged() {
       myCursorHasChanged = true;
       myLastCursorChange = System.currentTimeMillis();
       repaint();
-    }
-
-
-    public void setY(int y) {
-      myCursorCoordinates.y = y;
-      cursorChanged();
     }
 
     public int getCoordX() {
@@ -811,10 +808,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       return myShouldDrawCursor && isFocusOwner();
     }
 
-    private boolean noRecentResize(long time) {
-      return time - myLastResize > getBlinkingPeriod();
-    }
-
     public void setBlinking(boolean blinking) {
       myBlinking = blinking;
     }
@@ -829,6 +822,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         myCursorIsShown = !myCursorIsShown;
         myLastCursorChange = currentTime;
         myCursorHasChanged = false;
+        repaint();
       }
     }
 

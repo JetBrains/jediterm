@@ -86,6 +86,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private String myInputMethodUncommitedChars;
 
   private Timer myRepaintTimer;
+  private AtomicBoolean needScrollUpdate = new AtomicBoolean(true);
   private AtomicBoolean needRepaint = new AtomicBoolean(true);
 
   private int myBlinkingPeriod = 500;
@@ -310,6 +311,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       TerminalPanel terminalPanel = ref.get();
       if (terminalPanel != null) {
         terminalPanel.myCursor.changeStateIfNeeded();
+        if (terminalPanel.needScrollUpdate.getAndSet(false)) {
+          terminalPanel.updateScrolling();
+        }
         if (terminalPanel.needRepaint.getAndSet(false)) {
           try {
             terminalPanel.doRepaint();
@@ -975,13 +979,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   public void scrollArea(final int scrollRegionTop, final int scrollRegionSize, int dy) {
     if (dy < 0) {
-      //Moving lines off the top of the screen
-      SwingUtilities.invokeLater(new Runnable() {
-        @Override
-        public void run() {
-          updateScrolling();
-        }
-      });
+      needScrollUpdate.set(true);
     }
     mySelection = null;
   }

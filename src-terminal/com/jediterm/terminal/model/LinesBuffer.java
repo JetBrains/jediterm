@@ -183,10 +183,8 @@ public class LinesBuffer {
 
   @NotNull
   public synchronized TerminalLine getLine(int row) {
-    if (row >= getLineCount()) {
-      for (int i = getLineCount(); i <= row; i++) {
-        addLine(TerminalLine.createEmpty());
-      }
+    for (int i = getLineCount(); i <= row; i++) {
+      addLine(TerminalLine.createEmpty());
     }
 
     return myLines.get(row);

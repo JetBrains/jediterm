@@ -28,6 +28,8 @@ public interface UserSettingsProvider {
 
   boolean useAntialiasing();
 
+  int maxRefreshRate();
+
   boolean audibleBell();
 
   boolean enableMouseReporting();

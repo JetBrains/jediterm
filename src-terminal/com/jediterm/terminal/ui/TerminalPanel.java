@@ -40,8 +40,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private static final Logger LOG = Logger.getLogger(TerminalPanel.class);
   private static final long serialVersionUID = -1048763516632093014L;
 
-  private static final int MAX_FPS = 50;
-
   public static final double SCROLL_SPEED = 0.05;
 
   private final Component myTerminalPanel = this;
@@ -89,6 +87,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private AtomicBoolean needScrollUpdate = new AtomicBoolean(true);
   private AtomicBoolean needRepaint = new AtomicBoolean(true);
 
+  private int myMaxFPS = 50;
   private int myBlinkingPeriod = 500;
 
   public TerminalPanel(@NotNull SettingsProvider settingsProvider, @NotNull TerminalTextBuffer terminalTextBuffer, @NotNull StyleState styleState) {
@@ -97,6 +96,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     myStyleState = styleState;
     myTermSize.width = terminalTextBuffer.getWidth();
     myTermSize.height = terminalTextBuffer.getHeight();
+    myMaxFPS = mySettingsProvider.maxRefreshRate();
 
     updateScrolling();
 
@@ -278,7 +278,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     if (myRepaintTimer != null) {
       myRepaintTimer.stop();
     }
-    myRepaintTimer = new Timer(1000 / MAX_FPS, new WeakRedrawTimer(this));
+    myRepaintTimer = new Timer(1000 / myMaxFPS, new WeakRedrawTimer(this));
     myRepaintTimer.start();
   }
 

@@ -106,6 +106,11 @@ public class DefaultSettingsProvider implements SettingsProvider {
   }
 
   @Override
+  public int maxRefreshRate() {
+    return 50;
+  }
+
+  @Override
   public boolean audibleBell() {
     return true;
   }

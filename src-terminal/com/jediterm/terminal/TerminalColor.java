@@ -12,22 +12,16 @@ public class TerminalColor {
   public static final TerminalColor WHITE = index(15);
 
   private int myColorIndex;
-  private int myR;
-  private int myG;
-  private int myB;
+  private Color myColor;
 
   public TerminalColor(int index) {
     myColorIndex = index;
-    myR = -1;
-    myG = -1;
-    myB = -1;
+    myColor = null;
   }
 
   public TerminalColor(int r, int g, int b) {
     myColorIndex = -1;
-    myR = r;
-    myG = g;
-    myB = b;
+    myColor = new Color(r, g, b);
   }
 
   public static TerminalColor index(int index) {
@@ -47,7 +41,7 @@ public class TerminalColor {
       throw new IllegalArgumentException("Color is indexed color so a palette is needed");
     }
 
-    return new Color(myR, myG, myB);
+    return myColor;
   }
 
   public int getIndex() {
@@ -68,20 +62,14 @@ public class TerminalColor {
       if (that.isIndexed()) {
         return false;
       }
-      if (myB != that.myB) return false;
-      if (myG != that.myG) return false;
-      if (myR != that.myR) return false;
+      return myColor.equals(that.myColor);
     }
     return true;
   }
 
   @Override
   public int hashCode() {
-    int result = myColorIndex;
-    result = 31 * result + myR;
-    result = 31 * result + myG;
-    result = 31 * result + myB;
-    return result;
+    return myColor != null ? myColor.hashCode() : myColorIndex;
   }
 
   @Nullable

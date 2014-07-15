@@ -258,6 +258,18 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       }
     });
 
+    addFocusListener(new FocusAdapter() {
+      @Override
+      public void focusGained(FocusEvent e) {
+        myCursor.cursorChanged();
+      }
+
+      @Override
+      public void focusLost(FocusEvent e) {
+        myCursor.cursorChanged();
+      }
+    });
+
     myBoundedRangeModel.addChangeListener(new ChangeListener() {
       public void stateChanged(final ChangeEvent e) {
         myClientScrollOrigin = myBoundedRangeModel.getValue();
@@ -599,7 +611,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
       @Override
       public void consumeQueue(int x, int y, int nulIndex, int startRow) {
-        if(x < columnCount) {
+        if (x < columnCount) {
           consumeNul(x, y, nulIndex, TextStyle.EMPTY, new CharBuffer(CharacterUtils.EMPTY_CHAR, columnCount - x), startRow);
         }
       }
@@ -607,7 +619,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     int cursorY = myCursor.getCoordY();
     if (myClientScrollOrigin + getRowCount() > cursorY) {
-      myCursor.changeStateIfNeeded();
       int cursorX = myCursor.getCoordX();
       Pair<Character, TextStyle> sc = myTerminalTextBuffer.getStyledCharAt(cursorX, cursorY);
       TextStyle normalStyle = sc.second != null ? sc.second : myStyleState.getCurrent();
@@ -671,7 +682,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     if (id == KeyEvent.KEY_PRESSED) {
       myKeyListener.keyPressed(e);
     } else if (id == KeyEvent.KEY_RELEASED) {
-                        /* keyReleased(e); */
+      /* keyReleased(e); */
     } else if (id == KeyEvent.KEY_TYPED) {
       myKeyListener.keyTyped(e);
     }
@@ -750,10 +761,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     setKeyListener(new TerminalKeyHandler());
   }
 
+  public enum TerminalCursorState {
+    SHOWING, HIDDEN, NO_FOCUS;
+  }
+
   public class TerminalCursor {
 
     // cursor state
-    private boolean myCursorIsShown;
+    private boolean myCursorIsShown; // blinking state
     protected Point myCursorCoordinates = new Point();
 
     // terminal modes
@@ -763,17 +778,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     private long myLastCursorChange;
     private boolean myCursorHasChanged;
 
-    private boolean calculateIsCursorShown() {
-      if (!isBlinking()) {
-        return true;
-      }
-      return myCursorHasChanged || myCursorIsShown;
-    }
-
-    private boolean cursorShouldChangeBlinkState(long currentTime) {
-      return currentTime - myLastCursorChange > getBlinkingPeriod();
-    }
-
     public void setX(int x) {
       myCursorCoordinates.x = x;
       cursorChanged();
@@ -782,12 +786,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     public void setY(int y) {
       myCursorCoordinates.y = y;
       cursorChanged();
-    }
-
-    private void cursorChanged() {
-      myCursorHasChanged = true;
-      myLastCursorChange = System.currentTimeMillis();
-      repaint();
     }
 
     public int getCoordX() {
@@ -802,10 +800,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       myShouldDrawCursor = shouldDrawCursor;
     }
 
-    public boolean shouldDrawCursor() {
-      return myShouldDrawCursor && isFocusOwner();
-    }
-
     public void setBlinking(boolean blinking) {
       myBlinking = blinking;
     }
@@ -814,7 +808,20 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       return myBlinking && (getBlinkingPeriod() > 0);
     }
 
+    public void cursorChanged() {
+      myCursorHasChanged = true;
+      myLastCursorChange = System.currentTimeMillis();
+      repaint();
+    }
+
+    private boolean cursorShouldChangeBlinkState(long currentTime) {
+      return currentTime - myLastCursorChange > getBlinkingPeriod();
+    }
+
     public void changeStateIfNeeded() {
+      if (!isFocusOwner()) {
+        return;
+      }
       long currentTime = System.currentTimeMillis();
       if (cursorShouldChangeBlinkState(currentTime)) {
         myCursorIsShown = !myCursorIsShown;
@@ -824,16 +831,43 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       }
     }
 
-    public void drawCursor(char c, Graphics2D gfx, TextStyle style) {
-      if (!shouldDrawCursor() || !calculateIsCursorShown()) {
-        return;
+    private TerminalCursorState computeBlinkingState() {
+      if (!isBlinking() || myCursorHasChanged || myCursorIsShown) {
+        return TerminalCursorState.SHOWING;
       }
-      final int y = getCoordY();
-      final int x = getCoordX();
+      return TerminalCursorState.HIDDEN;
+    }
 
-      if (y >= 0 && y < myTermSize.height) {
-        TextStyle styleToDraw = getInversedStyle(style);
-        drawCharacters(x, y, styleToDraw, new CharBuffer(c, 1), gfx);
+    private TerminalCursorState computeCursorState() {
+      if (!myShouldDrawCursor) {
+        return TerminalCursorState.HIDDEN;
+      }
+      if (!isFocusOwner()) {
+        return TerminalCursorState.NO_FOCUS;
+      }
+      return computeBlinkingState();
+    }
+
+    public void drawCursor(char c, Graphics2D gfx, TextStyle style) {
+      TerminalCursorState state = computeCursorState();
+
+      // hidden: do nothing
+      if (state == TerminalCursorState.HIDDEN) {
+        return;
+      } else {
+        final int x = getCoordX();
+        final int y = getCoordY();
+        if (y >= 0 && y < myTermSize.height) {
+          if (state == TerminalCursorState.SHOWING) {
+            TextStyle styleToDraw = getInversedStyle(style);
+            drawCharacters(x, y, styleToDraw, new CharBuffer(c, 1), gfx);
+          } else if (state == TerminalCursorState.NO_FOCUS) {
+            int xCoord = x * myCharSize.width;
+            int yCoord = y * myCharSize.height;
+            gfx.setColor(getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun())));
+            gfx.drawRect(xCoord, yCoord, myCharSize.width - 1, myCharSize.height - 1);
+          }
+        }
       }
     }
   }

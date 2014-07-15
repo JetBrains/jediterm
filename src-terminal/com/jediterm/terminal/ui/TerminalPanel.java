@@ -69,11 +69,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   /*scroll and cursor*/
   final private TerminalCursor myCursor = new TerminalCursor();
   private final BoundedRangeModel myBoundedRangeModel = new DefaultBoundedRangeModel(0, 80, 0, 80);
+  private boolean myScrollingEnabled = true;
   protected int myClientScrollOrigin;
   protected KeyListener myKeyListener;
-  private long myLastCursorChange;
-  private boolean myCursorIsShown;
-  private boolean myScrollingEnabled = true;
 
   private String myWindowTitle = "Terminal";
 
@@ -754,12 +752,17 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   public class TerminalCursor {
-    private boolean myCursorHasChanged;
 
+    // cursor state
+    private boolean myCursorIsShown;
     protected Point myCursorCoordinates = new Point();
 
+    // terminal modes
     private boolean myShouldDrawCursor = true;
     private boolean myBlinking = true;
+
+    private long myLastCursorChange;
+    private boolean myCursorHasChanged;
 
     private boolean calculateIsCursorShown() {
       if (!isBlinking()) {

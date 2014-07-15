@@ -613,8 +613,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       TextStyle normalStyle = sc.second != null ? sc.second : myStyleState.getCurrent();
       TextStyle selectionStyle = getSelectionStyle(normalStyle);
       boolean inSelection = inSelection(cursorX, cursorY);
-      myCursor.drawCursor(sc.first, gfx, inSelection ? selectionStyle : normalStyle,
-          getInversedStyle(inSelection ? selectionStyle : normalStyle));
+      myCursor.drawCursor(sc.first, gfx, inSelection ? selectionStyle : normalStyle);
     }
 
     drawInputMethodUncommitedChars(gfx);
@@ -825,18 +824,15 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       }
     }
 
-    public void drawCursor(char c, Graphics2D gfx, TextStyle style, TextStyle inversedStyle) {
-      if (!shouldDrawCursor()) {
+    public void drawCursor(char c, Graphics2D gfx, TextStyle style) {
+      if (!shouldDrawCursor() || !calculateIsCursorShown()) {
         return;
       }
       final int y = getCoordY();
       final int x = getCoordX();
 
       if (y >= 0 && y < myTermSize.height) {
-        boolean isCursorShown = calculateIsCursorShown();
-
-        TextStyle styleToDraw = isCursorShown ? inversedStyle : style;
-
+        TextStyle styleToDraw = getInversedStyle(style);
         drawCharacters(x, y, styleToDraw, new CharBuffer(c, 1), gfx);
       }
     }

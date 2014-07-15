@@ -42,8 +42,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   public static final double SCROLL_SPEED = 0.05;
 
-  private final Component myTerminalPanel = this;
-
   /*font related*/
   private Font myNormalFont;
   private Font myItalicFont;
@@ -75,7 +73,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   protected KeyListener myKeyListener;
   private long myLastCursorChange;
   private boolean myCursorIsShown;
-  private long myLastResize;
   private boolean myScrollingEnabled = true;
 
   private String myWindowTitle = "Terminal";
@@ -259,7 +256,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     addComponentListener(new ComponentAdapter() {
       @Override
       public void componentResized(final ComponentEvent e) {
-        myLastResize = System.currentTimeMillis();
         sizeTerminalFromComponent();
       }
     });
@@ -425,10 +421,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   /* Do not care
    */
   public void lostOwnership(final Clipboard clipboard, final Transferable contents) {
-  }
-
-  private void drawImage(Graphics2D gfx, BufferedImage image) {
-    drawImage(gfx, image, 0, 0, myTerminalPanel);
   }
 
   protected void drawImage(Graphics2D gfx, BufferedImage image, int x, int y, ImageObserver observer) {
@@ -854,10 +846,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     return myBlinkingPeriod;
   }
 
-  private void drawImage(Graphics2D g, BufferedImage image, int x1, int y1, int x2, int y2) {
-    drawImage(g, image, x1, y1, x2, y2, x1, y1, x2, y2);
-  }
-
   protected void drawImage(Graphics2D g, BufferedImage image, int dx1, int dy1, int dx2, int dy2, int sx1, int sy1, int sx2, int sy2) {
     g.drawImage(image, dx1, dy1, dx2, dy2, sx1, sy1, sx2, sy2, null);
   }
@@ -1008,7 +996,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     return myBoundedRangeModel;
   }
 
-  public TerminalTextBuffer getBackBuffer() {
+  public TerminalTextBuffer getTerminalTextBuffer() {
     return myTerminalTextBuffer;
   }
 

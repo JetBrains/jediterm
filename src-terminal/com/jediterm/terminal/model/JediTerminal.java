@@ -1100,8 +1100,6 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
       if (!tailSet.isEmpty()) {
         tabStop = tailSet.first();
       }
-      
-      System.out.println(position + ", " +tabStop + ", " + myWidth);
 
       // Don't go beyond the end of the line...
       return Math.min(tabStop, (myWidth - 1));

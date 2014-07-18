@@ -275,13 +275,12 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
 
   @Override
   public void horizontalTab() {
-    myCursorX = myTabulator.nextTab(myCursorX);
-
     if (myCursorX >= myTerminalWidth) {
-      myCursorX = 0;
-      myCursorY += 1;
+      return;
     }
-    myDisplay.setCursor(myCursorX, myCursorY);
+    char[] chars = new char[myTabulator.getNextTabWidth(myCursorX)];
+    Arrays.fill(chars, CharacterUtils.EMPTY_CHAR);
+    doWriteString(new String(chars));
   }
 
   @Override
@@ -1101,6 +1100,8 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
       if (!tailSet.isEmpty()) {
         tabStop = tailSet.first();
       }
+      
+      System.out.println(position + ", " +tabStop + ", " + myWidth);
 
       // Don't go beyond the end of the line...
       return Math.min(tabStop, (myWidth - 1));

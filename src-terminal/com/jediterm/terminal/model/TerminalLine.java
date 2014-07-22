@@ -162,7 +162,7 @@ public class TerminalLine {
       }
       if (dx + remaining < len) {
         //part that left after deleting count 
-        newEntries.add(new TextEntry(entry.getStyle(), entry.getText().subBuffer(dx + count, len - (dx + count))));
+        newEntries.add(new TextEntry(entry.getStyle(), entry.getText().subBuffer(dx + remaining, len - (dx + remaining))));
         remaining = 0;
       } else {
         remaining -= (len - dx);

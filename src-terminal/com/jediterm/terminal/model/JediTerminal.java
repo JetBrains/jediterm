@@ -278,9 +278,17 @@ public class JediTerminal implements Terminal, TerminalMouseListener {
     if (myCursorX >= myTerminalWidth) {
       return;
     }
-    char[] chars = new char[myTabulator.getNextTabWidth(myCursorX)];
-    Arrays.fill(chars, CharacterUtils.EMPTY_CHAR);
-    doWriteString(new String(chars));
+    int length = myTerminalTextBuffer.getLine(myCursorY - 1).getText().length();
+    int stop = myTabulator.nextTab(myCursorX);
+    myCursorX = Math.max(myCursorX, length);
+    if(myCursorX < stop) {
+      char[] chars = new char[stop - myCursorX];
+      Arrays.fill(chars, CharacterUtils.EMPTY_CHAR);
+      doWriteString(new String(chars));
+    } else {
+      myCursorX = stop;
+    }
+    myDisplay.setCursor(myCursorX, myCursorY);
   }
 
   @Override

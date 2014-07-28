@@ -41,8 +41,7 @@ public class TerminalSelection {
   }
 
   public boolean contains(Point toTest) {
-    return SelectionUtil.sortPoints(myStart, toTest).first == myStart
-            && SelectionUtil.sortPoints(toTest, myEnd).second == myEnd;
+    return intersects(toTest.x, toTest.y, 1);
   }
 
   public void shiftY(int dy) {

@@ -153,8 +153,8 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   }
 
   @Override
-  public TerminalTextBuffer getBackBuffer() {
-    return myTerminalPanel.getBackBuffer();
+  public TerminalTextBuffer getTerminalTextBuffer() {
+    return myTerminalPanel.getTerminalTextBuffer();
   }
 
   @Override

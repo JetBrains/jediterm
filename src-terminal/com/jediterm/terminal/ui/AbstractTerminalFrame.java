@@ -48,7 +48,7 @@ public abstract class AbstractTerminalFrame {
       Pair<Point, Point> points = myTerminal.getTerminalDisplay()
           .getSelection().pointsForRun(myTerminal.getTerminalDisplay().getColumnCount());
       LOG.info(myTerminal.getTerminalDisplay().getSelection() + " : '"
-          + SelectionUtil.getSelectionText(points.first, points.second, myTerminal.getCurrentSession().getBackBuffer()) + "'");
+          + SelectionUtil.getSelectionText(points.first, points.second, myTerminal.getCurrentSession().getTerminalTextBuffer()) + "'");
     }
   };
 

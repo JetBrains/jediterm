@@ -13,7 +13,7 @@ public interface TerminalSession {
 
   String getBufferText(DebugBufferType type);
 
-  TerminalTextBuffer getBackBuffer();
+  TerminalTextBuffer getTerminalTextBuffer();
 
   Terminal getTerminal();
 

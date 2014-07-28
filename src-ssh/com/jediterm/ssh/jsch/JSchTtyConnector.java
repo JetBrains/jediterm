@@ -74,12 +74,10 @@ public class JSchTtyConnector implements TtyConnector {
     try {
       mySession = connectSession(q);
       myChannelShell = (ChannelShell)mySession.openChannel("shell");
+      configureChannelShell(myChannelShell);
       myInputStream = myChannelShell.getInputStream();
       myOutputStream = myChannelShell.getOutputStream();
       myInputStreamReader = new InputStreamReader(myInputStream, "utf-8");
-      String lang = System.getenv().get("LANG");
-      myChannelShell.setEnv("LANG", lang != null ? lang : "en_US.UTF-8");
-      myChannelShell.setPtyType("xterm");
       myChannelShell.connect();
       resizeImmediately();
       return true;
@@ -119,6 +117,12 @@ public class JSchTtyConnector implements TtyConnector {
     session.setTimeout(0);
 
     return session;
+  }
+
+  protected void configureChannelShell(ChannelShell channel) {
+    String lang = System.getenv().get("LANG");
+    channel.setEnv("LANG", lang != null ? lang : "en_US.UTF-8");
+    channel.setPtyType("xterm");
   }
 
   protected void configureSession(Session session, final java.util.Properties config) throws JSchException {

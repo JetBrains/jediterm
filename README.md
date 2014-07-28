@@ -11,7 +11,7 @@ This list of features planned for 2.0 version:
 To achieve these goals a huge rework is necessary. It can break compatibility and can be unstable in the
 beginning, so the changes are made in branch.
 
-While master is perserved as stable and will get only bug-fix updates.
+While master is preserved as stable and will get only bug-fix updates.
 
 
 
@@ -23,6 +23,9 @@ JediTerm
 The main purpose of the project is to provide a pure Java terminal widget ready
 to embed into IDE. From this comes the name
 J(from `Java`)edi(reversed `IDE`)Term(obviously from `terminal`)
+
+Branch 2.0 is the actual one - it has entirely rewritten rendering and a lot of fixes.
+It will replace the master once become stable.
 
 
 Authors
@@ -68,5 +71,5 @@ Continued as a fork of Gritty (http://code.google.com/p/gritty) by Robert Wittam
 and Omer Kudat, which was in its own turn a rework of
 JCTerm(http://www.jcraft.com/jcterm) by Atsuhiko Yamanaka
 
-Character sets designation and mapping implementation is based on 
+Character sets designation and mapping implementation is based on
 respective classes from jVT220 (https://github.com/jawi/jVT220, Apache 2.0 licensed) by J.W. Janssen

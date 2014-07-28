@@ -19,6 +19,7 @@ public class TerminalAction {
   private Character myMnemonic = null;
   private Supplier<Boolean> myEnabledSupplier = null;
   private Integer myMnemonicKey = null;
+  private boolean mySeparatorBefore = false;
 
   public TerminalAction(String name, KeyStroke[] keyStrokes, Predicate<KeyEvent> runnable) {
     myName = name;
@@ -63,6 +64,9 @@ public class TerminalAction {
     }
     boolean addSeparator = added;
     for (final TerminalAction a : actionProvider.getActions()) {
+      if (!addSeparator) {
+        addSeparator = a.isSeparated();
+      }
       if (addSeparator) {
         menu.addSeparator();
         addSeparator = false;
@@ -115,6 +119,11 @@ public class TerminalAction {
     myEnabledSupplier = enabledSupplier;
     return this;
   }
+
+  public TerminalAction separatorBefore(boolean enabled) {
+    mySeparatorBefore = enabled;
+    return this;
+  }
   
   public JMenuItem toMenuItem() {
     JMenuItem menuItem = new JMenuItem(myName);
@@ -139,5 +148,9 @@ public class TerminalAction {
     menuItem.setEnabled(isEnabled());
     
     return menuItem;
+  }
+
+  public boolean isSeparated() {
+    return mySeparatorBefore;
   }
 }

@@ -84,6 +84,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private int myMaxFPS = 50;
   private int myBlinkingPeriod = 500;
+  private TerminalCoordinates myCoordsAccessor;
 
   public TerminalPanel(@NotNull SettingsProvider settingsProvider, @NotNull TerminalTextBuffer terminalTextBuffer, @NotNull StyleState styleState) {
     mySettingsProvider = settingsProvider;
@@ -304,6 +305,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     myBlinkingPeriod = blinkingPeriod;
   }
 
+  public void setCoordAccessor(TerminalCoordinates coordAccessor) {
+    myCoordsAccessor = coordAccessor;
+  }
+
   static class WeakRedrawTimer implements ActionListener {
 
     private WeakReference<TerminalPanel> ref;
@@ -323,8 +328,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         if (terminalPanel.needRepaint.getAndSet(false)) {
           try {
             terminalPanel.doRepaint();
-          }
-          catch (Exception ex) {
+          } catch (Exception ex) {
             LOG.error("Error while terminal panel redraw", ex);
           }
         }
@@ -1111,8 +1115,40 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
               public Boolean get() {
                 return getClipboardString() != null;
               }
-            })
+            }),
+            new TerminalAction("Clear Buffer", new KeyStroke[]{}, new Predicate<KeyEvent>() {
+              @Override
+              public boolean apply(KeyEvent input) {
+                clearBuffer();
+                return true;
+              }
+            }).withMnemonicKey(KeyEvent.VK_B).withEnabledSupplier(new Supplier<Boolean>() {
+              @Override
+              public Boolean get() {
+                return !myTerminalTextBuffer.isUsingAlternateBuffer();
+              }
+            }).separatorBefore(true)
     );
+  }
+
+  private void clearBuffer() {
+    if (!myTerminalTextBuffer.isUsingAlternateBuffer()) {
+      myTerminalTextBuffer.clearHistory();
+
+      if (myCoordsAccessor != null) {
+        TerminalLine line = myTerminalTextBuffer.getLine(myCoordsAccessor.getY() - 1);
+
+        myTerminalTextBuffer.clearAll();
+
+        myCoordsAccessor.setY(0);
+        myCursor.setY(1);
+        myTerminalTextBuffer.addLine(line);
+      }
+
+      updateScrolling();
+
+      myClientScrollOrigin = myBoundedRangeModel.getValue();
+    }
   }
 
   @Override

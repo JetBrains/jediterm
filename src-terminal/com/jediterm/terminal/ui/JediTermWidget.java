@@ -57,6 +57,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
     myTerminalPanel.addTerminalMouseListener(myTerminal);
     myTerminalPanel.setNextProvider(this);
+    myTerminalPanel.setCoordAccessor(myTerminal);
 
     myPreConnectHandler = createPreConnectHandler(myTerminal);
     myTerminalPanel.setKeyListener(myPreConnectHandler);

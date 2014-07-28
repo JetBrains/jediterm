@@ -178,6 +178,12 @@ public class TerminalTextBuffer {
     fireModelChangeEvent();
   }
 
+  public void addLine(@NotNull final TerminalLine line) {
+    myScreenBuffer.addLines(Lists.newArrayList(line));
+
+    fireModelChangeEvent();
+  }
+
   public void writeString(final int x, final int y, @NotNull final String str) {
     writeString(x, y, str, myStyleState.getCurrent());
   }
@@ -322,6 +328,10 @@ public class TerminalTextBuffer {
     }
   }
 
+  public boolean isUsingAlternateBuffer() {
+    return myUsingAlternateBuffer;
+  }
+
   public void useAlternateBuffer(boolean enabled) {
     myAlternateBuffer = enabled;
     if (enabled) {
@@ -387,5 +397,10 @@ public class TerminalTextBuffer {
     if (myHeight - linesFromHistory + 1 > 0) {
       myScreenBuffer.processLines(0, myHeight - linesFromHistory, consumer, -linesFromHistory);
     }
+  }
+
+  public void clearHistory() {
+    myHistoryBuffer.clearAll();
+    fireModelChangeEvent();
   }
 }

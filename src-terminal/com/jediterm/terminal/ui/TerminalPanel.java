@@ -1135,7 +1135,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     if (!myTerminalTextBuffer.isUsingAlternateBuffer()) {
       myTerminalTextBuffer.clearHistory();
 
-      if (myCoordsAccessor != null) {
+      if (myCoordsAccessor != null && myCoordsAccessor.getY()>0) {
         TerminalLine line = myTerminalTextBuffer.getLine(myCoordsAccessor.getY() - 1);
 
         myTerminalTextBuffer.clearAll();

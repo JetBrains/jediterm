@@ -42,6 +42,13 @@ public class DefaultSettingsProvider implements SettingsProvider {
   }
 
   @Override
+  public KeyStroke[] getClearBufferKeyStrokes() {
+    return new KeyStroke[]{UIUtil.isMac
+            ? KeyStroke.getKeyStroke(KeyEvent.VK_K, InputEvent.META_DOWN_MASK)
+            : KeyStroke.getKeyStroke(KeyEvent.VK_K, InputEvent.CTRL_DOWN_MASK)};
+  }
+
+  @Override
   public ColorPalette getTerminalColorPalette() {
     return UIUtil.isWindows ? ColorPalette.WINDOWS_PALETTE : ColorPalette.XTERM_PALETTE;
   }

@@ -7,6 +7,8 @@ public interface SystemSettingsProvider {
 
   KeyStroke[] getPasteKeyStrokes();
 
+  KeyStroke[] getClearBufferKeyStrokes();
+
   KeyStroke[] getNewSessionKeyStrokes();
 
   KeyStroke[] getCloseSessionKeyStrokes();

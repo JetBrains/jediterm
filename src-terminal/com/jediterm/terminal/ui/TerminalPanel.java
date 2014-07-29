@@ -1116,13 +1116,13 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
                 return getClipboardString() != null;
               }
             }),
-            new TerminalAction("Clear Buffer", new KeyStroke[]{}, new Predicate<KeyEvent>() {
+            new TerminalAction("Clear Buffer", mySettingsProvider.getClearBufferKeyStrokes(), new Predicate<KeyEvent>() {
               @Override
               public boolean apply(KeyEvent input) {
                 clearBuffer();
                 return true;
               }
-            }).withMnemonicKey(KeyEvent.VK_B).withEnabledSupplier(new Supplier<Boolean>() {
+            }).withMnemonicKey(KeyEvent.VK_K).withEnabledSupplier(new Supplier<Boolean>() {
               @Override
               public Boolean get() {
                 return !myTerminalTextBuffer.isUsingAlternateBuffer();

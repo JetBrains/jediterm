@@ -186,6 +186,11 @@ public class LinesBuffer {
 
   @NotNull
   public synchronized TerminalLine getLine(int row) {
+    if (row<0) {
+      LOG.error("Negative line number: " + row);
+      return TerminalLine.createEmpty();
+    }
+
     for (int i = getLineCount(); i <= row; i++) {
       addLine(TerminalLine.createEmpty());
     }

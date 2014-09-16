@@ -197,6 +197,11 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     }
   }
 
+  public void crnl() {
+    carriageReturn();
+    newLine();
+  }
+
   @Override
   public void newLine() {
     myCursorY += 1;
@@ -341,7 +346,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
   @Override
   public void clearScreen() {
-    clearLines(0, myTerminalHeight);
+    clearLines(0, myTerminalHeight-1);
   }
 
   @Override

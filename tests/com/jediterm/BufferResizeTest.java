@@ -62,14 +62,11 @@ public class BufferResizeTest extends TestCase {
 
 
     terminal.writeString("line");
-    terminal.newLine();
-    terminal.carriageReturn();
+    terminal.crnl();
     terminal.writeString("line2");
-    terminal.newLine();
-    terminal.carriageReturn();
+    terminal.crnl();
     terminal.writeString("line3");
-    terminal.newLine();
-    terminal.carriageReturn();
+    terminal.crnl();
     terminal.writeString("li");
 
     assertEquals(4, terminal.getCursorY());
@@ -262,5 +259,52 @@ public class BufferResizeTest extends TestCase {
     terminal.resize(new Dimension(6, 2), RequestOrigin.User);
 
     assertEquals(selectionText, SelectionUtil.getSelectionText(display.getSelection(), textBuffer));
+  }
+
+  public void testClearAndResizeVertically() {
+    StyleState state = new StyleState();
+
+    TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(10, 4, state);
+
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+
+    terminal.writeString("hi>");
+    terminal.crnl();
+    terminal.writeString("hi2>");
+
+    terminal.clearScreen();
+
+    terminal.cursorPosition(0, 0);
+    terminal.writeString("hi3>");
+
+
+    // smaller height
+    terminal.resize(new Dimension(10, 3), RequestOrigin.User);
+
+
+    assertEquals("", terminalTextBuffer.getHistoryBuffer().getLines());
+    assertEquals("hi3>      \n" +
+            "          \n" +
+            "          \n", terminalTextBuffer.getScreenLines());
+  }
+
+
+  public void testInitialResize() {
+    StyleState state = new StyleState();
+
+    TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(10, 24, state);
+
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+
+    terminal.writeString("hi>");
+
+    // initial resize
+    terminal.resize(new Dimension(10, 3), RequestOrigin.User);
+
+
+    assertEquals("", terminalTextBuffer.getHistoryBuffer().getLines());
+    assertEquals("hi>       \n" +
+            "          \n" +
+            "          \n", terminalTextBuffer.getScreenLines());
   }
 }

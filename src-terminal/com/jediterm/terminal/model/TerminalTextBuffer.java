@@ -70,36 +70,45 @@ public class TerminalTextBuffer {
     final int newHeight = pendingResize.height;
     final int textLinesCountOld = myScreenBuffer.getLineCount();
 
+    final int oldHeight = myHeight;
 
-    if (newHeight < cursorY) {
-      //we need to move lines from text buffer to the scroll buffer
-      int count = cursorY - newHeight;
+    final int newCursorY;
+
+    if (newHeight < oldHeight) {
+      int count = oldHeight - newHeight;
       if (!myAlternateBuffer) {
-        myScreenBuffer.moveTopLinesTo(count, myHistoryBuffer);
+        //we need to move lines from text buffer to the scroll buffer
+        //but empty bottom lines can be collapsed
+        int emptyLinesDeleted = myScreenBuffer.removeBottomEmptyLines(oldHeight-1, count);
+        myScreenBuffer.moveTopLinesTo(count - emptyLinesDeleted, myHistoryBuffer);
+        newCursorY = cursorY - (count-emptyLinesDeleted);
+      } else {
+        newCursorY = cursorY;
       }
       if (mySelection != null) {
         mySelection.shiftY(-count);
       }
-    } else if (newHeight > cursorY && myHistoryBuffer.getLineCount() > 0) {
-      //we need to move lines from scroll buffer to the text buffer
+    } else if (newHeight > oldHeight) {
       if (!myAlternateBuffer) {
-        myHistoryBuffer.moveBottomLinesTo(newHeight - cursorY, myScreenBuffer);
+        //we need to move lines from scroll buffer to the text buffer
+        int historyLinesCount = Math.min(newHeight - oldHeight, myHistoryBuffer.getLineCount());
+        myHistoryBuffer.moveBottomLinesTo(historyLinesCount, myScreenBuffer);
+        newCursorY = cursorY + historyLinesCount;
+      } else {
+        newCursorY = cursorY;
       }
       if (mySelection != null) {
         mySelection.shiftY(newHeight - cursorY);
       }
+    } else {
+      newCursorY = cursorY;
     }
 
     myWidth = newWidth;
     myHeight = newHeight;
 
-    if (myScreenBuffer.getLineCount() > myHeight) {
-      myScreenBuffer.moveTopLinesTo(myScreenBuffer.getLineCount() - myHeight, myHistoryBuffer);
-    }
 
-    int myCursorY = cursorY + (myScreenBuffer.getLineCount() - textLinesCountOld);
-
-    resizeHandler.sizeUpdated(myWidth, myHeight, myCursorY);
+    resizeHandler.sizeUpdated(myWidth, myHeight, newCursorY);
 
 
     fireModelChangeEvent();

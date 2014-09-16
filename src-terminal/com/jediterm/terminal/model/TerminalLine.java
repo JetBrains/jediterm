@@ -221,19 +221,19 @@ public class TerminalLine {
 
   public void clearArea(int leftX, int rightX, @NotNull TextStyle style) {
     writeCharacters(leftX, style, new CharBuffer(
-        rightX >= myTextEntries.length() ? CharacterUtils.NUL_CHAR : CharacterUtils.EMPTY_CHAR,
-        rightX - leftX));
+            rightX >= myTextEntries.length() ? CharacterUtils.NUL_CHAR : CharacterUtils.EMPTY_CHAR,
+            rightX - leftX));
   }
 
   @Nullable
   public TextStyle getStyleAt(int x) {
     int i = 0;
 
-    for (TextEntry te: myTextEntries) {
-      if (x>=i && x< i + te.getLength()) {
+    for (TextEntry te : myTextEntries) {
+      if (x >= i && x < i + te.getLength()) {
         return te.getStyle();
       }
-      i+=te.getLength();
+      i += te.getLength();
     }
 
     return null;
@@ -244,7 +244,7 @@ public class TerminalLine {
     int nulIndex = -1;
     for (TextEntry te : Lists.newArrayList(myTextEntries)) {
       if (te.getText().isNul()) {
-        if(nulIndex < 0) {
+        if (nulIndex < 0) {
           nulIndex = x;
         }
         consumer.consumeNul(x, y, nulIndex, te.getStyle(), te.getText(), startRow);
@@ -254,6 +254,16 @@ public class TerminalLine {
       x += te.getLength();
     }
     consumer.consumeQueue(x, y, nulIndex < 0 ? x : nulIndex, startRow);
+  }
+
+  public boolean isNul() {
+    for (TextEntry e : myTextEntries.entries()) {
+      if (!e.isNul()) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   static class TextEntry {
@@ -275,6 +285,10 @@ public class TerminalLine {
 
     public int getLength() {
       return myText.getLength();
+    }
+
+    public boolean isNul() {
+      return myText.isNul();
     }
   }
 

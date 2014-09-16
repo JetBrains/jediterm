@@ -135,7 +135,7 @@ public class LinesBuffer {
     }
   }
 
-  // used for reset, style not needed here (reseted as well)
+  // used for reset, style not needed here (reset as well)
   public synchronized void clearAll() {
     myLines.clear();
   }
@@ -161,7 +161,10 @@ public class LinesBuffer {
     processLines(yStart, yCount, consumer, -getLineCount());
   }
 
-  public synchronized void processLines(final int firstLine, final int count, @NotNull final StyledTextConsumer consumer, final int startRow) {
+  public synchronized void processLines(final int firstLine,
+                                        final int count,
+                                        @NotNull final StyledTextConsumer consumer,
+                                        final int startRow) {
     for (int y = firstLine; y < Math.min(firstLine + count, myLines.size()); y++) {
       myLines.get(y).process(y, consumer, startRow);
     }
@@ -205,5 +208,18 @@ public class LinesBuffer {
 
   private synchronized void removeBottomLines(int count) {
     myLines = Lists.newArrayList(myLines.subList(0, getLineCount() - count));
+  }
+
+  public int removeBottomEmptyLines(int ind, int maxCount) {
+    int i = 0;
+    while ((maxCount - i) > 0 && (ind >= myLines.size() || myLines.get(ind).isNul())) {
+      if (ind < myLines.size()) {
+        myLines.remove(ind);
+      }
+      ind--;
+      i++;
+    }
+
+    return i;
   }
 }

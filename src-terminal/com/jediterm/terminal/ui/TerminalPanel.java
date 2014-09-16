@@ -86,6 +86,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private int myBlinkingPeriod = 500;
   private TerminalCoordinates myCoordsAccessor;
 
+  private String myCurrentPath; //TODO: handle current path if availabe
+
   public TerminalPanel(@NotNull SettingsProvider settingsProvider, @NotNull TerminalTextBuffer terminalTextBuffer, @NotNull StyleState styleState) {
     mySettingsProvider = settingsProvider;
     myTerminalTextBuffer = terminalTextBuffer;
@@ -1088,6 +1090,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     if (myTerminalPanelListener != null) {
       myTerminalPanelListener.onTitleChanged(myWindowTitle);
     }
+  }
+
+  @Override
+  public void setCurrentPath(String path) {
+    myCurrentPath = path;
   }
 
   @Override

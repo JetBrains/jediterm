@@ -258,6 +258,11 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   @Override
+  public void setCurrentPath(String path) {
+    myDisplay.setCurrentPath(path);
+  }
+
+  @Override
   public void backspace() {
     myCursorX -= 1;
     if (myCursorX < 0) {
@@ -346,7 +351,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
   @Override
   public void clearScreen() {
-    clearLines(0, myTerminalHeight-1);
+    clearLines(0, myTerminalHeight - 1);
   }
 
   @Override

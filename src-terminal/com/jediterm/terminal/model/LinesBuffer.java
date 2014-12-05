@@ -165,6 +165,9 @@ public class LinesBuffer {
                                         final int count,
                                         @NotNull final StyledTextConsumer consumer,
                                         final int startRow) {
+    if (firstLine<0) {
+      throw new IllegalArgumentException("firstLine=" + firstLine + ", should be >0");
+    }
     for (int y = firstLine; y < Math.min(firstLine + count, myLines.size()); y++) {
       myLines.get(y).process(y, consumer, startRow);
     }

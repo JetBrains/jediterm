@@ -79,9 +79,9 @@ public class TerminalTextBuffer {
       if (!myAlternateBuffer) {
         //we need to move lines from text buffer to the scroll buffer
         //but empty bottom lines can be collapsed
-        int emptyLinesDeleted = myScreenBuffer.removeBottomEmptyLines(oldHeight-1, count);
+        int emptyLinesDeleted = myScreenBuffer.removeBottomEmptyLines(oldHeight - 1, count);
         myScreenBuffer.moveTopLinesTo(count - emptyLinesDeleted, myHistoryBuffer);
-        newCursorY = cursorY - (count-emptyLinesDeleted);
+        newCursorY = cursorY - (count - emptyLinesDeleted);
       } else {
         newCursorY = cursorY;
       }
@@ -125,7 +125,7 @@ public class TerminalTextBuffer {
   }
 
   private void fireModelChangeEvent() {
-    for (TerminalModelListener modelListener: myListeners) {
+    for (TerminalModelListener modelListener : myListeners) {
       modelListener.modelChanged();
     }
   }
@@ -402,7 +402,11 @@ public class TerminalTextBuffer {
 
   public void processHistoryAndScreenLines(int scrollOrigin, StyledTextConsumer consumer) {
     int linesFromHistory = Math.min(-scrollOrigin, myHeight);
-    myHistoryBuffer.processLines(myHistoryBuffer.getLineCount() + scrollOrigin, linesFromHistory, consumer, myHistoryBuffer.getLineCount() + scrollOrigin);
+    int y = myHistoryBuffer.getLineCount() + scrollOrigin;
+    if (y < 0) { // it seems that lower bound of scrolling can get out of sync with history buffer lines count
+      y = 0; // to avoid exception we start with the first line in this case
+    }
+    myHistoryBuffer.processLines(y, linesFromHistory, consumer, y);
     if (myHeight - linesFromHistory + 1 > 0) {
       myScreenBuffer.processLines(0, myHeight - linesFromHistory, consumer, -linesFromHistory);
     }

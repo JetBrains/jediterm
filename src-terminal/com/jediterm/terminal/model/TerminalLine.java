@@ -29,7 +29,7 @@ public class TerminalLine {
     return new TerminalLine();
   }
 
-  public String getText() {
+  public synchronized String getText() {
     final StringBuilder sb = new StringBuilder();
 
     for (TerminalLine.TextEntry textEntry : Lists.newArrayList(myTextEntries)) {
@@ -57,7 +57,7 @@ public class TerminalLine {
     myWrapped = wrapped;
   }
 
-  public void clear(@NotNull TextEntry filler) {
+  public synchronized void clear(@NotNull TextEntry filler) {
     myTextEntries.clear();
     myTextEntries.add(filler);
     setWrapped(false);
@@ -67,7 +67,7 @@ public class TerminalLine {
     writeCharacters(x, style, new CharBuffer(str));
   }
 
-  private void writeCharacters(int x, @NotNull TextStyle style, @NotNull CharBuffer characters) {
+  private synchronized void writeCharacters(int x, @NotNull TextStyle style, @NotNull CharBuffer characters) {
     int len = myTextEntries.length();
 
     if (x >= len) {
@@ -127,17 +127,17 @@ public class TerminalLine {
     return result;
   }
 
-  public void deleteCharacters(int x) {
+  public synchronized void deleteCharacters(int x) {
     deleteCharacters(x, TextStyle.EMPTY);
   }
 
-  public void deleteCharacters(int x, @NotNull TextStyle style) {
+  public synchronized void deleteCharacters(int x, @NotNull TextStyle style) {
     deleteCharacters(x, myTextEntries.length() - x, style);
     // delete to the end of line : line is no more wrapped
     setWrapped(false);
   }
 
-  public void deleteCharacters(int x, int count, @NotNull TextStyle style) {
+  public synchronized void deleteCharacters(int x, int count, @NotNull TextStyle style) {
     int p = 0;
     TextEntries newEntries = new TextEntries();
 
@@ -176,7 +176,7 @@ public class TerminalLine {
     myTextEntries = newEntries;
   }
 
-  public void insertBlankCharacters(int x, int count, int maxLen, @NotNull TextStyle style) {
+  public synchronized void insertBlankCharacters(int x, int count, int maxLen, @NotNull TextStyle style) {
     int len = myTextEntries.length();
     len = Math.min(len + count, maxLen);
 
@@ -219,14 +219,14 @@ public class TerminalLine {
     myTextEntries = collectFromBuffer(buf, styles);
   }
 
-  public void clearArea(int leftX, int rightX, @NotNull TextStyle style) {
+  public synchronized void clearArea(int leftX, int rightX, @NotNull TextStyle style) {
     writeCharacters(leftX, style, new CharBuffer(
             rightX >= myTextEntries.length() ? CharacterUtils.NUL_CHAR : CharacterUtils.EMPTY_CHAR,
             rightX - leftX));
   }
 
   @Nullable
-  public TextStyle getStyleAt(int x) {
+  public synchronized TextStyle getStyleAt(int x) {
     int i = 0;
 
     for (TextEntry te : myTextEntries) {
@@ -239,7 +239,7 @@ public class TerminalLine {
     return null;
   }
 
-  public void process(int y, StyledTextConsumer consumer, int startRow) {
+  public synchronized void process(int y, StyledTextConsumer consumer, int startRow) {
     int x = 0;
     int nulIndex = -1;
     for (TextEntry te : Lists.newArrayList(myTextEntries)) {
@@ -256,7 +256,7 @@ public class TerminalLine {
     consumer.consumeQueue(x, y, nulIndex < 0 ? x : nulIndex, startRow);
   }
 
-  public boolean isNul() {
+  public synchronized boolean isNul() {
     for (TextEntry e : myTextEntries.entries()) {
       if (!e.isNul()) {
         return false;

@@ -629,6 +629,8 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     myCursorX = Math.max(0, x - 1);
     myCursorX = Math.min(myCursorX, myTerminalWidth - 1);
 
+    myCursorY = Math.max(0, myCursorY);
+
     myDisplay.setCursor(myCursorX, myCursorY);
   }
 

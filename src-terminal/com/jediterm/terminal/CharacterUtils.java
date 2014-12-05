@@ -26,7 +26,7 @@ public class CharacterUtils {
   public static byte[] VT102_RESPONSE = makeCode(ESC, '[', '?', '6', 'c');
 
   public static String getNonControlCharacters(int maxChars, char[] buf, int offset, int charsLength) {
-    int len = maxChars > charsLength ? charsLength : maxChars;
+    int len = Math.min(maxChars, charsLength);
 
     final int origLen = len;
     char tmp;

@@ -15,7 +15,7 @@ import java.nio.charset.Charset;
 public abstract class ProcessTtyConnector implements TtyConnector {
   protected final InputStream myInputStream;
   protected final OutputStream myOutputStream;
-  protected InputStreamReader myReader;
+  protected final InputStreamReader myReader;
   protected Charset myCharset;
   private Dimension myPendingTermSize;
   private Dimension myPendingPixelSize;

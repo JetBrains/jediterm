@@ -151,6 +151,7 @@ public abstract class AbstractTerminalFrame {
     frame.getContentPane().add("Center", myTerminal.getComponent());
 
     frame.pack();
+    frame.setLocationByPlatform(true);
     frame.setVisible(true);
 
     frame.setResizable(true);
@@ -198,6 +199,7 @@ public abstract class AbstractTerminalFrame {
 
         myBufferFrame.getContentPane().add(panel);
         myBufferFrame.pack();
+        myBufferFrame.setLocationByPlatform(true);
         myBufferFrame.setVisible(true);
         myBufferFrame.setSize(800, 600);
 

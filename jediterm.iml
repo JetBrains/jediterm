@@ -39,7 +39,7 @@
     <orderEntry type="module-library">
       <library>
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/jsch-0.1.50.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/jsch-0.1.51.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />

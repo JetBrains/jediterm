@@ -18,8 +18,8 @@ public class TerminalKeyEncoder {
 
   public TerminalKeyEncoder() {
     setAutoNewLine(false);
-    arrowKeysApplicationSequences();
-    keypadApplicationSequences();
+    arrowKeysAnsiCursorSequences();
+    keypadAnsiSequences();
     putCode(VK_BACK_SPACE, Ascii.DEL);
     putCode(VK_F1, ESC, 'O', 'P');
     putCode(VK_F2, ESC, 'O', 'Q');
@@ -58,38 +58,26 @@ public class TerminalKeyEncoder {
     putCode(VK_LEFT, ESC, '[', 'D');
   }
 
+  public void keypadApplicationSequences() {
+    putCode(VK_KP_DOWN, ESC, 'O', 'B'); //2
+    putCode(VK_KP_LEFT, ESC, 'O', 'D'); //4
+    putCode(VK_KP_RIGHT, ESC, 'O', 'C'); //6
+    putCode(VK_KP_UP, ESC, 'O', 'A'); //8
+  }
+
+  public void keypadAnsiSequences() {
+    putCode(VK_KP_DOWN, ESC, '[', 'B'); //2
+    putCode(VK_KP_LEFT, ESC, '[', 'D'); //4
+    putCode(VK_KP_RIGHT, ESC, '[', 'C'); //6
+    putCode(VK_KP_UP, ESC, '[', 'A'); //8
+  }
+
   void putCode(final int code, final int... bytesAsInt) {
     myKeyCodes.put(code, CharacterUtils.makeCode(bytesAsInt));
   }
 
   public byte[] getCode(final int key) {
     return myKeyCodes.get(key);
-  }
-
-  public void keypadApplicationSequences() {
-    //0
-    //1
-    putCode(VK_KP_DOWN, ESC, '[', 'B'); //2
-    //3
-    putCode(VK_KP_LEFT, ESC, '[', 'D'); //4
-    //5
-    putCode(VK_KP_RIGHT, ESC, '[', 'C'); //6
-    //7
-    putCode(VK_KP_UP, ESC, '[', 'A'); //8
-    //9
-  }
-
-  public void normalKeypad() {
-    //0
-    //1
-    putCode(VK_KP_DOWN, 2); //2
-    //3
-    putCode(VK_KP_LEFT, 4); //4
-    //5
-    putCode(VK_KP_RIGHT, 6); //6
-    //7
-    putCode(VK_KP_UP, 8); //8
-    //9
   }
 
   public void setAutoNewLine(boolean enabled) {

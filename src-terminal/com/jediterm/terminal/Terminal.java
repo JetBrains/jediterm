@@ -99,6 +99,8 @@ public interface Terminal {
 
   void setWindowTitle(String name);
 
+  void setCurrentPath(String path);
+
   void clearScreen();
 
   void setCursorVisible(boolean visible);

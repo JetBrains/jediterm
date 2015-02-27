@@ -1,6 +1,7 @@
 package com.jediterm.terminal;
 
 import com.jediterm.terminal.model.JediTerminal;
+import com.jediterm.terminal.model.TerminalSelection;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
 
 import java.awt.*;
@@ -27,5 +28,9 @@ public interface TerminalDisplay {
 
   void setWindowTitle(String name);
 
+  void setCurrentPath(String path);
+
   void terminalMouseModeSet(MouseMode mode);
+
+  TerminalSelection getSelection();
 }

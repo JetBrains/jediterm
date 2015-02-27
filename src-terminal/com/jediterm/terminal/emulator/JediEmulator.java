@@ -82,8 +82,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           StringBuilder sb = new StringBuilder("Unhandled control character:");
           CharacterUtils.appendChar(sb, CharacterUtils.CharacterType.NONE, ch);
           unhandledLogThrottler(sb.toString());
-        }
-        else { // Plain characters
+        } else { // Plain characters
           myDataStream.pushChar(ch);
           String nonControlCharacters = myDataStream.readNonControlCharacters(terminal.distanceToLineEnd());
 
@@ -210,6 +209,13 @@ public class JediEmulator extends DataStreamIteratingEmulator {
             myTerminal.setWindowTitle(name);
             return true;
           }
+          break;
+        case 7: //Path
+          String path = args.getStringAt(1);
+          if (path != null) {
+            myTerminal.setCurrentPath(path);
+            return true;
+          }
       }
     }
 
@@ -299,6 +305,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
 
   /**
    * This method is used to report about know unsupported sequences
+   *
    * @param msg The message describing the sequence
    */
   private static void unsupported(String msg) {
@@ -309,8 +316,8 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     logThrottlerCounter++;
     if (logThrottlerCounter < logThrottlerLimit) {
       if (logThrottlerCounter % (logThrottlerLimit / logThrottlerRatio) == 0) {
-        if (logThrottlerLimit / logThrottlerRatio > 1 ) {
-          msg += " and "+ ( logThrottlerLimit / logThrottlerRatio ) + " more...";
+        if (logThrottlerLimit / logThrottlerRatio > 1) {
+          msg += " and " + (logThrottlerLimit / logThrottlerRatio) + " more...";
         }
         LOG.error(msg);
       }
@@ -396,8 +403,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       case 'r':
         if (args.startsWithQuestionMark()) {
           return restoreDecPrivateModeValues(args); //
-        }
-        else {
+        } else {
           //Set Top and Bottom Margins
           return setScrollingRegion(args); //DECSTBM
         }
@@ -410,12 +416,10 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     if (mode == 0) { //Clear Current Column (default)
       myTerminal.clearTabStopAtCursor();
       return true;
-    }
-    else if (mode == 3) {
+    } else if (mode == 3) {
       myTerminal.clearAllTabStops();
       return true;
-    }
-    else {
+    } else {
       return false;
     }
   }
@@ -476,64 +480,59 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 1000:
           if (enabled) {
             setMouseMode(MouseMode.MOUSE_REPORTING_NORMAL);
-          }
-          else {
+          } else {
             setMouseMode(MouseMode.MOUSE_REPORTING_NONE);
           }
           return true;
         case 1001:
           if (enabled) {
             setMouseMode(MouseMode.MOUSE_REPORTING_HILITE);
-          }
-          else {
+          } else {
             setMouseMode(MouseMode.MOUSE_REPORTING_NONE);
           }
           return true;
         case 1002:
           if (enabled) {
             setMouseMode(MouseMode.MOUSE_REPORTING_BUTTON_MOTION);
-          }
-          else {
+          } else {
             setMouseMode(MouseMode.MOUSE_REPORTING_NONE);
           }
           return true;
         case 1003:
           if (enabled) {
             setMouseMode(MouseMode.MOUSE_REPORTING_ALL_MOTION);
-          }
-          else {
+          } else {
             setMouseMode(MouseMode.MOUSE_REPORTING_NONE);
           }
           return true;
         case 1005:
           if (enabled) {
             myTerminal.setMouseFormat(MouseFormat.MOUSE_FORMAT_XTERM_EXT);
-          }
-          else {
+          } else {
             myTerminal.setMouseFormat(MouseFormat.MOUSE_FORMAT_XTERM);
           }
           return true;
         case 1006:
           if (enabled) {
             myTerminal.setMouseFormat(MouseFormat.MOUSE_FORMAT_SGR);
-          }
-          else {
+          } else {
             myTerminal.setMouseFormat(MouseFormat.MOUSE_FORMAT_XTERM);
           }
           return true;
         case 1015:
           if (enabled) {
             myTerminal.setMouseFormat(MouseFormat.MOUSE_FORMAT_URXVT);
-          }
-          else {
+          } else {
             myTerminal.setMouseFormat(MouseFormat.MOUSE_FORMAT_XTERM);
           }
+          return true;
+        case 1034:
+          setModeEnabled(TerminalMode.EightBitInput, enabled);
           return true;
         default:
           return false;
       }
-    }
-    else {
+    } else {
       switch (args.getArg(0, -1)) {
         case 2: //Keyboard Action Mode (AM)
           setModeEnabled(TerminalMode.KeyboardAction, enabled);
@@ -577,16 +576,14 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       LOG.debug("Sending Device Report Status : " + str);
       myOutputStream.sendString(str);
       return true;
-    }
-    else if (c == 6) {
+    } else if (c == 6) {
       int row = myTerminal.getCursorY();
       int column = myTerminal.getCursorX();
       String str = "\033[" + row + ";" + column + "R";
       LOG.debug("Sending Device Report Status : " + str);
       myOutputStream.sendString(str);
       return true;
-    }
-    else {
+    } else {
       LOG.error("Sending Device Report Status : unsupported parameter: " + args.toString());
       return false;
     }
@@ -887,20 +884,17 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       int val1 = args.getArg(index + 3, -1);
       int val2 = args.getArg(index + 4, -1);
       if ((val0 >= 0 && val0 < 256) &&
-          (val1 >= 0 && val1 < 256) &&
-          (val2 >= 0 && val2 < 256)) {
+              (val1 >= 0 && val1 < 256) &&
+              (val2 >= 0 && val2 < 256)) {
         return new TerminalColor(val0, val1, val2);
-      }
-      else {
+      } else {
         LOG.error("Bogus color setting " + args.toString());
         return null;
       }
-    }
-    else if (code == 5) {
+    } else if (code == 5) {
       /* indexed color */
       return ColorPalette.getIndexedColor(args.getArg(index + 2, 0));
-    }
-    else {
+    } else {
       LOG.error("Unsupported code for color attribute " + args.toString());
       return null;
     }

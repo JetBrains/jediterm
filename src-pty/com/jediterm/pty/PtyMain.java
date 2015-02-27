@@ -80,7 +80,7 @@ public class PtyMain extends AbstractTerminalFrame {
 
     @Override
     public void write(byte[] bytes) throws IOException {
-      LOG.debug("Writing in OutputStream : " + Arrays.toString(bytes));
+      LOG.debug("Writing in OutputStream : " + Arrays.toString(bytes) + " " + new String(bytes));
       super.write(bytes);
     }
   }

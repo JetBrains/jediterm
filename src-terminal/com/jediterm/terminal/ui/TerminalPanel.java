@@ -13,6 +13,7 @@ import com.jediterm.terminal.emulator.mouse.TerminalMouseListener;
 import com.jediterm.terminal.model.*;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
 import com.jediterm.terminal.util.Pair;
+
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -20,6 +21,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+
 import java.awt.*;
 import java.awt.datatransfer.*;
 import java.awt.event.*;
@@ -32,15 +34,13 @@ import java.lang.ref.WeakReference;
 import java.text.AttributedCharacterIterator;
 import java.text.CharacterIterator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TerminalPanel extends JComponent implements TerminalDisplay, ClipboardOwner, TerminalActionProvider {
   private static final Logger LOG = Logger.getLogger(TerminalPanel.class);
   private static final long serialVersionUID = -1048763516632093014L;
-  private static final double FPS = 50;
 
   public static final double SCROLL_SPEED = 0.05;
-
-  private final Component myTerminalPanel = this;
 
   /*font related*/
   private Font myNormalFont;
@@ -69,18 +69,24 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   /*scroll and cursor*/
   final private TerminalCursor myCursor = new TerminalCursor();
   private final BoundedRangeModel myBoundedRangeModel = new DefaultBoundedRangeModel(0, 80, 0, 80);
+  private boolean myScrollingEnabled = true;
   protected int myClientScrollOrigin;
   protected KeyListener myKeyListener;
-  private long myLastCursorChange;
-  private boolean myCursorIsShown;
-  private long myLastResize;
-  private boolean myScrollingEnabled = true;
 
   private String myWindowTitle = "Terminal";
 
   private TerminalActionProvider myNextActionProvider;
   private String myInputMethodUncommitedChars;
 
+  private Timer myRepaintTimer;
+  private AtomicBoolean needScrollUpdate = new AtomicBoolean(true);
+  private AtomicBoolean needRepaint = new AtomicBoolean(true);
+
+  private int myMaxFPS = 50;
+  private int myBlinkingPeriod = 500;
+  private TerminalCoordinates myCoordsAccessor;
+
+  private String myCurrentPath; //TODO: handle current path if availabe
 
   public TerminalPanel(@NotNull SettingsProvider settingsProvider, @NotNull TerminalTextBuffer terminalTextBuffer, @NotNull StyleState styleState) {
     mySettingsProvider = settingsProvider;
@@ -88,11 +94,28 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     myStyleState = styleState;
     myTermSize.width = terminalTextBuffer.getWidth();
     myTermSize.height = terminalTextBuffer.getHeight();
+    myMaxFPS = mySettingsProvider.maxRefreshRate();
 
     updateScrolling();
 
     enableEvents(AWTEvent.KEY_EVENT_MASK | AWTEvent.INPUT_METHOD_EVENT_MASK);
     enableInputMethods(true);
+
+    terminalTextBuffer.addModelListener(new TerminalModelListener() {
+      @Override
+      public void modelChanged() {
+        repaint();
+      }
+    });
+  }
+
+  @Override
+  public void repaint() {
+    needRepaint.set(true);
+  }
+
+  private void doRepaint() {
+    super.repaint();
   }
 
   @Deprecated
@@ -120,6 +143,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     setFocusable(true);
     enableInputMethods(true);
+    setDoubleBuffered(true);
 
     setFocusTraversalKeysEnabled(false);
 
@@ -233,21 +257,38 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     addComponentListener(new ComponentAdapter() {
       @Override
       public void componentResized(final ComponentEvent e) {
-        myLastResize = System.currentTimeMillis();
         sizeTerminalFromComponent();
+      }
+    });
+
+    addFocusListener(new FocusAdapter() {
+      @Override
+      public void focusGained(FocusEvent e) {
+        myCursor.cursorChanged();
+      }
+
+      @Override
+      public void focusLost(FocusEvent e) {
+        myCursor.cursorChanged();
       }
     });
 
     myBoundedRangeModel.addChangeListener(new ChangeListener() {
       public void stateChanged(final ChangeEvent e) {
         myClientScrollOrigin = myBoundedRangeModel.getValue();
+        repaint();
       }
     });
 
-    Timer redrawTimer = new Timer((int) (1000 / FPS), new WeakRedrawTimer(this));
-    setDoubleBuffered(true);
-    redrawTimer.start();
-    repaint();
+    createRepaintTimer();
+  }
+
+  private void createRepaintTimer() {
+    if (myRepaintTimer != null) {
+      myRepaintTimer.stop();
+    }
+    myRepaintTimer = new Timer(1000 / myMaxFPS, new WeakRedrawTimer(this));
+    myRepaintTimer.start();
   }
 
   public boolean isLocalMouseAction(MouseEvent e) {
@@ -262,6 +303,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     return UIUtil.isRetina();
   }
 
+  public void setBlinkingPeriod(int blinkingPeriod) {
+    myBlinkingPeriod = blinkingPeriod;
+  }
+
+  public void setCoordAccessor(TerminalCoordinates coordAccessor) {
+    myCoordsAccessor = coordAccessor;
+  }
+
   static class WeakRedrawTimer implements ActionListener {
 
     private WeakReference<TerminalPanel> ref;
@@ -274,10 +323,16 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     public void actionPerformed(ActionEvent e) {
       TerminalPanel terminalPanel = ref.get();
       if (terminalPanel != null) {
-        try {
-          terminalPanel.redraw();
-        } catch (Exception ex) {
-          LOG.error("Error while terminal panel redraw", ex);
+        terminalPanel.myCursor.changeStateIfNeeded();
+        if (terminalPanel.needScrollUpdate.getAndSet(false)) {
+          terminalPanel.updateScrolling();
+        }
+        if (terminalPanel.needRepaint.getAndSet(false)) {
+          try {
+            terminalPanel.doRepaint();
+          } catch (Exception ex) {
+            LOG.error("Error while terminal panel redraw", ex);
+          }
         }
       } else { // terminalPanel was garbage collected
         Timer timer = (Timer) e.getSource();
@@ -384,27 +439,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   public void lostOwnership(final Clipboard clipboard, final Transferable contents) {
   }
 
-  private void drawImage(Graphics2D gfx, BufferedImage image) {
-    drawImage(gfx, image, 0, 0, myTerminalPanel);
-  }
-
   protected void drawImage(Graphics2D gfx, BufferedImage image, int x, int y, ImageObserver observer) {
     gfx.drawImage(image, x, y,
             image.getWidth(), image.getHeight(), observer);
-  }
-
-  private Pair<BufferedImage, Graphics2D> createAndInitImage(int width, int height) {
-    BufferedImage image = createBufferedImage(width, height);
-
-    Graphics2D gfx = image.createGraphics();
-
-    setupAntialiasing(gfx);
-
-    gfx.setColor(getBackground());
-
-    gfx.fillRect(0, 0, width, height);
-
-    return Pair.create(image, gfx);
   }
 
   protected BufferedImage createBufferedImage(int width, int height) {
@@ -541,38 +578,64 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   public void paintComponent(final Graphics g) {
     final Graphics2D gfx = (Graphics2D) g;
 
+    setupAntialiasing(gfx);
+
     gfx.setColor(getBackground());
 
     gfx.fillRect(0, 0, getWidth(), getHeight());
 
     myTerminalTextBuffer.processHistoryAndScreenLines(myClientScrollOrigin, new StyledTextConsumer() {
+      final int columnCount = getColumnCount();
+
       @Override
       public void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
         int row = y - startRow;
         drawCharacters(x, row, style, characters, gfx);
         if (mySelection != null) {
-          Pair<Integer, Integer> interval = mySelection.intersect(x, row + myClientScrollOrigin, characters.getLength());
+          Pair<Integer, Integer> interval = mySelection.intersect(x, row + myClientScrollOrigin, characters.length());
           if (interval != null) {
             TextStyle selectionStyle = getSelectionStyle(style);
-
             drawCharacters(interval.first, row, selectionStyle, characters.subBuffer(interval.first - x, interval.second), gfx);
           }
+        }
+      }
+
+      @Override
+      public void consumeNul(int x, int y, int nulIndex, TextStyle style, CharBuffer characters, int startRow) {
+        int row = y - startRow;
+        if (mySelection != null) {
+          // compute intersection with all NUL areas, non-breaking
+          Pair<Integer, Integer> interval = mySelection.intersect(nulIndex, row + myClientScrollOrigin, columnCount - nulIndex);
+          if (interval != null) {
+            TextStyle selectionStyle = getSelectionStyle(style);
+            drawCharacters(x, row, selectionStyle, characters, gfx);
+            return;
+          }
+        }
+        drawCharacters(x, row, style, characters, gfx);
+      }
+
+      @Override
+      public void consumeQueue(int x, int y, int nulIndex, int startRow) {
+        if (x < columnCount) {
+          consumeNul(x, y, nulIndex, TextStyle.EMPTY, new CharBuffer(CharacterUtils.EMPTY_CHAR, columnCount - x), startRow);
         }
       }
     });
 
     int cursorY = myCursor.getCoordY();
     if (myClientScrollOrigin + getRowCount() > cursorY) {
-      myCursor.changeStateIfNeeded();
       int cursorX = myCursor.getCoordX();
-      TextStyle s = myTerminalTextBuffer.getStyleAt(cursorX, cursorY);
-      char c = myTerminalTextBuffer.getBuffersCharAt(cursorX, cursorY);
-      TextStyle normalStyle = s != null ? s : myStyleState.getCurrent();
-      myCursor.drawCursor(c, gfx, inSelection(cursorX, cursorY) ? getSelectionStyle(normalStyle) : normalStyle,
-              getInversedStyle(normalStyle));
+      Pair<Character, TextStyle> sc = myTerminalTextBuffer.getStyledCharAt(cursorX, cursorY);
+      TextStyle normalStyle = sc.second != null ? sc.second : myStyleState.getCurrent();
+      TextStyle selectionStyle = getSelectionStyle(normalStyle);
+      boolean inSelection = inSelection(cursorX, cursorY);
+      myCursor.drawCursor(sc.first, gfx, inSelection ? selectionStyle : normalStyle);
     }
 
     drawInputMethodUncommitedChars(gfx);
+
+    drawMargins(gfx, getWidth(), getHeight());
   }
 
   private TextStyle getSelectionStyle(TextStyle style) {
@@ -625,7 +688,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     if (id == KeyEvent.KEY_PRESSED) {
       myKeyListener.keyPressed(e);
     } else if (id == KeyEvent.KEY_RELEASED) {
-                        /* keyReleased(e); */
+      /* keyReleased(e); */
     } else if (id == KeyEvent.KEY_TYPED) {
       myKeyListener.keyTyped(e);
     }
@@ -704,33 +767,31 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     setKeyListener(new TerminalKeyHandler());
   }
 
-  public class TerminalCursor {
-    private boolean myCursorHasChanged;
+  public enum TerminalCursorState {
+    SHOWING, HIDDEN, NO_FOCUS;
+  }
 
+  public class TerminalCursor {
+
+    // cursor state
+    private boolean myCursorIsShown; // blinking state
     protected Point myCursorCoordinates = new Point();
 
+    // terminal modes
     private boolean myShouldDrawCursor = true;
     private boolean myBlinking = true;
 
-    private boolean calculateIsCursorShown() {
-      if (!isBlinking()) {
-        return true;
-      }
-      return myCursorHasChanged || myCursorIsShown;
-    }
-
-    private boolean cursorShouldChangeBlinkState(long currentTime) {
-      return currentTime - myLastCursorChange > mySettingsProvider.caretBlinkingMs();
-    }
+    private long myLastCursorChange;
+    private boolean myCursorHasChanged;
 
     public void setX(int x) {
       myCursorCoordinates.x = x;
-      myCursorHasChanged = true;
+      cursorChanged();
     }
 
     public void setY(int y) {
       myCursorCoordinates.y = y;
-      myCursorHasChanged = true;
+      cursorChanged();
     }
 
     public int getCoordX() {
@@ -745,50 +806,83 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       myShouldDrawCursor = shouldDrawCursor;
     }
 
-    public boolean shouldDrawCursor() {
-      return myShouldDrawCursor && isFocusOwner();
-    }
-
-    private boolean noRecentResize(long time) {
-      return time - myLastResize > mySettingsProvider.caretBlinkingMs();
-    }
-
     public void setBlinking(boolean blinking) {
       myBlinking = blinking;
     }
 
     public boolean isBlinking() {
-      return myBlinking && (mySettingsProvider.caretBlinkingMs() > 0);
+      return myBlinking && (getBlinkingPeriod() > 0);
+    }
+
+    public void cursorChanged() {
+      myCursorHasChanged = true;
+      myLastCursorChange = System.currentTimeMillis();
+      repaint();
+    }
+
+    private boolean cursorShouldChangeBlinkState(long currentTime) {
+      return currentTime - myLastCursorChange > getBlinkingPeriod();
     }
 
     public void changeStateIfNeeded() {
+      if (!isFocusOwner()) {
+        return;
+      }
       long currentTime = System.currentTimeMillis();
       if (cursorShouldChangeBlinkState(currentTime)) {
         myCursorIsShown = !myCursorIsShown;
         myLastCursorChange = currentTime;
         myCursorHasChanged = false;
+        repaint();
       }
     }
 
-    public void drawCursor(char c, Graphics2D gfx, TextStyle style, TextStyle inversedStyle) {
-      if (!shouldDrawCursor()) {
-        return;
+    private TerminalCursorState computeBlinkingState() {
+      if (!isBlinking() || myCursorHasChanged || myCursorIsShown) {
+        return TerminalCursorState.SHOWING;
       }
-      final int y = getCoordY();
-      final int x = getCoordX();
+      return TerminalCursorState.HIDDEN;
+    }
 
-      if (y >= 0 && y < myTermSize.height) {
-        boolean isCursorShown = calculateIsCursorShown();
+    private TerminalCursorState computeCursorState() {
+      if (!myShouldDrawCursor) {
+        return TerminalCursorState.HIDDEN;
+      }
+      if (!isFocusOwner()) {
+        return TerminalCursorState.NO_FOCUS;
+      }
+      return computeBlinkingState();
+    }
 
-        TextStyle styleToDraw = isCursorShown ? inversedStyle : style;
+    public void drawCursor(char c, Graphics2D gfx, TextStyle style) {
+      TerminalCursorState state = computeCursorState();
 
-        drawCharacters(x, y, styleToDraw, new CharBuffer(c, 1), gfx);
+      // hidden: do nothing
+      if (state == TerminalCursorState.HIDDEN) {
+        return;
+      } else {
+        final int x = getCoordX();
+        final int y = getCoordY();
+        if (y >= 0 && y < myTermSize.height) {
+          if (state == TerminalCursorState.SHOWING) {
+            TextStyle styleToDraw = getInversedStyle(style);
+            drawCharacters(x, y, styleToDraw, new CharBuffer(c, 1), gfx);
+          } else if (state == TerminalCursorState.NO_FOCUS) {
+            int xCoord = x * myCharSize.width;
+            int yCoord = y * myCharSize.height;
+            gfx.setColor(getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun())));
+            gfx.drawRect(xCoord, yCoord, myCharSize.width - 1, myCharSize.height - 1);
+          }
+        }
       }
     }
   }
 
-  private void drawImage(Graphics2D g, BufferedImage image, int x1, int y1, int x2, int y2) {
-    drawImage(g, image, x1, y1, x2, y2, x1, y1, x2, y2);
+  private int getBlinkingPeriod() {
+    if (myBlinkingPeriod != mySettingsProvider.caretBlinkingMs()) {
+      setBlinkingPeriod(mySettingsProvider.caretBlinkingMs());
+    }
+    return myBlinkingPeriod;
   }
 
   protected void drawImage(Graphics2D g, BufferedImage image, int dx1, int dy1, int dx2, int dy2, int sx1, int sy1, int sx2, int sy2) {
@@ -809,13 +903,24 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   private void drawCharacters(int x, int y, TextStyle style, CharBuffer buf, Graphics2D gfx) {
-    gfx.setColor(getPalette().getColor(myStyleState.getBackground(style.getBackgroundForRun())));
-    int textLength = CharacterUtils.getTextLength(buf.getBuf(), buf.getStart(), buf.getLength());
+    int xCoord = x * myCharSize.width;
+    int yCoord = y * myCharSize.height;
 
-    gfx.fillRect(x * myCharSize.width,
-            y * myCharSize.height,
-            textLength * myCharSize.width,
-            myCharSize.height);
+    if (xCoord < 0 || xCoord > getWidth() || yCoord < 0 || yCoord > getHeight()) {
+      return;
+    }
+
+    gfx.setColor(getPalette().getColor(myStyleState.getBackground(style.getBackgroundForRun())));
+    int textLength = CharacterUtils.getTextLength(buf.getBuf(), buf.getStart(), buf.length());
+
+    gfx.fillRect(xCoord,
+            yCoord,
+            Math.min(textLength * myCharSize.width, getWidth() - xCoord),
+            Math.min(myCharSize.height, getHeight() - yCoord));
+
+    if (buf.isNul()) {
+      return; // nothing more to do
+    }
 
     drawChars(x, y, buf, style, gfx);
 
@@ -824,7 +929,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     int baseLine = (y + 1) * myCharSize.height - myDescent;
 
     if (style.hasOption(TextStyle.Option.UNDERLINED)) {
-      gfx.drawLine(x * myCharSize.width, baseLine + 1, (x + textLength) * myCharSize.width, baseLine + 1);
+      gfx.drawLine(xCoord, baseLine + 1, (x + textLength) * myCharSize.width, baseLine + 1);
     }
   }
 
@@ -846,7 +951,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       renderingBuffer = buf;
     }
 
-    while (offset + newBlockLen <= buf.getLength()) {
+    while (offset + newBlockLen <= buf.length()) {
       Font font = getFontToDisplay(buf.charAt(offset + newBlockLen - 1), style);
 //      while (myMonospaced && (offset + newBlockLen < buf.getLength()) && isWordCharacter(buf.charAt(offset + newBlockLen - 1))
 //              && (font == getFontToDisplay(buf.charAt(offset + newBlockLen - 1), style))) {
@@ -859,10 +964,13 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       int xCoord = (x + drawCharsOffset) * myCharSize.width;
       int textLength = CharacterUtils.getTextLength(buf.getBuf(), buf.getStart() + offset, newBlockLen);
 
+      int yCoord = y * myCharSize.height;
+
       gfx.setClip(xCoord,
-              y * myCharSize.height,
-              textLength * myCharSize.width,
-              myCharSize.height);
+              yCoord,
+              Math.min(textLength * myCharSize.width, getWidth() - xCoord),
+              Math.min(myCharSize.height, getHeight() - yCoord));
+
       gfx.setColor(getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun())));
 
       gfx.drawChars(renderingBuffer.getBuf(), buf.getStart() + offset, newBlockLen, xCoord, baseLine);
@@ -890,26 +998,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     return mySettingsProvider.getTerminalColorPalette();
   }
 
-  private void copyArea(Graphics2D gfx, BufferedImage image, int x, int y, int width, int height, int dx, int dy) {
-    if (isRetina()) {
-      Pair<BufferedImage, Graphics2D> pair = createAndInitImage(x + width, y + height);
-
-      drawImage(pair.second, image,
-              x, y, x + width, y + height
-      );
-      drawImage(gfx, pair.first,
-              x + dx, y + dy, x + dx + width, y + dy + height, //destination
-              x, y, x + width, y + height   //source
-      );
-    } else {
-      gfx.copyArea(x, y, width, height, dx, dy);
-    }
-  }
-
-  public void redraw() {
-    repaint();
-  }
-
   private void drawMargins(Graphics2D gfx, int width, int height) {
     gfx.setColor(getBackground());
     gfx.fillRect(0, height, getWidth(), getHeight() - height);
@@ -918,13 +1006,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   public void scrollArea(final int scrollRegionTop, final int scrollRegionSize, int dy) {
     if (dy < 0) {
-      //Moving lines off the top of the screen
-      SwingUtilities.invokeLater(new Runnable() {
-        @Override
-        public void run() {
-          updateScrolling();
-        }
-      });
+      needScrollUpdate.set(true);
     }
     mySelection = null;
   }
@@ -953,7 +1035,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     return myBoundedRangeModel;
   }
 
-  public TerminalTextBuffer getBackBuffer() {
+  public TerminalTextBuffer getTerminalTextBuffer() {
     return myTerminalTextBuffer;
   }
 
@@ -1011,6 +1093,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   @Override
+  public void setCurrentPath(String path) {
+    myCurrentPath = path;
+  }
+
+  @Override
   public List<TerminalAction> getActions() {
     return Lists.newArrayList(
             new TerminalAction("Copy", mySettingsProvider.getCopyKeyStrokes(), new Predicate<KeyEvent>() {
@@ -1035,8 +1122,40 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
               public Boolean get() {
                 return getClipboardString() != null;
               }
-            })
+            }),
+            new TerminalAction("Clear Buffer", mySettingsProvider.getClearBufferKeyStrokes(), new Predicate<KeyEvent>() {
+              @Override
+              public boolean apply(KeyEvent input) {
+                clearBuffer();
+                return true;
+              }
+            }).withMnemonicKey(KeyEvent.VK_K).withEnabledSupplier(new Supplier<Boolean>() {
+              @Override
+              public Boolean get() {
+                return !myTerminalTextBuffer.isUsingAlternateBuffer();
+              }
+            }).separatorBefore(true)
     );
+  }
+
+  private void clearBuffer() {
+    if (!myTerminalTextBuffer.isUsingAlternateBuffer()) {
+      myTerminalTextBuffer.clearHistory();
+
+      if (myCoordsAccessor != null && myCoordsAccessor.getY()>0) {
+        TerminalLine line = myTerminalTextBuffer.getLine(myCoordsAccessor.getY() - 1);
+
+        myTerminalTextBuffer.clearAll();
+
+        myCoordsAccessor.setY(0);
+        myCursor.setY(1);
+        myTerminalTextBuffer.addLine(line);
+      }
+
+      updateScrolling();
+
+      myClientScrollOrigin = myBoundedRangeModel.getValue();
+    }
   }
 
   @Override

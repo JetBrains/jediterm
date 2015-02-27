@@ -57,6 +57,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
     myTerminalPanel.addTerminalMouseListener(myTerminal);
     myTerminalPanel.setNextProvider(this);
+    myTerminalPanel.setCoordAccessor(myTerminal);
 
     myPreConnectHandler = createPreConnectHandler(myTerminal);
     myTerminalPanel.setKeyListener(myPreConnectHandler);
@@ -129,11 +130,6 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     }
   }
 
-  @Override
-  public void redraw() {
-    myTerminalPanel.redraw();
-  }
-
   public void start() {
     if (!mySessionRunning.get()) {
       myEmuThread = new Thread(new EmulatorTask());
@@ -158,8 +154,8 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   }
 
   @Override
-  public TerminalTextBuffer getBackBuffer() {
-    return myTerminalPanel.getBackBuffer();
+  public TerminalTextBuffer getTerminalTextBuffer() {
+    return myTerminalPanel.getTerminalTextBuffer();
   }
 
   @Override

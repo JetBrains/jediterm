@@ -3,6 +3,7 @@ package com.jediterm.terminal.ui.settings;
 import com.jediterm.terminal.TerminalColor;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.emulator.ColorPalette;
+import com.jediterm.terminal.model.LinesBuffer;
 import com.jediterm.terminal.ui.UIUtil;
 
 import javax.swing.*;
@@ -133,5 +134,10 @@ public class DefaultSettingsProvider implements SettingsProvider {
   @Override
   public boolean forceActionOnMouseReporting() {
     return false;
+  }
+
+  @Override
+  public int getBufferMaxLinesCount() {
+    return LinesBuffer.DEFAULT_MAX_LINES_COUNT;
   }
 }

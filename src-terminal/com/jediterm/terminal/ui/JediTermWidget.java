@@ -50,7 +50,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     mySettingsProvider = settingsProvider;
 
     StyleState styleState = createDefaultStyle();
-    TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(columns, lines, styleState);
+    TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(columns, lines, styleState, settingsProvider.getBufferMaxLinesCount());
 
     myTerminalPanel = createTerminalPanel(mySettingsProvider, styleState, terminalTextBuffer);
     myTerminal = new JediTerminal(myTerminalPanel, terminalTextBuffer, styleState);

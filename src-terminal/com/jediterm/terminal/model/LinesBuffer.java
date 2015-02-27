@@ -16,11 +16,17 @@ import java.util.List;
 public class LinesBuffer {
   private static final Logger LOG = Logger.getLogger(LinesBuffer.class);
 
-  private static final int BUFFER_MAX_LINES = 1000;
+  public static final int DEFAULT_MAX_LINES_COUNT = 1000;
+
+  private int myBufferMaxLinesCount = DEFAULT_MAX_LINES_COUNT;
 
   private ArrayList<TerminalLine> myLines = Lists.newArrayList();
 
   public LinesBuffer() {
+  }
+
+  public LinesBuffer(int bufferMaxLinesCount) {
+    myBufferMaxLinesCount = bufferMaxLinesCount;
   }
 
   public synchronized String getLines() {
@@ -51,7 +57,7 @@ public class LinesBuffer {
   }
 
   private synchronized void addLine(@NotNull TerminalLine line) {
-    if (myLines.size() > BUFFER_MAX_LINES) {
+    if (myLines.size() > myBufferMaxLinesCount) {
       removeTopLines(1);
     }
 

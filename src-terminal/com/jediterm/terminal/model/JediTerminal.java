@@ -384,7 +384,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     if (enabled) {
       myTerminalKeyEncoder.keypadApplicationSequences();
     } else {
-      myTerminalKeyEncoder.normalKeypad();
+      myTerminalKeyEncoder.keypadAnsiSequences();
     }
   }
 

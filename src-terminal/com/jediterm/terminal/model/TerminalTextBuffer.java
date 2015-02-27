@@ -64,9 +64,8 @@ public class TerminalTextBuffer {
     myHeight = height;
     myHistoryLinesCount = historyLinesCount;
 
-    myScreenBuffer = new LinesBuffer();
-
-    myDamage = new BitSet(myWidth * myHeight);
+    myScreenBuffer = createLinesBuffer();
+    myHistoryBuffer = createLinesBuffer();
   }
 
   @NotNull

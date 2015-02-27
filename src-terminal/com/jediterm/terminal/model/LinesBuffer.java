@@ -188,8 +188,8 @@ public class LinesBuffer {
 
   public synchronized void addLines(@NotNull List<TerminalLine> lines) {
     int count = myLines.size() + lines.size();
-    if (count >= BUFFER_MAX_LINES) {
-      removeTopLines(count - BUFFER_MAX_LINES);
+    if (count >= myBufferMaxLinesCount) {
+      removeTopLines(count - myBufferMaxLinesCount);
     }
     myLines.addAll(lines);
   }

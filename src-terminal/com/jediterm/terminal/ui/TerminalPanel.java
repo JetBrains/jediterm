@@ -1185,6 +1185,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         return;
       }
 
+      // Swing in Javafx translation does not result in portable KeyEvent conversions. This predicate filters out
+      // solo modifiers.
+      if(keychar == CharacterUtils.NUL_CHAR && e.getModifiers() != 0) return;
+
       final byte[] code = myTerminalStarter.getCode(keycode);
       if (code != null) {
         myTerminalStarter.sendBytes(code);

@@ -87,6 +87,14 @@ public abstract class ProcessTtyConnector implements TtyConnector {
   @Override
   public void close() {
     myProcess.destroy();
+    try {
+      myOutputStream.close();
+    }
+    catch (IOException ignored) { }
+    try {
+      myInputStream.close();
+    }
+    catch (IOException ignored) { }
   }
 
   @Override

@@ -41,4 +41,6 @@ public interface UserSettingsProvider {
   boolean DECCompatibilityMode();
 
   boolean forceActionOnMouseReporting();
+
+  int getBufferMaxLinesCount();
 }

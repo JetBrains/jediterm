@@ -34,12 +34,14 @@ public class TerminalTextBuffer {
   @NotNull
   private final StyleState myStyleState;
 
-  private LinesBuffer myHistoryBuffer = new LinesBuffer();
+  private LinesBuffer myHistoryBuffer;
 
-  private LinesBuffer myScreenBuffer = new LinesBuffer();
+  private LinesBuffer myScreenBuffer;
 
   private int myWidth;
   private int myHeight;
+
+  private final int myHistoryLinesCount;
 
   private final Lock myLock = new ReentrantLock();
 
@@ -53,11 +55,22 @@ public class TerminalTextBuffer {
   private java.util.List<TerminalModelListener> myListeners = Lists.newArrayList();
 
   public TerminalTextBuffer(final int width, final int height, @NotNull StyleState styleState) {
+    this(width, height, styleState, LinesBuffer.DEFAULT_MAX_LINES_COUNT);
+  }
+
+  public TerminalTextBuffer(final int width, final int height, @NotNull StyleState styleState, final int historyLinesCount) {
     myStyleState = styleState;
     myWidth = width;
     myHeight = height;
+    myHistoryLinesCount = historyLinesCount;
 
-    myScreenBuffer = new LinesBuffer();
+    myScreenBuffer = createLinesBuffer();
+    myHistoryBuffer = createLinesBuffer();
+  }
+
+  @NotNull
+  private LinesBuffer createLinesBuffer() {
+    return new LinesBuffer(myHistoryLinesCount);
   }
 
   public Dimension resize(@NotNull final Dimension pendingResize,
@@ -347,8 +360,8 @@ public class TerminalTextBuffer {
       if (!myUsingAlternateBuffer) {
         myScreenBufferBackup = myScreenBuffer;
         myHistoryBufferBackup = myHistoryBuffer;
-        myScreenBuffer = new LinesBuffer();
-        myHistoryBuffer = new LinesBuffer();
+        myScreenBuffer = createLinesBuffer();
+        myHistoryBuffer = createLinesBuffer();
         myUsingAlternateBuffer = true;
       }
     } else {
@@ -356,8 +369,8 @@ public class TerminalTextBuffer {
         myScreenBuffer = myScreenBufferBackup;
         myHistoryBuffer = myHistoryBufferBackup;
         myUsingAlternateBuffer = false;
-        myScreenBufferBackup = new LinesBuffer();
-        myHistoryBufferBackup = new LinesBuffer();
+        myScreenBufferBackup = createLinesBuffer();
+        myHistoryBufferBackup = createLinesBuffer();
       }
     }
     fireModelChangeEvent();

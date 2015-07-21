@@ -8,6 +8,7 @@ import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -16,11 +17,17 @@ import java.util.List;
 public class LinesBuffer {
   private static final Logger LOG = Logger.getLogger(LinesBuffer.class);
 
-  private static final int BUFFER_MAX_LINES = 1000;
+  public static final int DEFAULT_MAX_LINES_COUNT = 1000;
+
+  private int myBufferMaxLinesCount = DEFAULT_MAX_LINES_COUNT;
 
   private ArrayList<TerminalLine> myLines = Lists.newArrayList();
 
   public LinesBuffer() {
+  }
+
+  public LinesBuffer(int bufferMaxLinesCount) {
+    myBufferMaxLinesCount = bufferMaxLinesCount;
   }
 
   public synchronized String getLines() {
@@ -51,7 +58,7 @@ public class LinesBuffer {
   }
 
   private synchronized void addLine(@NotNull TerminalLine line) {
-    if (myLines.size() >= BUFFER_MAX_LINES) {
+    if (myLines.size() >= myBufferMaxLinesCount) {
       removeTopLines(1);
     }
 
@@ -181,8 +188,8 @@ public class LinesBuffer {
 
   public synchronized void addLines(@NotNull List<TerminalLine> lines) {
     int count = myLines.size() + lines.size();
-    if (count >= BUFFER_MAX_LINES) {
-      removeTopLines(count - BUFFER_MAX_LINES);
+    if (count >= myBufferMaxLinesCount) {
+      removeTopLines(count - myBufferMaxLinesCount);
     }
     myLines.addAll(lines);
   }

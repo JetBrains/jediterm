@@ -59,7 +59,7 @@ public class TerminalKeyEncoder {
   }
 
   void putCode(final int code, final int... bytesAsInt) {
-    myKeyCodes.put(code, CharacterUtils.makeCode(bytesAsInt));
+    myKeyCodes.put(code, CharUtils.makeCode(bytesAsInt));
   }
 
   public byte[] getCode(final int key) {

@@ -128,7 +128,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
         myTerminalTextBuffer.writeBytes(myCursorX, myCursorY, chosenBuffer, start, length);
       }
 
-      myCursorX += CharacterUtils.getTextLength(chosenBuffer, start, length);
+      myCursorX += CharUtils.getTextLength(chosenBuffer, start, length);
       finishText();
     } finally {
       myTerminalTextBuffer.unlock();
@@ -288,7 +288,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     myCursorX = Math.max(myCursorX, length);
     if (myCursorX < stop) {
       char[] chars = new char[stop - myCursorX];
-      Arrays.fill(chars, CharacterUtils.EMPTY_CHAR);
+      Arrays.fill(chars, CharUtils.EMPTY_CHAR);
       doWriteString(new String(chars));
     } else {
       myCursorX = stop;

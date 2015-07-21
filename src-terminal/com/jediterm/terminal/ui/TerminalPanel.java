@@ -618,7 +618,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       @Override
       public void consumeQueue(int x, int y, int nulIndex, int startRow) {
         if (x < columnCount) {
-          consumeNul(x, y, nulIndex, TextStyle.EMPTY, new CharBuffer(CharacterUtils.EMPTY_CHAR, columnCount - x), startRow);
+          consumeNul(x, y, nulIndex, TextStyle.EMPTY, new CharBuffer(CharUtils.EMPTY_CHAR, columnCount - x), startRow);
         }
       }
     });
@@ -911,7 +911,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
 
     gfx.setColor(getPalette().getColor(myStyleState.getBackground(style.getBackgroundForRun())));
-    int textLength = CharacterUtils.getTextLength(buf.getBuf(), buf.getStart(), buf.length());
+    int textLength = CharUtils.getTextLength(buf.getBuf(), buf.getStart(), buf.length());
 
     gfx.fillRect(xCoord,
             yCoord,
@@ -946,7 +946,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     // TODO required for italic?
     CharBuffer renderingBuffer;
     if (mySettingsProvider.DECCompatibilityMode() && style.hasOption(TextStyle.Option.BOLD)) {
-      renderingBuffer = CharacterUtils.heavyDecCompatibleBuffer(buf);
+      renderingBuffer = CharUtils.heavyDecCompatibleBuffer(buf);
     } else {
       renderingBuffer = buf;
     }
@@ -962,7 +962,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       int descent = gfx.getFontMetrics(font).getDescent();
       int baseLine = (y + 1) * myCharSize.height - descent;
       int xCoord = (x + drawCharsOffset) * myCharSize.width;
-      int textLength = CharacterUtils.getTextLength(buf.getBuf(), buf.getStart() + offset, newBlockLen);
+      int textLength = CharUtils.getTextLength(buf.getBuf(), buf.getStart() + offset, newBlockLen);
 
       int yCoord = y * myCharSize.height;
 

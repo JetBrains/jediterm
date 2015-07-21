@@ -2,7 +2,7 @@ package com.jediterm.terminal.model;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.jediterm.terminal.CharacterUtils;
+import com.jediterm.terminal.CharUtils;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.StyledTextConsumerAdapter;
@@ -135,7 +135,7 @@ public class TerminalTextBuffer {
   }
 
   private TextEntry createFillerEntry() {
-    return new TextEntry(createEmptyStyleWithCurrentColor(), new CharBuffer(CharacterUtils.NUL_CHAR, myWidth));
+    return new TextEntry(createEmptyStyleWithCurrentColor(), new CharBuffer(CharUtils.NUL_CHAR, myWidth));
   }
 
   public void deleteCharacters(final int x, final int y, final int count) {
@@ -174,7 +174,7 @@ public class TerminalTextBuffer {
                 .append(adjY).append(" at (").append(x).append(",")
                 .append(y).append(")");
 
-        CharacterUtils.appendBuf(sb, bytes, start, len);
+        CharUtils.appendBuf(sb, bytes, start, len);
         LOG.debug(sb);
       }
       return;

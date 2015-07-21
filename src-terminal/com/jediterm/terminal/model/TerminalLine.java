@@ -1,7 +1,7 @@
 package com.jediterm.terminal.model;
 
 import com.google.common.collect.Lists;
-import com.jediterm.terminal.CharacterUtils;
+import com.jediterm.terminal.CharUtils;
 import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.util.Pair;
@@ -46,7 +46,7 @@ public class TerminalLine {
 
   public char charAt(int x) {
     String text = getText();
-    return x < text.length() ? text.charAt(x) : CharacterUtils.EMPTY_CHAR;
+    return x < text.length() ? text.charAt(x) : CharUtils.EMPTY_CHAR;
   }
 
   public boolean isWrapped() {
@@ -73,7 +73,7 @@ public class TerminalLine {
     if (x >= len) {
       // fill the gap
       if (x - len > 0) {
-        myTextEntries.add(new TextEntry(TextStyle.EMPTY, new CharBuffer(CharacterUtils.NUL_CHAR, x - len)));
+        myTextEntries.add(new TextEntry(TextStyle.EMPTY, new CharBuffer(CharUtils.NUL_CHAR, x - len)));
       }
       myTextEntries.add(new TextEntry(style, characters));
     } else {
@@ -170,7 +170,7 @@ public class TerminalLine {
       }
     }
     if (count > 0 && style != TextStyle.EMPTY) { // apply style to the end of the line
-      newEntries.add(new TextEntry(style, new CharBuffer(CharacterUtils.NUL_CHAR, count)));
+      newEntries.add(new TextEntry(style, new CharBuffer(CharUtils.NUL_CHAR, count)));
     }
 
     myTextEntries = newEntries;
@@ -188,7 +188,7 @@ public class TerminalLine {
       for (int i = 0; i < entry.getLength() && p < len; i++) {
         if (p == x) {
           for (int j = 0; j < count && p < len; j++) {
-            buf[p] = CharacterUtils.EMPTY_CHAR;
+            buf[p] = CharUtils.EMPTY_CHAR;
             styles[p] = style;
             p++;
           }
@@ -206,12 +206,12 @@ public class TerminalLine {
 
     // if not inserted yet (ie. x > len)
     for (; p < x && p < len; p++) {
-      buf[p] = CharacterUtils.EMPTY_CHAR;
+      buf[p] = CharUtils.EMPTY_CHAR;
       styles[p] = TextStyle.EMPTY;
       p++;
     }
     for (; p < x + count && p < len; p++) {
-      buf[p] = CharacterUtils.EMPTY_CHAR;
+      buf[p] = CharUtils.EMPTY_CHAR;
       styles[p] = style;
       p++;
     }
@@ -221,7 +221,7 @@ public class TerminalLine {
 
   public synchronized void clearArea(int leftX, int rightX, @NotNull TextStyle style) {
     writeCharacters(leftX, style, new CharBuffer(
-            rightX >= myTextEntries.length() ? CharacterUtils.NUL_CHAR : CharacterUtils.EMPTY_CHAR,
+            rightX >= myTextEntries.length() ? CharUtils.NUL_CHAR : CharUtils.EMPTY_CHAR,
             rightX - leftX));
   }
 

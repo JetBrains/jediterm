@@ -4,7 +4,7 @@
 package com.jediterm.terminal.emulator;
 
 import com.google.common.collect.Lists;
-import com.jediterm.terminal.CharacterUtils;
+import com.jediterm.terminal.CharUtils;
 import com.jediterm.terminal.TerminalDataStream;
 
 import java.io.IOException;
@@ -94,7 +94,7 @@ public class ControlSequence {
     for (final char b : myUnhandledChars) {
       bytes[i++] = b;
     }
-    bytes[i++] = (byte)CharacterUtils.ESC;
+    bytes[i++] = (byte)CharUtils.ESC;
     bytes[i++] = (byte)'[';
 
     if (myStartsWithQuestionMark) {
@@ -155,9 +155,9 @@ public class ControlSequence {
 
     if (myUnhandledChars != null) {
       sb.append(" Unhandled:");
-      CharacterUtils.CharacterType last = CharacterUtils.CharacterType.NONE;
+      CharUtils.CharacterType last = CharUtils.CharacterType.NONE;
       for (final char b : myUnhandledChars) {
-        last = CharacterUtils.appendChar(sb, last, (char)b);
+        last = CharUtils.appendChar(sb, last, (char)b);
       }
     }
   }

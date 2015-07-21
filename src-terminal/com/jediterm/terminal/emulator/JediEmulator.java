@@ -1,7 +1,7 @@
 package com.jediterm.terminal.emulator;
 
 import com.google.common.base.Ascii;
-import com.jediterm.terminal.CharacterUtils;
+import com.jediterm.terminal.CharUtils;
 import com.jediterm.terminal.DataStreamIteratingEmulator;
 import com.jediterm.terminal.Terminal;
 import com.jediterm.terminal.TerminalColor;
@@ -80,7 +80,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       default:
         if (ch <= Ascii.US) {
           StringBuilder sb = new StringBuilder("Unhandled control character:");
-          CharacterUtils.appendChar(sb, CharacterUtils.CharacterType.NONE, ch);
+          CharUtils.appendChar(sb, CharUtils.CharacterType.NONE, ch);
           unhandledLogThrottler(sb.toString());
         } else { // Plain characters
           myDataStream.pushChar(ch);
@@ -598,7 +598,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Identifying to remote system as VT102");
     }
-    myOutputStream.sendBytes(CharacterUtils.VT102_RESPONSE);
+    myOutputStream.sendBytes(CharUtils.VT102_RESPONSE);
 
     return true;
   }

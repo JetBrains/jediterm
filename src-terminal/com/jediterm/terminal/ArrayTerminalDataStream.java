@@ -53,7 +53,7 @@ public class ArrayTerminalDataStream implements TerminalDataStream {
   }
 
   public String readNonControlCharacters(int maxChars) throws IOException {
-    String nonControlCharacters = CharacterUtils.getNonControlCharacters(maxChars, myBuf, myOffset, myLength);
+    String nonControlCharacters = CharUtils.getNonControlCharacters(maxChars, myBuf, myOffset, myLength);
 
     myOffset += nonControlCharacters.length();
     myLength -= nonControlCharacters.length();

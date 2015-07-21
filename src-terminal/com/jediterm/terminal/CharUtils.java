@@ -4,6 +4,8 @@ import com.google.common.base.Ascii;
 import com.jediterm.terminal.emulator.charset.CharacterSets;
 import com.jediterm.terminal.model.CharBuffer;
 
+import java.util.Arrays;
+
 /**
  * @author traff
  */

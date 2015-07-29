@@ -99,6 +99,7 @@ public class JSchTtyConnector implements TtyConnector {
 
   private Session connectSession(Questioner questioner) throws JSchException {
     JSch jsch = new JSch();
+    configureJSch(jsch);
 
     Session session = jsch.getSession(myUser, myHost, myPort);
 
@@ -117,6 +118,10 @@ public class JSchTtyConnector implements TtyConnector {
     session.setTimeout(0);
 
     return session;
+  }
+  
+  protected void configureJSch(JSch jsch) throws JSchException {
+    
   }
 
   protected void configureChannelShell(ChannelShell channel) {

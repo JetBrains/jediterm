@@ -307,7 +307,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
         case 0:
           // Initial line
           if (myCursorX < myTerminalWidth) {
-            myTerminalTextBuffer.eraseCharacters(myCursorX, myTerminalWidth, myCursorY - 1);
+            myTerminalTextBuffer.eraseCharacters(myCursorX, -1, myCursorY - 1);
           }
           // Rest
           beginY = myCursorY;
@@ -399,7 +399,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
       switch (arg) {
         case 0:
           if (myCursorX < myTerminalWidth) {
-            myTerminalTextBuffer.eraseCharacters(myCursorX, myTerminalWidth, myCursorY - 1);
+            myTerminalTextBuffer.eraseCharacters(myCursorX, -1, myCursorY - 1);
           }
           // delete to the end of line : line is no more wrapped
           myTerminalTextBuffer.getLine(myCursorY - 1).setWrapped(false);
@@ -409,7 +409,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
           myTerminalTextBuffer.eraseCharacters(0, extent, myCursorY - 1);
           break;
         case 2:
-          myTerminalTextBuffer.eraseCharacters(0, myTerminalWidth, myCursorY - 1);
+          myTerminalTextBuffer.eraseCharacters(0, -1, myCursorY - 1);
           break;
         default:
           LOG.error("Unsupported erase in line mode:" + arg);
@@ -424,8 +424,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   public void deleteCharacters(int count) {
     myTerminalTextBuffer.lock();
     try {
-      final int extent = Math.min(count, myTerminalWidth - myCursorX);
-      myTerminalTextBuffer.deleteCharacters(myCursorX, myCursorY - 1, extent);
+      myTerminalTextBuffer.deleteCharacters(myCursorX, myCursorY - 1, count);
     } finally {
       myTerminalTextBuffer.unlock();
     }
@@ -448,8 +447,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     //position.
     myTerminalTextBuffer.lock();
     try {
-      final int extent = Math.min(count, myTerminalWidth - myCursorX);
-      myTerminalTextBuffer.eraseCharacters(myCursorX, myCursorX + extent, myCursorY - 1);
+      myTerminalTextBuffer.eraseCharacters(myCursorX, myCursorX + count, myCursorY - 1);
     } finally {
       myTerminalTextBuffer.unlock();
     }

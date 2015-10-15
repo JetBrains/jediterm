@@ -157,9 +157,7 @@ public class TerminalTextBuffer {
               "args were x:" + x + " count:" + count);
     } else if (count < 0) {
       LOG.error("Attempt to delete negative chars number: count:" + count);
-    } else if (count == 0) { //nothing to do
-      return;
-    } else {
+    } else if (count > 0) { 
       myScreenBuffer.deleteCharacters(x, y, count, createEmptyStyleWithCurrentColor());
 
       fireModelChangeEvent();

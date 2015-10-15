@@ -12,9 +12,9 @@ import java.io.IOException;
 public class EmulatorTest extends EmulatorTestAbstract {
   public void testSetCursorPosition() throws IOException {
     doTest(3, 4, "X00\n" +  //X wins
-                 "0X \n" +
-                 "X X\n" +
-                 "   \n");
+            "0X \n" +
+            "X X\n" +
+            "   \n");
   }
 
   //public void testTooLargeScrollRegion() throws IOException { TODO: this test fails on Travis somehow
@@ -31,6 +31,10 @@ public class EmulatorTest extends EmulatorTestAbstract {
     assertColor(terminalTextBuffer.getStyleAt(8, 2), ColorPalette.getIndexedColor(3), ColorPalette.getIndexedColor(4));
     assertColor(terminalTextBuffer.getStyleAt(23, 4), ColorPalette.getIndexedColor(7), ColorPalette.getIndexedColor(4));
     assertColor(terminalTextBuffer.getStyleAt(2, 0), ColorPalette.getIndexedColor(0), ColorPalette.getIndexedColor(6));
+  }
+
+  public void testEraseBeyondTerminalWidth() throws IOException {
+    doTest();
   }
 
   @Override

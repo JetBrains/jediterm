@@ -7,9 +7,6 @@ The main purpose of the project is to provide a pure Java terminal widget ready
 to embed into IDE. From this comes the name
 J(from `Java`)edi(reversed `IDE`)Term(obviously from `terminal`)
 
-Branch 2.0 is the actual one - it has entirely rewritten rendering and a lot of fixes.
-It will replace the master once become stable.
-
 
 Authors
 -------

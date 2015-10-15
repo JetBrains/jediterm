@@ -1,18 +1,12 @@
 package com.jediterm.terminal.emulator;
 
 import com.google.common.base.Ascii;
-import com.jediterm.terminal.CharUtils;
-import com.jediterm.terminal.DataStreamIteratingEmulator;
-import com.jediterm.terminal.Terminal;
-import com.jediterm.terminal.TerminalColor;
-import com.jediterm.terminal.TerminalDataStream;
-import com.jediterm.terminal.TerminalMode;
-import com.jediterm.terminal.TerminalOutputStream;
-import com.jediterm.terminal.TextStyle;
+import com.jediterm.terminal.*;
 import com.jediterm.terminal.emulator.mouse.MouseFormat;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
 import org.apache.log4j.Logger;
 
+import java.awt.*;
 import java.io.IOException;
 
 /**
@@ -407,6 +401,31 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           //Set Top and Bottom Margins
           return setScrollingRegion(args); //DECSTBM
         }
+      case 't':
+        return windowManipulation(args);
+      default:
+        return false;
+    }
+  }
+
+  private boolean windowManipulation(ControlSequence args) {
+    // CSI Ps ; Ps ; Ps t
+    switch (args.getArg(0, -1)) {
+      case 8:
+//        Ps = 8  ;  height ;  width -> Resize the text area to given
+//        height and width in characters.  Omitted parameters reuse the
+//        current height or width.  Zero parameters use the display's
+//        height or width.
+        int width = args.getArg(2, 0);
+        int height = args.getArg(1, 0);
+        if (width == 0) {
+          width = myTerminal.getTerminalWidth();
+        }
+        if (height == 0) {
+          height = myTerminal.getTerminalHeight();
+        }
+        myTerminal.resize(new Dimension(width, height), RequestOrigin.Remote);
+        return true;
       default:
         return false;
     }

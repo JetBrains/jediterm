@@ -1010,6 +1010,11 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   @Override
+  public int getTerminalWidth() {
+    return myTerminalWidth;
+  }
+
+  @Override
   public int getTerminalHeight() {
     return myTerminalHeight;
   }

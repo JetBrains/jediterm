@@ -83,6 +83,8 @@ public interface Terminal {
 
   void deleteCharacters(int count);
 
+  int getTerminalWidth();
+
   int getTerminalHeight();
 
   void eraseInDisplay(int arg);

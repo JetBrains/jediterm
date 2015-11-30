@@ -229,9 +229,11 @@ public class JediEmulator extends DataStreamIteratingEmulator {
             unsupported("Switching ot 8-bit");
             break;
           //About ANSI conformance levels: http://www.vt100.net/docs/vt510-rm/ANSI
-          case 'L': //Set ANSI conformance level 1 and 2
-          case 'M':
+          case 'L': //Set ANSI conformance level 1
             terminal.setAnsiConformanceLevel(1);
+            break;
+          case 'M': //Set ANSI conformance level 2
+            terminal.setAnsiConformanceLevel(2);
             break;
           case 'N': //Set ANSI conformance level 3
             terminal.setAnsiConformanceLevel(3);

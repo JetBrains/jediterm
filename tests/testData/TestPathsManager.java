@@ -33,6 +33,6 @@ public class TestPathsManager {
     if (file == null) {
       return null;
     }
-    return file.substring(0, file.lastIndexOf("/")) + "/";
+    return file.substring(0, file.lastIndexOf(File.separator)) + File.separator;
   }
 }

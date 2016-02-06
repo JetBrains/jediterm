@@ -366,8 +366,8 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   @Override
-  public byte[] getCodeForKey(int key) {
-    return myTerminalKeyEncoder.getCode(key);
+  public byte[] getCodeForKey(int key, int modifiers) {
+    return myTerminalKeyEncoder.getCode(key, modifiers);
   }
 
   @Override
@@ -939,6 +939,11 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   public void setMouseMode(@NotNull MouseMode mode) {
     myMouseMode = mode;
     myDisplay.terminalMouseModeSet(mode);
+  }
+
+  @Override
+  public void setAltSendsEscape(boolean enabled) {
+    myTerminalKeyEncoder.setAltSendsEscape(enabled);
   }
 
   @Override

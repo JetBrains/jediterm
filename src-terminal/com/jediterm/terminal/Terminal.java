@@ -109,7 +109,7 @@ public interface Terminal {
 
   void useAlternateBuffer(boolean enabled);
 
-  byte[] getCodeForKey(int key);
+  byte[] getCodeForKey(int key, int modifiers);
 
   void setApplicationArrowKeys(boolean enabled);
 
@@ -143,4 +143,5 @@ public interface Terminal {
 
   void setMouseFormat(MouseFormat mouseFormat);
 
+  void setAltSendsEscape(boolean enabled);
 }

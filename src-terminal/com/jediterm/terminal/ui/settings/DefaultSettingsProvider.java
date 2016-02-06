@@ -152,4 +152,9 @@ public class DefaultSettingsProvider implements SettingsProvider {
   public int getBufferMaxLinesCount() {
     return LinesBuffer.DEFAULT_MAX_LINES_COUNT;
   }
+
+  @Override
+  public boolean altSendsEscape() {
+    return true;
+  }
 }

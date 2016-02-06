@@ -88,8 +88,16 @@ public enum TerminalMode {
   KeyboardAction, 
   InsertMode,
   SendReceive,
-  EightBitInput //Interpret "meta" key, sets eighth bit. (enables the eightBitInput resource).
+  EightBitInput, //Interpret "meta" key, sets eighth bit. (enables the eightBitInput resource).
                // http://www.leonerd.org.uk/hacks/hints/xterm-8bit.html
+
+  AltSendsEscape //See section Alt and Meta Keys in http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
+          {
+            @Override
+            public void setEnabled(Terminal terminal, boolean enabled) {
+              terminal.setAltSendsEscape(enabled);
+            }
+          }
   ;
 
   private static final Logger LOG = Logger.getLogger(TerminalMode.class);

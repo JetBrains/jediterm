@@ -1180,21 +1180,26 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         return;
       }
       // CTRL + Space is not handled in KeyEvent; handle it manually
-      else if (keychar == ' ' && (e.getModifiers() & KeyEvent.CTRL_MASK) != 0) {
+      else if (keychar == ' ' && (e.getModifiers() & InputEvent.CTRL_MASK) != 0) {
         myTerminalStarter.sendBytes(new byte[]{Ascii.NUL});
         return;
       }
 
-      final byte[] code = myTerminalStarter.getCode(keycode);
+      final byte[] code = myTerminalStarter.getCode(keycode, e.getModifiers());
       if (code != null) {
         myTerminalStarter.sendBytes(code);
         if (mySettingsProvider.scrollToBottomOnTyping() && isCodeThatScrolls(keycode)) {
           scrollToBottom();
         }
       } else if ((keychar & 0xff00) == 0) {
-        final byte[] obuffer = new byte[1];
-        obuffer[0] = (byte) keychar;
+        final byte[] obuffer;
+        if (mySettingsProvider.altSendsEscape() && (e.getModifiers() & InputEvent.ALT_MASK) != 0) {
+          obuffer = new byte[]{Ascii.ESC, (byte) keychar};
+        } else {
+          obuffer = new byte[]{(byte) keychar};
+        }
         myTerminalStarter.sendBytes(obuffer);
+
         if (mySettingsProvider.scrollToBottomOnTyping()) {
           scrollToBottom();
         }
@@ -1216,8 +1221,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private void processTerminalKeyTyped(KeyEvent e) {
     final char keychar = e.getKeyChar();
     if ((keychar & 0xff00) != 0) {
-      final char[] foo = new char[1];
-      foo[0] = keychar;
+      final char[] foo;
+      if (mySettingsProvider.altSendsEscape() && (e.getModifiers() & InputEvent.ALT_MASK) != 0) {
+        foo = new char[]{Ascii.ESC,  keychar};
+      } else {
+        foo = new char[]{keychar};
+      }
       try {
         myTerminalStarter.sendString(new String(foo));
         if (mySettingsProvider.scrollToBottomOnTyping()) {

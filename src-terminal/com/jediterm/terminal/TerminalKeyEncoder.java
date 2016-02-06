@@ -1,7 +1,9 @@
 package com.jediterm.terminal;
 
 import com.google.common.base.Ascii;
+import com.sun.istack.internal.NotNull;
 
+import java.awt.event.InputEvent;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,6 +17,9 @@ public class TerminalKeyEncoder {
   public static final int DEL = Ascii.DEL;
 
   private final Map<Integer, byte[]> myKeyCodes = new HashMap<Integer, byte[]>();
+  
+  private boolean myAltSendsEscape = true;
+  private boolean myMetaSendsEscape = false;
 
   public TerminalKeyEncoder() {
     setAutoNewLine(false);
@@ -76,16 +81,102 @@ public class TerminalKeyEncoder {
     myKeyCodes.put(code, CharUtils.makeCode(bytesAsInt));
   }
 
-  public byte[] getCode(final int key) {
-    return myKeyCodes.get(key);
+  public byte[] getCode(final int key, int modifiers) {
+    byte[] bytes = myKeyCodes.get(key);
+    if (bytes == null) {
+      return null;
+    }
+
+    if (myAltSendsEscape && (modifiers & InputEvent.ALT_MASK) != 0) {
+      return insertCodeAt(bytes, CharUtils.makeCode(ESC), 0);
+    }
+    
+    if (myMetaSendsEscape && (modifiers & InputEvent.META_MASK) != 0) {
+      return insertCodeAt(bytes, CharUtils.makeCode(ESC), 0);
+    }
+
+    if (key == VK_DOWN || key == VK_UP || key == VK_LEFT || key == VK_RIGHT || key == VK_HOME || key == VK_END) {
+      return getCodeWithModifiers(bytes, modifiers);
+    }
+    
+    return bytes;
+  }
+
+  /**
+   * Refer to section PC-Style Function Keys in http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
+   */
+  private byte[] getCodeWithModifiers(@NotNull  byte[] bytes, int modifiers) {
+    int code = modifiersToCode(modifiers);
+
+    if (code > 0) {
+      return insertCodeAt(bytes, Integer.toString(code).getBytes(), bytes.length-1);
+    }
+    return bytes;
+  }
+
+  private static byte[] insertCodeAt(byte[] bytes, byte[] code, int at) {
+    byte[] res = new byte[bytes.length+code.length];
+    System.arraycopy(bytes, 0, res, 0, bytes.length);
+    System.arraycopy(bytes, at, res, at + code.length, bytes.length - at);
+    System.arraycopy(code, 0, res, at, code.length);
+    
+    return res;
+  }
+
+  /**
+   *
+   Code     Modifiers
+   ------+--------------------------
+   2     | Shift
+   3     | Alt
+   4     | Shift + Alt
+   5     | Control
+   6     | Shift + Control
+   7     | Alt + Control
+   8     | Shift + Alt + Control
+   9     | Meta
+   10    | Meta + Shift
+   11    | Meta + Alt
+   12    | Meta + Alt + Shift
+   13    | Meta + Ctrl
+   14    | Meta + Ctrl + Shift
+   15    | Meta + Ctrl + Alt
+   16    | Meta + Ctrl + Alt + Shift
+   ------+--------------------------
+   * @param modifiers
+   * @return
+   */
+  private static int modifiersToCode(int modifiers) {
+    int code = 0;
+    if ((modifiers & InputEvent.SHIFT_MASK) != 0) {
+      code |= 1;
+    }
+    if ((modifiers & InputEvent.ALT_MASK) != 0) {
+      code |= 2;
+    }
+    if ((modifiers & InputEvent.CTRL_MASK) != 0) {
+      code |= 4;
+    }
+    if ((modifiers & InputEvent.META_MASK) != 0) {
+      code |= 8;
+    }
+    return code != 0? code + 1: code;
   }
 
   public void setAutoNewLine(boolean enabled) {
     if (enabled) {
       putCode(VK_ENTER, Ascii.CR, Ascii.LF);
-    } else {
+    }
+    else {
       putCode(VK_ENTER, Ascii.CR);
     }
   }
 
+  public void setAltSendsEscape(boolean altSendsEscape) {
+    myAltSendsEscape = altSendsEscape;
+  }
+
+  public void setMetaSendsEscape(boolean metaSendsEscape) {
+    myMetaSendsEscape = metaSendsEscape;
+  }
 }

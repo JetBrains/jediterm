@@ -43,4 +43,6 @@ public interface UserSettingsProvider {
   boolean forceActionOnMouseReporting();
 
   int getBufferMaxLinesCount();
+  
+  boolean altSendsEscape();
 }

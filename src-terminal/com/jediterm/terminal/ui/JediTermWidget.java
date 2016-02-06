@@ -1,10 +1,7 @@
 package com.jediterm.terminal.ui;
 
 import com.google.common.collect.Lists;
-import com.jediterm.terminal.Terminal;
-import com.jediterm.terminal.TerminalDisplay;
-import com.jediterm.terminal.TerminalStarter;
-import com.jediterm.terminal.TtyConnector;
+import com.jediterm.terminal.*;
 import com.jediterm.terminal.debug.DebugBufferType;
 import com.jediterm.terminal.model.TerminalTextBuffer;
 import com.jediterm.terminal.model.JediTerminal;
@@ -54,6 +51,8 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
     myTerminalPanel = createTerminalPanel(mySettingsProvider, styleState, terminalTextBuffer);
     myTerminal = new JediTerminal(myTerminalPanel, terminalTextBuffer, styleState);
+    
+    myTerminal.setModeEnabled(TerminalMode.AltSendsEscape, mySettingsProvider.altSendsEscape());
 
     myTerminalPanel.addTerminalMouseListener(myTerminal);
     myTerminalPanel.setNextProvider(this);

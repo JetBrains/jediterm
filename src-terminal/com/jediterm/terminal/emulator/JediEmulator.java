@@ -550,6 +550,9 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 1034:
           setModeEnabled(TerminalMode.EightBitInput, enabled);
           return true;
+        case 1039:
+          setModeEnabled(TerminalMode.AltSendsEscape, enabled);
+          return true;
         default:
           return false;
       }

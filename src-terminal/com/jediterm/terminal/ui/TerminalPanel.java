@@ -14,7 +14,6 @@ import com.jediterm.terminal.model.*;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
 import com.jediterm.terminal.util.CharUtils;
 import com.jediterm.terminal.util.Pair;
-
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -22,7 +21,6 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-
 import java.awt.*;
 import java.awt.datatransfer.*;
 import java.awt.event.*;
@@ -1300,13 +1298,16 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       myInputMethodUncommitedChars = null;
       AttributedCharacterIterator text = e.getText();
       if (text != null) {
+        StringBuilder sb = new StringBuilder();
+
         //noinspection ForLoopThatDoesntUseLoopVariable
         for (char c = text.first(); commitCount > 0; c = text.next(), commitCount--) {
           if (c >= 0x20 && c != 0x7F) { // Hack just like in javax.swing.text.DefaultEditorKit.DefaultKeyTypedAction
-            int id = (c & 0xff00) == 0 ? KeyEvent.KEY_PRESSED : KeyEvent.KEY_TYPED;
-            handleKeyEvent(new KeyEvent(this, id, e.getWhen(), 0, 0, c));
+              sb.append(c);
           }
         }
+
+        myTerminalStarter.sendString(sb.toString());
       }
     } else {
       myInputMethodUncommitedChars = uncommitedChars(e.getText());

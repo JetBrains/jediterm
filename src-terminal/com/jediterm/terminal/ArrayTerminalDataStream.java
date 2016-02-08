@@ -1,5 +1,7 @@
 package com.jediterm.terminal;
 
+import com.jediterm.terminal.util.CharUtils;
+
 import java.io.IOException;
 
 /**

@@ -12,6 +12,7 @@ import com.jediterm.terminal.emulator.mouse.MouseMode;
 import com.jediterm.terminal.emulator.mouse.TerminalMouseListener;
 import com.jediterm.terminal.model.*;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
+import com.jediterm.terminal.util.CharUtils;
 import com.jediterm.terminal.util.Pair;
 
 import org.apache.log4j.Logger;
@@ -595,7 +596,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
           Pair<Integer, Integer> interval = mySelection.intersect(x, row + myClientScrollOrigin, characters.length());
           if (interval != null) {
             TextStyle selectionStyle = getSelectionStyle(style);
-            drawCharacters(interval.first, row, selectionStyle, characters.subBuffer(interval.first - x, interval.second), gfx);
+            CharBuffer selectionChars = characters.subBuffer(interval.first - x, interval.second);
+            
+            drawCharacters(interval.first, row, selectionStyle, selectionChars, gfx);
           }
         }
       }
@@ -911,7 +914,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
 
     gfx.setColor(getPalette().getColor(myStyleState.getBackground(style.getBackgroundForRun())));
-    int textLength = CharUtils.getTextLength(buf.getBuf(), buf.getStart(), buf.length());
+    int textLength = CharUtils.getTextLengthDoubleWidthAware(buf.getBuf(), buf.getStart(), buf.length(), mySettingsProvider.ambiguousCharsAreDoubleWidth());
 
     gfx.fillRect(xCoord,
             yCoord,
@@ -938,7 +941,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
    * Nevertheless to improve kerning we draw word characters as one block for monospaced fonts.
    */
   private void drawChars(int x, int y, CharBuffer buf, TextStyle style, Graphics2D gfx) {
-    int newBlockLen = 1;
+    final int blockLen = 1;
     int offset = 0;
     int drawCharsOffset = 0;
 
@@ -951,18 +954,24 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       renderingBuffer = buf;
     }
 
-    while (offset + newBlockLen <= buf.length()) {
-      Font font = getFontToDisplay(buf.charAt(offset + newBlockLen - 1), style);
-//      while (myMonospaced && (offset + newBlockLen < buf.getLength()) && isWordCharacter(buf.charAt(offset + newBlockLen - 1))
-//              && (font == getFontToDisplay(buf.charAt(offset + newBlockLen - 1), style))) {
-//        newBlockLen++;
+    while (offset + blockLen <= buf.length()) {
+      if (renderingBuffer.getBuf()[buf.getStart()+offset] == CharUtils.DWC) {
+        offset+=blockLen;
+        drawCharsOffset+=blockLen;
+        continue; // dont' draw second part(fake one) of double width character
+      }
+      
+      Font font = getFontToDisplay(buf.charAt(offset + blockLen - 1), style);
+//      while (myMonospaced && (offset + blockLen < buf.getLength()) && isWordCharacter(buf.charAt(offset + blockLen - 1))
+//              && (font == getFontToDisplay(buf.charAt(offset + blockLen - 1), style))) {
+//        blockLen++;
 //      }
       gfx.setFont(font);
 
       int descent = gfx.getFontMetrics(font).getDescent();
       int baseLine = (y + 1) * myCharSize.height - descent;
       int xCoord = (x + drawCharsOffset) * myCharSize.width;
-      int textLength = CharUtils.getTextLength(buf.getBuf(), buf.getStart() + offset, newBlockLen);
+      int textLength = CharUtils.getTextLengthDoubleWidthAware(buf.getBuf(), buf.getStart() + offset, blockLen, mySettingsProvider.ambiguousCharsAreDoubleWidth());
 
       int yCoord = y * myCharSize.height;
 
@@ -973,12 +982,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
       gfx.setColor(getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun())));
 
-      gfx.drawChars(renderingBuffer.getBuf(), buf.getStart() + offset, newBlockLen, xCoord, baseLine);
+      gfx.drawChars(renderingBuffer.getBuf(), buf.getStart() + offset, blockLen, xCoord, baseLine);
 
-      drawCharsOffset += textLength;
-      offset += newBlockLen;
-
-      newBlockLen = 1;
+      drawCharsOffset += blockLen;
+      offset += blockLen;
     }
     gfx.setClip(null);
   }
@@ -1041,6 +1048,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   public TerminalSelection getSelection() {
     return mySelection;
+  }
+
+  @Override
+  public boolean ambiguousCharsAreDoubleWidth() {
+    return mySettingsProvider.ambiguousCharsAreDoubleWidth();
   }
 
   public LinesBuffer getScrollBuffer() {

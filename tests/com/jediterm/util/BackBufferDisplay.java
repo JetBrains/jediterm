@@ -71,6 +71,11 @@ public class BackBufferDisplay implements TerminalDisplay {
     return mySelection;
   }
 
+  @Override
+  public boolean ambiguousCharsAreDoubleWidth() {
+    return false;
+  }
+
   public void setSelection(TerminalSelection mySelection) {
     this.mySelection = mySelection;
   }

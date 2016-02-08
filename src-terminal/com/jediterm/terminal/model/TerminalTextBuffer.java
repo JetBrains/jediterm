@@ -2,7 +2,7 @@ package com.jediterm.terminal.model;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.jediterm.terminal.CharUtils;
+import com.jediterm.terminal.util.CharUtils;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.StyledTextConsumerAdapter;
@@ -13,7 +13,6 @@ import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.util.*;
 import java.util.concurrent.locks.Lock;
@@ -26,7 +25,6 @@ import java.util.concurrent.locks.ReentrantLock;
  * stores lines that are shown currently on the screen and they have there(in TextBuffer) their initial length (even if
  * it doesn't fit to screen width).
  * <p/>
- * Also handles screen damage (TODO: write about it).
  */
 public class TerminalTextBuffer {
   private static final Logger LOG = Logger.getLogger(TerminalTextBuffer.class);
@@ -177,25 +175,8 @@ public class TerminalTextBuffer {
     }
   }
 
-  public void writeBytes(final int x, final int y, final char[] bytes, final int start, final int len) {
-    final int adjY = y - 1;
-    if (adjY >= myHeight || adjY < 0) {
-      if (LOG.isDebugEnabled()) {
-        StringBuilder sb = new StringBuilder("Attempt to draw line ")
-                .append(adjY).append(" at (").append(x).append(",")
-                .append(y).append(")");
-
-        CharUtils.appendBuf(sb, bytes, start, len);
-        LOG.debug(sb);
-      }
-      return;
-    }
-
-    TextStyle style = myStyleState.getCurrent();
-
-    myScreenBuffer.writeString(x, adjY, new String(bytes, start, len), style); //TODO: make write bytes method
-
-    fireModelChangeEvent();
+  public void writeString(final int x, final int y, @NotNull final CharBuffer str) {
+    writeString(x, y, str, myStyleState.getCurrent());
   }
 
   public void addLine(@NotNull final TerminalLine line) {
@@ -204,11 +185,7 @@ public class TerminalTextBuffer {
     fireModelChangeEvent();
   }
 
-  public void writeString(final int x, final int y, @NotNull final String str) {
-    writeString(x, y, str, myStyleState.getCurrent());
-  }
-
-  private void writeString(int x, int y, @NotNull String str, @NotNull TextStyle style) {
+  private void writeString(int x, int y, @NotNull CharBuffer str, @NotNull TextStyle style) {
     myScreenBuffer.writeString(x, y - 1, str, style);
 
     fireModelChangeEvent();
@@ -345,6 +322,13 @@ public class TerminalTextBuffer {
     synchronized (myScreenBuffer) {
       TerminalLine line = getLine(y);
       return new Pair<Character, TextStyle>(line.charAt(x), line.getStyleAt(x));
+    }
+  }
+  
+  public char getCharAt(int x, int y) {
+    synchronized (myScreenBuffer) {
+      TerminalLine line = getLine(y);
+      return line.charAt(x);
     }
   }
 

@@ -3,10 +3,7 @@ package com.jediterm;
 import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.StyledTextConsumerAdapter;
 import com.jediterm.terminal.TextStyle;
-import com.jediterm.terminal.model.TerminalTextBuffer;
-import com.jediterm.terminal.model.CharBuffer;
-import com.jediterm.terminal.model.JediTerminal;
-import com.jediterm.terminal.model.StyleState;
+import com.jediterm.terminal.model.*;
 import com.jediterm.util.BackBufferDisplay;
 import junit.framework.TestCase;
 import org.jetbrains.annotations.NotNull;
@@ -375,5 +372,19 @@ public class TerminalTextBufferTest extends TestCase {
 
     assertEquals("1  11    1\n" +
       "          \n", terminalTextBuffer.getScreenLines());
+  }
+
+  public void testDoubleWidth() {
+    StyleState state = new StyleState();
+
+    TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(10, 2, state);
+
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+
+    terminal.writeString("生活習慣病");
+
+
+    assertEquals("生\uE000活\uE000習\uE000慣\uE000病\uE000\n" +
+            "          \n", terminalTextBuffer.getScreenLines());
   }
 }

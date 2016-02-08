@@ -1,6 +1,6 @@
 package com.jediterm.terminal.ui;
 
-import com.jediterm.terminal.Util;
+import com.jediterm.terminal.util.Util;
 
 import java.awt.*;
 import java.lang.reflect.Field;

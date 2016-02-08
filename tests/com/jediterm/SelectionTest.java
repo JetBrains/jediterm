@@ -126,4 +126,16 @@ public class SelectionTest extends TestCase {
                  "56\n" +
                  "78", SelectionUtil.getSelectionText(new Point(0, -2), new Point(2, 1), terminalTextBuffer));
   }
+
+  public void testDoubleWidth() {
+    StyleState state = new StyleState();
+
+    TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(10, 2, state);
+
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+
+    terminal.writeString("生活習慣病");
+
+    assertEquals("生活習慣病", SelectionUtil.getSelectionText(new Point(0, 0), new Point(10, 0), terminalTextBuffer));
+  }
 }

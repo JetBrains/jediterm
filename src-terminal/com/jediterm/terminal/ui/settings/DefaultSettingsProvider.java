@@ -157,4 +157,9 @@ public class DefaultSettingsProvider implements SettingsProvider {
   public boolean altSendsEscape() {
     return true;
   }
+
+  @Override
+  public boolean ambiguousCharsAreDoubleWidth() {
+    return false;
+  }
 }

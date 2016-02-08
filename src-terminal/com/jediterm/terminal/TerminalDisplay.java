@@ -33,4 +33,6 @@ public interface TerminalDisplay {
   void terminalMouseModeSet(MouseMode mode);
 
   TerminalSelection getSelection();
+  
+  boolean ambiguousCharsAreDoubleWidth();
 }

@@ -130,7 +130,7 @@ public class LinesBuffer {
     return removed;
   }
 
-  public synchronized void writeString(int x, int y, String str, @NotNull TextStyle style) {
+  public synchronized void writeString(int x, int y, CharBuffer str, @NotNull TextStyle style) {
     TerminalLine line = getLine(y);
 
     line.writeString(x, str, style);

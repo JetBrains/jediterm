@@ -4,6 +4,7 @@ import com.google.common.base.Ascii;
 import com.jediterm.terminal.*;
 import com.jediterm.terminal.emulator.mouse.MouseFormat;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
+import com.jediterm.terminal.util.CharUtils;
 import org.apache.log4j.Logger;
 
 import java.awt.*;

@@ -1,7 +1,7 @@
 package com.jediterm.terminal.model;
 
 import com.google.common.collect.Lists;
-import com.jediterm.terminal.CharUtils;
+import com.jediterm.terminal.util.CharUtils;
 import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.util.Pair;
@@ -63,8 +63,8 @@ public class TerminalLine {
     setWrapped(false);
   }
 
-  public void writeString(int x, @NotNull String str, @NotNull TextStyle style) {
-    writeCharacters(x, style, new CharBuffer(str));
+  public void writeString(int x, @NotNull CharBuffer str, @NotNull TextStyle style) {
+    writeCharacters(x, style, str);
   }
 
   private synchronized void writeCharacters(int x, @NotNull TextStyle style, @NotNull CharBuffer characters) {
@@ -287,7 +287,7 @@ public class TerminalLine {
     }
 
     public int getLength() {
-      return myText.getLength();
+      return myText.length();
     }
 
     public boolean isNul() {

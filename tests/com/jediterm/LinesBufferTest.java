@@ -1,6 +1,7 @@
 package com.jediterm;
 
 import com.jediterm.terminal.TextStyle;
+import com.jediterm.terminal.model.CharBuffer;
 import com.jediterm.terminal.model.LinesBuffer;
 import com.jediterm.util.CharBufferUtil;
 import junit.framework.TestCase;
@@ -76,31 +77,31 @@ public class LinesBufferTest extends TestCase {
   
   public void testWriteToLineBuffer() {
     LinesBuffer buf = new LinesBuffer();
-    buf.writeString(3, 2, "Hi!", TextStyle.EMPTY);
+    buf.writeString(3, 2, new CharBuffer("Hi!"), TextStyle.EMPTY);
     
     assertEquals("\n" +
                  "\n" +
                  "   Hi!", buf.getLines());
     
-    buf.writeString(1, 1, "*****", TextStyle.EMPTY);
+    buf.writeString(1, 1, new CharBuffer("*****"), TextStyle.EMPTY);
 
     assertEquals("\n" +
                  " *****\n" +
                  "   Hi!", buf.getLines());
     
-    buf.writeString(3, 1, "+", TextStyle.EMPTY);
+    buf.writeString(3, 1, new CharBuffer("+"), TextStyle.EMPTY);
 
     assertEquals("\n" +
                  " **+**\n" +
                  "   Hi!", buf.getLines());
 
-    buf.writeString(4, 1, "***", TextStyle.EMPTY);
+    buf.writeString(4, 1, new CharBuffer("***"), TextStyle.EMPTY);
 
     assertEquals("\n" +
                  " **+***\n" +
                  "   Hi!", buf.getLines());
     
-    buf.writeString(8, 1, "=", TextStyle.EMPTY);
+    buf.writeString(8, 1, new CharBuffer("="), TextStyle.EMPTY);
 
     assertEquals("\n" +
                  " **+*** =\n" +

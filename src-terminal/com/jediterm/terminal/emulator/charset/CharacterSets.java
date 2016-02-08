@@ -1,6 +1,6 @@
 package com.jediterm.terminal.emulator.charset;
 
-import com.jediterm.terminal.CharUtils;
+import com.jediterm.terminal.util.CharUtils;
 
 /**
  * Provides the (graphical) character sets.

@@ -4,7 +4,7 @@
 package com.jediterm.terminal.emulator;
 
 import com.google.common.collect.Lists;
-import com.jediterm.terminal.CharUtils;
+import com.jediterm.terminal.util.CharUtils;
 import com.jediterm.terminal.TerminalDataStream;
 
 import java.io.IOException;

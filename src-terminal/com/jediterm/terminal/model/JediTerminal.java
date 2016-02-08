@@ -6,6 +6,7 @@ import com.jediterm.terminal.emulator.charset.GraphicSet;
 import com.jediterm.terminal.emulator.charset.GraphicSetState;
 import com.jediterm.terminal.emulator.mouse.*;
 import com.jediterm.terminal.ui.TerminalCoordinates;
+import com.jediterm.terminal.util.CharUtils;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
@@ -114,21 +115,21 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
   @Override
   public void writeCharacters(String string) {
-    writeCharacters(decode(string).toCharArray(), 0, string.length());
+    writeDecodedCharacters(decodeUsingGraphicalState(string));
   }
 
-  private void writeCharacters(final char[] chosenBuffer, final int start,
-                               final int length) {
+  private void writeDecodedCharacters(char[] string) {
     myTerminalTextBuffer.lock();
     try {
       wrapLines();
       scrollY();
 
-      if (length != 0) {
-        myTerminalTextBuffer.writeBytes(myCursorX, myCursorY, chosenBuffer, start, length);
+      if (string.length != 0) {
+        CharBuffer characters = newCharBuf(string);
+        myTerminalTextBuffer.writeString(myCursorX, myCursorY, characters);
+        myCursorX += characters.length();
       }
 
-      myCursorX += CharUtils.getTextLength(chosenBuffer, start, length);
       finishText();
     } finally {
       myTerminalTextBuffer.unlock();
@@ -137,34 +138,17 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
   @Override
   public void writeDoubleByte(final char[] bytesOfChar) throws UnsupportedEncodingException {
-    writeString(new String(bytesOfChar, 0, 2));
+    writeCharacters(new String(bytesOfChar, 0, 2));
   }
+  
 
-  public void writeString(String string) {
-    doWriteString(decode(string));
-  }
-
-  private String decode(String string) {
+  private char[] decodeUsingGraphicalState(String string) {
     StringBuilder result = new StringBuilder();
     for (char c : string.toCharArray()) {
       result.append(myGraphicSetState.map(c));
     }
 
-    return result.toString();
-  }
-
-  private void doWriteString(String string) {
-    myTerminalTextBuffer.lock();
-    try {
-      wrapLines();
-      scrollY();
-
-      myTerminalTextBuffer.writeString(myCursorX, myCursorY, string);
-      myCursorX += string.length();
-      finishText();
-    } finally {
-      myTerminalTextBuffer.unlock();
-    }
+    return result.toString().toCharArray();
   }
 
   public void writeUnwrappedString(String string) {
@@ -172,7 +156,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     int off = 0;
     while (off < length) {
       int amountInLine = Math.min(distanceToLineEnd(), length - off);
-      writeString(string.substring(off, off + amountInLine));
+      writeCharacters(string.substring(off, off + amountInLine));
       wrapLines();
       scrollY();
       off += amountInLine;
@@ -289,10 +273,11 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     if (myCursorX < stop) {
       char[] chars = new char[stop - myCursorX];
       Arrays.fill(chars, CharUtils.EMPTY_CHAR);
-      doWriteString(new String(chars));
+      writeDecodedCharacters(chars);
     } else {
       myCursorX = stop;
     }
+    adjustXY(+1);
     myDisplay.setCursor(myCursorX, myCursorY);
   }
 
@@ -499,6 +484,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     try {
       myCursorY -= countY;
       myCursorY = Math.max(myCursorY, scrollingRegionTop());
+      adjustXY(-1);
       myDisplay.setCursor(myCursorX, myCursorY);
     } finally {
       myTerminalTextBuffer.unlock();
@@ -511,6 +497,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     try {
       myCursorY += dY;
       myCursorY = Math.min(myCursorY, scrollingRegionBottom());
+      adjustXY(-1);
       myDisplay.setCursor(myCursorX, myCursorY);
     } finally {
       myTerminalTextBuffer.unlock();
@@ -528,6 +515,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
         scrollArea(myScrollRegionTop, scrollingRegionSize(), -1);
       } else {
         myCursorY += 1;
+        adjustXY(-1);
         myDisplay.setCursor(myCursorX, myCursorY);
       }
     } finally {
@@ -590,6 +578,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   public void cursorForward(final int dX) {
     myCursorX += dX;
     myCursorX = Math.min(myCursorX, myTerminalWidth - 1);
+    adjustXY(+1);
     myDisplay.setCursor(myCursorX, myCursorY);
   }
 
@@ -597,6 +586,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   public void cursorBackward(final int dX) {
     myCursorX -= dX;
     myCursorX = Math.max(myCursorX, 0);
+    adjustXY(-1);
     myDisplay.setCursor(myCursorX, myCursorY);
   }
 
@@ -608,6 +598,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   @Override
   public void linePositionAbsolute(int y) {
     myCursorY = y;
+    adjustXY(-1);
     myDisplay.setCursor(myCursorX, myCursorY);
   }
 
@@ -628,6 +619,8 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     myCursorX = Math.min(myCursorX, myTerminalWidth - 1);
 
     myCursorY = Math.max(0, myCursorY);
+    
+    adjustXY(-1);
 
     myDisplay.setCursor(myCursorX, myCursorY);
   }
@@ -710,6 +703,8 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   public void restoreCursor(@NotNull StoredCursor storedCursor) {
     myCursorX = storedCursor.getCursorX();
     myCursorY = storedCursor.getCursorY();
+    
+    adjustXY(-1);
 
     myStyleState.setCurrent(storedCursor.getTextStyle().clone());
 
@@ -952,13 +947,24 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   @Override
-  public void setX(int x) {
-    myCursorX = x;
-  }
-
-  @Override
   public void setY(int y) {
     myCursorY = y;
+    adjustXY(-1);
+  }
+
+  private void adjustXY(int dirX) {
+    if (myTerminalTextBuffer.getCharAt(myCursorX, myCursorY-1) == CharUtils.DWC) {
+      // we don't want to place cursor on the second part of double width character
+      if (dirX>0) { // so we move it into the predefined direction
+        if (myCursorX==myTerminalWidth) { //if it is the last in the line we return where we were
+          myCursorX -= 1;
+        } else {
+          myCursorX += 1;
+        }
+      } else {
+        myCursorX -=1; //dwc can't be the first character in the line
+      }
+    }
   }
 
   @Override
@@ -969,6 +975,10 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   @Override
   public int getY() {
     return myCursorY;
+  }
+
+  public void writeString(String s) {
+    writeCharacters(s);
   }
 
   public interface ResizeHandler {
@@ -1002,14 +1012,37 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     try {
       final char[] chars = new char[myTerminalWidth];
       Arrays.fill(chars, c);
-      final String str = new String(chars);
 
       for (int row = 1; row <= myTerminalHeight; row++) {
-        myTerminalTextBuffer.writeString(0, row, str);
+        myTerminalTextBuffer.writeString(0, row, newCharBuf(chars));
       }
     } finally {
       myTerminalTextBuffer.unlock();
     }
+  }
+
+  @NotNull
+  private CharBuffer newCharBuf(char[] str) {
+    int wdcCount = CharUtils.countDoubleWidthCharacters(str, 0, str.length, myDisplay.ambiguousCharsAreDoubleWidth());
+    
+    char[] buf;
+    
+    if (wdcCount>0) {
+      buf = new char[wdcCount*2 + str.length - wdcCount];
+
+      int j = 0;
+      for (int i = 0; i<str.length; i++) {
+        buf[j] = str[i];
+        if (CharUtils.isDoubleWidthCharacter(str[i], myDisplay.ambiguousCharsAreDoubleWidth())) {
+          j++;
+          buf[j] = CharUtils.DWC;
+        }
+        j++;
+      }
+    } else {
+      buf = str;
+    }
+    return new CharBuffer(buf, 0, buf.length);
   }
 
   @Override

@@ -1,5 +1,6 @@
 package com.jediterm.terminal.model;
 
+import com.jediterm.terminal.util.CharUtils;
 import com.jediterm.terminal.util.Pair;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -67,16 +68,16 @@ public class SelectionUtil {
       String text = line.getText();
       if (i == top.y) {
         if (i == bottom.y) {
-          selectionText.append(text.substring(Math.min(text.length(), top.x), Math.min(text.length(), bottom.x)));
+          selectionText.append(processForSelection(text.substring(Math.min(text.length(), top.x), Math.min(text.length(), bottom.x))));
         } else {
-          selectionText.append(text.substring(Math.min(text.length(), top.x)));
+          selectionText.append(processForSelection(text.substring(Math.min(text.length(), top.x))));
         }
       }
       else if (i == bottom.y) {
-        selectionText.append(text.substring(0, Math.min(text.length(), bottom.x)));
+        selectionText.append(processForSelection(text.substring(0, Math.min(text.length(), bottom.x))));
       }
       else {
-        selectionText.append(line.getText());
+        selectionText.append(processForSelection(line.getText()));
       }
       if ((!line.isWrapped() && i < bottom.y) || bottom.x > text.length()) {
         selectionText.append("\n");
@@ -84,6 +85,21 @@ public class SelectionUtil {
     }
 
     return selectionText.toString();
+  }
+
+  private static String processForSelection(String text) {
+    if (text.indexOf(CharUtils.DWC) != 0) {
+      // remove dwc second chars
+      StringBuilder sb = new StringBuilder();
+      for (char c : text.toCharArray()) {
+        if (c != CharUtils.DWC) {
+          sb.append(c);
+        }
+      }
+      return sb.toString();
+    } else {
+      return text;
+    }
   }
 
   public static Point getPreviousSeparator(Point charCoords, TerminalTextBuffer terminalTextBuffer) {

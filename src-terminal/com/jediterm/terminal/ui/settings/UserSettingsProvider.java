@@ -45,4 +45,6 @@ public interface UserSettingsProvider {
   int getBufferMaxLinesCount();
   
   boolean altSendsEscape();
+
+  boolean ambiguousCharsAreDoubleWidth();
 }

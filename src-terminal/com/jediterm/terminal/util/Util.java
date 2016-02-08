@@ -1,4 +1,4 @@
-package com.jediterm.terminal;
+package com.jediterm.terminal.util;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

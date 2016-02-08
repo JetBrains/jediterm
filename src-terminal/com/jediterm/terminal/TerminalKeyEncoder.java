@@ -1,7 +1,7 @@
 package com.jediterm.terminal;
 
 import com.google.common.base.Ascii;
-import com.sun.istack.internal.NotNull;
+import com.jediterm.terminal.util.CharUtils;
 
 import java.awt.event.InputEvent;
 import java.util.HashMap;
@@ -105,7 +105,7 @@ public class TerminalKeyEncoder {
   /**
    * Refer to section PC-Style Function Keys in http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
    */
-  private byte[] getCodeWithModifiers(@NotNull  byte[] bytes, int modifiers) {
+  private byte[] getCodeWithModifiers(byte[] bytes, int modifiers) {
     int code = modifiersToCode(modifiers);
 
     if (code > 0) {

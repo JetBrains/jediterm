@@ -140,7 +140,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   public void writeDoubleByte(final char[] bytesOfChar) throws UnsupportedEncodingException {
     writeCharacters(new String(bytesOfChar, 0, 2));
   }
-  
+
 
   private char[] decodeUsingGraphicalState(String string) {
     StringBuilder result = new StringBuilder();
@@ -619,7 +619,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     myCursorX = Math.min(myCursorX, myTerminalWidth - 1);
 
     myCursorY = Math.max(0, myCursorY);
-    
+
     adjustXY(-1);
 
     myDisplay.setCursor(myCursorX, myCursorY);
@@ -703,7 +703,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   public void restoreCursor(@NotNull StoredCursor storedCursor) {
     myCursorX = storedCursor.getCursorX();
     myCursorY = storedCursor.getCursorY();
-    
+
     adjustXY(-1);
 
     myStyleState.setCurrent(storedCursor.getTextStyle().clone());
@@ -953,16 +953,16 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   private void adjustXY(int dirX) {
-    if (myTerminalTextBuffer.getCharAt(myCursorX, myCursorY-1) == CharUtils.DWC) {
+    if (myTerminalTextBuffer.getCharAt(myCursorX, myCursorY - 1) == CharUtils.DWC) {
       // we don't want to place cursor on the second part of double width character
-      if (dirX>0) { // so we move it into the predefined direction
-        if (myCursorX==myTerminalWidth) { //if it is the last in the line we return where we were
+      if (dirX > 0) { // so we move it into the predefined direction
+        if (myCursorX == myTerminalWidth) { //if it is the last in the line we return where we were
           myCursorX -= 1;
         } else {
           myCursorX += 1;
         }
       } else {
-        myCursorX -=1; //dwc can't be the first character in the line
+        myCursorX -= 1; //dwc can't be the first character in the line
       }
     }
   }
@@ -1024,14 +1024,14 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   @NotNull
   private CharBuffer newCharBuf(char[] str) {
     int wdcCount = CharUtils.countDoubleWidthCharacters(str, 0, str.length, myDisplay.ambiguousCharsAreDoubleWidth());
-    
+
     char[] buf;
-    
-    if (wdcCount>0) {
-      buf = new char[wdcCount*2 + str.length - wdcCount];
+
+    if (wdcCount > 0) {
+      buf = new char[wdcCount * 2 + str.length - wdcCount];
 
       int j = 0;
-      for (int i = 0; i<str.length; i++) {
+      for (int i = 0; i < str.length; i++) {
         buf[j] = str[i];
         if (CharUtils.isDoubleWidthCharacter(str[i], myDisplay.ambiguousCharsAreDoubleWidth())) {
           j++;
@@ -1068,6 +1068,34 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   @Override
   public StyleState getStyleState() {
     return myStyleState;
+  }
+
+  public SubstringFinder.FindResult searchInTerminalTextBuffer(final String pattern) {
+    if (pattern.length() == 0) {
+      return null;
+    }
+
+    final SubstringFinder finder = new SubstringFinder(pattern);
+
+
+    myTerminalTextBuffer.processHistoryAndScreenLines(-myTerminalTextBuffer.getHistoryLinesCount(), -1, new StyledTextConsumer() {
+      @Override
+      public void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
+        for (int i = 0; i < characters.length(); i++) {
+          finder.nextChar(characters, i);
+        }
+      }
+
+      @Override
+      public void consumeNul(int x, int y, int nulIndex, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
+      }
+
+      @Override
+      public void consumeQueue(int x, int y, int nulIndex, int startRow) {
+      }
+    });
+
+    return finder.getResult();
   }
 
 

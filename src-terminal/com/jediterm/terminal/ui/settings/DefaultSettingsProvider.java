@@ -50,6 +50,13 @@ public class DefaultSettingsProvider implements SettingsProvider {
   }
 
   @Override
+  public KeyStroke[] getFindKeyStrokes() {
+    return new KeyStroke[]{UIUtil.isMac
+            ? KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.META_DOWN_MASK)
+            : KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK)};
+  }
+
+  @Override
   public ColorPalette getTerminalColorPalette() {
     return UIUtil.isWindows ? ColorPalette.WINDOWS_PALETTE : ColorPalette.XTERM_PALETTE;
   }
@@ -86,6 +93,11 @@ public class DefaultSettingsProvider implements SettingsProvider {
   @Override
   public TextStyle getSelectionColor() {
     return new TextStyle(TerminalColor.WHITE, TerminalColor.rgb(82, 109, 165));
+  }
+
+  @Override
+  public TextStyle getFoundPatternColor() {
+    return new TextStyle(TerminalColor.BLACK, TerminalColor.rgb(255, 255, 0));
   }
 
   @Override

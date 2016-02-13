@@ -155,7 +155,7 @@ public class TerminalTextBuffer {
               "args were x:" + x + " count:" + count);
     } else if (count < 0) {
       LOG.error("Attempt to delete negative chars number: count:" + count);
-    } else if (count > 0) { 
+    } else if (count > 0) {
       myScreenBuffer.deleteCharacters(x, y, count, createEmptyStyleWithCurrentColor());
 
       fireModelChangeEvent();
@@ -324,7 +324,7 @@ public class TerminalTextBuffer {
       return new Pair<Character, TextStyle>(line.charAt(x), line.getStyleAt(x));
     }
   }
-  
+
   public char getCharAt(int x, int y) {
     synchronized (myScreenBuffer) {
       TerminalLine line = getLine(y);
@@ -395,15 +395,27 @@ public class TerminalTextBuffer {
     fireModelChangeEvent();
   }
 
-  public void processHistoryAndScreenLines(int scrollOrigin, StyledTextConsumer consumer) {
-    int linesFromHistory = Math.min(-scrollOrigin, myHeight);
+  /**
+   * @param scrollOrigin row where a scrolling window starts, should be in the range [-history_lines_count, 0]
+   */
+  public void processHistoryAndScreenLines(int scrollOrigin, int maximalLinesToProcess, StyledTextConsumer consumer) {
+    if (maximalLinesToProcess<0) {
+      //Process all lines in this case
+      
+      maximalLinesToProcess = myHistoryBuffer.getLineCount() + myScreenBuffer.getLineCount();
+    }
+
+    int linesFromHistory = Math.min(-scrollOrigin, maximalLinesToProcess);
+
     int y = myHistoryBuffer.getLineCount() + scrollOrigin;
     if (y < 0) { // it seems that lower bound of scrolling can get out of sync with history buffer lines count
       y = 0; // to avoid exception we start with the first line in this case
     }
     myHistoryBuffer.processLines(y, linesFromHistory, consumer, y);
-    if (myHeight - linesFromHistory + 1 > 0) {
-      myScreenBuffer.processLines(0, myHeight - linesFromHistory, consumer, -linesFromHistory);
+
+    if (linesFromHistory < maximalLinesToProcess) {
+      // we can show lines from screen buffer
+      myScreenBuffer.processLines(0, maximalLinesToProcess - linesFromHistory, consumer, -linesFromHistory);
     }
   }
 

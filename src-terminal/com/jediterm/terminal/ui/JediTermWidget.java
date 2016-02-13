@@ -1,5 +1,6 @@
 package com.jediterm.terminal.ui;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.jediterm.terminal.*;
 import com.jediterm.terminal.debug.DebugBufferType;
@@ -12,7 +13,11 @@ import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -26,12 +31,14 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   protected final TerminalPanel myTerminalPanel;
   protected final JediTerminal myTerminal;
   protected final AtomicBoolean mySessionRunning = new AtomicBoolean();
+  private FindComponent myFindComponent;
   protected PreConnectHandler myPreConnectHandler;
   private TtyConnector myTtyConnector;
   private TerminalStarter myTerminalStarter;
   private Thread myEmuThread;
   private final SettingsProvider mySettingsProvider;
   private TerminalActionProvider myNextActionProvider;
+  private JLayeredPane myInnerPanel;
 
   public JediTermWidget(@NotNull SettingsProvider settingsProvider) {
     this(80, 24, settingsProvider);
@@ -51,7 +58,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
     myTerminalPanel = createTerminalPanel(mySettingsProvider, styleState, terminalTextBuffer);
     myTerminal = new JediTerminal(myTerminalPanel, terminalTextBuffer, styleState);
-    
+
     myTerminal.setModeEnabled(TerminalMode.AltSendsEscape, mySettingsProvider.altSendsEscape());
 
     myTerminalPanel.addTerminalMouseListener(myTerminal);
@@ -62,8 +69,20 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     myTerminalPanel.setKeyListener(myPreConnectHandler);
     JScrollBar scrollBar = createScrollBar();
 
-    add(myTerminalPanel, BorderLayout.CENTER);
-    add(scrollBar, BorderLayout.EAST);
+    JPanel terminalPanelWithScrolling = new JPanel(new BorderLayout());
+
+    terminalPanelWithScrolling.add(myTerminalPanel, BorderLayout.CENTER);
+    terminalPanelWithScrolling.add(scrollBar, BorderLayout.EAST);
+    terminalPanelWithScrolling.setOpaque(false);
+
+    myInnerPanel = new JLayeredPane();
+    myInnerPanel.setFocusable(false);
+
+    myInnerPanel.setLayout(new TerminalLayout());
+    myInnerPanel.add(terminalPanelWithScrolling, TerminalLayout.TERMINAL);
+
+    add(myInnerPanel, BorderLayout.CENTER);
+
     scrollBar.setModel(myTerminalPanel.getBoundedRangeModel());
     mySessionRunning.set(false);
 
@@ -199,7 +218,105 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   @Override
   public List<TerminalAction> getActions() {
-    return Lists.newArrayList();
+    return Lists.newArrayList(new TerminalAction("Find", mySettingsProvider.getFindKeyStrokes(),
+            new Predicate<KeyEvent>() {
+              @Override
+              public boolean apply(KeyEvent input) {
+                showFindText();
+                return true;
+              }
+            }).withMnemonicKey(KeyEvent.VK_F));
+  }
+
+  private void showFindText() {
+    if (myFindComponent == null) {
+      myFindComponent = createFindComponent();
+
+      final JComponent component = myFindComponent.getComponent();
+      myInnerPanel.add(component, TerminalLayout.FIND);
+      myInnerPanel.moveToFront(component);
+      myInnerPanel.revalidate();
+      myInnerPanel.repaint();
+      component.requestFocus();
+
+      myFindComponent.addDocumentChangeListener(new DocumentListener() {
+        @Override
+        public void insertUpdate(DocumentEvent e) {
+          textUpdated();
+        }
+
+        @Override
+        public void removeUpdate(DocumentEvent e) {
+          textUpdated();
+        }
+
+        @Override
+        public void changedUpdate(DocumentEvent e) {
+          textUpdated();
+        }
+      });
+
+
+      component.addKeyListener(new KeyAdapter() {
+        @Override
+        public void keyPressed(KeyEvent keyEvent) {
+          if (keyEvent.getKeyCode() == KeyEvent.VK_ESCAPE) {
+            myInnerPanel.remove(component);
+            myInnerPanel.revalidate();
+            myInnerPanel.repaint();
+            myInnerPanel.requestFocus();
+            myFindComponent = null;
+            myTerminalPanel.setFindResult(null);
+          } else if (keyEvent.getKeyCode() == KeyEvent.VK_ENTER) {
+            findText(myFindComponent.getText());
+          } else {
+            super.keyPressed(keyEvent);
+          }
+        }
+      });
+    }
+
+  }
+
+  private void textUpdated() {
+    findText(myFindComponent.getText());
+  }
+
+  private FindComponent createFindComponent() {
+    return new FindComponent() {
+      private final JTextField myTextField = new JTextField();
+
+      @Override
+      public String getText() {
+        return myTextField.getText();
+      }
+
+      @Override
+      public JComponent getComponent() {
+        myTextField.setOpaque(true);
+        myTextField.setText("");
+        myTextField.setPreferredSize(new Dimension(myTerminalPanel.myCharSize.width*30, myTerminalPanel.myCharSize.height+3));
+        myTextField.setEditable(true);
+        return myTextField;
+      }
+
+      @Override
+      public void addDocumentChangeListener(DocumentListener listener) {
+        myTextField.getDocument().addDocumentListener(listener);
+      }
+    };
+  }
+
+  protected interface FindComponent {
+    String getText();
+
+    JComponent getComponent();
+
+    void addDocumentChangeListener(DocumentListener listener);
+  }
+
+  private void findText(String text) {
+    myTerminalPanel.setFindResult(myTerminal.searchInTerminalTextBuffer(text));
   }
 
   @Override
@@ -240,5 +357,105 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   public TerminalStarter getTerminalStarter() {
     return myTerminalStarter;
+  }
+
+  private static class TerminalLayout implements LayoutManager {
+    public static final String TERMINAL = "TERMINAL";
+    public static final String FIND = "FIND";
+
+    private Component terminal;
+    private Component find;
+
+    @Override
+    public void addLayoutComponent(String name, Component comp) {
+      if (TERMINAL.equals(name)) {
+        terminal = comp;
+      } else if (FIND.equals(name)) {
+        find = comp;
+      } else throw new IllegalArgumentException("unknown component name " + name);
+    }
+
+    @Override
+    public void removeLayoutComponent(Component comp) {
+      if (comp == terminal) {
+        terminal = null;
+      }
+      if (comp == find) {
+        find = comp;
+      }
+    }
+
+
+    @Override
+    public Dimension preferredLayoutSize(Container target) {
+      synchronized (target.getTreeLock()) {
+        Dimension dim = new Dimension(0, 0);
+
+        if (terminal != null) {
+          Dimension d = terminal.getPreferredSize();
+          dim.width = d.width;
+          dim.height = Math.max(d.height, dim.height);
+        }
+
+        if (find != null) {
+          Dimension d = find.getPreferredSize();
+          dim.width = Math.max(d.width, dim.width);
+          dim.height = Math.max(d.height, dim.height);
+        }
+
+        Insets insets = target.getInsets();
+        dim.width += insets.left + insets.right;
+        dim.height += insets.top + insets.bottom;
+
+        return dim;
+      }
+    }
+
+    @Override
+    public Dimension minimumLayoutSize(Container target) {
+      synchronized (target.getTreeLock()) {
+        Dimension dim = new Dimension(0, 0);
+
+        if (terminal != null) {
+          Dimension d = terminal.getMinimumSize();
+          dim.width = d.width;
+          dim.height = Math.max(d.height, dim.height);
+        }
+
+        if (find != null) {
+          Dimension d = find.getMinimumSize();
+          dim.width = Math.max(d.width, dim.width);
+          dim.height = Math.max(d.height, dim.height);
+        }
+
+        Insets insets = target.getInsets();
+        dim.width += insets.left + insets.right;
+        dim.height += insets.top + insets.bottom;
+
+        return dim;
+      }
+    }
+
+    @Override
+    public void layoutContainer(Container target) {
+      synchronized (target.getTreeLock()) {
+        Insets insets = target.getInsets();
+        int top = insets.top;
+        int bottom = target.getHeight() - insets.bottom;
+        int left = insets.left;
+        int right = target.getWidth() - insets.right;
+
+        if (terminal != null) {
+          terminal.setBounds(left, top, right - left, bottom - top);
+        }
+
+        if (find != null) {
+          Dimension d = find.getPreferredSize();
+          find.setBounds(right - d.width, top, d.width, d.height);
+        }
+      }
+
+
+    }
   }
 }

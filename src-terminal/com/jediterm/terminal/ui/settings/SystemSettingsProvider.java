@@ -12,4 +12,6 @@ public interface SystemSettingsProvider {
   KeyStroke[] getNewSessionKeyStrokes();
 
   KeyStroke[] getCloseSessionKeyStrokes();
+
+  KeyStroke[] getFindKeyStrokes();
 }

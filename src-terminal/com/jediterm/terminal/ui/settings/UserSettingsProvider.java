@@ -18,6 +18,8 @@ public interface UserSettingsProvider {
 
   TextStyle getSelectionColor();
 
+  TextStyle getFoundPatternColor();
+
   boolean useInverseSelectionColor();
 
   boolean copyOnSelect();

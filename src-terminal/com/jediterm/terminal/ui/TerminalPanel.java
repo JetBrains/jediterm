@@ -67,7 +67,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   /*scroll and cursor*/
   final private TerminalCursor myCursor = new TerminalCursor();
+  
+  //we scroll a window [0, terminal_height] in the range [-history_lines_count, terminal_height]
   private final BoundedRangeModel myBoundedRangeModel = new DefaultBoundedRangeModel(0, 80, 0, 80);
+  
   private boolean myScrollingEnabled = true;
   protected int myClientScrollOrigin;
   protected KeyListener myKeyListener;
@@ -86,6 +89,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private TerminalCoordinates myCoordsAccessor;
 
   private String myCurrentPath; //TODO: handle current path if availabe
+  private SubstringFinder.FindResult myFindResult;
 
   public TerminalPanel(@NotNull SettingsProvider settingsProvider, @NotNull TerminalTextBuffer terminalTextBuffer, @NotNull StyleState styleState) {
     mySettingsProvider = settingsProvider;
@@ -308,6 +312,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   public void setCoordAccessor(TerminalCoordinates coordAccessor) {
     myCoordsAccessor = coordAccessor;
+  }
+
+  public void setFindResult(SubstringFinder.FindResult findResult) {
+    myFindResult = findResult;
+    repaint();
   }
 
   static class WeakRedrawTimer implements ActionListener {
@@ -583,7 +592,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     gfx.fillRect(0, 0, getWidth(), getHeight());
 
-    myTerminalTextBuffer.processHistoryAndScreenLines(myClientScrollOrigin, new StyledTextConsumer() {
+    myTerminalTextBuffer.processHistoryAndScreenLines(myClientScrollOrigin, myTermSize.height, new StyledTextConsumer() {
       final int columnCount = getColumnCount();
 
       @Override
@@ -598,6 +607,19 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             
             drawCharacters(interval.first, row, selectionStyle, selectionChars, gfx);
           }
+        }
+        
+        if (myFindResult != null) {
+          List<Pair<Integer, Integer>> ranges = myFindResult.getRanges(characters);
+          if (ranges != null) {
+            for (Pair<Integer, Integer> range: ranges) {
+              TextStyle foundPatternStyle = getFoundPattern(style);
+              CharBuffer foundPatternChars = characters.subBuffer(range);
+
+              drawCharacters(x + range.first, row, foundPatternStyle, foundPatternChars, gfx);
+            }
+          }
+          
         }
       }
 
@@ -649,6 +671,15 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       selectionStyle.setForeground(mySelectionStyle.getForeground());
     }
     return selectionStyle;
+  }
+
+  private TextStyle getFoundPattern(TextStyle style) {
+    TextStyle foundPatternStyle = style.clone();
+    TextStyle myFoundPattern = mySettingsProvider.getFoundPatternColor();
+    foundPatternStyle.setBackground(myFoundPattern.getBackground());
+    foundPatternStyle.setForeground(myFoundPattern.getForeground());
+    
+    return foundPatternStyle;
   }
 
   private void drawInputMethodUncommitedChars(Graphics2D gfx) {

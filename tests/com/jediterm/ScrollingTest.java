@@ -133,7 +133,7 @@ public class ScrollingTest extends TestCase {
     assertEquals("1\n2", terminalTextBuffer.getHistoryBuffer().getLines());
 
     ArrayBasedTextConsumer textConsumer = new ArrayBasedTextConsumer(terminalTextBuffer.getHeight(), terminalTextBuffer.getWidth());
-    terminalTextBuffer.processHistoryAndScreenLines(0, textConsumer);
+    terminalTextBuffer.processHistoryAndScreenLines(0, terminalTextBuffer.getHeight(), textConsumer);
 
     assertEquals("3 \n" +
             "4 \n" +
@@ -141,7 +141,7 @@ public class ScrollingTest extends TestCase {
 
 
     textConsumer = new ArrayBasedTextConsumer(terminalTextBuffer.getHeight(), terminalTextBuffer.getWidth());
-    terminalTextBuffer.processHistoryAndScreenLines(-1, textConsumer);
+    terminalTextBuffer.processHistoryAndScreenLines(-1, terminalTextBuffer.getHeight(), textConsumer);
 
     assertEquals("2 \n" +
             "3 \n" +
@@ -149,7 +149,7 @@ public class ScrollingTest extends TestCase {
 
 
     textConsumer = new ArrayBasedTextConsumer(terminalTextBuffer.getHeight(), terminalTextBuffer.getWidth());
-    terminalTextBuffer.processHistoryAndScreenLines(-2, textConsumer);
+    terminalTextBuffer.processHistoryAndScreenLines(-2, terminalTextBuffer.getHeight(), textConsumer);
 
     assertEquals("1 \n" +
             "2 \n" +

@@ -5,6 +5,7 @@ import com.google.common.collect.Maps;
 import com.jediterm.terminal.model.CharBuffer;
 import com.jediterm.terminal.util.Pair;
 
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +20,7 @@ public class SubstringFinder {
   final int patternHash;
   int currentHash;
   int currentLength;
-  final ArrayList<CharBuffer> chunks = Lists.newArrayList();
+  final ArrayList<TextToken> tokens = Lists.newArrayList();
   int firstIndex;
   int power = 0;
 
@@ -32,16 +33,16 @@ public class SubstringFinder {
   }
 
 
-  public void nextChar(CharBuffer characters, int index) {
-    if (chunks.size() == 0 || chunks.get(chunks.size() - 1) != characters) {
-      chunks.add(characters);
+  public void nextChar(int x, int y, CharBuffer characters, int index) {
+    if (tokens.size() == 0 || tokens.get(tokens.size() - 1).buf != characters) {
+      tokens.add(new TextToken(x, y, characters));
     }
 
     if (currentLength == pattern.length()) {
-      currentHash -= hashCodeForChar(chunks.get(0).charAt(firstIndex));
-      if (firstIndex + 1 == chunks.get(0).length()) {
+      currentHash -= hashCodeForChar(tokens.get(0).buf.charAt(firstIndex));
+      if (firstIndex + 1 == tokens.get(0).buf.length()) {
         firstIndex = 0;
-        chunks.remove(0);
+        tokens.remove(0);
       } else {
         firstIndex += 1;
       }
@@ -58,15 +59,15 @@ public class SubstringFinder {
 
     if (currentLength == pattern.length() &&
             currentHash == patternHash &&
-            pattern.equals(new FindResult.FindItem(chunks, firstIndex, index).toString())) {
-      result.patternMatched(chunks, firstIndex, index);
+            pattern.equals(new FindResult.FindItem(tokens, firstIndex, index).toString())) {
+      result.patternMatched(tokens, firstIndex, index);
       currentHash = 0;
       currentLength = 0;
       power = 0;
-      chunks.clear();
+      tokens.clear();
       if (index + 1 < characters.length()) {
         firstIndex = index + 1;
-        chunks.add(characters);
+        tokens.add(new TextToken(x, y, characters));
       } else {
         firstIndex = 0;
       }
@@ -83,20 +84,21 @@ public class SubstringFinder {
   }
 
   public static class FindResult {
-    private final List<String> items = Lists.newArrayList();
+    private final List<FindItem> items = Lists.newArrayList();
     private final Map<CharBuffer, List<Pair<Integer, Integer>>> ranges = Maps.newHashMap();
+    private int currentFindItem = 0;
 
     public List<Pair<Integer, Integer>> getRanges(CharBuffer characters) {
       return ranges.get(characters);
     }
 
     public static class FindItem {
-      final ArrayList<CharBuffer> chunks;
+      final ArrayList<TextToken> tokens;
       final int firstIndex;
       final int lastIndex;
 
-      private FindItem(ArrayList<CharBuffer> chunks, int firstIndex, int lastIndex) {
-        this.chunks = Lists.newArrayList(chunks);
+      private FindItem(ArrayList<TextToken> tokens, int firstIndex, int lastIndex) {
+        this.tokens = Lists.newArrayList(tokens);
         this.firstIndex = firstIndex;
         this.lastIndex = lastIndex;
       }
@@ -104,53 +106,54 @@ public class SubstringFinder {
       public String toString() {
         StringBuilder b = new StringBuilder();
 
-        if (chunks.size() > 1) {
-          Pair<Integer, Integer> range = Pair.create(firstIndex, chunks.get(0).length());
-          b.append(chunks.get(0).subBuffer(range));
+        if (tokens.size() > 1) {
+          Pair<Integer, Integer> range = Pair.create(firstIndex, tokens.get(0).buf.length());
+          b.append(tokens.get(0).buf.subBuffer(range));
         } else {
           Pair<Integer, Integer> range = Pair.create(firstIndex, lastIndex + 1);
-          b.append(chunks.get(0).subBuffer(range));
+          b.append(tokens.get(0).buf.subBuffer(range));
         }
 
-        for (int i = 1; i < chunks.size() - 1; i++) {
-          b.append(chunks.get(i));
+        for (int i = 1; i < tokens.size() - 1; i++) {
+          b.append(tokens.get(i));
         }
 
-        if (chunks.size() > 1) {
+        if (tokens.size() > 1) {
           Pair<Integer, Integer> range = Pair.create(0, lastIndex + 1);
-          b.append(chunks.get(chunks.size() - 1).subBuffer(range));
+          b.append(tokens.get(tokens.size() - 1).buf.subBuffer(range));
         }
 
         return b.toString();
       }
+
+      public Point getStart() {
+        return new Point(tokens.get(0).x + firstIndex, tokens.get(0).y);
+      }
+
+      public Point getEnd() {
+        return new Point(tokens.get(tokens.size()-1).x + lastIndex, tokens.get(tokens.size()-1).y);
+      }
     }
 
-    public void patternMatched(ArrayList<CharBuffer> chunks, int firstIndex, int lastIndex) {
-      StringBuilder b = new StringBuilder();
-
-      if (chunks.size() > 1) {
-        Pair<Integer, Integer> range = Pair.create(firstIndex, chunks.get(0).length());
-        b.append(chunks.get(0).subBuffer(range));
-        put(chunks.get(0), range);
+    public void patternMatched(ArrayList<TextToken> tokens, int firstIndex, int lastIndex) {
+      if (tokens.size() > 1) {
+        Pair<Integer, Integer> range = Pair.create(firstIndex, tokens.get(0).buf.length());
+        put(tokens.get(0).buf, range);
       } else {
         Pair<Integer, Integer> range = Pair.create(firstIndex, lastIndex + 1);
-        b.append(chunks.get(0).subBuffer(range));
-        put(chunks.get(0), range);
+        put(tokens.get(0).buf, range);
       }
 
-      for (int i = 1; i < chunks.size() - 1; i++) {
-        b.append(chunks.get(i));
-
-        put(chunks.get(i), Pair.create(0, chunks.get(i).length()));
+      for (int i = 1; i < tokens.size() - 1; i++) {
+        put(tokens.get(i).buf, Pair.create(0, tokens.get(i).buf.length()));
       }
 
-      if (chunks.size() > 1) {
+      if (tokens.size() > 1) {
         Pair<Integer, Integer> range = Pair.create(0, lastIndex + 1);
-        b.append(chunks.get(chunks.size() - 1).subBuffer(range));
-        put(chunks.get(0), range);
+        put(tokens.get(0).buf, range);
       }
 
-      items.add(b.toString());
+      items.add(new FindItem(tokens, firstIndex, lastIndex));
 
     }
 
@@ -162,8 +165,31 @@ public class SubstringFinder {
       }
     }
 
-    public List<String> getItems() {
+    public List<FindItem> getItems() {
       return items;
+    }
+    
+    public FindItem nextFindItem() {
+      if (currentFindItem == 0) {
+        currentFindItem = items.size() - 1;
+      } else {
+        currentFindItem--;
+      }
+      
+      return items.get(currentFindItem);
+    }
+  }
+  
+  
+  private static class TextToken {
+    final CharBuffer buf;
+    final int x;
+    final int y;
+
+    private TextToken(int x, int y, CharBuffer buf) {
+      this.x = x;
+      this.y = y;
+      this.buf = buf;
     }
   }
 }

@@ -32,7 +32,7 @@ public class SubstringFinderTest extends TestCase {
     SubstringFinder.FindResult res = getFindResult("aba", "abacaba");
     assertEquals(2, res.getItems().size());
     for (int i = 0; i<res.getItems().size(); i++) {
-      assertEquals("aba", res.getItems().get(i));
+      assertEquals("aba", res.getItems().get(i).toString());
     }
   }
 
@@ -41,7 +41,7 @@ public class SubstringFinderTest extends TestCase {
     //after a pattern is matched we start from the next character
     assertEquals(2, res.getItems().size());
     for (int i = 0; i<res.getItems().size(); i++) {
-      assertEquals("aa", res.getItems().get(i));
+      assertEquals("aa", res.getItems().get(i).toString());
     }
   }
 
@@ -50,7 +50,7 @@ public class SubstringFinderTest extends TestCase {
     //after a pattern is matched we start from the next character
     assertEquals(2, res.getItems().size());
     for (int i = 0; i<res.getItems().size(); i++) {
-      assertEquals("aaa", res.getItems().get(i));
+      assertEquals("aaa", res.getItems().get(i).toString());
     }
   }
   
@@ -64,12 +64,11 @@ public class SubstringFinderTest extends TestCase {
 
   private SubstringFinder.FindResult getFindResult(String patter, String ... strings) {
     SubstringFinder f = new SubstringFinder(patter);
-    int x = 0;
     for (String string : strings) {
       CharBuffer cb = new CharBuffer(string);
 
       for (int j = 0; j < cb.length(); j++) {
-        f.nextChar(cb, j);
+        f.nextChar(0, 0, cb, j);
       }
     }
 

@@ -268,7 +268,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
             myFindComponent = null;
             myTerminalPanel.setFindResult(null);
           } else if (keyEvent.getKeyCode() == KeyEvent.VK_ENTER) {
-            findText(myFindComponent.getText());
+            nextFindResultItem();
           } else {
             super.keyPressed(keyEvent);
           }
@@ -276,6 +276,10 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
       });
     }
 
+  }
+
+  private void nextFindResultItem() {
+    myTerminalPanel.selectNextFindResultItem();
   }
 
   private void textUpdated() {

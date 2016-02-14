@@ -1082,7 +1082,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
       @Override
       public void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
         for (int i = 0; i < characters.length(); i++) {
-          finder.nextChar(characters, i);
+          finder.nextChar(x, y - startRow , characters, i);
         }
       }
 

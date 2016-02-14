@@ -56,6 +56,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private MouseMode myMouseMode = MouseMode.MOUSE_REPORTING_NONE;
   private Point mySelectionStartPoint = null;
   private TerminalSelection mySelection = null;
+
   private Clipboard myClipboard;
 
   private TerminalPanelListener myTerminalPanelListener;
@@ -67,10 +68,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   /*scroll and cursor*/
   final private TerminalCursor myCursor = new TerminalCursor();
-  
+
   //we scroll a window [0, terminal_height] in the range [-history_lines_count, terminal_height]
   private final BoundedRangeModel myBoundedRangeModel = new DefaultBoundedRangeModel(0, 80, 0, 80);
-  
+
   private boolean myScrollingEnabled = true;
   protected int myClientScrollOrigin;
   protected KeyListener myKeyListener;
@@ -317,6 +318,20 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   public void setFindResult(SubstringFinder.FindResult findResult) {
     myFindResult = findResult;
     repaint();
+  }
+
+  public void selectNextFindResultItem() {
+    if (myFindResult != null) {
+      SubstringFinder.FindResult.FindItem item = myFindResult.nextFindItem();
+      mySelection = new TerminalSelection(new Point(item.getStart().x, item.getStart().y - myTerminalTextBuffer.getHistoryLinesCount()), 
+              new Point(item.getEnd().x, item.getEnd().y - myTerminalTextBuffer.getHistoryLinesCount()));
+      if (mySelection.getStart().y <  getTerminalTextBuffer().getHeight() / 2) {
+        myBoundedRangeModel.setValue(mySelection.getStart().y - getTerminalTextBuffer().getHeight() / 2);
+      } else {
+        myBoundedRangeModel.setValue(0);
+      }
+      repaint();
+    }
   }
 
   static class WeakRedrawTimer implements ActionListener {
@@ -599,27 +614,27 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       public void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
         int row = y - startRow;
         drawCharacters(x, row, style, characters, gfx);
-        if (mySelection != null) {
-          Pair<Integer, Integer> interval = mySelection.intersect(x, row + myClientScrollOrigin, characters.length());
-          if (interval != null) {
-            TextStyle selectionStyle = getSelectionStyle(style);
-            CharBuffer selectionChars = characters.subBuffer(interval.first - x, interval.second);
-            
-            drawCharacters(interval.first, row, selectionStyle, selectionChars, gfx);
-          }
-        }
-        
+
         if (myFindResult != null) {
           List<Pair<Integer, Integer>> ranges = myFindResult.getRanges(characters);
           if (ranges != null) {
-            for (Pair<Integer, Integer> range: ranges) {
+            for (Pair<Integer, Integer> range : ranges) {
               TextStyle foundPatternStyle = getFoundPattern(style);
               CharBuffer foundPatternChars = characters.subBuffer(range);
 
               drawCharacters(x + range.first, row, foundPatternStyle, foundPatternChars, gfx);
             }
           }
-          
+        }
+
+        if (mySelection != null) {
+          Pair<Integer, Integer> interval = mySelection.intersect(x, row + myClientScrollOrigin, characters.length());
+          if (interval != null) {
+            TextStyle selectionStyle = getSelectionStyle(style);
+            CharBuffer selectionChars = characters.subBuffer(interval.first - x, interval.second);
+
+            drawCharacters(interval.first, row, selectionStyle, selectionChars, gfx);
+          }
         }
       }
 
@@ -678,7 +693,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     TextStyle myFoundPattern = mySettingsProvider.getFoundPatternColor();
     foundPatternStyle.setBackground(myFoundPattern.getBackground());
     foundPatternStyle.setForeground(myFoundPattern.getForeground());
-    
+
     return foundPatternStyle;
   }
 
@@ -984,12 +999,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
 
     while (offset + blockLen <= buf.length()) {
-      if (renderingBuffer.getBuf()[buf.getStart()+offset] == CharUtils.DWC) {
-        offset+=blockLen;
-        drawCharsOffset+=blockLen;
+      if (renderingBuffer.getBuf()[buf.getStart() + offset] == CharUtils.DWC) {
+        offset += blockLen;
+        drawCharsOffset += blockLen;
         continue; // dont' draw second part(fake one) of double width character
       }
-      
+
       Font font = getFontToDisplay(buf.charAt(offset + blockLen - 1), style);
 //      while (myMonospaced && (offset + blockLen < buf.getLength()) && isWordCharacter(buf.charAt(offset + blockLen - 1))
 //              && (font == getFontToDisplay(buf.charAt(offset + blockLen - 1), style))) {
@@ -1183,7 +1198,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     if (!myTerminalTextBuffer.isUsingAlternateBuffer()) {
       myTerminalTextBuffer.clearHistory();
 
-      if (myCoordsAccessor != null && myCoordsAccessor.getY()>0) {
+      if (myCoordsAccessor != null && myCoordsAccessor.getY() > 0) {
         TerminalLine line = myTerminalTextBuffer.getLine(myCoordsAccessor.getY() - 1);
 
         myTerminalTextBuffer.clearAll();
@@ -1264,7 +1279,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     if ((keychar & 0xff00) != 0) {
       final char[] foo;
       if (mySettingsProvider.altSendsEscape() && (e.getModifiers() & InputEvent.ALT_MASK) != 0) {
-        foo = new char[]{Ascii.ESC,  keychar};
+        foo = new char[]{Ascii.ESC, keychar};
       } else {
         foo = new char[]{keychar};
       }
@@ -1334,7 +1349,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         //noinspection ForLoopThatDoesntUseLoopVariable
         for (char c = text.first(); commitCount > 0; c = text.next(), commitCount--) {
           if (c >= 0x20 && c != 0x7F) { // Hack just like in javax.swing.text.DefaultEditorKit.DefaultKeyTypedAction
-              sb.append(c);
+            sb.append(c);
           }
         }
 

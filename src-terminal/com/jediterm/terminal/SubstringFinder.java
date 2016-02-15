@@ -150,7 +150,7 @@ public class SubstringFinder {
 
       if (tokens.size() > 1) {
         Pair<Integer, Integer> range = Pair.create(0, lastIndex + 1);
-        put(tokens.get(0).buf, range);
+        put(tokens.get(tokens.size()-1).buf, range);
       }
 
       items.add(new FindItem(tokens, firstIndex, lastIndex));

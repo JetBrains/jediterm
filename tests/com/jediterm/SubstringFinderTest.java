@@ -53,7 +53,12 @@ public class SubstringFinderTest extends TestCase {
       assertEquals("aaa", res.getItems().get(i).toString());
     }
   }
-  
+
+  public void test9() {
+    doTest("2Menu", " 2", "Menu ");
+  }
+
+
   private void doTest(String patter, String ... strings) {
     SubstringFinder.FindResult res = getFindResult(patter, strings);
 

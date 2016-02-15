@@ -1,5 +1,12 @@
 ChangeLog of JediTerm
 
+10/02/2016 2.1
+==============================
+- Find action
+- Fixed key modifiers processing
+- Fixed input method handling
+
+
 05/04/2014 2.0
 ==============================
 - Rendering rewritten from scratch: it is much simpler now,

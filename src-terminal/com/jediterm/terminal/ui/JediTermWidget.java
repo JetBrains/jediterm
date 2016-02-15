@@ -18,6 +18,7 @@ import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -31,7 +32,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   protected final TerminalPanel myTerminalPanel;
   protected final JediTerminal myTerminal;
   protected final AtomicBoolean mySessionRunning = new AtomicBoolean();
-  private FindComponent myFindComponent;
+  private SearchComponent myFindComponent;
   protected PreConnectHandler myPreConnectHandler;
   private TtyConnector myTtyConnector;
   private TerminalStarter myTerminalStarter;
@@ -230,7 +231,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   private void showFindText() {
     if (myFindComponent == null) {
-      myFindComponent = createFindComponent();
+      myFindComponent = createSearchComponent();
 
       final JComponent component = myFindComponent.getComponent();
       myInnerPanel.add(component, TerminalLayout.FIND);
@@ -257,7 +258,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
       });
 
 
-      component.addKeyListener(new KeyAdapter() {
+      myFindComponent.addKeyListener(new KeyAdapter() {
         @Override
         public void keyPressed(KeyEvent keyEvent) {
           if (keyEvent.getKeyCode() == KeyEvent.VK_ESCAPE) {
@@ -286,8 +287,8 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     findText(myFindComponent.getText());
   }
 
-  private FindComponent createFindComponent() {
-    return new FindComponent() {
+  protected SearchComponent createSearchComponent() {
+    return new SearchComponent() {
       private final JTextField myTextField = new JTextField();
 
       @Override
@@ -308,15 +309,22 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
       public void addDocumentChangeListener(DocumentListener listener) {
         myTextField.getDocument().addDocumentListener(listener);
       }
+
+      @Override
+      public void addKeyListener(KeyListener listener) {
+        myTextField.addKeyListener(listener);
+      }
     };
   }
 
-  protected interface FindComponent {
+  protected interface SearchComponent {
     String getText();
 
     JComponent getComponent();
 
     void addDocumentChangeListener(DocumentListener listener);
+
+    void addKeyListener(KeyListener listener);
   }
 
   private void findText(String text) {

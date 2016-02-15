@@ -58,6 +58,13 @@ public class SubstringFinderTest extends TestCase {
     doTest("2Menu", " 2", "Menu ");
   }
 
+  public void testIgnoreCase() {
+    SubstringFinder.FindResult res = getFindResult("abc", " ABC ");
+    //after a pattern is matched we start from the next character
+    assertEquals(1, res.getItems().size());
+    assertEquals("ABC", res.getItems().get(0).toString());
+  }
+  
 
   private void doTest(String patter, String ... strings) {
     SubstringFinder.FindResult res = getFindResult(patter, strings);
@@ -68,7 +75,7 @@ public class SubstringFinderTest extends TestCase {
   
 
   private SubstringFinder.FindResult getFindResult(String patter, String ... strings) {
-    SubstringFinder f = new SubstringFinder(patter);
+    SubstringFinder f = new SubstringFinder(patter, true);
     for (String string : strings) {
       CharBuffer cb = new CharBuffer(string);
 

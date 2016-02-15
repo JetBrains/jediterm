@@ -16,71 +16,79 @@ import java.util.Map;
  * @author traff
  */
 public class SubstringFinder {
-  final String pattern;
-  final int patternHash;
-  int currentHash;
-  int currentLength;
-  final ArrayList<TextToken> tokens = Lists.newArrayList();
-  int firstIndex;
-  int power = 0;
+  private final String myPattern;
+  private final int myPatternHash;
+  private int myCurrentHash;
+  private int myCurrentLength;
+  private final ArrayList<TextToken> myTokens = Lists.newArrayList();
+  private int myFirstIndex;
+  private int myPower = 0;
 
-  private final FindResult result = new FindResult();
+  private final FindResult myResult = new FindResult();
+  private boolean myIgnoreCase;
 
 
-  public SubstringFinder(String pattern) {
-    this.pattern = pattern;
-    patternHash = pattern.hashCode();
+  public SubstringFinder(String pattern, boolean ignoreCase) {
+    myIgnoreCase = ignoreCase;
+    myPattern = ignoreCase ? pattern.toLowerCase() : pattern;
+    myPatternHash = myPattern.hashCode();
   }
 
 
   public void nextChar(int x, int y, CharBuffer characters, int index) {
-    if (tokens.size() == 0 || tokens.get(tokens.size() - 1).buf != characters) {
-      tokens.add(new TextToken(x, y, characters));
+    if (myTokens.size() == 0 || myTokens.get(myTokens.size() - 1).buf != characters) {
+      myTokens.add(new TextToken(x, y, characters));
     }
 
-    if (currentLength == pattern.length()) {
-      currentHash -= hashCodeForChar(tokens.get(0).buf.charAt(firstIndex));
-      if (firstIndex + 1 == tokens.get(0).buf.length()) {
-        firstIndex = 0;
-        tokens.remove(0);
+    if (myCurrentLength == myPattern.length()) {
+      myCurrentHash -= hashCodeForChar(myTokens.get(0).buf.charAt(myFirstIndex));
+      if (myFirstIndex + 1 == myTokens.get(0).buf.length()) {
+        myFirstIndex = 0;
+        myTokens.remove(0);
       } else {
-        firstIndex += 1;
+        myFirstIndex += 1;
       }
     } else {
-      currentLength += 1;
-      if (power == 0) {
-        power = 1;
+      myCurrentLength += 1;
+      if (myPower == 0) {
+        myPower = 1;
       } else {
-        power *= 31;
+        myPower *= 31;
       }
     }
 
-    currentHash = 31 * currentHash + characters.charAt(index);
+    myCurrentHash = 31 * myCurrentHash + charHash(characters.charAt(index));
 
-    if (currentLength == pattern.length() &&
-            currentHash == patternHash &&
-            pattern.equals(new FindResult.FindItem(tokens, firstIndex, index).toString())) {
-      result.patternMatched(tokens, firstIndex, index);
-      currentHash = 0;
-      currentLength = 0;
-      power = 0;
-      tokens.clear();
-      if (index + 1 < characters.length()) {
-        firstIndex = index + 1;
-        tokens.add(new TextToken(x, y, characters));
-      } else {
-        firstIndex = 0;
+    if (myCurrentLength == myPattern.length() &&
+            myCurrentHash == myPatternHash) {
+      FindResult.FindItem item = new FindResult.FindItem(myTokens, myFirstIndex, index);
+      if (myPattern.equals(myIgnoreCase ? item.toString().toLowerCase() : item.toString())) {
+        myResult.patternMatched(myTokens, myFirstIndex, index);
+        myCurrentHash = 0;
+        myCurrentLength = 0;
+        myPower = 0;
+        myTokens.clear();
+        if (index + 1 < characters.length()) {
+          myFirstIndex = index + 1;
+          myTokens.add(new TextToken(x, y, characters));
+        } else {
+          myFirstIndex = 0;
+        }
       }
     }
+  }
+
+  private int charHash(char c) {
+    return myIgnoreCase ? Character.toLowerCase(c) : c;
   }
 
 
   private int hashCodeForChar(char charAt) {
-    return power * charAt;
+    return myPower * charHash(charAt);
   }
 
   public FindResult getResult() {
-    return result;
+    return myResult;
   }
 
   public static class FindResult {
@@ -131,7 +139,7 @@ public class SubstringFinder {
       }
 
       public Point getEnd() {
-        return new Point(tokens.get(tokens.size()-1).x + lastIndex, tokens.get(tokens.size()-1).y);
+        return new Point(tokens.get(tokens.size() - 1).x + lastIndex, tokens.get(tokens.size() - 1).y);
       }
     }
 
@@ -150,7 +158,7 @@ public class SubstringFinder {
 
       if (tokens.size() > 1) {
         Pair<Integer, Integer> range = Pair.create(0, lastIndex + 1);
-        put(tokens.get(tokens.size()-1).buf, range);
+        put(tokens.get(tokens.size() - 1).buf, range);
       }
 
       items.add(new FindItem(tokens, firstIndex, lastIndex));
@@ -168,19 +176,23 @@ public class SubstringFinder {
     public List<FindItem> getItems() {
       return items;
     }
-    
+
     public FindItem nextFindItem() {
       if (currentFindItem == 0) {
         currentFindItem = items.size() - 1;
       } else {
         currentFindItem--;
       }
-      
-      return items.get(currentFindItem);
+
+      if (currentFindItem <= items.size()) {
+        return items.get(currentFindItem);
+      } else {
+        return null;
+      }
     }
   }
-  
-  
+
+
   private static class TextToken {
     final CharBuffer buf;
     final int x;

@@ -1075,7 +1075,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
       return null;
     }
 
-    final SubstringFinder finder = new SubstringFinder(pattern);
+    final SubstringFinder finder = new SubstringFinder(pattern, true);
 
 
     myTerminalTextBuffer.processHistoryAndScreenLines(-myTerminalTextBuffer.getHistoryLinesCount(), -1, new StyledTextConsumer() {

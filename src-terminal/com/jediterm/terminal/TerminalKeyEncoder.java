@@ -87,11 +87,11 @@ public class TerminalKeyEncoder {
       return null;
     }
 
-    if ((myAltSendsEscape || isCursorKey(key)) && (modifiers & InputEvent.ALT_MASK) != 0) {
+    if ((myAltSendsEscape || alwaysSendEsc(key)) && (modifiers & InputEvent.ALT_MASK) != 0) {
       return insertCodeAt(bytes, CharUtils.makeCode(ESC), 0);
     }
     
-    if ((myMetaSendsEscape || isCursorKey(key)) && (modifiers & InputEvent.META_MASK) != 0) {
+    if ((myMetaSendsEscape || alwaysSendEsc(key)) && (modifiers & InputEvent.META_MASK) != 0) {
       return insertCodeAt(bytes, CharUtils.makeCode(ESC), 0);
     }
 
@@ -100,6 +100,10 @@ public class TerminalKeyEncoder {
     }
     
     return bytes;
+  }
+  
+  private boolean alwaysSendEsc(int key) {
+    return isCursorKey(key) || key == '\b';
   }
 
   private boolean isCursorKey(int key) {

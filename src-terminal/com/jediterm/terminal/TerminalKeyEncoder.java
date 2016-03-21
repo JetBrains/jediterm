@@ -87,19 +87,23 @@ public class TerminalKeyEncoder {
       return null;
     }
 
-    if (myAltSendsEscape && (modifiers & InputEvent.ALT_MASK) != 0) {
+    if ((myAltSendsEscape || isCursorKey(key)) && (modifiers & InputEvent.ALT_MASK) != 0) {
       return insertCodeAt(bytes, CharUtils.makeCode(ESC), 0);
     }
     
-    if (myMetaSendsEscape && (modifiers & InputEvent.META_MASK) != 0) {
+    if ((myMetaSendsEscape || isCursorKey(key)) && (modifiers & InputEvent.META_MASK) != 0) {
       return insertCodeAt(bytes, CharUtils.makeCode(ESC), 0);
     }
 
-    if (key == VK_DOWN || key == VK_UP || key == VK_LEFT || key == VK_RIGHT || key == VK_HOME || key == VK_END) {
+    if (isCursorKey(key)) {
       return getCodeWithModifiers(bytes, modifiers);
     }
     
     return bytes;
+  }
+
+  private boolean isCursorKey(int key) {
+    return key == VK_DOWN || key == VK_UP || key == VK_LEFT || key == VK_RIGHT || key == VK_HOME || key == VK_END;
   }
 
   /**

@@ -167,7 +167,7 @@ public class DefaultSettingsProvider implements SettingsProvider {
 
   @Override
   public boolean altSendsEscape() {
-    return true;
+    return false;
   }
 
   @Override

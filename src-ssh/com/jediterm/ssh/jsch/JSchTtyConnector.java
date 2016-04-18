@@ -3,6 +3,7 @@
  */
 package com.jediterm.ssh.jsch;
 
+import com.google.common.net.HostAndPort;
 import com.jcraft.jsch.*;
 import com.jediterm.terminal.Questioner;
 import com.jediterm.terminal.TtyConnector;
@@ -151,17 +152,16 @@ public class JSchTtyConnector implements TtyConnector {
       if (myHost == null || myHost.length() == 0) {
         continue;
       }
-      if (myHost.indexOf(':') != -1) {
-        final String portString = myHost.substring(myHost.indexOf(':') + 1);
-        try {
-          myPort = Integer.parseInt(portString);
-        }
-        catch (final NumberFormatException eee) {
-          q.showMessage("Could not parse port : " + portString);
-          myHost = q.questionVisible("host: ", myHost);
-          continue;
-        }
-        myHost = myHost.substring(0, myHost.indexOf(':'));
+
+      try {
+        HostAndPort hostAndPort = HostAndPort.fromString(myHost);
+        myHost = hostAndPort.getHostText();
+        // override myPort only if specified in the input
+        myPort = hostAndPort.getPortOrDefault(myPort);
+      } catch (IllegalArgumentException e) {
+        q.showMessage(e.getMessage());
+        myHost = q.questionVisible("host: ", myHost);
+        continue;
       }
 
       if (myUser == null) {

@@ -138,7 +138,7 @@ public class JSchTtyConnector implements TtyConnector {
   private void getAuthDetails(Questioner q) {
     while (true) {
       if (myHost == null) {
-        myHost = q.questionVisible("host:", "localhost");
+        myHost = q.questionVisible("host: ", "localhost");
       }
       if (myHost == null || myHost.length() == 0) {
         continue;
@@ -150,13 +150,14 @@ public class JSchTtyConnector implements TtyConnector {
         }
         catch (final NumberFormatException eee) {
           q.showMessage("Could not parse port : " + portString);
+          myHost = q.questionVisible("host: ", myHost);
           continue;
         }
         myHost = myHost.substring(0, myHost.indexOf(':'));
       }
 
       if (myUser == null) {
-        myUser = q.questionVisible("user:", System.getProperty("user.name").toLowerCase());
+        myUser = q.questionVisible("user: ", System.getProperty("user.name").toLowerCase());
       }
       if (myUser == null || myUser.length() == 0) {
         continue;

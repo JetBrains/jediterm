@@ -6,6 +6,7 @@ package com.jediterm.ssh.jsch;
 import com.jcraft.jsch.*;
 import com.jediterm.terminal.Questioner;
 import com.jediterm.terminal.TtyConnector;
+
 import org.apache.log4j.Logger;
 
 import java.awt.*;
@@ -15,13 +16,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class JSchTtyConnector implements TtyConnector {
   public static final Logger LOG = Logger.getLogger(JSchTtyConnector.class);
 
+  public static final int DEFAULT_PORT = 22;
+
   private InputStream myInputStream = null;
   private OutputStream myOutputStream = null;
   private Session mySession;
   private ChannelShell myChannelShell;
   private AtomicBoolean isInitiated = new AtomicBoolean(false);
 
-  private int myPort = 22;
+  private int myPort = DEFAULT_PORT;
 
   private String myUser = null;
   private String myHost = null;
@@ -37,7 +40,12 @@ public class JSchTtyConnector implements TtyConnector {
   }
 
   public JSchTtyConnector(String host, String user, String password) {
+    this(host, DEFAULT_PORT, user, password);
+  }
+
+  public JSchTtyConnector(String host, int port, String user, String password) {
     this.myHost = host;
+    this.myPort = port;
     this.myUser = user;
     this.myPassword = password;
   }

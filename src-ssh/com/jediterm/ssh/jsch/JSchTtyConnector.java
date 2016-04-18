@@ -3,9 +3,11 @@
  */
 package com.jediterm.ssh.jsch;
 
+import com.google.common.net.HostAndPort;
 import com.jcraft.jsch.*;
 import com.jediterm.terminal.Questioner;
 import com.jediterm.terminal.TtyConnector;
+
 import org.apache.log4j.Logger;
 
 import java.awt.*;
@@ -15,13 +17,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class JSchTtyConnector implements TtyConnector {
   public static final Logger LOG = Logger.getLogger(JSchTtyConnector.class);
 
+  public static final int DEFAULT_PORT = 22;
+
   private InputStream myInputStream = null;
   private OutputStream myOutputStream = null;
   private Session mySession;
   private ChannelShell myChannelShell;
   private AtomicBoolean isInitiated = new AtomicBoolean(false);
 
-  private int myPort = 22;
+  private int myPort = DEFAULT_PORT;
 
   private String myUser = null;
   private String myHost = null;
@@ -37,7 +41,12 @@ public class JSchTtyConnector implements TtyConnector {
   }
 
   public JSchTtyConnector(String host, String user, String password) {
+    this(host, DEFAULT_PORT, user, password);
+  }
+
+  public JSchTtyConnector(String host, int port, String user, String password) {
     this.myHost = host;
+    this.myPort = port;
     this.myUser = user;
     this.myPassword = password;
   }
@@ -138,25 +147,25 @@ public class JSchTtyConnector implements TtyConnector {
   private void getAuthDetails(Questioner q) {
     while (true) {
       if (myHost == null) {
-        myHost = q.questionVisible("host:", "localhost");
+        myHost = q.questionVisible("host: ", "localhost");
       }
       if (myHost == null || myHost.length() == 0) {
         continue;
       }
-      if (myHost.indexOf(':') != -1) {
-        final String portString = myHost.substring(myHost.indexOf(':') + 1);
-        try {
-          myPort = Integer.parseInt(portString);
-        }
-        catch (final NumberFormatException eee) {
-          q.showMessage("Could not parse port : " + portString);
-          continue;
-        }
-        myHost = myHost.substring(0, myHost.indexOf(':'));
+
+      try {
+        HostAndPort hostAndPort = HostAndPort.fromString(myHost);
+        myHost = hostAndPort.getHostText();
+        // override myPort only if specified in the input
+        myPort = hostAndPort.getPortOrDefault(myPort);
+      } catch (IllegalArgumentException e) {
+        q.showMessage(e.getMessage());
+        myHost = q.questionVisible("host: ", myHost);
+        continue;
       }
 
       if (myUser == null) {
-        myUser = q.questionVisible("user:", System.getProperty("user.name").toLowerCase());
+        myUser = q.questionVisible("user: ", System.getProperty("user.name").toLowerCase());
       }
       if (myUser == null || myUser.length() == 0) {
         continue;

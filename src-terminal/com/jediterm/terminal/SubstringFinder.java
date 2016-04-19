@@ -82,7 +82,6 @@ public class SubstringFinder {
     return myIgnoreCase ? Character.toLowerCase(c) : c;
   }
 
-
   private int hashCodeForChar(char charAt) {
     return myPower * charHash(charAt);
   }
@@ -177,21 +176,25 @@ public class SubstringFinder {
       return items;
     }
 
-    public FindItem nextFindItem() {
-      if (currentFindItem == 0) {
-        currentFindItem = items.size() - 1;
-      } else {
-        currentFindItem--;
-      }
-
-      if (currentFindItem >= 0 && currentFindItem <= items.size()) {
-        return items.get(currentFindItem);
-      } else {
+    public FindItem prevFindItem() {
+      if (items.isEmpty()) {
         return null;
       }
+      currentFindItem++;
+      currentFindItem %= items.size();
+      return items.get(currentFindItem);
+    }
+
+    public FindItem nextFindItem() {
+      if (items.isEmpty()) {
+        return null;
+      }
+      currentFindItem--;
+      // modulo can be negative in Java: add items.size() to ensure positive
+      currentFindItem = (currentFindItem + items.size()) % items.size();
+      return items.get(currentFindItem);
     }
   }
-
 
   private static class TextToken {
     final CharBuffer buf;

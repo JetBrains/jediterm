@@ -320,9 +320,17 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     repaint();
   }
 
+  public void selectPrevFindResultItem() {
+    selectPrevOrNextFindResultItem(false);
+  }
+
   public void selectNextFindResultItem() {
+    selectPrevOrNextFindResultItem(true);
+  }
+
+  protected void selectPrevOrNextFindResultItem(boolean next) {
     if (myFindResult != null) {
-      SubstringFinder.FindResult.FindItem item = myFindResult.nextFindItem();
+      SubstringFinder.FindResult.FindItem item = next ? myFindResult.nextFindItem() : myFindResult.prevFindItem();
       if (item != null) {
         mySelection = new TerminalSelection(new Point(item.getStart().x, item.getStart().y - myTerminalTextBuffer.getHistoryLinesCount()),
                 new Point(item.getEnd().x, item.getEnd().y - myTerminalTextBuffer.getHistoryLinesCount()));

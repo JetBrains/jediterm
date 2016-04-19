@@ -15,7 +15,11 @@ import org.jetbrains.annotations.NotNull;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.plaf.basic.BasicArrowButton;
+
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -252,7 +256,6 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
         }
       });
 
-
       myFindComponent.addKeyListener(new KeyAdapter() {
         @Override
         public void keyPressed(KeyEvent keyEvent) {
@@ -263,19 +266,26 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
             myInnerPanel.requestFocus();
             myFindComponent = null;
             myTerminalPanel.setFindResult(null);
-          } else if (keyEvent.getKeyCode() == KeyEvent.VK_ENTER) {
+          } else if (keyEvent.getKeyCode() == KeyEvent.VK_ENTER || keyEvent.getKeyCode() == KeyEvent.VK_UP) {
             nextFindResultItem();
+          } else if ( keyEvent.getKeyCode() == KeyEvent.VK_DOWN) {
+            prevFindResultItem();
           } else {
             super.keyPressed(keyEvent);
           }
         }
       });
+    } else {
+      myFindComponent.getComponent().requestFocus();
     }
-
   }
 
   private void nextFindResultItem() {
     myTerminalPanel.selectNextFindResultItem();
+  }
+
+  private void prevFindResultItem() {
+    myTerminalPanel.selectPrevFindResultItem();
   }
 
   private void textUpdated() {
@@ -283,33 +293,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   }
 
   protected SearchComponent createSearchComponent() {
-    return new SearchComponent() {
-      private final JTextField myTextField = new JTextField();
-
-      @Override
-      public String getText() {
-        return myTextField.getText();
-      }
-
-      @Override
-      public JComponent getComponent() {
-        myTextField.setOpaque(true);
-        myTextField.setText("");
-        myTextField.setPreferredSize(new Dimension(myTerminalPanel.myCharSize.width*30, myTerminalPanel.myCharSize.height+3));
-        myTextField.setEditable(true);
-        return myTextField;
-      }
-
-      @Override
-      public void addDocumentChangeListener(DocumentListener listener) {
-        myTextField.getDocument().addDocumentListener(listener);
-      }
-
-      @Override
-      public void addKeyListener(KeyListener listener) {
-        myTextField.addKeyListener(listener);
-      }
-    };
+    return new SearchPanel();
   }
 
   protected interface SearchComponent {
@@ -364,6 +348,65 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   public TerminalStarter getTerminalStarter() {
     return myTerminalStarter;
+  }
+  
+  private class SearchPanel extends JPanel implements SearchComponent {
+
+    private final JTextField myTextField = new JTextField();
+    private final JButton prev = new BasicArrowButton(SwingConstants.SOUTH);
+    private final JButton next = new BasicArrowButton(SwingConstants.NORTH);
+
+    public SearchPanel() {
+      next.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          nextFindResultItem();
+        }
+      });
+
+      prev.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          prevFindResultItem();
+        }
+      });
+
+      myTextField.setPreferredSize(new Dimension(
+          myTerminalPanel.myCharSize.width * 30,
+          myTerminalPanel.myCharSize.height + 3));
+      myTextField.setEditable(true);
+
+      add(myTextField);
+      add(next);
+      add(prev);
+
+      setOpaque(true);
+    }
+
+    @Override
+    public String getText() {
+      return myTextField.getText();
+    }
+
+    @Override
+    public JComponent getComponent() {
+      return this;
+    }
+
+    public void requestFocus() {
+      myTextField.requestFocus();
+    }
+
+    @Override
+    public void addDocumentChangeListener(DocumentListener listener) {
+      myTextField.getDocument().addDocumentListener(listener);
+    }
+
+    @Override
+    public void addKeyListener(KeyListener listener) {
+      myTextField.addKeyListener(listener);
+    }
+
   }
 
   private static class TerminalLayout implements LayoutManager {

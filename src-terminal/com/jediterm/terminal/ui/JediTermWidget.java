@@ -18,6 +18,7 @@ import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.plaf.basic.BasicArrowButton;
+import javax.swing.plaf.basic.BasicScrollBarUI;
 
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -36,6 +37,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   private static final Logger LOG = Logger.getLogger(JediTermWidget.class);
 
   protected final TerminalPanel myTerminalPanel;
+  protected final JScrollBar myScrollBar;
   protected final JediTerminal myTerminal;
   protected final AtomicBoolean mySessionRunning = new AtomicBoolean();
   private SearchComponent myFindComponent;
@@ -74,18 +76,18 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
     myPreConnectHandler = createPreConnectHandler(myTerminal);
     myTerminalPanel.setKeyListener(myPreConnectHandler);
-    JScrollBar scrollBar = createScrollBar();
+    myScrollBar = createScrollBar();
 
     myInnerPanel = new JLayeredPane();
     myInnerPanel.setFocusable(false);
 
     myInnerPanel.setLayout(new TerminalLayout());
     myInnerPanel.add(myTerminalPanel, TerminalLayout.TERMINAL);
-    myInnerPanel.add(scrollBar, TerminalLayout.SCROLL);
+    myInnerPanel.add(myScrollBar, TerminalLayout.SCROLL);
 
     add(myInnerPanel, BorderLayout.CENTER);
 
-    scrollBar.setModel(myTerminalPanel.getBoundedRangeModel());
+    myScrollBar.setModel(myTerminalPanel.getBoundedRangeModel());
     mySessionRunning.set(false);
 
     myTerminalPanel.init();
@@ -93,9 +95,10 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     myTerminalPanel.setVisible(true);
   }
 
-
   protected JScrollBar createScrollBar() {
-    return new JScrollBar();
+    JScrollBar scrollBar = new JScrollBar();
+    scrollBar.setUI(new FindResultScrollBarUI());
+    return scrollBar;
   }
 
   protected StyleState createDefaultStyle() {
@@ -302,6 +305,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     FindResult results = myTerminal.searchInTerminalTextBuffer(text);
     myTerminalPanel.setFindResult(results);
     myFindComponent.onResultUpdated(results);
+    myScrollBar.repaint();
   }
 
   @Override
@@ -445,6 +449,28 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     @Override
     public void addKeyListener(KeyListener listener) {
       myTextField.addKeyListener(listener);
+    }
+
+  }
+
+  private class FindResultScrollBarUI extends BasicScrollBarUI {
+
+    protected void paintTrack(Graphics g, JComponent c, Rectangle trackBounds) {
+      super.paintTrack(g, c, trackBounds);
+
+      FindResult result = myTerminalPanel.getFindResult();
+      if (result != null) {
+        int modelHeight = scrollbar.getModel().getMaximum() - scrollbar.getModel().getMinimum();
+        int anchorHeight = Math.max(2, trackBounds.height / modelHeight);
+
+        Color color = mySettingsProvider.getTerminalColorPalette()
+            .getColor(mySettingsProvider.getFoundPatternColor().getBackground());
+        g.setColor(color);
+        for (FindItem r : result.getItems()) {
+          int where = trackBounds.height * r.getStart().y / modelHeight;
+          g.fillRect(trackBounds.x, trackBounds.y + where, trackBounds.width, anchorHeight);
+        }
+      }
     }
 
   }

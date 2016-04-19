@@ -70,17 +70,12 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     myTerminalPanel.setKeyListener(myPreConnectHandler);
     JScrollBar scrollBar = createScrollBar();
 
-    JPanel terminalPanelWithScrolling = new JPanel(new BorderLayout());
-
-    terminalPanelWithScrolling.add(myTerminalPanel, BorderLayout.CENTER);
-    terminalPanelWithScrolling.add(scrollBar, BorderLayout.EAST);
-    terminalPanelWithScrolling.setOpaque(false);
-
     myInnerPanel = new JLayeredPane();
     myInnerPanel.setFocusable(false);
 
     myInnerPanel.setLayout(new TerminalLayout());
-    myInnerPanel.add(terminalPanelWithScrolling, TerminalLayout.TERMINAL);
+    myInnerPanel.add(myTerminalPanel, TerminalLayout.TERMINAL);
+    myInnerPanel.add(scrollBar, TerminalLayout.SCROLL);
 
     add(myInnerPanel, BorderLayout.CENTER);
 
@@ -373,9 +368,11 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   private static class TerminalLayout implements LayoutManager {
     public static final String TERMINAL = "TERMINAL";
+    public static final String SCROLL = "SCROLL";
     public static final String FIND = "FIND";
 
     private Component terminal;
+    private Component scroll;
     private Component find;
 
     @Override
@@ -384,6 +381,8 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
         terminal = comp;
       } else if (FIND.equals(name)) {
         find = comp;
+      } else if (SCROLL.equals(name)) {
+        scroll = comp;
       } else throw new IllegalArgumentException("unknown component name " + name);
     }
 
@@ -392,11 +391,13 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
       if (comp == terminal) {
         terminal = null;
       }
+      if (comp == scroll) {
+        scroll = null;
+      }
       if (comp == find) {
         find = comp;
       }
     }
-
 
     @Override
     public Dimension preferredLayoutSize(Container target) {
@@ -405,7 +406,13 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
         if (terminal != null) {
           Dimension d = terminal.getPreferredSize();
-          dim.width = d.width;
+          dim.width = Math.max(d.width, dim.width);
+          dim.height = Math.max(d.height, dim.height);
+        }
+
+        if(scroll != null) {
+          Dimension d = scroll.getPreferredSize();
+          dim.width += d.width;
           dim.height = Math.max(d.height, dim.height);
         }
 
@@ -430,7 +437,13 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
         if (terminal != null) {
           Dimension d = terminal.getMinimumSize();
-          dim.width = d.width;
+          dim.width = Math.max(d.width, dim.width);
+          dim.height = Math.max(d.height, dim.height);
+        }
+
+        if(scroll != null) {
+          Dimension d = scroll.getPreferredSize();
+          dim.width += d.width;
           dim.height = Math.max(d.height, dim.height);
         }
 
@@ -456,17 +469,22 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
         int bottom = target.getHeight() - insets.bottom;
         int left = insets.left;
         int right = target.getWidth() - insets.right;
+        
+        Dimension scrollDim = new Dimension(0, 0);
+        if (scroll != null) {
+          scrollDim = scroll.getPreferredSize();
+          scroll.setBounds(right - scrollDim.width, top, scrollDim.width, bottom - top);
+        }
 
         if (terminal != null) {
-          terminal.setBounds(left, top, right - left, bottom - top);
+          terminal.setBounds(left, top, right - left - scrollDim.width, bottom - top);
         }
 
         if (find != null) {
           Dimension d = find.getPreferredSize();
-          find.setBounds(right - d.width, top, d.width, d.height);
+          find.setBounds(right - d.width - scrollDim.width, top, d.width, d.height);
         }
       }
-
 
     }
   }

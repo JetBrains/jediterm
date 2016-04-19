@@ -344,14 +344,15 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     return myTerminalStarter;
   }
   
-  private class SearchPanel extends JPanel implements SearchComponent {
+  public class SearchPanel extends JPanel implements SearchComponent {
 
     private final JTextField myTextField = new JTextField();
     private final JLabel label = new JLabel();
-    private final JButton prev = new BasicArrowButton(SwingConstants.SOUTH);
-    private final JButton next = new BasicArrowButton(SwingConstants.NORTH);
+    private final JButton prev;
+    private final JButton next;
 
     public SearchPanel() {
+      next = createNextButton();
       next.addActionListener(new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
@@ -359,6 +360,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
         }
       });
 
+      prev = createPrevButton();
       prev.addActionListener(new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
@@ -392,6 +394,14 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
       add(prev);
 
       setOpaque(true);
+    }
+
+    protected JButton createNextButton() {
+      return new BasicArrowButton(SwingConstants.NORTH);
+    }
+
+    protected JButton createPrevButton() {
+      return new BasicArrowButton(SwingConstants.SOUTH);
     }
 
     private void nextFindResultItem() {

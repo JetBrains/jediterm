@@ -184,7 +184,7 @@ public class SubstringFinder {
         currentFindItem--;
       }
 
-      if (currentFindItem <= items.size()) {
+      if (currentFindItem >= 0 && currentFindItem <= items.size()) {
         return items.get(currentFindItem);
       } else {
         return null;

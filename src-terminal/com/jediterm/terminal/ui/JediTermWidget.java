@@ -3,6 +3,8 @@ package com.jediterm.terminal.ui;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.jediterm.terminal.*;
+import com.jediterm.terminal.SubstringFinder.FindResult;
+import com.jediterm.terminal.SubstringFinder.FindResult.FindItem;
 import com.jediterm.terminal.debug.DebugBufferType;
 import com.jediterm.terminal.model.TerminalTextBuffer;
 import com.jediterm.terminal.model.JediTerminal;
@@ -254,6 +256,10 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
         public void changedUpdate(DocumentEvent e) {
           textUpdated();
         }
+
+        private void textUpdated() {
+          findText(myFindComponent.getText());
+        }
       });
 
       myFindComponent.addKeyListener(new KeyAdapter() {
@@ -266,10 +272,6 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
             myInnerPanel.requestFocus();
             myFindComponent = null;
             myTerminalPanel.setFindResult(null);
-          } else if (keyEvent.getKeyCode() == KeyEvent.VK_ENTER || keyEvent.getKeyCode() == KeyEvent.VK_UP) {
-            nextFindResultItem();
-          } else if ( keyEvent.getKeyCode() == KeyEvent.VK_DOWN) {
-            prevFindResultItem();
           } else {
             super.keyPressed(keyEvent);
           }
@@ -278,18 +280,6 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     } else {
       myFindComponent.getComponent().requestFocus();
     }
-  }
-
-  private void nextFindResultItem() {
-    myTerminalPanel.selectNextFindResultItem();
-  }
-
-  private void prevFindResultItem() {
-    myTerminalPanel.selectPrevFindResultItem();
-  }
-
-  private void textUpdated() {
-    findText(myFindComponent.getText());
   }
 
   protected SearchComponent createSearchComponent() {
@@ -304,10 +294,14 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     void addDocumentChangeListener(DocumentListener listener);
 
     void addKeyListener(KeyListener listener);
+
+    void onResultUpdated(FindResult results);
   }
 
   private void findText(String text) {
-    myTerminalPanel.setFindResult(myTerminal.searchInTerminalTextBuffer(text));
+    FindResult results = myTerminal.searchInTerminalTextBuffer(text);
+    myTerminalPanel.setFindResult(results);
+    myFindComponent.onResultUpdated(results);
   }
 
   @Override
@@ -353,6 +347,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   private class SearchPanel extends JPanel implements SearchComponent {
 
     private final JTextField myTextField = new JTextField();
+    private final JLabel label = new JLabel();
     private final JButton prev = new BasicArrowButton(SwingConstants.SOUTH);
     private final JButton next = new BasicArrowButton(SwingConstants.NORTH);
 
@@ -371,16 +366,51 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
         }
       });
 
+      addKeyListener(new KeyAdapter() {
+        @Override
+        public void keyPressed(KeyEvent keyEvent) {
+          if (keyEvent.getKeyCode() == KeyEvent.VK_ENTER || keyEvent.getKeyCode() == KeyEvent.VK_UP) {
+            nextFindResultItem();
+          } else if (keyEvent.getKeyCode() == KeyEvent.VK_DOWN) {
+            prevFindResultItem();
+          } else {
+            super.keyPressed(keyEvent);
+          }
+        }
+      });
+
       myTextField.setPreferredSize(new Dimension(
           myTerminalPanel.myCharSize.width * 30,
           myTerminalPanel.myCharSize.height + 3));
       myTextField.setEditable(true);
 
+      updateLabel(null);
+
       add(myTextField);
+      add(label);
       add(next);
       add(prev);
 
       setOpaque(true);
+    }
+
+    private void nextFindResultItem() {
+      updateLabel(myTerminalPanel.selectNextFindResultItem());
+    }
+
+    private void prevFindResultItem() {
+      updateLabel(myTerminalPanel.selectPrevFindResultItem());
+    }
+
+    private void updateLabel(FindItem selectedItem) {
+      FindResult result = myTerminalPanel.getFindResult();
+      label.setText(((selectedItem != null) ? selectedItem.getIndex() : 0) 
+          + " of " + ((result != null) ? result.getItems().size() : 0));
+    }
+
+    @Override
+    public void onResultUpdated(FindResult results) {
+      updateLabel(null);
     }
 
     @Override

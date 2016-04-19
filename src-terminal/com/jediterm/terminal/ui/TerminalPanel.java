@@ -5,6 +5,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
 import com.jediterm.terminal.*;
+import com.jediterm.terminal.SubstringFinder.FindResult.FindItem;
 import com.jediterm.terminal.TextStyle.Option;
 import com.jediterm.terminal.emulator.ColorPalette;
 import com.jediterm.terminal.emulator.charset.CharacterSets;
@@ -14,6 +15,7 @@ import com.jediterm.terminal.model.*;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
 import com.jediterm.terminal.util.CharUtils;
 import com.jediterm.terminal.util.Pair;
+
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -21,6 +23,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+
 import java.awt.*;
 import java.awt.datatransfer.*;
 import java.awt.event.*;
@@ -320,15 +323,19 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     repaint();
   }
 
-  public void selectPrevFindResultItem() {
-    selectPrevOrNextFindResultItem(false);
+  public SubstringFinder.FindResult getFindResult() {
+    return myFindResult;
   }
 
-  public void selectNextFindResultItem() {
-    selectPrevOrNextFindResultItem(true);
+  public FindItem selectPrevFindResultItem() {
+    return selectPrevOrNextFindResultItem(false);
   }
 
-  protected void selectPrevOrNextFindResultItem(boolean next) {
+  public FindItem selectNextFindResultItem() {
+    return selectPrevOrNextFindResultItem(true);
+  }
+
+  protected FindItem selectPrevOrNextFindResultItem(boolean next) {
     if (myFindResult != null) {
       SubstringFinder.FindResult.FindItem item = next ? myFindResult.nextFindItem() : myFindResult.prevFindItem();
       if (item != null) {
@@ -340,8 +347,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
           myBoundedRangeModel.setValue(0);
         }
         repaint();
+        return item;
       }
     }
+    return null;
   }
 
   static class WeakRedrawTimer implements ActionListener {

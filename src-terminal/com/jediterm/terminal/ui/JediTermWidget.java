@@ -45,7 +45,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   private TtyConnector myTtyConnector;
   private TerminalStarter myTerminalStarter;
   private Thread myEmuThread;
-  private final SettingsProvider mySettingsProvider;
+  protected final SettingsProvider mySettingsProvider;
   private TerminalActionProvider myNextActionProvider;
   private JLayeredPane myInnerPanel;
 

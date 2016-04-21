@@ -61,7 +61,7 @@ public class SubstringFinder {
 
     if (myCurrentLength == myPattern.length() &&
             myCurrentHash == myPatternHash) {
-      FindResult.FindItem item = new FindResult.FindItem(myTokens, myFirstIndex, index);
+      FindResult.FindItem item = new FindResult.FindItem(myTokens, myFirstIndex, index, -1);
       if (myPattern.equals(myIgnoreCase ? item.toString().toLowerCase() : item.toString())) {
         myResult.patternMatched(myTokens, myFirstIndex, index);
         myCurrentHash = 0;
@@ -81,7 +81,6 @@ public class SubstringFinder {
   private int charHash(char c) {
     return myIgnoreCase ? Character.toLowerCase(c) : c;
   }
-
 
   private int hashCodeForChar(char charAt) {
     return myPower * charHash(charAt);
@@ -105,10 +104,14 @@ public class SubstringFinder {
       final int firstIndex;
       final int lastIndex;
 
-      private FindItem(ArrayList<TextToken> tokens, int firstIndex, int lastIndex) {
+      // index in the result list
+      final int index;
+
+      private FindItem(ArrayList<TextToken> tokens, int firstIndex, int lastIndex, int index) {
         this.tokens = Lists.newArrayList(tokens);
         this.firstIndex = firstIndex;
         this.lastIndex = lastIndex;
+        this.index = index;
       }
 
       public String toString() {
@@ -132,6 +135,11 @@ public class SubstringFinder {
         }
 
         return b.toString();
+      }
+
+      // index in the result list
+      public int getIndex() {
+        return index;
       }
 
       public Point getStart() {
@@ -161,7 +169,7 @@ public class SubstringFinder {
         put(tokens.get(tokens.size() - 1).buf, range);
       }
 
-      items.add(new FindItem(tokens, firstIndex, lastIndex));
+      items.add(new FindItem(tokens, firstIndex, lastIndex, items.size() + 1));
 
     }
 
@@ -177,21 +185,25 @@ public class SubstringFinder {
       return items;
     }
 
-    public FindItem nextFindItem() {
-      if (currentFindItem == 0) {
-        currentFindItem = items.size() - 1;
-      } else {
-        currentFindItem--;
-      }
-
-      if (currentFindItem <= items.size()) {
-        return items.get(currentFindItem);
-      } else {
+    public FindItem prevFindItem() {
+      if (items.isEmpty()) {
         return null;
       }
+      currentFindItem++;
+      currentFindItem %= items.size();
+      return items.get(currentFindItem);
+    }
+
+    public FindItem nextFindItem() {
+      if (items.isEmpty()) {
+        return null;
+      }
+      currentFindItem--;
+      // modulo can be negative in Java: add items.size() to ensure positive
+      currentFindItem = (currentFindItem + items.size()) % items.size();
+      return items.get(currentFindItem);
     }
   }
-
 
   private static class TextToken {
     final CharBuffer buf;

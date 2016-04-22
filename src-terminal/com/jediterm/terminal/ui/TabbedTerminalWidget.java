@@ -58,15 +58,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     terminal.createTerminalSession(ttyConnector);
     terminal.setNextProvider(this);
 
-    new TtyConnectorWaitFor(ttyConnector, Executors.newSingleThreadExecutor()).setTerminationCallback(new Predicate<Integer>() {
-      @Override
-      public boolean apply(Integer integer) {
-        if (mySettingsProvider.shouldCloseTabOnLogout(ttyConnector)) {
-          closeTab(terminal);
-        }
-        return true;
-      }
-    });
+    setupTtyConnectorWaitFor(ttyConnector, terminal);
 
     if (myTerminalPanelListener != null) {
       terminal.setTerminalPanelListener(myTerminalPanelListener);
@@ -97,6 +89,18 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
 
   protected JediTermWidget createInnerTerminalWidget(TabbedSettingsProvider settingsProvider) {
     return new JediTermWidget(settingsProvider);
+  }
+
+  protected void setupTtyConnectorWaitFor(final TtyConnector ttyConnector, final JediTermWidget widget) {
+    new TtyConnectorWaitFor(ttyConnector, Executors.newSingleThreadExecutor()).setTerminationCallback(new Predicate<Integer>() {
+      @Override
+      public boolean apply(Integer integer) {
+        if (mySettingsProvider.shouldCloseTabOnLogout(ttyConnector)) {
+          closeTab(widget);
+        }
+        return true;
+      }
+    });
   }
 
   private void addTab(JediTermWidget terminal, TerminalTabs tabs) {

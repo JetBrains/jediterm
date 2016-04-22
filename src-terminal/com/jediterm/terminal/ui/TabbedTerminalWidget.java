@@ -56,7 +56,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   @Override
   public TerminalSession createTerminalSession(final TtyConnector ttyConnector) {
     final JediTermWidget terminal = createInnerTerminalWidget(mySettingsProvider);
-    terminal.setTtyConnector(ttyConnector);
+    terminal.createTerminalSession(ttyConnector);
     terminal.setNextProvider(this);
 
     new TtyConnectorWaitFor(ttyConnector, Executors.newSingleThreadExecutor()).setTerminationCallback(new Predicate<Integer>() {

@@ -123,7 +123,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     tabs.addTab(name,
                 terminal);
 
-    tabs.setTabComponentAt(tabs.getTabCount() - 1, new TabComponent(tabs, terminal));
+    tabs.setTabComponentAt(tabs.getTabCount() - 1, createTabComponent(tabs, terminal));
     tabs.setSelectedComponent(terminal);
   }
 
@@ -192,6 +192,10 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
 
   protected TerminalTabs createTabbedPane() {
     return new TerminalTabsImpl();
+  }
+
+  protected Component createTabComponent(TerminalTabs tabs, JediTermWidget terminal) {
+    return new TabComponent(tabs, terminal);
   }
 
   private void close(JediTermWidget terminal) {
@@ -514,6 +518,9 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     }
   }
 
+  public TerminalTabs getTerminalTabs() {
+    return myTabs;
+  }
 
   @Override
   public JComponent getComponent() {

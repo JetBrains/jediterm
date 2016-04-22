@@ -11,7 +11,7 @@ import java.awt.event.ContainerListener;
  * @author traff
  */
 public class TerminalTabsImpl implements TerminalTabs {
-  private JTabbedPane myTabbedPane = new JTabbedPane();
+  protected JTabbedPane myTabbedPane = new JTabbedPane();
 
   @Override
   public int getTabCount() {

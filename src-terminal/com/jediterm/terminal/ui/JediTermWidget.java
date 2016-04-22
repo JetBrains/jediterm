@@ -272,16 +272,16 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
             myInnerPanel.remove(component);
             myInnerPanel.revalidate();
             myInnerPanel.repaint();
-            myInnerPanel.requestFocus();
             myFindComponent = null;
             myTerminalPanel.setFindResult(null);
+            myTerminalPanel.requestFocusInWindow();
           } else {
             super.keyPressed(keyEvent);
           }
         }
       });
     } else {
-      myFindComponent.getComponent().requestFocus();
+      myFindComponent.getComponent().requestFocusInWindow();
     }
   }
 

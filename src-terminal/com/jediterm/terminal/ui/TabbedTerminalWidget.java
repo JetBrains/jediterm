@@ -8,7 +8,6 @@ import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TerminalDisplay;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.TtyConnectorWaitFor;
-import com.jediterm.terminal.ui.settings.SettingsProvider;
 import com.jediterm.terminal.ui.settings.TabbedSettingsProvider;
 import com.jediterm.terminal.util.JTextFieldLimit;
 import org.jetbrains.annotations.NotNull;
@@ -63,20 +62,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
       @Override
       public boolean apply(Integer integer) {
         if (mySettingsProvider.shouldCloseTabOnLogout(ttyConnector)) {
-          if (myTabs != null) {
-            SwingUtilities.invokeLater(new Runnable() {
-              @Override
-              public void run() {
-                removeTab(terminal);
-              }
-            });
-          }
-          else {
-            if (myTermWidget == terminal) {
-              myTermWidget = null;
-            }
-          }
-          fireTabClosed(terminal);
+          closeTab(terminal);
         }
         return true;
       }
@@ -109,7 +95,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     return terminal;
   }
 
-  protected JediTermWidget createInnerTerminalWidget(SettingsProvider settingsProvider) {
+  protected JediTermWidget createInnerTerminalWidget(TabbedSettingsProvider settingsProvider) {
     return new JediTermWidget(settingsProvider);
   }
 
@@ -198,22 +184,24 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     return new TabComponent(tabs, terminal);
   }
 
-  private void close(JediTermWidget terminal) {
+  public void closeTab(final JediTermWidget terminal) {
     if (terminal != null) {
-      terminal.close();
       if (myTabs != null) {
-        removeTab(terminal);
-      }
-      else {
+          SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+              removeTab(terminal);
+            }
+          });
+      } else if (myTermWidget == terminal) {
         myTermWidget = null;
       }
-      fireTabClosed(terminal);
     }
+    fireTabClosed(terminal);
   }
 
-
   public void closeCurrentSession() {
-    close(getCurrentSession());
+    closeTab(getCurrentSession());
   }
 
   public void dispose() {
@@ -563,7 +551,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   @Nullable
   private JediTermWidget getTerminalPanel(int index) {
     if (index < myTabs.getTabCount() && index >= 0) {
-      return (JediTermWidget)myTabs.getComponentAt(index);
+      return (JediTermWidget) myTabs.getComponentAt(index);
     }
     else {
       return null;

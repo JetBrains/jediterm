@@ -531,6 +531,8 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
       for (int i = 0; i < myTabs.getTabCount(); i++) {
         getTerminalPanel(i).setTerminalPanelListener(terminalPanelListener);
       }
+    } else if (myTermWidget!= null) {
+      myTermWidget.setTerminalPanelListener(terminalPanelListener);
     }
     myTerminalPanelListener = terminalPanelListener;
   }

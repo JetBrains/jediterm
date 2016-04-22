@@ -54,7 +54,9 @@ public class JSchTtyConnector implements TtyConnector {
   public void resize(Dimension termSize, Dimension pixelSize) {
     myPendingTermSize = termSize;
     myPendingPixelSize = pixelSize;
-    if (myChannelShell != null) resizeImmediately();
+    if (myChannelShell != null) {
+      resizeImmediately();
+    }
   }
 
   private void resizeImmediately() {
@@ -70,7 +72,6 @@ public class JSchTtyConnector implements TtyConnector {
     if (mySession != null) {
       mySession.disconnect();
       mySession = null;
-      myChannelShell = null;
       myInputStream = null;
       myOutputStream = null;
     }

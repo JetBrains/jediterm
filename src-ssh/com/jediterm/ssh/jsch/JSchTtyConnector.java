@@ -14,7 +14,7 @@ import java.awt.*;
 import java.io.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class JSchTtyConnector implements TtyConnector {
+public abstract class JSchTtyConnector<T extends Channel> implements TtyConnector {
   public static final Logger LOG = Logger.getLogger(JSchTtyConnector.class);
 
   public static final int DEFAULT_PORT = 22;
@@ -22,7 +22,7 @@ public class JSchTtyConnector implements TtyConnector {
   private InputStream myInputStream = null;
   private OutputStream myOutputStream = null;
   private Session mySession;
-  private ChannelShell myChannelShell;
+  private T myChannelShell;
   private AtomicBoolean isInitiated = new AtomicBoolean(false);
 
   private int myPort = DEFAULT_PORT;
@@ -59,14 +59,15 @@ public class JSchTtyConnector implements TtyConnector {
     }
   }
 
+  abstract protected void setPtySize(T channel, int col, int row, int wp, int hp);
+
   private void resizeImmediately() {
     if (myPendingTermSize != null && myPendingPixelSize != null) {
-      myChannelShell.setPtySize(myPendingTermSize.width, myPendingTermSize.height, myPendingPixelSize.width, myPendingPixelSize.height);
+      setPtySize(myChannelShell, myPendingTermSize.width, myPendingTermSize.height, myPendingPixelSize.width, myPendingPixelSize.height);
       myPendingTermSize = null;
       myPendingPixelSize = null;
     }
   }
-
 
   public void close() {
     if (mySession != null) {
@@ -77,13 +78,17 @@ public class JSchTtyConnector implements TtyConnector {
     }
   }
 
+  abstract protected T openChannel(Session session) throws JSchException;
+
+  abstract protected void configureChannelShell(T channel);
+
   public boolean init(Questioner q) {
 
     getAuthDetails(q);
 
     try {
       mySession = connectSession(q);
-      myChannelShell = (ChannelShell)mySession.openChannel("shell");
+      myChannelShell = openChannel(mySession);
       configureChannelShell(myChannelShell);
       myInputStream = myChannelShell.getInputStream();
       myOutputStream = myChannelShell.getOutputStream();
@@ -131,13 +136,7 @@ public class JSchTtyConnector implements TtyConnector {
   }
   
   protected void configureJSch(JSch jsch) throws JSchException {
-    
-  }
 
-  protected void configureChannelShell(ChannelShell channel) {
-    String lang = System.getenv().get("LANG");
-    channel.setEnv("LANG", lang != null ? lang : "en_US.UTF-8");
-    channel.setPtyType("xterm");
   }
 
   protected void configureSession(Session session, final java.util.Properties config) throws JSchException {
@@ -216,4 +215,5 @@ public class JSchTtyConnector implements TtyConnector {
   private static boolean isRunning(Channel channel) {
     return channel != null && channel.getExitStatus() < 0 && channel.isConnected();
   }
+
 }

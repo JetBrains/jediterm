@@ -62,12 +62,17 @@ public class TerminalTextBuffer {
     myHeight = height;
     myHistoryLinesCount = historyLinesCount;
 
-    myScreenBuffer = createLinesBuffer();
-    myHistoryBuffer = createLinesBuffer();
+    myScreenBuffer = createScreenBuffer();
+    myHistoryBuffer = createHistoryBuffer();
   }
 
   @NotNull
-  private LinesBuffer createLinesBuffer() {
+  private LinesBuffer createScreenBuffer() {
+    return new LinesBuffer(-1);
+  }
+
+  @NotNull
+  private LinesBuffer createHistoryBuffer() {
     return new LinesBuffer(myHistoryLinesCount);
   }
 
@@ -79,7 +84,6 @@ public class TerminalTextBuffer {
 
     final int newWidth = pendingResize.width;
     final int newHeight = pendingResize.height;
-    final int textLinesCountOld = myScreenBuffer.getLineCount();
 
     final int oldHeight = myHeight;
 
@@ -342,17 +346,17 @@ public class TerminalTextBuffer {
       if (!myUsingAlternateBuffer) {
         myScreenBufferBackup = myScreenBuffer;
         myHistoryBufferBackup = myHistoryBuffer;
-        myScreenBuffer = createLinesBuffer();
-        myHistoryBuffer = createLinesBuffer();
+        myScreenBuffer = createScreenBuffer();
+        myHistoryBuffer = createHistoryBuffer();
         myUsingAlternateBuffer = true;
       }
     } else {
       if (myUsingAlternateBuffer) {
         myScreenBuffer = myScreenBufferBackup;
         myHistoryBuffer = myHistoryBufferBackup;
+        myScreenBufferBackup = createScreenBuffer();
+        myHistoryBufferBackup = createHistoryBuffer();
         myUsingAlternateBuffer = false;
-        myScreenBufferBackup = createLinesBuffer();
-        myHistoryBufferBackup = createLinesBuffer();
       }
     }
     fireModelChangeEvent();

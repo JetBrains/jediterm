@@ -19,6 +19,7 @@ public class LinesBuffer {
 
   public static final int DEFAULT_MAX_LINES_COUNT = 1000;
 
+  // negative number means no limit
   private int myBufferMaxLinesCount = DEFAULT_MAX_LINES_COUNT;
 
   private ArrayList<TerminalLine> myLines = Lists.newArrayList();
@@ -58,7 +59,7 @@ public class LinesBuffer {
   }
 
   private synchronized void addLine(@NotNull TerminalLine line) {
-    if (myLines.size() >= myBufferMaxLinesCount) {
+    if (myBufferMaxLinesCount > 0 && myLines.size() >= myBufferMaxLinesCount) {
       removeTopLines(1);
     }
 
@@ -70,7 +71,11 @@ public class LinesBuffer {
   }
 
   public synchronized void removeTopLines(int count) {
-    myLines = Lists.newArrayList(myLines.subList(count, myLines.size()));
+    if (count >= myLines.size()) { // remove all lines
+      myLines = Lists.newArrayList();
+    } else {
+      myLines = Lists.newArrayList(myLines.subList(count, myLines.size()));
+    }
   }
 
   public String getLineText(int row) {
@@ -187,10 +192,20 @@ public class LinesBuffer {
   }
 
   public synchronized void addLines(@NotNull List<TerminalLine> lines) {
-    int count = myLines.size() + lines.size();
-    if (count >= myBufferMaxLinesCount) {
-      removeTopLines(count - myBufferMaxLinesCount);
+    if (myBufferMaxLinesCount > 0) {
+      // adding more lines than max size
+      if (lines.size() >= myBufferMaxLinesCount) {
+        int index = lines.size() - myBufferMaxLinesCount;
+        myLines = Lists.newArrayList(lines.subList(index, lines.size()));
+        return;
+      }
+
+      int count = myLines.size() + lines.size();
+      if (count >= myBufferMaxLinesCount) {
+        removeTopLines(count - myBufferMaxLinesCount);
+      }
     }
+
     myLines.addAll(lines);
   }
 

@@ -445,13 +445,23 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   protected void pasteSelection() {
-    final String selection = getClipboardString();
+    String selection = getClipboardString();
 
     if (selection == null) {
       return;
     }
 
     try {
+      // Sanitize clipboard text to use CR as the line separator.
+      // See https://github.com/JetBrains/jediterm/issues/136.
+      if (!UIUtil.isWindows) {
+        // On Windows, Java automatically does this CRLF->LF sanitization, but
+        // other terminals on Unix typically also do this sanitization, so
+        // maybe JediTerm also should.
+        selection = selection.replace("\r\n", "\n");
+      }
+      selection = selection.replace('\n', '\r');
+
       myTerminalStarter.sendString(selection);
     } catch (RuntimeException e) {
       LOG.info(e);

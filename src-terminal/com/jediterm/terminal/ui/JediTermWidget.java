@@ -275,6 +275,10 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
             myFindComponent = null;
             myTerminalPanel.setFindResult(null);
             myTerminalPanel.requestFocusInWindow();
+          } else if (keyEvent.getKeyCode() == KeyEvent.VK_ENTER || keyEvent.getKeyCode() == KeyEvent.VK_UP) {
+            myFindComponent.nextFindResultItem(myTerminalPanel.selectNextFindResultItem());
+          } else if (keyEvent.getKeyCode() == KeyEvent.VK_DOWN) {
+            myFindComponent.prevFindResultItem(myTerminalPanel.selectPrevFindResultItem());
           } else {
             super.keyPressed(keyEvent);
           }
@@ -299,6 +303,10 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     void addKeyListener(KeyListener listener);
 
     void onResultUpdated(FindResult results);
+
+    void nextFindResultItem(FindItem selectedItem);
+
+    void prevFindResultItem(FindItem selectedItem);
   }
 
   private void findText(String text) {
@@ -347,7 +355,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   public TerminalStarter getTerminalStarter() {
     return myTerminalStarter;
   }
-  
+
   public class SearchPanel extends JPanel implements SearchComponent {
 
     private final JTextField myTextField = new JTextField();
@@ -360,7 +368,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
       next.addActionListener(new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
-          nextFindResultItem();
+          nextFindResultItem(myTerminalPanel.selectNextFindResultItem());
         }
       });
 
@@ -368,26 +376,13 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
       prev.addActionListener(new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
-          prevFindResultItem();
-        }
-      });
-
-      addKeyListener(new KeyAdapter() {
-        @Override
-        public void keyPressed(KeyEvent keyEvent) {
-          if (keyEvent.getKeyCode() == KeyEvent.VK_ENTER || keyEvent.getKeyCode() == KeyEvent.VK_UP) {
-            nextFindResultItem();
-          } else if (keyEvent.getKeyCode() == KeyEvent.VK_DOWN) {
-            prevFindResultItem();
-          } else {
-            super.keyPressed(keyEvent);
-          }
+          prevFindResultItem(myTerminalPanel.selectPrevFindResultItem());
         }
       });
 
       myTextField.setPreferredSize(new Dimension(
-          myTerminalPanel.myCharSize.width * 30,
-          myTerminalPanel.myCharSize.height + 3));
+              myTerminalPanel.myCharSize.width * 30,
+              myTerminalPanel.myCharSize.height + 3));
       myTextField.setEditable(true);
 
       updateLabel(null);
@@ -408,18 +403,20 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
       return new BasicArrowButton(SwingConstants.SOUTH);
     }
 
-    private void nextFindResultItem() {
-      updateLabel(myTerminalPanel.selectNextFindResultItem());
+    @Override
+    public void nextFindResultItem(FindItem selectedItem) {
+      updateLabel(selectedItem);
     }
 
-    private void prevFindResultItem() {
-      updateLabel(myTerminalPanel.selectPrevFindResultItem());
+    @Override
+    public void prevFindResultItem(FindItem selectedItem) {
+      updateLabel(selectedItem);
     }
 
     private void updateLabel(FindItem selectedItem) {
       FindResult result = myTerminalPanel.getFindResult();
-      label.setText(((selectedItem != null) ? selectedItem.getIndex() : 0) 
-          + " of " + ((result != null) ? result.getItems().size() : 0));
+      label.setText(((selectedItem != null) ? selectedItem.getIndex() : 0)
+              + " of " + ((result != null) ? result.getItems().size() : 0));
     }
 
     @Override
@@ -464,7 +461,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
         int anchorHeight = Math.max(2, trackBounds.height / modelHeight);
 
         Color color = mySettingsProvider.getTerminalColorPalette()
-            .getColor(mySettingsProvider.getFoundPatternColor().getBackground());
+                .getColor(mySettingsProvider.getFoundPatternColor().getBackground());
         g.setColor(color);
         for (FindItem r : result.getItems()) {
           int where = trackBounds.height * r.getStart().y / modelHeight;
@@ -519,7 +516,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
           dim.height = Math.max(d.height, dim.height);
         }
 
-        if(scroll != null) {
+        if (scroll != null) {
           Dimension d = scroll.getPreferredSize();
           dim.width += d.width;
           dim.height = Math.max(d.height, dim.height);
@@ -550,7 +547,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
           dim.height = Math.max(d.height, dim.height);
         }
 
-        if(scroll != null) {
+        if (scroll != null) {
           Dimension d = scroll.getPreferredSize();
           dim.width += d.width;
           dim.height = Math.max(d.height, dim.height);
@@ -578,7 +575,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
         int bottom = target.getHeight() - insets.bottom;
         int left = insets.left;
         int right = target.getWidth() - insets.right;
-        
+
         Dimension scrollDim = new Dimension(0, 0);
         if (scroll != null) {
           scrollDim = scroll.getPreferredSize();

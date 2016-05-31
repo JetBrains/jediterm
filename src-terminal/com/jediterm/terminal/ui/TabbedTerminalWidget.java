@@ -190,22 +190,25 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
 
   public void closeTab(final JediTermWidget terminal) {
     if (terminal != null) {
-      if (myTabs != null) {
+      if (myTabs != null && myTabs.indexOfComponent(terminal) != -1) {
           SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
               removeTab(terminal);
             }
           });
+        fireTabClosed(terminal);
       } else if (myTermWidget == terminal) {
         myTermWidget = null;
+        fireTabClosed(terminal);
       }
     }
-    fireTabClosed(terminal);
   }
 
   public void closeCurrentSession() {
-    closeTab(getCurrentSession());
+    JediTermWidget session = getCurrentSession();
+    session.close();
+    closeTab(session);
   }
 
   public void dispose() {
@@ -259,7 +262,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
       new TerminalAction("Close Session", mySettingsProvider.getCloseSessionKeyStrokes(), new Predicate<KeyEvent>() {
         @Override
         public boolean apply(KeyEvent input) {
-          handleCloseSession();
+          closeCurrentSession();
           return true;
         }
       }).withMnemonicKey(KeyEvent.VK_S),
@@ -306,11 +309,6 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   @Override
   public void setNextProvider(TerminalActionProvider provider) {
     myNextActionProvider = provider;
-  }
-
-
-  private void handleCloseSession() {
-    closeCurrentSession();
   }
 
   private void handleNewSession() {

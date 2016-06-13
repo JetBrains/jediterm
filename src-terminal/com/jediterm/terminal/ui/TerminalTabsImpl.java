@@ -44,6 +44,11 @@ public class TerminalTabsImpl implements TerminalTabs {
   }
 
   @Override
+  public int indexOfComponent(Component component) {
+    return myTabbedPane.indexOfComponent(component);
+  }
+
+  @Override
   public int indexOfTabComponent(Component component) {
     return myTabbedPane.indexOfTabComponent(component);
   }

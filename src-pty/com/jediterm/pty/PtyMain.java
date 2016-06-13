@@ -29,11 +29,13 @@ public class PtyMain extends AbstractTerminalFrame {
   public TtyConnector createTtyConnector() {
     try {
       Map<String, String> envs = Maps.newHashMap(System.getenv());
-      envs.put("TERM", "xterm");
-      String[] command = new String[]{"/bin/bash", "--login"};
+      String[] command;
 
       if (UIUtil.isWindows) {
         command = new String[]{"cmd.exe"};
+      } else {
+        command = new String[]{"/bin/bash", "--login"};
+        envs.put("TERM", "xterm");
       }
 
       PtyProcess process = PtyProcess.exec(command, envs, null);

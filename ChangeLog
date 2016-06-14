@@ -1,5 +1,21 @@
 ChangeLog of JediTerm
 
+14/06/2016 2.2
+==============================
+- Show results of find action on the scrollbar
+- Display number of hits in the search result popup
+- IPv6 support
+- Alt+Cursors/Alt+Backspace handling fixed
+- Fixed some exceptions on resize
+- Fix issues with closing tabs
+- Some focus issues with search popup are fixed
+- Refactored to provide more configurable API
+- Fix getting exit code from jsch
+- Updated for the new winpty
+- Convert LF to CR when pasting
+- Don't set TERM variable on Windows
+
+
 10/02/2016 2.1
 ==============================
 - Find action

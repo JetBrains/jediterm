@@ -1,0 +1,2 @@
+[2J[3g[1;1H[3CH[3CH[3CH[3CH[3CH[3CH[3CH[3CH[3CH[3CH[3CH[3CH[3CH[3CH[3CH[3CH[3CH[3CH[3CH[3CH[3CH[3CH[3CH[3CH[3CH[3CH[1;4H[0g[6C[0g[6C[0g[6C[0g[6C[0g[6C[0g[6C[0g[6C[0g[6C[0g[6C[0g[6C[0g[6C[0g[6C[0g[6C[1;7H[1g[2g[1;1H	*	*	*	*	*	*	*	*	*	*	*	*	*[2;2H     *     *     *     *     *     *     *     *     *     *     *     *     *[4;1HTest of TAB setting/resetting. These two lines
+should look the same. Push <RETURN>

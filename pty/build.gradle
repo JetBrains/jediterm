@@ -1,0 +1,34 @@
+apply plugin: 'java'
+apply plugin: 'application'
+
+sourceSets.main.java.srcDirs = ['src', '../terminal/src']
+
+repositories {
+    flatDir dirs: ['libs']
+}
+
+dependencies {
+    compile ':log4j:1.2.14'
+    compile ':annotations'
+    compile ':guava:14.0.1'
+
+    compile ':jna'
+    compile ':jna-platform'
+    compile ':pty4j:0.5@jar'
+    compile ':purejavacomm-0.0.17'
+
+    testCompile ':junit:4.10'
+}
+
+mainClassName = 'com.jediterm.pty.PtyMain'
+
+
+jar {
+    baseName "jediterm-pty"
+
+    manifest {
+        attributes 'Main-Class': mainClassName
+    }
+}
+
+

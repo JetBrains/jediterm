@@ -1,0 +1,28 @@
+apply plugin: 'java'
+apply plugin: 'application'
+
+sourceSets {
+    main.java.srcDirs 'src', '../terminal/src'
+}
+
+dependencies {
+    compile ':log4j:1.2.14'
+    compile ':annotations'
+    compile ':guava:14.0.1'
+
+    compile ':jsch:0.1.51'
+    compile ':jzlib:1.1.1'
+
+    testCompile ':junit:4.10'
+}
+
+mainClassName = 'com.jediterm.ssh.SshMain'
+
+jar {
+    baseName "jediterm-ssh"
+
+    manifest {
+        attributes 'Main-Class': mainClassName
+    }
+}
+

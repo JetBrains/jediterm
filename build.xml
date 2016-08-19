@@ -140,7 +140,7 @@
         </javac>
 
         <copy todir="${tests-classes}/">
-            <fileset dir="${src-tests}" includes="**/*.txt"/>
+            <fileset dir="terminal/tests" includes="**/*.txt"/>
         </copy>
     </target>
 
@@ -155,7 +155,7 @@
             <!-- prints test output to screen -->
 
             <batchtest fork="yes">
-                <fileset dir="tests">
+                <fileset dir="terminal/tests">
                     <include name="**/*Test.java"/>
                 </fileset>
             </batchtest>

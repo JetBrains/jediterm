@@ -1,0 +1,16 @@
+apply plugin: 'java'
+
+sourceSets {
+    main.java.srcDir 'src'
+    test.java.srcDir 'tests'
+}
+
+dependencies {
+    compile ':log4j:1.2.14'
+    compile ':annotations'
+    compile ':guava:14.0.1'
+
+    testCompile ':junit:4.10'
+}
+
+test.include('testData/**/*.txt')

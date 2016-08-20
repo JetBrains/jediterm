@@ -1,0 +1,24 @@
+plugins {
+    id "edu.sc.seis.macAppBundle" version "2.1.0"
+}
+
+apply plugin: 'java'
+
+repositories {
+    flatDir dirs: ['libs', '../pty/libs']
+}
+
+dependencies {
+    compile  project(':pty')
+    runtime  files('../pty/nativeLibs')
+    testCompile ':junit:4.10'
+}
+
+macAppBundle {
+    mainClassName = "com.jediterm.pty.PtyMain"
+    icon = "myIcon.icns"
+    bundleJRE = true
+    javaProperties.put("apple.laf.useScreenMenuBar", "true")
+//    backgroundImage = "doc/jediterm_logo.png"
+}
+

@@ -117,7 +117,7 @@ public class DefaultSettingsProvider implements SettingsProvider {
 
   @Override
   public boolean emulateX11CopyPaste() {
-    return true;
+    return false;
   }
 
   @Override

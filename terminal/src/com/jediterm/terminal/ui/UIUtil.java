@@ -1,9 +1,13 @@
 package com.jediterm.terminal.ui;
 
+import com.google.common.base.Supplier;
 import com.jediterm.terminal.util.Util;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.Map;
 
 /**
  * @author traff
@@ -62,5 +66,15 @@ public class UIUtil {
 
   public static boolean isJavaVersionAtLeast(String v) {
     return Util.compareVersionNumbers(JAVA_RUNTIME_VERSION, v) >= 0;
+  }
+
+  public static void applyRenderingHints(final Graphics g) {
+    Graphics2D g2d = (Graphics2D)g;
+    Toolkit tk = Toolkit.getDefaultToolkit();
+    //noinspection HardCodedStringLiteral
+    Map map = (Map)tk.getDesktopProperty("awt.font.desktophints");
+    if (map != null) {
+      g2d.addRenderingHints(map);
+    }
   }
 }

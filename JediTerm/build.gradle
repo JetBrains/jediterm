@@ -1,24 +1,51 @@
+buildscript {
+    ext.kotlin_version = '1.0.3'
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
 plugins {
     id "edu.sc.seis.macAppBundle" version "2.1.0"
 }
 
+apply plugin: 'application'
 apply plugin: 'java'
+apply plugin: 'kotlin'
+
 
 repositories {
     flatDir dirs: ['libs', '../pty/libs']
+    mavenCentral()
+}
+
+sourceSets {
+    main.java.srcDirs += 'src/main/kotlin'
 }
 
 dependencies {
     compile  project(':pty')
+    compile ":eawtstub:"
+
     runtime  files('../pty/nativeLibs')
     testCompile ':junit:4.10'
+
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    compile "org.jetbrains:annotations:13.0"
 }
 
+mainClassName = "com.jediterm.app.JediTermMain"
+
+
 macAppBundle {
-    mainClassName = "com.jediterm.pty.PtyMain"
+    mainClassName = "com.jediterm.app.JediTermMain"
     icon = "myIcon.icns"
     bundleJRE = true
     javaProperties.put("apple.laf.useScreenMenuBar", "true")
 //    backgroundImage = "doc/jediterm_logo.png"
 }
+
 

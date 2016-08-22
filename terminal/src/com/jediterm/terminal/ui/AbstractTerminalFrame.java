@@ -6,9 +6,11 @@ import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.debug.BufferPanel;
 import com.jediterm.terminal.model.SelectionUtil;
 import com.jediterm.terminal.ui.settings.DefaultTabbedSettingsProvider;
+import com.jediterm.terminal.ui.settings.TabbedSettingsProvider;
 import com.jediterm.terminal.util.Pair;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
@@ -134,7 +136,12 @@ public abstract class AbstractTerminalFrame {
         openSession(terminalWidget);
         return true;
       }
-    });
+    }) {
+      @Override
+      protected JediTermWidget createInnerTerminalWidget(TabbedSettingsProvider settingsProvider) {
+        return createTerminalWidget(settingsProvider);
+      }
+    };
 
     final JFrame frame = new JFrame("JediTerm");
 
@@ -176,6 +183,10 @@ public abstract class AbstractTerminalFrame {
     });
 
     openSession(myTerminal);
+  }
+
+  protected JediTermWidget createTerminalWidget(@NotNull TabbedSettingsProvider settingsProvider) {
+    return new JediTermWidget(settingsProvider);
   }
 
   private void sizeFrameForTerm(final JFrame frame) {

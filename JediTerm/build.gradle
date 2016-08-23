@@ -27,10 +27,10 @@ sourceSets {
 }
 
 dependencies {
-    compile  project(':pty')
+    compile project(':pty')
     compile ":eawtstub:"
 
-    runtime  files('../pty/nativeLibs')
+    runtime files('../pty/nativeLibs')
     testCompile ':junit:4.10'
 
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
@@ -45,6 +45,7 @@ macAppBundle {
     icon = "myIcon.icns"
     bundleJRE = true
     javaProperties.put("apple.laf.useScreenMenuBar", "true")
+    bundleExtras = ['NSHighResolutionCapable': true]
 //    backgroundImage = "doc/jediterm_logo.png"
 }
 

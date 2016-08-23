@@ -15,8 +15,9 @@ Dmitry Trofimov <dmitry.trofimov@jetbrains.com>, Clément Poulain
 
 License
 -------
-Licensed under LGPL.
-
+All sources in the repo are licensed under LGPLv3, except the following roots, which are Apache 2.0 licensed:
+* JediTerm/*
+* terminal/src/com/jediterm/terminal/emulator/*
 
 Features
 --------

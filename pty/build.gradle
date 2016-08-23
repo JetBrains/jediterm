@@ -14,7 +14,7 @@ dependencies {
 
     compile ':jna'
     compile ':jna-platform'
-    compile ':pty4j:0.5'
+    compile ':pty4j:0.7.2'
     compile ':purejavacomm-0.0.17'
 
     testCompile ':junit:4.10'

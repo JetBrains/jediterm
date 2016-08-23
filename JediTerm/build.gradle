@@ -30,7 +30,7 @@ dependencies {
     compile project(':pty')
     compile ":eawtstub:"
 
-    runtime files('../pty/nativeLibs')
+    runtime files('../pty/libs/macosx')
     testCompile ':junit:4.10'
 
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"

@@ -771,7 +771,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   public int getPixelWidth() {
-    return myCharSize.width * myTermSize.width;
+    return myCharSize.width * myTermSize.width + getInsetX();
   }
 
   public int getPixelHeight() {
@@ -788,6 +788,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   public String getWindowTitle() {
     return myWindowTitle;
+  }
+
+  private int getInsetX() {
+    return 4;
   }
 
   public void addTerminalMouseListener(final TerminalMouseListener listener) {
@@ -979,7 +983,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   private void drawCharacters(int x, int y, TextStyle style, CharBuffer buf, Graphics2D gfx) {
-    int xCoord = x * myCharSize.width;
+    int xCoord = x * myCharSize.width + getInsetX();
     int yCoord = y * myCharSize.height;
 
     if (xCoord < 0 || xCoord > getWidth() || yCoord < 0 || yCoord > getHeight()) {
@@ -1043,7 +1047,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
       int descent = gfx.getFontMetrics(font).getDescent();
       int baseLine = (y + 1) * myCharSize.height - descent;
-      int xCoord = (x + drawCharsOffset) * myCharSize.width;
+      int xCoord = (x + drawCharsOffset) * myCharSize.width + getInsetX();
       int textLength = CharUtils.getTextLengthDoubleWidthAware(buf.getBuf(), buf.getStart() + offset, blockLen, mySettingsProvider.ambiguousCharsAreDoubleWidth());
 
       int yCoord = y * myCharSize.height;

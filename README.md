@@ -3,34 +3,67 @@ JediTerm
 
 [![Build Status](https://travis-ci.org/JetBrains/jediterm.png?branch=master)](https://travis-ci.org/JetBrains/jediterm)
 
-The main purpose of the project is to provide a pure Java terminal widget ready
-to embed into IDE. From this comes the name
-J(from `Java`)edi(reversed `IDE`)Term(obviously from `terminal`)
+
+The main purpose of the project is to provide a pure Java terminal widget that can be easily embedde 
+into an IDE.
+It supports terminal sessions both for SSH connections and local PTY on Mac OSX, Linux and Windows.
 
 
-Authors
+The library is used by JetBrains IDEs like PyCharm, IDEA, PhpStorm, WebStorm, AppCode, CLion, and Rider.
+
+Since version 2.5 there is a standalone version of the JediTerm terminal, provided as Mac OSX distribution.
+
+
+The name JediTerm origins from J(from `Java`) + edi(reversed `IDE`) + Term(obviously from `terminal`).
+Also the word Jedi itself gives some confidence and hope in the Universe of thousands of different terminal implementations.
+
+
+Run
 -------
-Dmitry Trofimov <dmitry.trofimov@jetbrains.com>, Clément Poulain
+
+To run the standalone JediTerm terminal from sources just execute _jediterm.sh_ or _jediterm.bat_.
+Or use the binary distribution from [dist](https://github.com/JetBrains/jediterm/tree/master/dist) folder.
 
 
-License
--------
-All sources in the repo are licensed under LGPLv3, except the following roots, which are Apache 2.0 licensed:
-* JediTerm/*
-* terminal/src/com/jediterm/terminal/emulator/*
+
+Build
+-----
+
+Gradle is used to build this project. The project consists of 4 sub-projects:
+* **terminal**
+
+    The core library that provides VT100 compatible terminal emulator and Java Swing based implementation of terminal panel UI.
+
+* **ssh**
+
+    The jediterm-ssh.jar library that provides, using the Jsch library, a terminal for remote SSH terminal sessions.
+
+* **pty**
+
+    The jediterm-pty.jar library that, by using the [Pty4J](https://github.com/traff/pty4j) library, enables a terminal for local PTY terminal sessions.
+
+* **JediTerm**
+
+    The standalone version of the JediTerm terminal distributed as a .dmg for Mac OSX.
+
 
 Features
 --------
-
-* Ssh using JSch from jcraft.org 
-* Local terminal for Unix, Mac and Windows using Pty4J
-* Xterm emulation - passes most of tests from vttest 
+* Ssh using JSch from jcraft.org
+* Local terminal for Unix, Mac and Windows using [Pty4J](https://github.com/traff/pty4j)
+* Xterm emulation - passes most of tests from vttest
 * Xterm 256 colours
 * Scrolling
 * Copy/Paste
 * Mouse support
 * Terminal resizing from client or server side
-* Terminal tabs 
+* Terminal tabs
+
+
+
+Authors
+-------
+Dmitry Trofimov <dmitry.trofimov@jetbrains.com>, Clément Poulain
 
 
 
@@ -50,4 +83,15 @@ Links
 Origin
 ------
 Character sets designation and mapping implementation is based on
-respective classes from jVT220 (https://github.com/jawi/jVT220, Apache 2.0 licensed) by J.W. Janssen
+respective classes from jVT220 (https://github.com/jawi/jVT220, Apache 2.0 licensed) by J.W. Janssen.
+
+
+Standalone distribution relies heavily on customized Swing UI widgets taken from IntelliJ Community platform repository
+(https://github.com/JetBrains/intellij-community) by JetBrains.
+
+
+Licenses
+-------
+All sources in the repository are licensed under LGPLv3, except the following roots, which are Apache 2.0 licensed:
+* JediTerm/*
+* terminal/src/com/jediterm/terminal/emulator/*

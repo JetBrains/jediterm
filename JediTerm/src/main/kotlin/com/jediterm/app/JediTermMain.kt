@@ -1,6 +1,7 @@
 package com.jediterm.app
 
 import com.google.common.base.Predicate
+import com.google.common.collect.ForwardingMap
 import com.google.common.collect.Lists
 import com.google.common.collect.Maps
 import com.intellij.openapi.Disposable
@@ -16,8 +17,10 @@ import com.jediterm.terminal.ui.settings.SettingsProvider
 import com.jediterm.terminal.ui.settings.TabbedSettingsProvider
 import com.pty4j.PtyProcess
 import org.apache.log4j.BasicConfigurator
+import org.apache.log4j.ConsoleAppender
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
+import java.awt.KeyboardFocusManager
 import java.io.IOException
 import java.nio.charset.Charset
 import java.util.*
@@ -32,8 +35,30 @@ object JediTermMain {
     fun main(arg: Array<String>) {
         BasicConfigurator.configure()
         Logger.getRootLogger().level = Level.INFO
+
+//        initLoggingTracing()
+
         JediTerm()
     }
+}
+
+fun initLoggingTracing() {
+    val mrfoField = KeyboardFocusManager::class.java!!.getDeclaredField("mostRecentFocusOwners")
+    mrfoField.setAccessible(true)
+
+    val delegate = mrfoField.get(null) as Map<Any, Any>
+
+    val mrfo = object : ForwardingMap<Any, Any>() {
+        override fun put(key: Any?, value: Any?): Any? {
+            Throwable().printStackTrace()
+            return super.put(key, value)
+        }
+
+        override fun delegate(): Map<Any, Any> {
+            return delegate
+        }
+    }
+    mrfoField.set(null, mrfo)
 }
 
 class JediTerm : AbstractTerminalFrame(), Disposable {

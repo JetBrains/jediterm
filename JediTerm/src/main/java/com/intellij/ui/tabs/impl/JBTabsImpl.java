@@ -205,7 +205,8 @@ public class JBTabsImpl extends JComponent
         // screen reader is active.
         // See https://github.com/JetBrains/intellij-community/commit/aa93e5f4cf7f4fd25538164ba04a7e532dc18d2e
         // why "true" was introduced, although it seems not necessary anymore.
-        setFocusCycleRoot(true);
+        setFocusCycleRoot(false);
+//        setFocusable(false);
         setFocusTraversalPolicy(new LayoutFocusTraversalPolicy() {
             @Override
             public Component getDefaultComponent(final Container aContainer) {
@@ -407,15 +408,7 @@ public class JBTabsImpl extends JComponent
 
         if (info == null) return null;
 
-        JComponent toFocus = null;
-
-
-        if (toFocus == null && info.getPreferredFocusableComponent() == null) {
-            return null;
-        }
-
-
-        return toFocus;
+        return info.getComponent();
     }
 
     @Override
@@ -659,7 +652,7 @@ public class JBTabsImpl extends JComponent
     private ActionCallback requestFocus(final JComponent toFocus) {
         if (toFocus == null) return ActionCallback.DONE;
 
-        toFocus.requestFocus();
+        toFocus.requestFocusInWindow();
 
         return ActionCallback.DONE;
     }

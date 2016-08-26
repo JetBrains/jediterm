@@ -80,6 +80,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
     myInnerPanel = new JLayeredPane();
     myInnerPanel.setFocusable(false);
+    setFocusable(false);
 
     myInnerPanel.setLayout(new TerminalLayout());
     myInnerPanel.add(myTerminalPanel, TerminalLayout.TERMINAL);
@@ -190,6 +191,13 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     });
     return super.requestFocusInWindow();
   }
+
+  @Override
+  public void requestFocus() {
+    myTerminalPanel.requestFocus();
+  }
+
+
 
   public boolean canOpenSession() {
     return !isSessionRunning();

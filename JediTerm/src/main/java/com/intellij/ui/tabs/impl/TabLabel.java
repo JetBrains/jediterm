@@ -65,7 +65,7 @@ public class TabLabel extends JPanel implements Accessible {
 
         // Allow focus so that user can TAB into the selected TabLabel and then
         // navigate through the other tabs using the LEFT/RIGHT keys.
-        setFocusable(true);
+        setFocusable(false);
         setOpaque(false);
         setLayout(new BorderLayout());
 

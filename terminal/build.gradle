@@ -1,8 +1,19 @@
 apply plugin: 'java'
 
 sourceSets {
-    main.java.srcDir 'src'
-    test.java.srcDir 'tests'
+    main {
+        java {
+            srcDir 'src'
+        }
+    }
+    test {
+        java {
+            srcDir 'tests/src'
+        }
+        resources {
+            srcDir 'tests/resources'
+        }
+    }
 }
 
 dependencies {
@@ -12,5 +23,3 @@ dependencies {
 
     testCompile ':junit:4.10'
 }
-
-test.include('testData/**/*.txt')

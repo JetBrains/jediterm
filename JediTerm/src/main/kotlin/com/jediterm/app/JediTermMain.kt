@@ -3,6 +3,7 @@ package com.jediterm.app
 import com.google.common.base.Predicate
 import com.google.common.collect.Lists
 import com.google.common.collect.Maps
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Pair
 import com.jediterm.pty.PtyProcessTtyConnector
 import com.jediterm.terminal.LoggingTtyConnector
@@ -35,19 +36,18 @@ object JediTermMain {
     }
 }
 
-class JediTerm : AbstractTerminalFrame() {
+class JediTerm : AbstractTerminalFrame(), Disposable {
+    override fun dispose() {
+        // TODO
+    }
+
     override fun createTabbedTerminalWidget(): TabbedTerminalWidget {
         return object : JediTabbedTerminalWidget(DefaultTabbedSettingsProvider(), object : Predicate<Pair<TerminalWidget, String>> {
             override fun apply(pair: Pair<TerminalWidget, String>?): Boolean {
                 openSession(pair?.first)
                 return true
             }
-        }, object : com.intellij.openapi.Disposable {
-            override fun dispose() {
-                //TODO
-            }
-
-        }) {
+        }, this) {
             override fun createInnerTerminalWidget(settingsProvider: TabbedSettingsProvider): JediTermWidget {
                 return createTerminalWidget(settingsProvider)
             }
@@ -76,11 +76,7 @@ class JediTerm : AbstractTerminalFrame() {
     }
 
     override fun createTerminalWidget(settingsProvider: TabbedSettingsProvider): JediTermWidget {
-        return object : JediTermWidget(settingsProvider) {
-            override fun createTerminalPanel(settingsProvider: SettingsProvider, styleState: StyleState, terminalTextBuffer: TerminalTextBuffer): TerminalPanel {
-                return JediTerminalPanel(settingsProvider, styleState, terminalTextBuffer)
-            }
-        }
+        return JediTerminalWidget(settingsProvider, this)
     }
 
     class LoggingPtyProcessTtyConnector(process: PtyProcess, charset: Charset) : PtyProcessTtyConnector(process, charset), LoggingTtyConnector {

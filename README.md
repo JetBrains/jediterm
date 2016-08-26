@@ -80,8 +80,12 @@ Links
 
 
 
-Origin
+Open Source Origin and History
 ------
+The initial version of the JediTerm was a reworked terminal emulator Gritty, which was in it's own turn a reworked JCTerm 
+terminal implementation. Now there is nothing in the source code left from Gritty and JCTerm. Everything was 
+rewritten from scratch. A lot of new features were added.
+
 Character sets designation and mapping implementation is based on
 respective classes from jVT220 (https://github.com/jawi/jVT220, Apache 2.0 licensed) by J.W. Janssen.
 

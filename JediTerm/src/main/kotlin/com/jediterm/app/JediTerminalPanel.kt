@@ -1,5 +1,6 @@
 package com.jediterm.app
 
+import com.intellij.openapi.Disposable
 import com.intellij.util.JBHiDPIScaledImage
 import com.intellij.util.RetinaImage
 import com.intellij.util.ui.DrawUtil
@@ -17,8 +18,10 @@ import java.awt.image.ImageObserver
 
 class JediTerminalPanel(private val mySettingsProvider: SettingsProvider,
                         styleState: StyleState,
-                        backBuffer: TerminalTextBuffer) : TerminalPanel(mySettingsProvider, backBuffer, styleState) {
-
+                        backBuffer: TerminalTextBuffer) : TerminalPanel(mySettingsProvider, backBuffer, styleState), Disposable {
+    override fun dispose() {
+        //TODO
+    }
 
     override fun setupAntialiasing(graphics: Graphics) {
         DrawUtil.setupComposite(graphics as Graphics2D)

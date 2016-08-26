@@ -23,12 +23,14 @@ import com.intellij.openapi.ui.GraphicsConfig;
 import com.intellij.openapi.util.Ref;
 import com.intellij.openapi.util.SystemInfo;
 import com.intellij.openapi.util.registry.Registry;
+import com.intellij.ui.AntialiasingType;
 import com.intellij.util.Consumer;
 import com.intellij.util.JBHiDPIScaledImage;
 import com.intellij.util.ReflectionUtil;
 import com.intellij.util.RetinaImage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import sun.swing.SwingUtilities2;
 
 import javax.swing.*;
 import java.awt.*;
@@ -38,6 +40,7 @@ import java.awt.image.ImageObserver;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
+import java.util.Optional;
 
 public class DrawUtil {
     protected static final Logger LOG = Logger.getInstance("#com.intellij.util.ui.UIUtil");
@@ -183,6 +186,54 @@ public class DrawUtil {
         for (i1 = i1 != x - 1 ? y1 - 2 : y1 - 1; i1 >= y; i1 -= 2) {
             drawLine(g, x, i1, x, i1);
         }
+    }
+
+    /**
+     * Should be invoked only in EDT.
+     *
+     * @param g       Graphics surface
+     * @param startX  Line start X coordinate
+     * @param endX    Line end X coordinate
+     * @param lineY   Line Y coordinate
+     * @param bgColor Background color (optional)
+     * @param fgColor Foreground color (optional)
+     * @param opaque  If opaque the image will be dr
+     */
+    public static void drawBoldDottedLine(final Graphics2D g,
+                                          final int startX,
+                                          final int endX,
+                                          final int lineY,
+                                          final Color bgColor,
+                                          final Color fgColor,
+                                          final boolean opaque) {
+        if ((SystemInfo.isMac && !isRetina()) || SystemInfo.isLinux) {
+            drawAppleDottedLine(g, startX, endX, lineY, bgColor, fgColor, opaque);
+        }
+        else {
+            drawBoringDottedLine(g, startX, endX, lineY, bgColor, fgColor, opaque);
+        }
+    }
+
+    private static void drawAppleDottedLine(final Graphics2D g,
+                                            final int startX,
+                                            final int endX,
+                                            final int lineY,
+                                            final Color bgColor,
+                                            final Color fgColor,
+                                            final boolean opaque) {
+        final Color oldColor = g.getColor();
+
+        // Fill 3 lines with background color
+        if (opaque && bgColor != null) {
+            g.setColor(bgColor);
+
+            drawLine(g, startX, lineY, endX, lineY);
+            drawLine(g, startX, lineY + 1, endX, lineY + 1);
+            drawLine(g, startX, lineY + 2, endX, lineY + 2);
+        }
+
+        AppleBoldDottedPainter painter = AppleBoldDottedPainter.forColor(Optional.of(fgColor).orElse(oldColor));
+        painter.paint(g, startX, endX, lineY);
     }
 
 
@@ -626,5 +677,9 @@ public class DrawUtil {
      */
     public static void setupComposite(@NotNull Graphics2D g) {
         g.setComposite(X_RENDER_ACTIVE.get() ? AlphaComposite.SrcOver : AlphaComposite.Src);
+    }
+
+    public static void setupComponentAntialiasing(JComponent component) {
+        component.putClientProperty(SwingUtilities2.AA_TEXT_PROPERTY_KEY, AntialiasingType.getAAHintForSwingComponent());
     }
 }

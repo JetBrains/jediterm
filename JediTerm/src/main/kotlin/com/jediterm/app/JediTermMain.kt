@@ -1,16 +1,16 @@
 package com.jediterm.app
 
+import com.google.common.base.Predicate
 import com.google.common.collect.Lists
 import com.google.common.collect.Maps
+import com.intellij.openapi.util.Pair
 import com.jediterm.pty.PtyProcessTtyConnector
 import com.jediterm.terminal.LoggingTtyConnector
 import com.jediterm.terminal.TtyConnector
 import com.jediterm.terminal.model.StyleState
 import com.jediterm.terminal.model.TerminalTextBuffer
-import com.jediterm.terminal.ui.AbstractTerminalFrame
-import com.jediterm.terminal.ui.JediTermWidget
-import com.jediterm.terminal.ui.TerminalPanel
-import com.jediterm.terminal.ui.UIUtil
+import com.jediterm.terminal.ui.*
+import com.jediterm.terminal.ui.settings.DefaultTabbedSettingsProvider
 import com.jediterm.terminal.ui.settings.SettingsProvider
 import com.jediterm.terminal.ui.settings.TabbedSettingsProvider
 import com.pty4j.PtyProcess
@@ -36,6 +36,24 @@ object JediTermMain {
 }
 
 class JediTerm : AbstractTerminalFrame() {
+    override fun createTabbedTerminalWidget(): TabbedTerminalWidget {
+        return object : JediTabbedTerminalWidget(DefaultTabbedSettingsProvider(), object : Predicate<Pair<TerminalWidget, String>> {
+            override fun apply(pair: Pair<TerminalWidget, String>?): Boolean {
+                openSession(pair?.first)
+                return true
+            }
+        }, object : com.intellij.openapi.Disposable {
+            override fun dispose() {
+                //TODO
+            }
+
+        }) {
+            override fun createInnerTerminalWidget(settingsProvider: TabbedSettingsProvider): JediTermWidget {
+                return createTerminalWidget(settingsProvider)
+            }
+        }
+    }
+
     override fun createTtyConnector(): TtyConnector {
         try {
             val envs = Maps.newHashMap(System.getenv())

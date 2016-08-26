@@ -35,6 +35,7 @@ dependencies {
 
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     compile "org.jetbrains:annotations:13.0"
+    compile ":trove4j:"
 }
 
 mainClassName = "com.jediterm.app.JediTermMain"

@@ -16,19 +16,20 @@
     <orderEntry type="module-library" scope="RUNTIME">
       <library>
         <CLASSES>
-          <root url="file://$MODULE_DIR$/../../../pty/nativeLibs" />
+          <root url="file://$MODULE_DIR$/../../../pty/libs/macosx" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />
       </library>
     </orderEntry>
     <orderEntry type="library" name="Gradle: org.jetbrains:annotations:13.0" level="project" />
+    <orderEntry type="library" name="Gradle: :trove4j:" level="project" />
     <orderEntry type="library" name="Gradle: :log4j:1.2.14" level="project" />
     <orderEntry type="library" name="Gradle: :annotations:" level="project" />
     <orderEntry type="library" name="Gradle: :guava:14.0.1" level="project" />
     <orderEntry type="library" name="Gradle: :jna:" level="project" />
     <orderEntry type="library" name="Gradle: :jna-platform:" level="project" />
-    <orderEntry type="library" name="Gradle: :pty4j:0.5" level="project" />
+    <orderEntry type="library" name="Gradle: :pty4j:0.7.2" level="project" />
     <orderEntry type="library" name="Gradle: :purejavacomm-0.0.17:" level="project" />
     <orderEntry type="library" name="Gradle: org.jetbrains.kotlin:kotlin-runtime:1.0.3" level="project" />
   </component>

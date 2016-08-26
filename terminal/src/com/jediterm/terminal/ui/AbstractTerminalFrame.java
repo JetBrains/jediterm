@@ -1,6 +1,5 @@
 package com.jediterm.terminal.ui;
 
-import com.google.common.base.Predicate;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.debug.BufferPanel;
@@ -14,7 +13,9 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 
 public abstract class AbstractTerminalFrame {
@@ -116,7 +117,7 @@ public abstract class AbstractTerminalFrame {
     return mb;
   }
 
-  private void openSession(TerminalWidget terminal) {
+  protected void openSession(TerminalWidget terminal) {
     if (terminal.canOpenSession()) {
       openSession(terminal, createTtyConnector());
     }
@@ -130,18 +131,7 @@ public abstract class AbstractTerminalFrame {
   public abstract TtyConnector createTtyConnector();
 
   protected AbstractTerminalFrame() {
-    myTerminal = new TabbedTerminalWidget(new DefaultTabbedSettingsProvider(), new Predicate<TerminalWidget>() {
-      @Override
-      public boolean apply(TerminalWidget terminalWidget) {
-        openSession(terminalWidget);
-        return true;
-      }
-    }) {
-      @Override
-      protected JediTermWidget createInnerTerminalWidget(TabbedSettingsProvider settingsProvider) {
-        return createTerminalWidget(settingsProvider);
-      }
-    };
+    myTerminal = createTabbedTerminalWidget();
 
     final JFrame frame = new JFrame("JediTerm");
 
@@ -183,6 +173,19 @@ public abstract class AbstractTerminalFrame {
     });
 
     openSession(myTerminal);
+  }
+
+  @NotNull
+  protected TabbedTerminalWidget createTabbedTerminalWidget() {
+    return new TabbedTerminalWidget(new DefaultTabbedSettingsProvider(), terminalWidget -> {
+      openSession(terminalWidget);
+      return true;
+    }) {
+      @Override
+      protected JediTermWidget createInnerTerminalWidget(TabbedSettingsProvider settingsProvider) {
+        return createTerminalWidget(settingsProvider);
+      }
+    };
   }
 
   protected JediTermWidget createTerminalWidget(@NotNull TabbedSettingsProvider settingsProvider) {

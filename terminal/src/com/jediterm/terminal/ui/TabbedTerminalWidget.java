@@ -426,7 +426,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
       label.addFocusListener(this);
 
       //add more space between the label and the button
-      label.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 5));
+//      label.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 5));
 
       label.addMouseListener(new MouseAdapter() {
 

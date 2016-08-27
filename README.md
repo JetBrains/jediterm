@@ -22,7 +22,7 @@ Run
 -------
 
 To run the standalone JediTerm terminal from sources just execute _jediterm.sh_ or _jediterm.bat_.
-Or use the binary distribution from [dist](https://github.com/JetBrains/jediterm/tree/master/dist) folder.
+Or use the binary distribution from the [Releases](https://github.com/JetBrains/jediterm/releases/) page.
 
 
 

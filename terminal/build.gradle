@@ -23,3 +23,9 @@ dependencies {
 
     testCompile ':junit:4.10'
 }
+
+test {
+    testLogging {
+        exceptionFormat = 'full'
+    }
+}

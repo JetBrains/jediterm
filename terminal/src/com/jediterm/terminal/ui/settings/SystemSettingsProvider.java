@@ -14,4 +14,8 @@ public interface SystemSettingsProvider {
   KeyStroke[] getCloseSessionKeyStrokes();
 
   KeyStroke[] getFindKeyStrokes();
+
+  KeyStroke[] getPageUpKeyStrokes();
+
+  KeyStroke[] getPageDownKeyStrokes();
 }

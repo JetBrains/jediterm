@@ -57,6 +57,16 @@ public class DefaultSettingsProvider implements SettingsProvider {
   }
 
   @Override
+  public KeyStroke[] getPageUpKeyStrokes() {
+    return new KeyStroke[]{KeyStroke.getKeyStroke(KeyEvent.VK_PAGE_UP, InputEvent.SHIFT_DOWN_MASK)};
+  }
+
+  @Override
+  public KeyStroke[] getPageDownKeyStrokes() {
+    return new KeyStroke[]{KeyStroke.getKeyStroke(KeyEvent.VK_PAGE_DOWN, InputEvent.SHIFT_DOWN_MASK)};
+  }
+
+  @Override
   public ColorPalette getTerminalColorPalette() {
     return UIUtil.isWindows ? ColorPalette.WINDOWS_PALETTE : ColorPalette.XTERM_PALETTE;
   }
@@ -167,7 +177,7 @@ public class DefaultSettingsProvider implements SettingsProvider {
 
   @Override
   public boolean altSendsEscape() {
-    return false;
+    return true;
   }
 
   @Override

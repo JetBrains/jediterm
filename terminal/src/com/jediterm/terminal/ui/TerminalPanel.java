@@ -397,6 +397,16 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     myBoundedRangeModel.setValue(myTermSize.height);
   }
 
+  private void pageUp() {
+    int val = myBoundedRangeModel.getValue() - myTermSize.height;
+    myBoundedRangeModel.setValue(val >= myBoundedRangeModel.getMinimum() ? val : myBoundedRangeModel.getMinimum());
+  }
+
+  private void pageDown() {
+    int val = myBoundedRangeModel.getValue() + myTermSize.height;
+    myBoundedRangeModel.setValue(val <= myBoundedRangeModel.getMaximum() ? val : myBoundedRangeModel.getMaximum());
+  }
+
   private void moveScrollBar(int k) {
     myBoundedRangeModel.setValue(myBoundedRangeModel.getValue() + k);
   }
@@ -1189,41 +1199,25 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   @Override
   public List<TerminalAction> getActions() {
     return Lists.newArrayList(
-            new TerminalAction("Copy", mySettingsProvider.getCopyKeyStrokes(), new Predicate<KeyEvent>() {
-              @Override
-              public boolean apply(KeyEvent input) {
-                return handleCopy(true);
-              }
-            }).withMnemonicKey(KeyEvent.VK_C).withEnabledSupplier(new Supplier<Boolean>() {
-              @Override
-              public Boolean get() {
-                return mySelection != null;
-              }
-            }),
-            new TerminalAction("Paste", mySettingsProvider.getPasteKeyStrokes(), new Predicate<KeyEvent>() {
-              @Override
-              public boolean apply(KeyEvent input) {
-                handlePaste();
-                return true;
-              }
-            }).withMnemonicKey(KeyEvent.VK_P).withEnabledSupplier(new Supplier<Boolean>() {
-              @Override
-              public Boolean get() {
-                return getClipboardString() != null;
-              }
-            }),
-            new TerminalAction("Clear Buffer", mySettingsProvider.getClearBufferKeyStrokes(), new Predicate<KeyEvent>() {
-              @Override
-              public boolean apply(KeyEvent input) {
-                clearBuffer();
-                return true;
-              }
-            }).withMnemonicKey(KeyEvent.VK_K).withEnabledSupplier(new Supplier<Boolean>() {
-              @Override
-              public Boolean get() {
-                return !myTerminalTextBuffer.isUsingAlternateBuffer();
-              }
-            }).separatorBefore(true)
+            new TerminalAction("Copy", mySettingsProvider.getCopyKeyStrokes(), input ->
+                    handleCopy(true)).withMnemonicKey(KeyEvent.VK_C).withEnabledSupplier(() -> mySelection != null),
+            new TerminalAction("Paste", mySettingsProvider.getPasteKeyStrokes(), input -> {
+              handlePaste();
+              return true;
+            }).withMnemonicKey(KeyEvent.VK_P).withEnabledSupplier(() -> getClipboardString() != null),
+            new TerminalAction("Clear Buffer", mySettingsProvider.getClearBufferKeyStrokes(), input -> {
+              clearBuffer();
+              return true;
+            }).withMnemonicKey(KeyEvent.VK_K).withEnabledSupplier(() -> !myTerminalTextBuffer.isUsingAlternateBuffer()).separatorBefore(true),
+            new TerminalAction("Page Up", mySettingsProvider.getPageUpKeyStrokes(), input -> {
+              pageUp();
+              return true;
+            }).withEnabledSupplier(() -> !myTerminalTextBuffer.isUsingAlternateBuffer()).separatorBefore(true),
+            new TerminalAction("Page Down", mySettingsProvider.getPageDownKeyStrokes(), input -> {
+              pageDown();
+              return true;
+            }).withEnabledSupplier(() -> !myTerminalTextBuffer.isUsingAlternateBuffer())
+
     );
   }
 

@@ -9,7 +9,7 @@ buildscript {
 }
 
 plugins {
-    id "edu.sc.seis.macAppBundle" version "2.1.0"
+    id "edu.sc.seis.macAppBundle" version "2.1.6"
 }
 
 apply plugin: 'application'

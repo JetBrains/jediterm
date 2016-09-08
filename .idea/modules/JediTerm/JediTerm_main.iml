@@ -15,7 +15,7 @@
     <orderEntry type="module-library" scope="RUNTIME">
       <library>
         <CLASSES>
-          <root url="file://$MODULE_DIR$/../../../pty/libs/macosx" />
+          <root url="file://$MODULE_DIR$/../../../pty/libs" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />

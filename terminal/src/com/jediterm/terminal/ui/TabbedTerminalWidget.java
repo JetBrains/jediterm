@@ -207,8 +207,10 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
 
   public void closeCurrentSession() {
     JediTermWidget session = getCurrentSession();
-    session.close();
-    closeTab(session);
+    if (session != null) {
+      session.close();
+      closeTab(session);
+    }
   }
 
   public void dispose() {

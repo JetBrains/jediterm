@@ -942,6 +942,16 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   @Override
+  public void deviceStatusReport(String str) {
+    myTerminalOutput.sendString(str);
+  }
+
+  @Override
+  public void deviceAttributes(byte[] response) {
+    myTerminalOutput.sendBytes(response);
+  }
+
+  @Override
   public void setMouseFormat(MouseFormat mouseFormat) {
     myMouseFormat = mouseFormat;
   }

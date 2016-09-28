@@ -144,4 +144,8 @@ public interface Terminal {
   void setMouseFormat(MouseFormat mouseFormat);
 
   void setAltSendsEscape(boolean enabled);
+
+  void deviceStatusReport(String str);
+
+  void deviceAttributes(byte[] response);
 }

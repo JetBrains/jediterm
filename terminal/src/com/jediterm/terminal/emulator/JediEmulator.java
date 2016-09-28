@@ -26,11 +26,13 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   private static int logThrottlerRatio = 100;
   private static int logThrottlerLimit = logThrottlerRatio;
 
-  private final TerminalOutputStream myOutputStream;
-
+  @Deprecated
   public JediEmulator(TerminalDataStream dataStream, TerminalOutputStream outputStream, Terminal terminal) {
     super(dataStream, terminal);
-    myOutputStream = outputStream;
+  }
+
+  public JediEmulator(TerminalDataStream dataStream, Terminal terminal) {
+    super(dataStream, terminal);
   }
 
   @Override
@@ -57,12 +59,12 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         terminal.newLine();
         break;
       case Ascii.SI: //Shift In (Ctrl-O) -> Switch to Standard Character Set. This invokes the G0 character set (the default)
-        //LS0 (locking shift 0) 
+        //LS0 (locking shift 0)
         //Map G0 into GL
         terminal.mapCharsetToGL(0);
         break;
       case Ascii.SO: //Shift Out (Ctrl-N) -> Switch to Alternate Character Set. This invokes the G1 character set (the default)
-        //LS1 (locking shift 1) 
+        //LS1 (locking shift 1)
         //Map G1 into GL
         terminal.mapCharsetToGL(1);
         break;
@@ -118,7 +120,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       case 'H': //Horizontal Tab Set (HTS)
         terminal.setTabStopAtCursor();
         break;
-      case 'M': // Reverse Index (RI) 
+      case 'M': // Reverse Index (RI)
         terminal.reverseIndex();
         break;
       case 'N':
@@ -389,8 +391,8 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       case 'l': //Reset Mode (RM) or DEC Private Mode Reset (DECRST)
         return setModeOrPrivateMode(args, false);
       case 'm':
-        if (args.startsWithMoreMark()) { //Set or reset resource-values used by xterm 
-          // to decide whether to construct escape sequences holding information about 
+        if (args.startsWithMoreMark()) { //Set or reset resource-values used by xterm
+          // to decide whether to construct escape sequences holding information about
           // the modifiers pressed with a given key
           return false;
         }
@@ -599,14 +601,15 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     if (c == 5) {
       String str = "\033[0n";
       LOG.debug("Sending Device Report Status : " + str);
-      myOutputStream.sendString(str);
+      myTerminal.deviceStatusReport(str);
       return true;
     } else if (c == 6) {
       int row = myTerminal.getCursorY();
       int column = myTerminal.getCursorX();
       String str = "\033[" + row + ";" + column + "R";
+
       LOG.debug("Sending Device Report Status : " + str);
-      myOutputStream.sendString(str);
+      myTerminal.deviceStatusReport(str);
       return true;
     } else {
       LOG.error("Sending Device Report Status : unsupported parameter: " + args.toString());
@@ -623,7 +626,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Identifying to remote system as VT102");
     }
-    myOutputStream.sendBytes(CharUtils.VT102_RESPONSE);
+    myTerminal.deviceAttributes(CharUtils.VT102_RESPONSE);
 
     return true;
   }

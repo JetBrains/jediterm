@@ -9,7 +9,8 @@ buildscript {
 }
 
 plugins {
-    id "edu.sc.seis.macAppBundle" version "2.1.0"
+    id "edu.sc.seis.macAppBundle" version "2.1.6"
+    id 'edu.sc.seis.launch4j' version '1.6.2'
 }
 
 apply plugin: 'application'
@@ -30,7 +31,7 @@ dependencies {
     compile project(':pty')
     compile ":eawtstub:"
 
-    runtime files('../pty/libs/macosx')
+    runtime files('../pty/libs') //TODO: add only suitable libs for each platform
     testCompile ':junit:4.10'
 
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
@@ -47,7 +48,11 @@ macAppBundle {
     bundleJRE = true
     javaProperties.put("apple.laf.useScreenMenuBar", "true")
     bundleExtras.put('NSHighResolutionCapable', true)
-//    backgroundImage = "doc/jediterm_logo.png"
+}
+
+launch4j {
+    mainClassName = "com.jediterm.app.JediTermMain"
+    icon = "$projectDir/img/JediTerm.ico"
 }
 
 

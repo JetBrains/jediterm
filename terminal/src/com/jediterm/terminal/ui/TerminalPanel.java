@@ -1,8 +1,6 @@
 package com.jediterm.terminal.ui;
 
 import com.google.common.base.Ascii;
-import com.google.common.base.Predicate;
-import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
 import com.jediterm.terminal.*;
 import com.jediterm.terminal.SubstringFinder.FindResult.FindItem;
@@ -37,6 +35,8 @@ import java.text.AttributedCharacterIterator;
 import java.text.CharacterIterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class TerminalPanel extends JComponent implements TerminalDisplay, ClipboardOwner, TerminalActionProvider {
   private static final Logger LOG = Logger.getLogger(TerminalPanel.class);
@@ -60,6 +60,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private Point mySelectionStartPoint = null;
   private TerminalSelection mySelection = null;
 
+  private Clipboard mySelectionClipboard;
   private Clipboard myClipboard;
 
   private TerminalPanelListener myTerminalPanelListener;
@@ -173,7 +174,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         repaint();
         mySelection.updateEnd(charCoords);
         if (mySettingsProvider.copyOnSelect()) {
-          handleCopy(false);
+          handleCopyOnSelect();
         }
 
         if (e.getPoint().y < 0) {
@@ -229,7 +230,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             mySelection.updateEnd(stop);
 
             if (mySettingsProvider.copyOnSelect()) {
-              handleCopy(false);
+              handleCopyOnSelect();
             }
           } else if (count == 3) {
             // select line
@@ -248,11 +249,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             mySelection.updateEnd(new Point(myTermSize.width, endLine));
 
             if (mySettingsProvider.copyOnSelect()) {
-              handleCopy(false);
+              handleCopyOnSelect();
             }
           }
         } else if (e.getButton() == MouseEvent.BUTTON2 && mySettingsProvider.pasteOnMiddleMouseClick() && isLocalMouseAction(e)) {
-          handlePaste();
+          handlePasteSelection();
         } else if (e.getButton() == MouseEvent.BUTTON3) {
           JPopupMenu popup = createPopupMenu();
           popup.show(e.getComponent(), e.getX(), e.getY());
@@ -427,13 +428,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   void setUpClipboard() {
-    myClipboard = Toolkit.getDefaultToolkit().getSystemSelection();
-    if (myClipboard == null) {
-      myClipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-    }
+    mySelectionClipboard = Toolkit.getDefaultToolkit().getSystemSelection();
+    myClipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
   }
 
-  protected void copySelection(final Point selectionStart, final Point selectionEnd) {
+  protected void copySelection(final Point selectionStart, final Point selectionEnd, @NotNull Consumer<StringSelection> copyHandler) {
     if (selectionStart == null || selectionEnd == null) {
       return;
     }
@@ -443,7 +442,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     if (selectionText.length() != 0) {
       try {
-        setCopyContents(new StringSelection(selectionText));
+        copyHandler.accept(new StringSelection(selectionText));
       } catch (final IllegalStateException e) {
         LOG.error("Could not set clipboard:", e);
       }
@@ -454,10 +453,16 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     myClipboard.setContents(selection, this);
   }
 
-  protected void pasteSelection() {
-    String selection = getClipboardString();
+  protected void setCopySelectionContents(StringSelection selection) {
+    if (mySelectionClipboard != null) {
+      mySelectionClipboard.setContents(selection, this);
+    }
+  }
 
-    if (selection == null) {
+  protected void pasteFromClipboard(Supplier<String> clipboardStringSupplier) {
+    String text = clipboardStringSupplier.get();
+
+    if (text == null) {
       return;
     }
 
@@ -468,11 +473,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         // On Windows, Java automatically does this CRLF->LF sanitization, but
         // other terminals on Unix typically also do this sanitization, so
         // maybe JediTerm also should.
-        selection = selection.replace("\r\n", "\n");
+        text = text.replace("\r\n", "\n");
       }
-      selection = selection.replace('\n', '\r');
+      text = text.replace('\n', '\r');
 
-      myTerminalStarter.sendString(selection);
+      myTerminalStarter.sendString(text);
     } catch (RuntimeException e) {
       LOG.info(e);
     }
@@ -480,16 +485,29 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private String getClipboardString() {
     try {
-      return getClipboardContent();
+      return getClipboardContent(myClipboard);
     } catch (final Exception e) {
       LOG.info(e);
     }
     return null;
   }
 
-  protected String getClipboardContent() throws IOException, UnsupportedFlavorException {
+  private String getSelectionClipboardString() {
     try {
-      return (String) myClipboard.getData(DataFlavor.stringFlavor);
+      if (mySelectionClipboard != null) {
+        return getClipboardContent(mySelectionClipboard);
+      } else {
+        return getClipboardContent(myClipboard);
+      }
+    } catch (final Exception e) {
+      LOG.info(e);
+    }
+    return null;
+  }
+
+  protected String getClipboardContent(Clipboard clipboard) throws IOException, UnsupportedFlavorException {
+    try {
+      return (String) clipboard.getData(DataFlavor.stringFlavor);
     } catch (Exception e) {
       LOG.info(e);
       return null;
@@ -1200,7 +1218,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   public List<TerminalAction> getActions() {
     return Lists.newArrayList(
             new TerminalAction("Copy", mySettingsProvider.getCopyKeyStrokes(), input ->
-                    handleCopy(true)).withMnemonicKey(KeyEvent.VK_C).withEnabledSupplier(() -> mySelection != null),
+                    handleCopy()).withMnemonicKey(KeyEvent.VK_C).withEnabledSupplier(() -> mySelection != null),
             new TerminalAction("Paste", mySettingsProvider.getPasteKeyStrokes(), input -> {
               handlePaste();
               return true;
@@ -1342,14 +1360,18 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   private void handlePaste() {
-    pasteSelection();
+    pasteFromClipboard(this::getClipboardString);
+  }
+
+  private void handlePasteSelection() {
+    pasteFromClipboard(this::getSelectionClipboardString);
   }
 
   // "unselect" is needed to handle Ctrl+C copy shortcut collision with ^C signal shortcut
-  private boolean handleCopy(boolean unselect) {
+  private boolean handleCopy(boolean unselect, Consumer<StringSelection> copyHandler) {
     if (mySelection != null) {
       Pair<Point, Point> points = mySelection.pointsForRun(myTermSize.width);
-      copySelection(points.first, points.second);
+      copySelection(points.first, points.second, copyHandler);
       if (unselect) {
         mySelection = null;
         repaint();
@@ -1358,6 +1380,15 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
     return false;
   }
+
+  private boolean handleCopy() {
+    return handleCopy(true, this::setCopyContents);
+  }
+
+  private boolean handleCopyOnSelect() {
+    return handleCopy(false, this::setCopySelectionContents);
+  }
+
 
   /**
    * InputMethod implementation

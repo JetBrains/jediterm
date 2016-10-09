@@ -1478,4 +1478,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       return null;
     }
   }
+
+  public void dispose() {
+    myRepaintTimer.stop();
+  }
 }

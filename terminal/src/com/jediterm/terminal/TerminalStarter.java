@@ -22,27 +22,23 @@ public class TerminalStarter implements TerminalOutputStream {
   private final Emulator myEmulator;
 
   private final Terminal myTerminal;
-  private final TtyChannel myTtyChannel;
+  private final TerminalDataStream myDataStream;
 
   private final TtyConnector myTtyConnector;
 
   private final ExecutorService myEmulatorExecutor = Executors.newSingleThreadExecutor();
 
-  public TerminalStarter(final Terminal terminal, final TtyConnector ttyConnector) {
+  public TerminalStarter(final Terminal terminal, final TtyConnector ttyConnector, TerminalDataStream dataStream) {
     myTtyConnector = ttyConnector;
-    myTtyChannel = createTtyChannel();
+    //can be implemented - just recreate channel and that's it
+    myDataStream = dataStream;
     myTerminal = terminal;
     myTerminal.setTerminalOutput(this);
-    myEmulator = createEmulator(myTtyChannel, this, terminal);
+    myEmulator = createEmulator(myDataStream, terminal);
   }
 
-  protected JediEmulator createEmulator(TtyChannel channel, TerminalOutputStream stream, Terminal terminal) {
-    return new JediEmulator(channel, stream, terminal);
-  }
-
-  private TtyChannel createTtyChannel() {
-    return new TtyChannel(myTtyConnector); //TODO: streams can be moved to ttyChanel, so encoding change
-    //can be implemented - just recreate channel and that's it
+  protected JediEmulator createEmulator(TerminalDataStream dataStream, Terminal terminal) {
+    return new JediEmulator(dataStream, terminal);
   }
 
   private void execute(Runnable runnable) {
@@ -61,7 +57,7 @@ public class TerminalStarter implements TerminalOutputStream {
       LOG.info("Terminal exiting");
     }
     catch (final Exception e) {
-      if (!myTtyChannel.isConnected()) {
+      if (!myTtyConnector.isConnected()) {
         myTerminal.disconnected();
         return;
       }
@@ -82,54 +78,45 @@ public class TerminalStarter implements TerminalOutputStream {
           pixelSize = myTerminal.resize(dimension, origin);
         }
 
-        myTtyChannel.postResize(dimension, pixelSize);
+        myTtyConnector.resize(dimension, pixelSize);
       }
     });
   }
 
   @Override
   public void sendBytes(final byte[] bytes) {
-    execute(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          myTtyChannel.sendBytes(bytes);
-        }
-        catch (IOException e) {
-          throw new RuntimeException(e);
-        }
+    execute(() -> {
+      try {
+        myTtyConnector.write(bytes);
+      }
+      catch (IOException e) {
+        throw new RuntimeException(e);
       }
     });
   }
 
   @Override
   public void sendString(final String string) {
-    execute(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          myTtyChannel.sendString(string);
-        }
-        catch (IOException e) {
-          throw new RuntimeException(e);
-        }
+    execute(() -> {
+      try {
+        myTtyConnector.write(string);
+      }
+      catch (IOException e) {
+        throw new RuntimeException(e);
       }
     });
   }
 
   public void close() {
-    execute(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          myTtyConnector.close();
-        }
-        catch (Exception e) {
-          LOG.error("Error closing terminal", e);
-        }
-        finally {
-          myEmulatorExecutor.shutdown();
-        }
+    execute(() -> {
+      try {
+        myTtyConnector.close();
+      }
+      catch (Exception e) {
+        LOG.error("Error closing terminal", e);
+      }
+      finally {
+        myEmulatorExecutor.shutdown();
       }
     });
   }

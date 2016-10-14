@@ -3,16 +3,15 @@
  */
 package com.jediterm.terminal;
 
-import java.awt.*;
 import java.io.IOException;
 
 /**
  * Takes data from and sends it back to TTY input and output streams via {@link TtyConnector}
  */
-public class TtyChannel extends ArrayTerminalDataStream {
+public class TtyBasedArrayDataStream extends ArrayTerminalDataStream {
   private TtyConnector myTtyConnector;
 
-  public TtyChannel(final TtyConnector ttyConnector) {
+  public TtyBasedArrayDataStream(final TtyConnector ttyConnector) {
     super(new char[1024], 0, 0);
     myTtyConnector = ttyConnector;
   }
@@ -40,21 +39,5 @@ public class TtyChannel extends ArrayTerminalDataStream {
     }
 
     return super.readNonControlCharacters(maxChars);
-  }
-
-  public void sendBytes(final byte[] bytes) throws IOException {
-    myTtyConnector.write(bytes);
-  }
-
-  public void postResize(final Dimension termSize, final Dimension pixelSize) {
-    myTtyConnector.resize(termSize, pixelSize);
-  }
-
-  public boolean isConnected() {
-    return myTtyConnector.isConnected();
-  }
-
-  public void sendString(String string) throws IOException {
-    myTtyConnector.write(string);
   }
 }

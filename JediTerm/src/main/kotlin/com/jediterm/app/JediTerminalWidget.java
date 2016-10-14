@@ -7,6 +7,7 @@ import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.ui.RegionPainter;
 import com.jediterm.terminal.SubstringFinder;
 import com.jediterm.terminal.TerminalStarter;
+import com.jediterm.terminal.TtyBasedArrayDataStream;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.model.JediTerminal;
 import com.jediterm.terminal.model.StyleState;
@@ -39,7 +40,7 @@ public class JediTerminalWidget extends JediTermWidget implements Disposable {
 
   @Override
   protected TerminalStarter createTerminalStarter(JediTerminal terminal, TtyConnector connector) {
-    return new TerminalStarter(terminal, connector);
+    return new TerminalStarter(terminal, connector, new TtyBasedArrayDataStream(connector));
   }
 
   @Override

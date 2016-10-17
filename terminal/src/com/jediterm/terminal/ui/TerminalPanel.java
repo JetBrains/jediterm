@@ -466,6 +466,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   void setUpClipboard() {
     mySelectionClipboard = Toolkit.getDefaultToolkit().getSystemSelection();
+    if (mySelectionClipboard == null) {
+      mySelectionClipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+    }
     myClipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
   }
 

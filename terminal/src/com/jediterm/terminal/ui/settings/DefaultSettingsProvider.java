@@ -111,6 +111,11 @@ public class DefaultSettingsProvider implements SettingsProvider {
   }
 
   @Override
+  public TextStyle getHyperlinkColor() {
+    return new TextStyle(TerminalColor.awt(Color.BLUE), TerminalColor.WHITE);
+  }
+
+  @Override
   public boolean useInverseSelectionColor() {
     return true;
   }

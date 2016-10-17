@@ -6,9 +6,7 @@ import com.jediterm.terminal.*;
 import com.jediterm.terminal.SubstringFinder.FindResult;
 import com.jediterm.terminal.SubstringFinder.FindResult.FindItem;
 import com.jediterm.terminal.debug.DebugBufferType;
-import com.jediterm.terminal.model.TerminalTextBuffer;
-import com.jediterm.terminal.model.JediTerminal;
-import com.jediterm.terminal.model.StyleState;
+import com.jediterm.terminal.model.*;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
 
 import org.apache.log4j.Logger;
@@ -48,6 +46,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   protected final SettingsProvider mySettingsProvider;
   private TerminalActionProvider myNextActionProvider;
   private JLayeredPane myInnerPanel;
+  private final TextProcessing myTextProcessing;
 
   public JediTermWidget(@NotNull SettingsProvider settingsProvider) {
     this(80, 24, settingsProvider);
@@ -63,7 +62,10 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     mySettingsProvider = settingsProvider;
 
     StyleState styleState = createDefaultStyle();
-    TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(columns, lines, styleState, settingsProvider.getBufferMaxLinesCount());
+
+    myTextProcessing = new TextProcessing(settingsProvider.getHyperlinkColor());
+
+    TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(columns, lines, styleState, settingsProvider.getBufferMaxLinesCount(), myTextProcessing);
 
     myTerminalPanel = createTerminalPanel(mySettingsProvider, styleState, terminalTextBuffer);
     myTerminal = new JediTerminal(myTerminalPanel, terminalTextBuffer, styleState);
@@ -601,5 +603,9 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
       }
 
     }
+  }
+
+  public void addHyperlinkFilter(HyperlinkFilter filter) {
+    myTextProcessing.addHyperlinkFilter(filter);
   }
 }

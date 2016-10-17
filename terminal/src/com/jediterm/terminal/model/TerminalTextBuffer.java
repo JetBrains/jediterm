@@ -52,15 +52,18 @@ public class TerminalTextBuffer {
 
   private java.util.List<TerminalModelListener> myListeners = Lists.newArrayList();
 
-  public TerminalTextBuffer(final int width, final int height, @NotNull StyleState styleState) {
-    this(width, height, styleState, LinesBuffer.DEFAULT_MAX_LINES_COUNT);
+  private final TextProcessing myTextProcessing;
+
+  public TerminalTextBuffer(final int width, final int height, @NotNull StyleState styleState, TextProcessing myTextProcessing) {
+    this(width, height, styleState, LinesBuffer.DEFAULT_MAX_LINES_COUNT, myTextProcessing);
   }
 
-  public TerminalTextBuffer(final int width, final int height, @NotNull StyleState styleState, final int historyLinesCount) {
+  public TerminalTextBuffer(final int width, final int height, @NotNull StyleState styleState, final int historyLinesCount, TextProcessing textProcessing) {
     myStyleState = styleState;
     myWidth = width;
     myHeight = height;
     myHistoryLinesCount = historyLinesCount;
+    myTextProcessing = textProcessing;
 
     myScreenBuffer = createScreenBuffer();
     myHistoryBuffer = createHistoryBuffer();
@@ -68,12 +71,12 @@ public class TerminalTextBuffer {
 
   @NotNull
   private LinesBuffer createScreenBuffer() {
-    return new LinesBuffer(-1);
+    return new LinesBuffer(-1, myTextProcessing);
   }
 
   @NotNull
   private LinesBuffer createHistoryBuffer() {
-    return new LinesBuffer(myHistoryLinesCount);
+    return new LinesBuffer(myHistoryLinesCount, myTextProcessing);
   }
 
   public Dimension resize(@NotNull final Dimension pendingResize,

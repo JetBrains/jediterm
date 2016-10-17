@@ -8,7 +8,6 @@ import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -24,11 +23,15 @@ public class LinesBuffer {
 
   private ArrayList<TerminalLine> myLines = Lists.newArrayList();
 
-  public LinesBuffer() {
+  private final TextProcessing myTextProcessing;
+
+  public LinesBuffer(TextProcessing myTextProcessing) {
+    this.myTextProcessing = myTextProcessing;
   }
 
-  public LinesBuffer(int bufferMaxLinesCount) {
+  public LinesBuffer(int bufferMaxLinesCount, TextProcessing textProcessing) {
     myBufferMaxLinesCount = bufferMaxLinesCount;
+    myTextProcessing = textProcessing;
   }
 
   public synchronized String getLines() {
@@ -85,13 +88,13 @@ public class LinesBuffer {
   }
 
   public synchronized void insertLines(int y, int count, int lastLine, @NotNull TextEntry filler) {
-    LinesBuffer tail = new LinesBuffer();
+    LinesBuffer tail = new LinesBuffer(myTextProcessing);
 
     if (lastLine < getLineCount() - 1) {
       moveBottomLinesTo(getLineCount() - lastLine - 1, tail);
     }
 
-    LinesBuffer head = new LinesBuffer();
+    LinesBuffer head = new LinesBuffer(myTextProcessing);
     if (y > 0) {
       moveTopLinesTo(y, head);
     }
@@ -108,20 +111,20 @@ public class LinesBuffer {
   }
 
   public synchronized LinesBuffer deleteLines(int y, int count, int lastLine, @NotNull TextEntry filler) {
-    LinesBuffer tail = new LinesBuffer();
+    LinesBuffer tail = new LinesBuffer(myTextProcessing);
 
     if (lastLine < getLineCount() - 1) {
       moveBottomLinesTo(getLineCount() - lastLine - 1, tail);
     }
 
-    LinesBuffer head = new LinesBuffer();
+    LinesBuffer head = new LinesBuffer(myTextProcessing);
     if (y > 0) {
       moveTopLinesTo(y, head);
     }
 
     int toRemove = Math.min(count, getLineCount());
 
-    LinesBuffer removed = new LinesBuffer();
+    LinesBuffer removed = new LinesBuffer(myTextProcessing);
     moveTopLinesTo(toRemove, removed);
 
     head.moveBottomLinesTo(head.getLineCount(), this);
@@ -139,6 +142,8 @@ public class LinesBuffer {
     TerminalLine line = getLine(y);
 
     line.writeString(x, str, style);
+
+    myTextProcessing.processHyperlinks(line);
   }
 
   public synchronized void clearLines(int startRow, int endRow, @NotNull TextEntry filler) {

@@ -96,6 +96,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private String myCurrentPath; //TODO: handle current path if availabe
   private SubstringFinder.FindResult myFindResult;
 
+  private List<Pair<Rectangle, HyperlinkStyle>> myHyperlinks = Lists.newArrayList();
+
+  private int myCursorType = Cursor.DEFAULT_CURSOR;
+
   public TerminalPanel(@NotNull SettingsProvider settingsProvider, @NotNull TerminalTextBuffer terminalTextBuffer, @NotNull StyleState styleState) {
     mySettingsProvider = settingsProvider;
     myTerminalTextBuffer = terminalTextBuffer;
@@ -157,6 +161,15 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     addMouseMotionListener(new MouseMotionAdapter() {
       @Override
+      public void mouseMoved(MouseEvent e) {
+        if (inHyperlink(e.getX(), e.getY())) {
+          updateCursor(Cursor.HAND_CURSOR);
+        } else {
+          updateCursor(Cursor.DEFAULT_CURSOR);
+        }
+      }
+
+      @Override
       public void mouseDragged(final MouseEvent e) {
         if (!isLocalMouseAction(e)) {
           return;
@@ -217,7 +230,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       @Override
       public void mouseClicked(final MouseEvent e) {
         requestFocusInWindow();
-        if (e.getButton() == MouseEvent.BUTTON1 && isLocalMouseAction(e)) {
+        Runnable hyperlink = findHyperlink(e.getX(), e.getY());
+        if (hyperlink != null) {
+          hyperlink.run();
+        } else if (e.getButton() == MouseEvent.BUTTON1 && isLocalMouseAction(e)) {
           int count = e.getClickCount();
           if (count == 1) {
             // do nothing
@@ -289,6 +305,27 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     });
 
     createRepaintTimer();
+  }
+
+  private boolean inHyperlink(int x, int y) {
+    return findHyperlink(x, y) != null;
+  }
+
+  private Runnable findHyperlink(int x, int y) {
+    for (Pair<Rectangle, HyperlinkStyle> h : myHyperlinks) {
+      if (h.first.contains(x, y)) {
+        return h.second;
+      }
+    }
+    return null;
+  }
+
+  private void updateCursor(int cursorType) {
+    if (cursorType != myCursorType) {
+      myCursorType = cursorType;
+      //noinspection MagicConstant
+      setCursor(new Cursor(myCursorType));
+    }
   }
 
   private void createRepaintTimer() {
@@ -664,6 +701,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     gfx.fillRect(0, 0, getWidth(), getHeight());
 
+    myHyperlinks.clear();
+
     myTerminalTextBuffer.processHistoryAndScreenLines(myClientScrollOrigin, myTermSize.height, new StyledTextConsumer() {
       final int columnCount = getColumnCount();
 
@@ -1020,11 +1059,17 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     gfx.setColor(getPalette().getColor(myStyleState.getBackground(style.getBackgroundForRun())));
     int textLength = CharUtils.getTextLengthDoubleWidthAware(buf.getBuf(), buf.getStart(), buf.length(), mySettingsProvider.ambiguousCharsAreDoubleWidth());
+    int height = Math.min(myCharSize.height, getHeight() - yCoord);
+    int width = Math.min(textLength * TerminalPanel.this.myCharSize.width, TerminalPanel.this.getWidth() - xCoord);
 
     gfx.fillRect(xCoord,
             yCoord,
-            Math.min(textLength * myCharSize.width, getWidth() - xCoord),
-            Math.min(myCharSize.height, getHeight() - yCoord));
+            width,
+            height);
+
+    if (style instanceof HyperlinkStyle) {
+      addHyperlink(new Rectangle(xCoord, yCoord, width, height), ((HyperlinkStyle) style));
+    }
 
     if (buf.isNul()) {
       return; // nothing more to do
@@ -1037,8 +1082,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     int baseLine = (y + 1) * myCharSize.height - myDescent;
 
     if (style.hasOption(TextStyle.Option.UNDERLINED)) {
-      gfx.drawLine(xCoord, baseLine + 1, (x + textLength) * myCharSize.width, baseLine + 1);
+      gfx.drawLine(xCoord, baseLine + 3, (x + textLength) * myCharSize.width, baseLine + 3);
     }
+  }
+
+  private void addHyperlink(Rectangle rectangle, HyperlinkStyle style) {
+    myHyperlinks.add(Pair.create(rectangle, style));
   }
 
   /**

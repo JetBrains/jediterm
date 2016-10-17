@@ -20,6 +20,8 @@ public interface UserSettingsProvider {
 
   TextStyle getFoundPatternColor();
 
+  TextStyle getHyperlinkColor();
+
   boolean useInverseSelectionColor();
 
   boolean copyOnSelect();

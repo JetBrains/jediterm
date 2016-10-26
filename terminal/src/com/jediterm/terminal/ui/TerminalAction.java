@@ -20,6 +20,7 @@ public class TerminalAction {
   private Supplier<Boolean> myEnabledSupplier = null;
   private Integer myMnemonicKey = null;
   private boolean mySeparatorBefore = false;
+  private boolean myHidden = false;
 
   public TerminalAction(String name, KeyStroke[] keyStrokes, Predicate<KeyEvent> runnable) {
     myName = name;
@@ -64,6 +65,9 @@ public class TerminalAction {
     }
     boolean addSeparator = added;
     for (final TerminalAction a : actionProvider.getActions()) {
+      if (a.isHidden()) {
+        continue;
+      }
       if (!addSeparator) {
         addSeparator = a.isSeparated();
       }
@@ -152,5 +156,14 @@ public class TerminalAction {
 
   public boolean isSeparated() {
     return mySeparatorBefore;
+  }
+
+  public boolean isHidden() {
+    return myHidden;
+  }
+
+  public TerminalAction withHidden(boolean hidden) {
+    myHidden = hidden;
+    return this;
   }
 }

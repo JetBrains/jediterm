@@ -52,13 +52,18 @@ public class TerminalTextBuffer {
 
   private java.util.List<TerminalModelListener> myListeners = Lists.newArrayList();
 
+  @Nullable
   private final TextProcessing myTextProcessing;
 
-  public TerminalTextBuffer(final int width, final int height, @NotNull StyleState styleState, TextProcessing myTextProcessing) {
-    this(width, height, styleState, LinesBuffer.DEFAULT_MAX_LINES_COUNT, myTextProcessing);
+  public TerminalTextBuffer(final int width, final int height, @NotNull StyleState styleState) {
+    this(width, height, styleState, null);
   }
 
-  public TerminalTextBuffer(final int width, final int height, @NotNull StyleState styleState, final int historyLinesCount, TextProcessing textProcessing) {
+  public TerminalTextBuffer(final int width, final int height, @NotNull StyleState styleState, @Nullable TextProcessing textProcessing) {
+    this(width, height, styleState, LinesBuffer.DEFAULT_MAX_LINES_COUNT, textProcessing);
+  }
+
+  public TerminalTextBuffer(final int width, final int height, @NotNull StyleState styleState, final int historyLinesCount, @Nullable TextProcessing textProcessing) {
     myStyleState = styleState;
     myWidth = width;
     myHeight = height;

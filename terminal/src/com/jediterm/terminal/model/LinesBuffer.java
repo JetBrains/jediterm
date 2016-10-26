@@ -6,6 +6,7 @@ import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.model.TerminalLine.TextEntry;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,13 +24,14 @@ public class LinesBuffer {
 
   private ArrayList<TerminalLine> myLines = Lists.newArrayList();
 
+  @Nullable
   private final TextProcessing myTextProcessing;
 
-  public LinesBuffer(TextProcessing myTextProcessing) {
-    this.myTextProcessing = myTextProcessing;
+  public LinesBuffer(@Nullable TextProcessing textProcessing) {
+    myTextProcessing = textProcessing;
   }
 
-  public LinesBuffer(int bufferMaxLinesCount, TextProcessing textProcessing) {
+  public LinesBuffer(int bufferMaxLinesCount, @Nullable TextProcessing textProcessing) {
     myBufferMaxLinesCount = bufferMaxLinesCount;
     myTextProcessing = textProcessing;
   }
@@ -143,7 +145,9 @@ public class LinesBuffer {
 
     line.writeString(x, str, style);
 
-    myTextProcessing.processHyperlinks(line);
+    if (myTextProcessing != null) {
+      myTextProcessing.processHyperlinks(line);
+    }
   }
 
   public synchronized void clearLines(int startRow, int endRow, @NotNull TextEntry filler) {

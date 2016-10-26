@@ -5,6 +5,7 @@ import com.jediterm.terminal.model.CharBuffer;
 import com.jediterm.terminal.model.LinesBuffer;
 import com.jediterm.util.CharBufferUtil;
 import junit.framework.TestCase;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author traff
@@ -18,10 +19,10 @@ public class LinesBufferTest extends TestCase {
 
   public void testMoveTopLines() {
     TextStyle style = new TextStyle();
-    LinesBuffer scroll = new LinesBuffer();
+    LinesBuffer scroll = createLinesBuffer();
     scroll.addNewLine(style, CharBufferUtil.create(LINE_1));
     scroll.addNewLine(style, CharBufferUtil.create(LINE_2));
-    LinesBuffer text = new LinesBuffer();
+    LinesBuffer text = createLinesBuffer();
     text.addNewLine(style, CharBufferUtil.create(LINE_3));
     text.addNewLine(style, CharBufferUtil.create(LINE_4));
 
@@ -37,13 +38,18 @@ public class LinesBufferTest extends TestCase {
     assertEquals("Line 4", text.getLines());
   }
 
+  @NotNull
+  private LinesBuffer createLinesBuffer() {
+    return new LinesBuffer(null);
+  }
+
   public void testMoveBottomLines() {
     TextStyle style = new TextStyle();
-    LinesBuffer scroll = new LinesBuffer();
+    LinesBuffer scroll = createLinesBuffer();
     scroll.addNewLine(style, CharBufferUtil.create(LINE_1));
     scroll.addNewLine(style, CharBufferUtil.create(LINE_2));
     scroll.addNewLine(style, CharBufferUtil.create(LINE_3));
-    LinesBuffer text = new LinesBuffer();
+    LinesBuffer text = createLinesBuffer();
     text.addNewLine(style, CharBufferUtil.create(LINE_4));
 
     scroll.moveBottomLinesTo(2, text);
@@ -62,7 +68,7 @@ public class LinesBufferTest extends TestCase {
 
   public void testRemoveFirstLines() {
     TextStyle style = new TextStyle();
-    LinesBuffer text = new LinesBuffer();
+    LinesBuffer text = createLinesBuffer();
     text.addNewLine(style, CharBufferUtil.create(LINE_1));
     text.addNewLine(style, CharBufferUtil.create(LINE_2));
     text.addNewLine(style, CharBufferUtil.create(LINE_3));
@@ -76,7 +82,7 @@ public class LinesBufferTest extends TestCase {
   }
   
   public void testWriteToLineBuffer() {
-    LinesBuffer buf = new LinesBuffer();
+    LinesBuffer buf = createLinesBuffer();
     buf.writeString(3, 2, new CharBuffer("Hi!"), TextStyle.EMPTY);
     
     assertEquals("\n" +

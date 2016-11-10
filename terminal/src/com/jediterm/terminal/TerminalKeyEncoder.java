@@ -13,8 +13,7 @@ import static java.awt.event.KeyEvent.*;
  * @author traff
  */
 public class TerminalKeyEncoder {
-  public static final int ESC = Ascii.ESC;
-  public static final int DEL = Ascii.DEL;
+  private static final int ESC = Ascii.ESC;
 
   private final Map<Integer, byte[]> myKeyCodes = new HashMap<Integer, byte[]>();
   
@@ -68,6 +67,9 @@ public class TerminalKeyEncoder {
     putCode(VK_KP_LEFT, ESC, 'O', 'D'); //4
     putCode(VK_KP_RIGHT, ESC, 'O', 'C'); //6
     putCode(VK_KP_UP, ESC, 'O', 'A'); //8
+
+    putCode(VK_HOME, ESC, 'O', 'H');
+    putCode(VK_END, ESC, 'O', 'F');
   }
 
   public void keypadAnsiSequences() {
@@ -75,6 +77,9 @@ public class TerminalKeyEncoder {
     putCode(VK_KP_LEFT, ESC, '[', 'D'); //4
     putCode(VK_KP_RIGHT, ESC, '[', 'C'); //6
     putCode(VK_KP_UP, ESC, '[', 'A'); //8
+
+    putCode(VK_HOME, ESC, '[', 'H');
+    putCode(VK_END, ESC, '[', 'F');
   }
 
   void putCode(final int code, final int... bytesAsInt) {

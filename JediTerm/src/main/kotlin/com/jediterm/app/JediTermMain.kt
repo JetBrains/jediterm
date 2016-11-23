@@ -6,6 +6,7 @@ import com.google.common.collect.Lists
 import com.google.common.collect.Maps
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Pair
+import com.intellij.util.EncodingEnvironmentUtil
 import com.jediterm.pty.PtyProcessTtyConnector
 import com.jediterm.terminal.LoggingTtyConnector
 import com.jediterm.terminal.TtyConnector
@@ -81,7 +82,13 @@ class JediTerm : AbstractTerminalFrame(), Disposable {
 
     override fun createTtyConnector(): TtyConnector {
         try {
+
+            val charset = Charset.forName("UTF-8")
+
             val envs = Maps.newHashMap(System.getenv())
+
+            EncodingEnvironmentUtil.setLocaleEnvironmentIfMac(envs, charset)
+
             val command: Array<String>
 
             if (UIUtil.isWindows) {
@@ -93,7 +100,8 @@ class JediTerm : AbstractTerminalFrame(), Disposable {
 
             val process = PtyProcess.exec(command, envs, null)
 
-            return LoggingPtyProcessTtyConnector(process, Charset.forName("UTF-8"))
+
+            return LoggingPtyProcessTtyConnector(process, charset)
         } catch (e: Exception) {
             throw IllegalStateException(e)
         }

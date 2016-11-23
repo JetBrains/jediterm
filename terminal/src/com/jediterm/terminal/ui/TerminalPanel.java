@@ -1478,11 +1478,15 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         }
       }
     } else {
-      myInputMethodUncommittedChars = uncommitedChars(e.getText());
+      myInputMethodUncommittedChars = uncommittedChars(e.getText());
     }
   }
 
-  private static String uncommitedChars(AttributedCharacterIterator text) {
+  private static String uncommittedChars(@Nullable AttributedCharacterIterator text) {
+    if (text == null) {
+      return null;
+    }
+
     StringBuilder sb = new StringBuilder();
 
     for (char c = text.first(); c != CharacterIterator.DONE; c = text.next()) {

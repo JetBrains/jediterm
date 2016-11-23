@@ -46,7 +46,7 @@ public abstract class EmulatorTestAbstract extends TestCase {
         fileStream = new ArrayTerminalDataStream(FileUtil.loadFileText(new File(getPathToTest() + ".txt"),
         "UTF-8"));
 
-    Emulator emulator = new JediEmulator(fileStream, new NullTerminalOutputStream(), terminal);
+    Emulator emulator = new JediEmulator(fileStream, terminal);
 
     while (emulator.hasNext()) {
       emulator.next();

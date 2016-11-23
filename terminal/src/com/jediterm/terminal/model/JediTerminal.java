@@ -9,6 +9,7 @@ import com.jediterm.terminal.ui.TerminalCoordinates;
 import com.jediterm.terminal.util.CharUtils;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.awt.event.InputEvent;
@@ -56,6 +57,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
   private MouseFormat myMouseFormat = MouseFormat.MOUSE_FORMAT_XTERM;
 
+  @Nullable
   private TerminalOutputStream myTerminalOutput = null;
 
   private MouseMode myMouseMode = MouseMode.MOUSE_REPORTING_NONE;
@@ -851,7 +853,9 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
         cb = applyModifierKeys(event, cb);
 
-        myTerminalOutput.sendBytes(mouseReport(cb, x + 1, y + 1));
+        if (myTerminalOutput != null) {
+          myTerminalOutput.sendBytes(mouseReport(cb, x + 1, y + 1));
+        }
       }
     }
   }
@@ -873,7 +877,9 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
         cb = applyModifierKeys(event, cb);
 
-        myTerminalOutput.sendBytes(mouseReport(cb, x + 1, y + 1));
+        if (myTerminalOutput != null) {
+          myTerminalOutput.sendBytes(mouseReport(cb, x + 1, y + 1));
+        }
       }
     }
     myLastMotionReport = null;
@@ -884,7 +890,9 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
       return;
     }
     if (shouldSendMouseData(MouseMode.MOUSE_REPORTING_ALL_MOTION)) {
-      myTerminalOutput.sendBytes(mouseReport(MouseButtonCodes.RELEASE, x + 1, y + 1));
+      if (myTerminalOutput != null) {
+        myTerminalOutput.sendBytes(mouseReport(MouseButtonCodes.RELEASE, x + 1, y + 1));
+      }
     }
     myLastMotionReport = new Point(x, y);
   }
@@ -901,7 +909,9 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
       if (cb != MouseButtonCodes.NONE) {
         cb |= MouseButtonModifierFlags.MOUSE_BUTTON_MOTION_FLAG;
         cb = applyModifierKeys(event, cb);
-        myTerminalOutput.sendBytes(mouseReport(cb, x + 1, y + 1));
+        if (myTerminalOutput != null) {
+          myTerminalOutput.sendBytes(mouseReport(cb, x + 1, y + 1));
+        }
       }
     }
     myLastMotionReport = new Point(x, y);
@@ -943,12 +953,16 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
   @Override
   public void deviceStatusReport(String str) {
-    myTerminalOutput.sendString(str);
+    if (myTerminalOutput != null) {
+      myTerminalOutput.sendString(str);
+    }
   }
 
   @Override
   public void deviceAttributes(byte[] response) {
-    myTerminalOutput.sendBytes(response);
+    if (myTerminalOutput != null) {
+      myTerminalOutput.sendBytes(response);
+    }
   }
 
   @Override

@@ -83,7 +83,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private String myWindowTitle = "Terminal";
 
   private TerminalActionProvider myNextActionProvider;
-  private String myInputMethodUncommitedChars;
+  private String myInputMethodUncommittedChars;
 
   private Timer myRepaintTimer;
   private AtomicBoolean needScrollUpdate = new AtomicBoolean(true);
@@ -93,7 +93,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private int myBlinkingPeriod = 500;
   private TerminalCoordinates myCoordsAccessor;
 
-  private String myCurrentPath; //TODO: handle current path if availabe
+  private String myCurrentPath; //TODO: handle current path if available
   private SubstringFinder.FindResult myFindResult;
 
   private List<Pair<Rectangle, HyperlinkStyle>> myHyperlinks = Lists.newArrayList();
@@ -761,7 +761,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     });
 
     int cursorY = myCursor.getCoordY();
-    if (myClientScrollOrigin + getRowCount() > cursorY) {
+    if ((myClientScrollOrigin + getRowCount() > cursorY) && !hasUncommittedChars()) {
       int cursorX = myCursor.getCoordX();
       Pair<Character, TextStyle> sc = myTerminalTextBuffer.getStyledCharAt(cursorX, cursorY);
       TextStyle normalStyle = sc.second != null ? sc.second : myStyleState.getCurrent();
@@ -797,26 +797,33 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   private void drawInputMethodUncommitedChars(Graphics2D gfx) {
-    if (myInputMethodUncommitedChars != null && myInputMethodUncommitedChars.length() > 0) {
-      int x = myCursor.getCoordX() * myCharSize.width;
-      int y = (myCursor.getCoordY()) * myCharSize.height - 2;
+    if (hasUncommittedChars()) {
+      int xCoord = (myCursor.getCoordX() + 1) * myCharSize.width;
 
-      int len = (myInputMethodUncommitedChars.length()) * myCharSize.width;
+      int y = myCursor.getCoordY() + 1;
+
+      int yCoord = y * myCharSize.height - 3;
+
+      int len = (myInputMethodUncommittedChars.length()) * myCharSize.width;
 
       gfx.setColor(getBackground());
-      gfx.fillRect(x, (myCursor.getCoordY() - 1) * myCharSize.height, len, myCharSize.height);
+      gfx.fillRect(xCoord, (y - 1) * myCharSize.height - 3, len, myCharSize.height);
 
       gfx.setColor(getForeground());
       gfx.setFont(myNormalFont);
 
-      gfx.drawString(myInputMethodUncommitedChars, x, y);
+      gfx.drawString(myInputMethodUncommittedChars, xCoord, yCoord);
       Stroke saved = gfx.getStroke();
       BasicStroke dotted = new BasicStroke(1, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 0, new float[]{0, 2, 0, 2}, 0);
       gfx.setStroke(dotted);
 
-      gfx.drawLine(x, y, x + len, y);
+      gfx.drawLine(xCoord, yCoord, xCoord + len, yCoord);
       gfx.setStroke(saved);
     }
+  }
+
+  private boolean hasUncommittedChars() {
+    return myInputMethodUncommittedChars != null && myInputMethodUncommittedChars.length() > 0;
   }
 
   private boolean inSelection(int x, int y) {
@@ -1322,6 +1329,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   private void processTerminalKeyPressed(KeyEvent e) {
+    if (hasUncommittedChars()) {
+      return;
+    }
+
     try {
       final int keycode = e.getKeyCode();
       final char keychar = e.getKeyChar();
@@ -1344,21 +1355,25 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         if (mySettingsProvider.scrollToBottomOnTyping() && isCodeThatScrolls(keycode)) {
           scrollToBottom();
         }
-      } else if ((keychar & 0xff00) == 0) {
-        final byte[] obuffer;
-        if (mySettingsProvider.altSendsEscape() && (e.getModifiers() & InputEvent.ALT_MASK) != 0) {
-          obuffer = new byte[]{Ascii.ESC, (byte) keychar};
-        } else {
-          obuffer = new byte[]{(byte) keychar};
-        }
-        myTerminalStarter.sendBytes(obuffer);
-
-        if (mySettingsProvider.scrollToBottomOnTyping()) {
-          scrollToBottom();
-        }
+      } else if ((keychar & 0xff00) == 0) { // keys filtered out here will be processed in processTerminalKeyTyped
+        processCharacter(keychar, e.getModifiers());
       }
     } catch (final Exception ex) {
-      LOG.error("Error sending key to emulator", ex);
+      LOG.error("Error sending pressed key to emulator", ex);
+    }
+  }
+
+  private void processCharacter(char keychar, int modifiers) {
+    final char[] obuffer;
+    if (mySettingsProvider.altSendsEscape() && (modifiers & InputEvent.ALT_MASK) != 0) {
+      obuffer = new char[]{Ascii.ESC, keychar};
+    } else {
+      obuffer = new char[]{keychar};
+    }
+    myTerminalStarter.sendString(new String(obuffer));
+
+    if (mySettingsProvider.scrollToBottomOnTyping()) {
+      scrollToBottom();
     }
   }
 
@@ -1372,21 +1387,16 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   private void processTerminalKeyTyped(KeyEvent e) {
+    if (hasUncommittedChars()) {
+      return;
+    }
+
     final char keychar = e.getKeyChar();
-    if ((keychar & 0xff00) != 0) {
-      final char[] foo;
-      if (mySettingsProvider.altSendsEscape() && (e.getModifiers() & InputEvent.ALT_MASK) != 0) {
-        foo = new char[]{Ascii.ESC, keychar};
-      } else {
-        foo = new char[]{keychar};
-      }
+    if ((keychar & 0xff00) != 0) { // keys filtered out here will be processed in processTerminalKeyPressed
       try {
-        myTerminalStarter.sendString(new String(foo));
-        if (mySettingsProvider.scrollToBottomOnTyping()) {
-          scrollToBottom();
-        }
-      } catch (final RuntimeException ex) {
-        LOG.error("Error sending key to emulator", ex);
+        processCharacter(keychar, e.getModifiers());
+      } catch (final Exception ex) {
+        LOG.error("Error sending typed key to emulator", ex);
       }
     }
   }
@@ -1451,7 +1461,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     int commitCount = e.getCommittedCharacterCount();
 
     if (commitCount > 0) {
-      myInputMethodUncommitedChars = null;
+      myInputMethodUncommittedChars = null;
       AttributedCharacterIterator text = e.getText();
       if (text != null) {
         StringBuilder sb = new StringBuilder();
@@ -1463,10 +1473,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
           }
         }
 
-        myTerminalStarter.sendString(sb.toString());
+        if (sb.length() > 0) {
+          myTerminalStarter.sendString(sb.toString());
+        }
       }
     } else {
-      myInputMethodUncommitedChars = uncommitedChars(e.getText());
+      myInputMethodUncommittedChars = uncommitedChars(e.getText());
     }
   }
 

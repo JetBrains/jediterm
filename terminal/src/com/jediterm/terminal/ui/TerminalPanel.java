@@ -1370,6 +1370,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     } else {
       obuffer = new char[]{keychar};
     }
+
+    if (keychar == '`' && (modifiers & InputEvent.META_MASK) != 0) {
+      // Command + backtick is a short-cut on Mac OSX, so we shouldn't type anything
+      return;
+    }
+
     myTerminalStarter.sendString(new String(obuffer));
 
     if (mySettingsProvider.scrollToBottomOnTyping()) {

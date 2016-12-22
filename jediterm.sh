@@ -1,1 +1,1 @@
-gradlew :JediTerm:run
+./gradlew :JediTerm:run

@@ -13,7 +13,6 @@ import com.jediterm.terminal.model.*;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
 import com.jediterm.terminal.util.CharUtils;
 import com.jediterm.terminal.util.Pair;
-
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -21,7 +20,6 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-
 import java.awt.*;
 import java.awt.datatransfer.*;
 import java.awt.event.*;
@@ -31,6 +29,7 @@ import java.awt.image.BufferedImage;
 import java.awt.image.ImageObserver;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.net.URI;
 import java.text.AttributedCharacterIterator;
 import java.text.CharacterIterator;
 import java.util.List;
@@ -1276,6 +1275,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   @Override
   public List<TerminalAction> getActions() {
     return Lists.newArrayList(
+            new TerminalAction("Open as URL", new KeyStroke[0], input ->
+                    openSelectionAsURL()).withEnabledSupplier(this::selectionTextIsUrl),
             new TerminalAction("Copy", mySettingsProvider.getCopyKeyStrokes(), input ->
                     handleCopy()).withMnemonicKey(KeyEvent.VK_C).withEnabledSupplier(() -> mySelection != null),
             new TerminalAction("Paste", mySettingsProvider.getPasteKeyStrokes(), input -> {
@@ -1296,6 +1297,52 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             }).withEnabledSupplier(() -> !myTerminalTextBuffer.isUsingAlternateBuffer())
 
     );
+  }
+
+  @NotNull
+  private Boolean selectionTextIsUrl() {
+    String selectionText = getSelectionText();
+    if (selectionText != null) {
+      try {
+        URI uri = new URI(selectionText);
+        //noinspection ResultOfMethodCallIgnored
+        uri.toURL();
+        return true;
+      } catch (Exception e) {
+        //pass
+      }
+    }
+    return false;
+  }
+
+  @Nullable
+  private String getSelectionText() {
+    if (mySelection != null) {
+      Pair<Point, Point> points = mySelection.pointsForRun(myTermSize.width);
+
+      if (points.first != null || points.second != null) {
+        return SelectionUtil
+                .getSelectionText(points.first, points.second, myTerminalTextBuffer);
+
+      }
+    }
+
+    return null;
+  }
+
+  protected boolean openSelectionAsURL() {
+    if (Desktop.isDesktopSupported()) {
+      try {
+        String selectionText = getSelectionText();
+
+        if (selectionText != null) {
+          Desktop.getDesktop().browse(new URI(selectionText));
+        }
+      } catch (Exception e) {
+        //ok then
+      }
+    }
+    return false;
   }
 
   private void clearBuffer() {

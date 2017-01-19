@@ -1402,7 +1402,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         if (mySettingsProvider.scrollToBottomOnTyping() && isCodeThatScrolls(keycode)) {
           scrollToBottom();
         }
-      } else if ((keychar & 0xff00) == 0) { // keys filtered out here will be processed in processTerminalKeyTyped
+      } else if (Character.isISOControl(keychar)) { // keys filtered out here will be processed in processTerminalKeyTyped
         processCharacter(keychar, e.getModifiers());
       }
     } catch (final Exception ex) {
@@ -1445,7 +1445,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
 
     final char keychar = e.getKeyChar();
-    if ((keychar & 0xff00) != 0) { // keys filtered out here will be processed in processTerminalKeyPressed
+    if (!Character.isISOControl(keychar)) { // keys filtered out here will be processed in processTerminalKeyPressed
       try {
         processCharacter(keychar, e.getModifiers());
       } catch (final Exception ex) {

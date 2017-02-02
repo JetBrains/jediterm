@@ -1131,7 +1131,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     int baseLine = (y + 1) * myCharSize.height - myDescent;
 
     if (style.hasOption(TextStyle.Option.UNDERLINED)) {
-      gfx.drawLine(xCoord, baseLine + 3, (x + textLength) * myCharSize.width, baseLine + 3);
+      gfx.drawLine(xCoord, baseLine + 3, (x + textLength) * myCharSize.width + getInsetX(), baseLine + 3);
     }
   }
 

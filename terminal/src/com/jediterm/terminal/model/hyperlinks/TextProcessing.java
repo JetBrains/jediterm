@@ -1,11 +1,12 @@
-package com.jediterm.terminal.model;
+package com.jediterm.terminal.model.hyperlinks;
 
 import com.google.common.collect.Lists;
 import com.jediterm.terminal.HyperlinkStyle;
-import com.jediterm.terminal.TerminalColor;
 import com.jediterm.terminal.TextStyle;
+import com.jediterm.terminal.model.CharBuffer;
+import com.jediterm.terminal.model.TerminalLine;
+import org.jetbrains.annotations.NotNull;
 
-import java.awt.*;
 import java.util.List;
 
 /**
@@ -22,17 +23,17 @@ public class TextProcessing {
 
   public void processHyperlinks(TerminalLine line) {
     for (HyperlinkFilter filter : myHyperlinkFilter) {
-      HyperlinkFilter.Result result = filter.apply(line.getText());
+      LinkResult result = filter.apply(line.getText());
       if (result != null) {
-        for (HyperlinkFilter.ResultItem item : result.getResultItems()) {
-          TextStyle style = new HyperlinkStyle(myHyperlinkColor.getForeground(), myHyperlinkColor.getBackground(), item::navigate);
+        for (LinkResultItem item : result.getItems()) {
+          TextStyle style = new HyperlinkStyle(myHyperlinkColor.getForeground(), myHyperlinkColor.getBackground(), item.getLinkInfo());
           line.writeString(item.getStartOffset(), new CharBuffer(line.getText().substring(item.getStartOffset(), item.getEndOffset())), style);
         }
       }
     }
   }
 
-  public void addHyperlinkFilter(HyperlinkFilter filter) {
+  public void addHyperlinkFilter(@NotNull HyperlinkFilter filter) {
     myHyperlinkFilter.add(filter);
   }
 }

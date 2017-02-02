@@ -4,6 +4,7 @@ import com.google.common.base.Predicate
 import com.google.common.collect.ForwardingMap
 import com.google.common.collect.Lists
 import com.google.common.collect.Maps
+import com.intellij.execution.filters.UrlFilter
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Pair
 import com.intellij.util.EncodingEnvironmentUtil
@@ -109,7 +110,9 @@ class JediTerm : AbstractTerminalFrame(), Disposable {
     }
 
     override fun createTerminalWidget(settingsProvider: TabbedSettingsProvider): JediTermWidget {
-        return JediTerminalWidget(settingsProvider, this)
+        val widget = JediTerminalWidget(settingsProvider, this)
+        widget.addHyperlinkFilter(UrlFilter())
+        return widget
     }
 
     class LoggingPtyProcessTtyConnector(process: PtyProcess, charset: Charset) : PtyProcessTtyConnector(process, charset), LoggingTtyConnector {

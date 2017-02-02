@@ -10,6 +10,7 @@ import com.jediterm.terminal.emulator.charset.CharacterSets;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
 import com.jediterm.terminal.emulator.mouse.TerminalMouseListener;
 import com.jediterm.terminal.model.*;
+import com.jediterm.terminal.model.hyperlinks.LinkInfo;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
 import com.jediterm.terminal.util.CharUtils;
 import com.jediterm.terminal.util.Pair;
@@ -95,7 +96,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private String myCurrentPath; //TODO: handle current path if available
   private SubstringFinder.FindResult myFindResult;
 
-  private List<Pair<Rectangle, HyperlinkStyle>> myHyperlinks = Lists.newArrayList();
+  private LinkInfo myHoveredHyperlink = null;
 
   private int myCursorType = Cursor.DEFAULT_CURSOR;
 
@@ -161,11 +162,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     addMouseMotionListener(new MouseMotionAdapter() {
       @Override
       public void mouseMoved(MouseEvent e) {
-        if (inHyperlink(e.getX(), e.getY())) {
-          updateCursor(Cursor.HAND_CURSOR);
-        } else {
-          updateCursor(Cursor.DEFAULT_CURSOR);
-        }
+        handleHyperlinks(e.getPoint(), e.isControlDown());
       }
 
       @Override
@@ -229,8 +226,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       @Override
       public void mouseClicked(final MouseEvent e) {
         requestFocusInWindow();
-        Runnable hyperlink = findHyperlink(e.getX(), e.getY());
-        if (hyperlink != null) {
+        Runnable hyperlink = findHyperlink(e.getPoint());
+        if (hyperlink != null && (myCursorType == Cursor.HAND_CURSOR)) {
           hyperlink.run();
         } else if (e.getButton() == MouseEvent.BUTTON1 && isLocalMouseAction(e)) {
           int count = e.getClickCount();
@@ -293,27 +290,56 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       @Override
       public void focusLost(FocusEvent e) {
         myCursor.cursorChanged();
+
+        handleHyperlinks(e.getComponent(), false);
       }
     });
 
-    myBoundedRangeModel.addChangeListener(new ChangeListener() {
-      public void stateChanged(final ChangeEvent e) {
-        myClientScrollOrigin = myBoundedRangeModel.getValue();
-        repaint();
-      }
-    });
+    myBoundedRangeModel.addChangeListener(new
+
+                                                  ChangeListener() {
+                                                    public void stateChanged(final ChangeEvent e) {
+                                                      myClientScrollOrigin = myBoundedRangeModel.getValue();
+                                                      repaint();
+                                                    }
+                                                  });
 
     createRepaintTimer();
   }
 
-  private boolean inHyperlink(int x, int y) {
-    return findHyperlink(x, y) != null;
+  private void handleHyperlinks(Point p, boolean isControlDown) {
+    HyperlinkStyle hyperlinkStyle = findHyperlink(p);
+    if (hyperlinkStyle != null) {
+      if (hyperlinkStyle.getHighlightMode() == HyperlinkStyle.HighlightMode.ALWAYS || (hyperlinkStyle.getHighlightMode() == HyperlinkStyle.HighlightMode.HOVER && isControlDown)) {
+        updateCursor(Cursor.HAND_CURSOR);
+
+        myHoveredHyperlink = hyperlinkStyle.getLinkInfo();
+        return;
+      }
+    }
+
+    myHoveredHyperlink = null;
+    if (myCursorType != Cursor.DEFAULT_CURSOR) {
+      updateCursor(Cursor.DEFAULT_CURSOR);
+      repaint();
+    }
   }
 
-  private Runnable findHyperlink(int x, int y) {
-    for (Pair<Rectangle, HyperlinkStyle> h : myHyperlinks) {
-      if (h.first.contains(x, y)) {
-        return h.second;
+  private void handleHyperlinks(Component component, boolean controlDown) {
+    PointerInfo a = MouseInfo.getPointerInfo();
+    Point b = a.getLocation();
+    SwingUtilities.convertPointFromScreen(b, component);
+
+    handleHyperlinks(b, controlDown);
+  }
+
+  @Nullable
+  private HyperlinkStyle findHyperlink(Point p) {
+    p = panelToCharCoords(p);
+    if (p.x>=0 && p.y>=0 && p.x<myTerminalTextBuffer.getWidth() && p.y <= myTerminalTextBuffer.getHeight()) {
+      TextStyle style = myTerminalTextBuffer.getStyleAt(p.x, p.y);
+      if (style instanceof HyperlinkStyle) {
+        return (HyperlinkStyle) style;
       }
     }
     return null;
@@ -703,8 +729,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     gfx.fillRect(0, 0, getWidth(), getHeight());
 
-    myHyperlinks.clear();
-
     myTerminalTextBuffer.processHistoryAndScreenLines(myClientScrollOrigin, myTermSize.height, new StyledTextConsumer() {
       final int columnCount = getColumnCount();
 
@@ -832,8 +856,13 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   @Override
   public void processKeyEvent(final KeyEvent e) {
     handleKeyEvent(e);
+
+    handleHyperlinks(e.getComponent(), e.isControlDown());
+
     e.consume();
   }
+
+
 
   public void handleKeyEvent(KeyEvent e) {
     final int id = e.getID();
@@ -1066,19 +1095,30 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       return;
     }
 
-    gfx.setColor(getPalette().getColor(myStyleState.getBackground(style.getBackgroundForRun())));
     int textLength = CharUtils.getTextLengthDoubleWidthAware(buf.getBuf(), buf.getStart(), buf.length(), mySettingsProvider.ambiguousCharsAreDoubleWidth());
     int height = Math.min(myCharSize.height, getHeight() - yCoord);
     int width = Math.min(textLength * TerminalPanel.this.myCharSize.width, TerminalPanel.this.getWidth() - xCoord);
+
+    if (style instanceof HyperlinkStyle) {
+      Rectangle rectangle = new Rectangle(xCoord, yCoord, width, height);
+      HyperlinkStyle hyperlinkStyle = (HyperlinkStyle) style;
+
+      if (hyperlinkStyle.getHighlightMode() == HyperlinkStyle.HighlightMode.ALWAYS || (isHoveredHyperlink(hyperlinkStyle) && hyperlinkStyle.getHighlightMode() == HyperlinkStyle.HighlightMode.HOVER)) {
+
+        // substitute text style with the hyperlink highlight style if applicable
+        style = hyperlinkStyle.getHighlightStyle();
+      }
+    }
+
+    Color backgroundColor = getPalette().getColor(myStyleState.getBackground(style.getBackgroundForRun()));
+
+    gfx.setColor(backgroundColor);
+
 
     gfx.fillRect(xCoord,
             yCoord,
             width,
             height);
-
-    if (style instanceof HyperlinkStyle) {
-      addHyperlink(new Rectangle(xCoord, yCoord, width, height), ((HyperlinkStyle) style));
-    }
 
     if (buf.isNul()) {
       return; // nothing more to do
@@ -1095,8 +1135,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
   }
 
-  private void addHyperlink(Rectangle rectangle, HyperlinkStyle style) {
-    myHyperlinks.add(Pair.create(rectangle, style));
+  private boolean isHoveredHyperlink(@NotNull HyperlinkStyle link) {
+    return myHoveredHyperlink == link.getLinkInfo();
   }
 
   /**
@@ -1598,6 +1638,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     public AttributedCharacterIterator getSelectedText(AttributedCharacterIterator.Attribute[] attributes) {
       return null;
     }
+
   }
 
   public void dispose() {

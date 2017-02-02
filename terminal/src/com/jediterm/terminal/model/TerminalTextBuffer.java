@@ -2,19 +2,20 @@ package com.jediterm.terminal.model;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.jediterm.terminal.util.CharUtils;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.StyledTextConsumerAdapter;
 import com.jediterm.terminal.TextStyle;
-import com.jediterm.terminal.util.Pair;
 import com.jediterm.terminal.model.TerminalLine.TextEntry;
+import com.jediterm.terminal.model.hyperlinks.TextProcessing;
+import com.jediterm.terminal.util.CharUtils;
+import com.jediterm.terminal.util.Pair;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
-import java.util.*;
+import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 

@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.model.TerminalLine.TextEntry;
+import com.jediterm.terminal.model.hyperlinks.TextProcessing;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

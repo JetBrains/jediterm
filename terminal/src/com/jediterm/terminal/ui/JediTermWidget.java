@@ -2,13 +2,16 @@ package com.jediterm.terminal.ui;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
-import com.jediterm.terminal.*;
 import com.jediterm.terminal.SubstringFinder.FindResult;
 import com.jediterm.terminal.SubstringFinder.FindResult.FindItem;
+import com.jediterm.terminal.*;
 import com.jediterm.terminal.debug.DebugBufferType;
-import com.jediterm.terminal.model.*;
+import com.jediterm.terminal.model.JediTerminal;
+import com.jediterm.terminal.model.StyleState;
+import com.jediterm.terminal.model.TerminalTextBuffer;
+import com.jediterm.terminal.model.hyperlinks.HyperlinkFilter;
+import com.jediterm.terminal.model.hyperlinks.TextProcessing;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
-
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
@@ -17,13 +20,8 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.plaf.basic.BasicArrowButton;
 import javax.swing.plaf.basic.BasicScrollBarUI;
-
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
+import java.awt.event.*;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 

@@ -1,6 +1,7 @@
 package com.jediterm.terminal.process.cache;
 
 import com.jediterm.terminal.ui.UIUtil;
+import org.apache.log4j.Logger;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,11 +13,13 @@ public class ProcessCache extends Thread {
     public interface TabNameChanger {
         void changeName(String name);
     }
+    protected static final Logger LOG = Logger.getLogger(ProcessCache.class);
 
     protected Map<Integer, TabNameChanger> pidsToWatch = new ConcurrentHashMap<>();
     protected Map<Integer, String> jobNames = new ConcurrentHashMap<>();
     private static ProcessCache instance = null;
     protected ProcessCache() {
+        setName("ProcessCache");
         start();
     }
 
@@ -37,7 +40,7 @@ public class ProcessCache extends Thread {
             try {
                 sleep(200);
             } catch (InterruptedException ex) {
-
+                Thread.currentThread().interrupt();
             }
         }
     }

@@ -25,8 +25,8 @@ public class LinuxProcessCache extends ProcessCache {
         });
         String jobName = "";
         long startTimeMax = 0;
-        try {
-            for (String cpid : allPids) {
+        for (String cpid : allPids) {
+            try {
                 Scanner scan = new Scanner(new File(proc, cpid + "/stat"));
                 scan.next();
                 String name = scan.next();
@@ -45,17 +45,22 @@ public class LinuxProcessCache extends ProcessCache {
                     startTimeMax = startTime;
                     jobName = name;
                 }
+            } catch (FileNotFoundException ex) {
+                LOG.debug("Process " + pid + " exited earlier");
             }
-            if(jobName.isEmpty()) {
+        }
+        if (jobName.isEmpty()) {
+            try {
                 Scanner scan = new Scanner(new File(proc, Integer.toString(pid) + "/comm"));
                 jobName = scan.next();
-            } else {
-                jobName = jobName.substring(1, jobName.length() - 1);
+                scan.close();
+            } catch (FileNotFoundException ex) {
+                // This should never happen
+                LOG.debug("Shell with pid: " + pid + " already exited.");
             }
-            return jobName;
-        } catch (FileNotFoundException ex) {
-            System.out.println("pid not found");
+        } else {
+            jobName = jobName.substring(1, jobName.length() - 1);
         }
-        return "Local";
+        return jobName;
     }
 }

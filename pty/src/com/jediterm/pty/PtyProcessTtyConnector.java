@@ -35,4 +35,9 @@ public class PtyProcessTtyConnector extends ProcessTtyConnector {
   public String getName() {
     return "Local";
   }
+
+  @Override
+  public int getTtyPid() {
+    return myProcess.getPid();
+  }
 }

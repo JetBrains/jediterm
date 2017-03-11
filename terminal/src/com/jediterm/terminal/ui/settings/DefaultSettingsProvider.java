@@ -189,4 +189,9 @@ public class DefaultSettingsProvider implements SettingsProvider {
   public boolean ambiguousCharsAreDoubleWidth() {
     return false;
   }
+
+  @Override
+  public boolean jobNameAsTabName() {
+    return true;
+  }
 }

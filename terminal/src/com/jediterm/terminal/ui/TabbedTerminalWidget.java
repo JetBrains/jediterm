@@ -221,6 +221,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   public void closeCurrentSession() {
     JediTermWidget session = getCurrentSession();
     if (session != null) {
+      ProcessCache.getInstance().removePid(session.getTtyConnector().getTtyPid());
       session.close();
       closeTab(session);
     }
@@ -250,10 +251,12 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   private void removeTab(JediTermWidget terminal) {
     synchronized (myLock) {
       if (myTabs != null) {
-        myTabs.remove(terminal);
+        synchronized (ProcessCache.class) {
+          myTabs.remove(terminal);
+        }
         if(mySettingsProvider.jobNameAsTabName()) {
           ProcessCache.getInstance().removePid(terminal.getTtyConnector().getTtyPid());
-          if (myTabs != null) {
+          if (myTabs != null){
             for (int i = 0; i < myTabs.getTabCount(); i++) {
               final int ind = i;
               ProcessCache.getInstance().addPid(

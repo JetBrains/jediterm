@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Created by gaudima on 3/11/17.
+ * @author gaudima
  */
 public class ProcessCache extends Thread {
     public interface TabNameChanger {
@@ -57,12 +57,16 @@ public class ProcessCache extends Thread {
     }
 
     public void addPid(int pid, TabNameChanger changer) {
-        pidsToWatch.put(pid, changer);
-        jobNames.put(pid, "Local");
+        if(pid != -1) {
+            pidsToWatch.put(pid, changer);
+            jobNames.put(pid, "Local");
+        }
     }
 
     public void removePid(int pid) {
-        pidsToWatch.remove(pid);
-        jobNames.remove(pid);
+        if(pid != -1) {
+            pidsToWatch.remove(pid);
+            jobNames.remove(pid);
+        }
     }
 }

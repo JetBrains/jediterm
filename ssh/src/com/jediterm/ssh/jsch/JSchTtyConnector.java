@@ -218,6 +218,8 @@ public abstract class JSchTtyConnector<T extends Channel> implements TtyConnecto
 
   @Override
   public int getTtyPid() {
+    // TODO: Do some more research if it's possible to get pid of remote shell.
+    // Returning -1 for now. ProcessCache won't add pids that are equal to -1.
     return -1;
   }
 }

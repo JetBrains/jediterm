@@ -30,16 +30,20 @@ public class ProcessCache extends Thread {
     @Override
     public void run() {
         while (true) {
-            synchronized (ProcessCache.class) {
-                for (Map.Entry<Integer, TabNameChanger> entry : pidsToWatch.entrySet()) {
-                    String jobName = findJobName(entry.getKey());
-                    if (!jobName.equals(jobNames.get(entry.getKey()))) {
-                        entry.getValue().changeName(jobName);
-                        jobNames.put(entry.getKey(), jobName);
+            try {
+                synchronized (ProcessCache.class) {
+                    while (pidsToWatch.isEmpty()) {
+                        ProcessCache.class.wait();
+                    }
+                    for (Map.Entry<Integer, TabNameChanger> entry : pidsToWatch.entrySet()) {
+                        String jobName = findJobName(entry.getKey());
+                        if (!jobName.equals(jobNames.get(entry.getKey()))) {
+                            entry.getValue().changeName(jobName);
+                            jobNames.put(entry.getKey(), jobName);
+                        }
                     }
                 }
-            }
-            try {
+
                 sleep(200);
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
@@ -64,6 +68,9 @@ public class ProcessCache extends Thread {
         if(pid >= 0) {
             pidsToWatch.put(pid, changer);
             jobNames.put(pid, "Local");
+            synchronized (ProcessCache.class) {
+                ProcessCache.class.notifyAll();
+            }
         }
     }
 
@@ -71,6 +78,9 @@ public class ProcessCache extends Thread {
         if(pid >= 0) {
             pidsToWatch.remove(pid);
             jobNames.remove(pid);
+            synchronized (ProcessCache.class) {
+                ProcessCache.class.notifyAll();
+            }
         }
     }
 }

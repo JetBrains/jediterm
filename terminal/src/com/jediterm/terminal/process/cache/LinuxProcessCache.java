@@ -12,10 +12,6 @@ import java.util.*;
 public class LinuxProcessCache extends ProcessCache {
     private File proc = new File("/proc");
 
-    protected LinuxProcessCache() {
-        super();
-    }
-
     protected String findJobName(int pid) {
         String allPids[] = proc.list(new FilenameFilter() {
             @Override
@@ -32,7 +28,8 @@ public class LinuxProcessCache extends ProcessCache {
                 String name = scan.next();
                 scan.next();
                 int ppid = scan.nextInt();
-                for (int i = 4; i < 7; i++) {
+                int pgrp = scan.nextInt();
+                for (int i = 5; i < 7; i++) {
                     scan.next();
                 }
                 int tpgid = scan.nextInt();
@@ -41,7 +38,7 @@ public class LinuxProcessCache extends ProcessCache {
                 }
                 long startTime = scan.nextLong();
                 scan.close();
-                if (ppid == pid && tpgid != pid && startTimeMax < startTime) {
+                if (ppid == pid && pgrp == tpgid && startTimeMax < startTime) {
                     startTimeMax = startTime;
                     jobName = name;
                 }

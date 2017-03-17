@@ -3,8 +3,8 @@ package com.jediterm.terminal.process.cache;
 import com.jediterm.terminal.ui.UIUtil;
 import org.apache.log4j.Logger;
 
+import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author gaudima
@@ -13,18 +13,20 @@ public class ProcessCache extends Thread {
     public interface TabNameChanger {
         void changeName(String name);
     }
+
     protected static final Logger LOG = Logger.getLogger(ProcessCache.class);
 
-    protected Map<Integer, TabNameChanger> pidsToWatch = new ConcurrentHashMap<>();
-    protected Map<Integer, String> jobNames = new ConcurrentHashMap<>();
+    protected HashMap<Integer, TabNameChanger> pidsToWatch = new HashMap<>();
+    protected HashMap<Integer, String> jobNames = new HashMap<>();
     private static ProcessCache instance = null;
+
     protected ProcessCache() {
         setName("ProcessCache");
         start();
     }
 
-    protected String findJobName(int pid)  {
-        return "Local";
+    protected Map<Integer, String> findJobNames()  {
+        return new HashMap<>();
     }
 
     @Override
@@ -35,16 +37,18 @@ public class ProcessCache extends Thread {
                     while (pidsToWatch.isEmpty()) {
                         ProcessCache.class.wait();
                     }
-                    for (Map.Entry<Integer, TabNameChanger> entry : pidsToWatch.entrySet()) {
-                        String jobName = findJobName(entry.getKey());
-                        if (!jobName.equals(jobNames.get(entry.getKey()))) {
-                            entry.getValue().changeName(jobName);
-                            jobNames.put(entry.getKey(), jobName);
+                    Map<Integer, String> newJobNames = findJobNames();
+                    for(Map.Entry<Integer, String> entry: newJobNames.entrySet()) {
+                        int pid = entry.getKey();
+                        String newName = entry.getValue();
+                        String oldName = jobNames.get(pid);
+                        if (!oldName.equals(newName)) {
+                            pidsToWatch.get(pid).changeName(newName);
+                            jobNames.put(pid, newName);
                         }
                     }
+                    ProcessCache.class.wait(200);
                 }
-
-                sleep(200);
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
             }
@@ -66,9 +70,9 @@ public class ProcessCache extends Thread {
 
     public void addPid(int pid, TabNameChanger changer) {
         if(pid >= 0) {
-            pidsToWatch.put(pid, changer);
-            jobNames.put(pid, "Local");
             synchronized (ProcessCache.class) {
+                pidsToWatch.put(pid, changer);
+                jobNames.put(pid, "Local");
                 ProcessCache.class.notifyAll();
             }
         }
@@ -76,9 +80,9 @@ public class ProcessCache extends Thread {
 
     public void removePid(int pid) {
         if(pid >= 0) {
-            pidsToWatch.remove(pid);
-            jobNames.remove(pid);
             synchronized (ProcessCache.class) {
+                pidsToWatch.remove(pid);
+                jobNames.remove(pid);
                 ProcessCache.class.notifyAll();
             }
         }

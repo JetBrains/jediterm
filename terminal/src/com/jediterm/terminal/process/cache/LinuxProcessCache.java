@@ -1,63 +1,69 @@
 package com.jediterm.terminal.process.cache;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FilenameFilter;
-import java.util.*;
+
+import java.io.*;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author gaudima
  */
 
 public class LinuxProcessCache extends ProcessCache {
-    private File proc = new File("/proc");
+    private class ProcfsStat {
+        public int pid = -1;
+        public String comm = "";
+        public int ppid = -1;
+        public int pgrp = -1;
+        public int tpgid = -1;
+        public long startTime = -1;
+        public ProcfsStat(String stat) {
+            if(stat != null) {
+                String statArray[] = stat.split(" ");
+                pid = Integer.parseInt(statArray[0]);
+                comm = statArray[1];
+                ppid = Integer.parseInt(statArray[3]);
+                pgrp = Integer.parseInt(statArray[4]);
+                tpgid = Integer.parseInt(statArray[7]);
+                startTime = Long.parseLong(statArray[21]);
+            }
+        }
+    }
 
-    protected String findJobName(int pid) {
-        String allPids[] = proc.list(new FilenameFilter() {
-            @Override
-            public boolean accept(File file, String s) {
-                return new File(file, s).isDirectory() && s.matches("^\\d+$");
+    private Path proc = Paths.get("/proc");
+
+    protected Map<Integer, String> findJobNames() {
+        Map<Integer, String> newJobNames = new HashMap<>();
+        Map<Integer, Long> startTimesMax = new HashMap<>();
+        try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(proc)) {
+            for (Path path : dirStream) {
+                if(Files.isDirectory(path) && path.getFileName().toString().matches("^\\d+$")) {
+                    try (BufferedReader reader = Files.newBufferedReader(path.resolve("stat"))) {
+                        ProcfsStat stat = new ProcfsStat(reader.readLine());
+
+                        long startTimeMax = 0;
+                        if (startTimesMax.containsKey(stat.ppid)) {
+                            startTimeMax = startTimesMax.get(stat.ppid);
+                        }
+                        if (pidsToWatch.containsKey(stat.ppid) && stat.pgrp == stat.tpgid && startTimeMax < stat.startTime) {
+                            startTimesMax.put(stat.ppid, stat.startTime);
+                            newJobNames.put(stat.ppid, stat.comm.substring(1, stat.comm.length() - 1));
+                        }
+                        if (!newJobNames.containsKey(stat.pid) && pidsToWatch.containsKey(stat.pid)) {
+                            newJobNames.put(stat.pid, stat.comm.substring(1, stat.comm.length() - 1));
+                        }
+                    } catch (IOException ex) {
+                        LOG.debug("IOException reading from" + path + "/stat");
+                    }
+                }
             }
-        });
-        String jobName = "";
-        long startTimeMax = 0;
-        for (String cpid : allPids) {
-            try {
-                Scanner scan = new Scanner(new File(proc, cpid + "/stat"));
-                scan.next();
-                String name = scan.next();
-                scan.next();
-                int ppid = scan.nextInt();
-                int pgrp = scan.nextInt();
-                for (int i = 5; i < 7; i++) {
-                    scan.next();
-                }
-                int tpgid = scan.nextInt();
-                for (int i = 8; i < 21; i++) {
-                    scan.next();
-                }
-                long startTime = scan.nextLong();
-                scan.close();
-                if (ppid == pid && pgrp == tpgid && startTimeMax < startTime) {
-                    startTimeMax = startTime;
-                    jobName = name;
-                }
-            } catch (FileNotFoundException ex) {
-                LOG.debug("Process " + pid + " exited earlier");
-            }
+        } catch (IOException ex) {
+            LOG.debug("IOException reading from /proc");
         }
-        if (jobName.isEmpty()) {
-            try {
-                Scanner scan = new Scanner(new File(proc, Integer.toString(pid) + "/comm"));
-                jobName = scan.next();
-                scan.close();
-            } catch (FileNotFoundException ex) {
-                // This should never happen
-                LOG.debug("Shell with pid: " + pid + " already exited.");
-            }
-        } else {
-            jobName = jobName.substring(1, jobName.length() - 1);
-        }
-        return jobName;
+        return newJobNames;
     }
 }

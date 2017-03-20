@@ -1,4 +1,4 @@
-package com.jediterm.terminal.process.cache;
+package com.jediterm.pty.process.cache;
 
 import com.jediterm.terminal.ui.UIUtil;
 import org.apache.log4j.Logger;

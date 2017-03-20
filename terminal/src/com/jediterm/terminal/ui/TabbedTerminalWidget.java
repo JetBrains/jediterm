@@ -5,7 +5,6 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.jediterm.terminal.*;
-import com.jediterm.terminal.process.cache.ProcessCache;
 import com.jediterm.terminal.ui.settings.TabbedSettingsProvider;
 import com.jediterm.terminal.util.JTextFieldLimit;
 import org.jetbrains.annotations.NotNull;
@@ -25,6 +24,8 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   private final Object myLock = new Object();
 
   private TerminalPanelListener myTerminalPanelListener = null;
+
+  private TabChangeListener myTabChangeListener = null;
 
   private JediTermWidget myTermWidget = null;
 
@@ -112,17 +113,8 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
                 terminal);
 
     tabs.setTabComponentAt(tabs.getTabCount() - 1, createTabComponent(tabs, terminal));
-    if(mySettingsProvider.jobNameAsTabName()) {
-      ProcessCache.getInstance().addPid(
-              terminal.getTtyConnector().getTtyPid(),
-              new ProcessCache.TabNameChanger() {
-                int index = tabs.getTabCount() - 1;
-
-                @Override
-                public void changeName(String name) {
-                  tabs.setTitleAt(index, name);
-                }
-              });
+    if(myTabChangeListener != null && mySettingsProvider.jobNameAsTabName()) {
+      myTabChangeListener.tabAdded(tabs, tabs.getTabCount() - 1, terminal);
     }
     tabs.setSelectedComponent(terminal);
   }
@@ -210,8 +202,8 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
         fireTabClosed(terminal);
       } else if (myTermWidget == terminal) {
         myTermWidget = null;
-        if(mySettingsProvider.jobNameAsTabName()) {
-          ProcessCache.getInstance().removePid(terminal.getTtyConnector().getTtyPid());
+        if(myTabChangeListener != null && mySettingsProvider.jobNameAsTabName()) {
+          myTabChangeListener.tabRemoved(myTabs, -1, terminal);
         }
         fireTabClosed(terminal);
       }
@@ -221,7 +213,9 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   public void closeCurrentSession() {
     JediTermWidget session = getCurrentSession();
     if (session != null) {
-      ProcessCache.getInstance().removePid(session.getTtyConnector().getTtyPid());
+      if(myTabChangeListener != null) {
+        myTabChangeListener.tabRemoved(myTabs, -1, session);
+      }
       session.close();
       closeTab(session);
     }
@@ -251,26 +245,9 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   private void removeTab(JediTermWidget terminal) {
     synchronized (myLock) {
       if (myTabs != null) {
-        synchronized (ProcessCache.class) {
-          myTabs.remove(terminal);
-        }
-        if(mySettingsProvider.jobNameAsTabName()) {
-          ProcessCache.getInstance().removePid(terminal.getTtyConnector().getTtyPid());
-          if (myTabs != null){
-            for (int i = 0; i < myTabs.getTabCount(); i++) {
-              final int ind = i;
-              ProcessCache.getInstance().addPid(
-                      myTabs.getComponentAt(i).getTtyConnector().getTtyPid(),
-                      new ProcessCache.TabNameChanger() {
-                        int index = ind;
-
-                        @Override
-                        public void changeName(String name) {
-                          myTabs.setTitleAt(index, name);
-                        }
-                      });
-            }
-          }
+        myTabs.remove(terminal);
+        if(mySettingsProvider.jobNameAsTabName() && myTabChangeListener != null) {
+          myTabChangeListener.tabRemoved(myTabs, -1, terminal);
         }
       }
       onSessionChanged();
@@ -279,12 +256,12 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
 
   private void removeTabbedPane() {
     myTermWidget = getTerminalPanel(0);
-    if(mySettingsProvider.jobNameAsTabName()) {
-      ProcessCache.getInstance().removePid(myTermWidget.getTtyConnector().getTtyPid());
-    }
     myTabs.removeAll();
     remove(myTabs.getComponent());
     myTabs = null;
+    if(mySettingsProvider.jobNameAsTabName() && myTabChangeListener != null) {
+      myTabChangeListener.tabRemoved(myTabs, -1, myTermWidget);
+    }
     add(myTermWidget.getComponent(), BorderLayout.CENTER);
   }
 
@@ -615,5 +592,10 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
 
   public interface TabListener {
     void tabClosed(JediTermWidget terminal);
+  }
+
+  @Override
+  public void setTabChangeListener(TabChangeListener tabChangeListener) {
+    myTabChangeListener = tabChangeListener;
   }
 }

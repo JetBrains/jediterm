@@ -1,4 +1,4 @@
-package com.jediterm.terminal.process.cache;
+package com.jediterm.pty.process.cache;
 
 
 import java.io.*;

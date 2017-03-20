@@ -130,9 +130,11 @@ public abstract class AbstractTerminalFrame {
 
   public abstract TtyConnector createTtyConnector();
 
+  public abstract  TabChangeListener createTabChangeListener();
+
   protected AbstractTerminalFrame() {
     myTerminal = createTabbedTerminalWidget();
-
+    myTerminal.setTabChangeListener(createTabChangeListener());
     final JFrame frame = new JFrame("JediTerm");
 
     frame.addWindowListener(new WindowAdapter() {

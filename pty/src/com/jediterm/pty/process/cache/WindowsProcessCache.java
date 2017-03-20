@@ -1,4 +1,4 @@
-package com.jediterm.terminal.process.cache;
+package com.jediterm.pty.process.cache;
 
 import com.sun.jna.Native;
 import com.sun.jna.platform.win32.Kernel32;

@@ -2,10 +2,10 @@ package com.jediterm.pty;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.jediterm.pty.process.cache.ProcessCache;
 import com.jediterm.terminal.LoggingTtyConnector;
 import com.jediterm.terminal.TtyConnector;
-import com.jediterm.terminal.ui.AbstractTerminalFrame;
-import com.jediterm.terminal.ui.UIUtil;
+import com.jediterm.terminal.ui.*;
 import com.pty4j.PtyProcess;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
@@ -40,6 +40,11 @@ public class PtyMain extends AbstractTerminalFrame {
     } catch (Exception e) {
       throw new IllegalStateException(e);
     }
+  }
+
+  @Override
+  public TabChangeListener createTabChangeListener() {
+    return new PtyTabChangeListener();
   }
 
   public static void main(final String[] arg) {
@@ -80,6 +85,48 @@ public class PtyMain extends AbstractTerminalFrame {
     public void write(byte[] bytes) throws IOException {
       LOG.debug("Writing in OutputStream : " + Arrays.toString(bytes) + " " + new String(bytes));
       super.write(bytes);
+    }
+  }
+
+  public static class PtyTabChangeListener implements TabChangeListener {
+    @Override
+    public void tabAdded(TerminalTabs tabs, int index, JediTermWidget terminal) {
+      ProcessCache.getInstance().addPid(
+              terminal.getTtyConnector().getTtyPid(),
+              new ProcessCache.TabNameChanger() {
+                int index = tabs.getTabCount() - 1;
+
+                @Override
+                public void changeName(String name) {
+                  if(index < tabs.getTabCount()) {
+                    tabs.setTitleAt(index, name);
+                  }
+                }
+              }
+      );
+    }
+
+    @Override
+    public void tabRemoved(TerminalTabs tabs, int index, JediTermWidget terminal) {
+      ProcessCache.getInstance().removePid(terminal.getTtyConnector().getTtyPid());
+      if (tabs != null){
+        for (int i = 0; i < tabs.getTabCount(); i++) {
+          final int ind = i;
+          ProcessCache.getInstance().addPid(
+                  tabs.getComponentAt(i).getTtyConnector().getTtyPid(),
+                  new ProcessCache.TabNameChanger() {
+                    int index = ind;
+
+                    @Override
+                    public void changeName(String name) {
+                      if(index < tabs.getTabCount()) {
+                        tabs.setTitleAt(index, name);
+                      }
+                    }
+                  }
+          );
+        }
+      }
     }
   }
 }

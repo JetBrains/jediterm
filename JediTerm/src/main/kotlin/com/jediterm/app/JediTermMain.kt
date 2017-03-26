@@ -68,10 +68,6 @@ class JediTerm : AbstractTerminalFrame(), Disposable {
         // TODO
     }
 
-    override fun createTabChangeListener(): TabChangeListener {
-        throw UnsupportedOperationException("not implemented")
-    }
-
     override fun createTabbedTerminalWidget(): TabbedTerminalWidget {
         return object : JediTabbedTerminalWidget(DefaultTabbedSettingsProvider(), object : Predicate<Pair<TerminalWidget, String>> {
             override fun apply(pair: Pair<TerminalWidget, String>?): Boolean {

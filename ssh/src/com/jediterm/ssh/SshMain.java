@@ -25,9 +25,4 @@ public class SshMain extends AbstractTerminalFrame {
   public TtyConnector createTtyConnector() {
     return new JSchShellTtyConnector();
   }
-
-  @Override
-  public TabChangeListener createTabChangeListener() {
-    return null;
-  }
 }

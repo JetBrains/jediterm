@@ -1,4 +1,4 @@
-package com.jediterm.pty.process.cache;
+package com.jediterm.pty.process.monitor;
 
 import com.sun.jna.Native;
 import com.sun.jna.platform.win32.Kernel32;
@@ -13,7 +13,7 @@ import java.util.Map;
 /**
  * @author gaudima
  */
-public class WindowsProcessCache extends ProcessCache {
+public class WindowsProcessMonitor extends ProcessMonitor {
 
     @Override
     protected Map<Integer, String> findJobNames() {

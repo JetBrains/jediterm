@@ -1,15 +1,19 @@
 package com.jediterm.pty;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.jediterm.pty.process.cache.ProcessCache;
+import com.jediterm.pty.process.monitor.ProcessMonitor;
 import com.jediterm.terminal.LoggingTtyConnector;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.ui.*;
+import com.jediterm.terminal.ui.settings.DefaultTabbedSettingsProvider;
+import com.jediterm.terminal.ui.settings.TabbedSettingsProvider;
 import com.pty4j.PtyProcess;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -42,9 +46,15 @@ public class PtyMain extends AbstractTerminalFrame {
     }
   }
 
+  @NotNull
   @Override
-  public TabChangeListener createTabChangeListener() {
-    return new PtyTabChangeListener();
+  protected TabbedTerminalWidget createTabbedTerminalWidget() {
+    TabbedTerminalWidget widget = new TabbedTerminalWidget(new DefaultTabbedSettingsProvider(), terminalWidget -> {
+      openSession(terminalWidget);
+      return true;
+    });
+    widget.setTabChangeListener(new PtyTabChangeListener());
+    return widget;
   }
 
   public static void main(final String[] arg) {
@@ -91,9 +101,9 @@ public class PtyMain extends AbstractTerminalFrame {
   public static class PtyTabChangeListener implements TabChangeListener {
     @Override
     public void tabAdded(TerminalTabs tabs, int index, JediTermWidget terminal) {
-      ProcessCache.getInstance().addPid(
+      ProcessMonitor.getInstance().watchPid(
               terminal.getTtyConnector().getTtyPid(),
-              new ProcessCache.TabNameChanger() {
+              new ProcessMonitor.TabNameChanger() {
                 int index = tabs.getTabCount() - 1;
 
                 @Override
@@ -108,13 +118,13 @@ public class PtyMain extends AbstractTerminalFrame {
 
     @Override
     public void tabRemoved(TerminalTabs tabs, int index, JediTermWidget terminal) {
-      ProcessCache.getInstance().removePid(terminal.getTtyConnector().getTtyPid());
+      ProcessMonitor.getInstance().unwatchPid(terminal.getTtyConnector().getTtyPid());
       if (tabs != null){
         for (int i = 0; i < tabs.getTabCount(); i++) {
           final int ind = i;
-          ProcessCache.getInstance().addPid(
+          ProcessMonitor.getInstance().watchPid(
                   tabs.getComponentAt(i).getTtyConnector().getTtyPid(),
-                  new ProcessCache.TabNameChanger() {
+                  new ProcessMonitor.TabNameChanger() {
                     int index = ind;
 
                     @Override

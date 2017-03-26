@@ -1,4 +1,4 @@
-package com.jediterm.pty.process.cache;
+package com.jediterm.pty.process.monitor;
 
 
 import java.io.*;
@@ -13,7 +13,7 @@ import java.util.Map;
  * @author gaudima
  */
 
-public class LinuxProcessCache extends ProcessCache {
+public class LinuxProcessMonitor extends ProcessMonitor {
     private class ProcfsStat {
         public int pid = -1;
         public String comm = "";

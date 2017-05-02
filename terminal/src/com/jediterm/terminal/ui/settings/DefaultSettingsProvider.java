@@ -1,5 +1,6 @@
 package com.jediterm.terminal.ui.settings;
 
+import com.jediterm.terminal.HyperlinkStyle;
 import com.jediterm.terminal.TerminalColor;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.emulator.ColorPalette;
@@ -113,6 +114,11 @@ public class DefaultSettingsProvider implements SettingsProvider {
   @Override
   public TextStyle getHyperlinkColor() {
     return new TextStyle(TerminalColor.awt(Color.BLUE), TerminalColor.WHITE);
+  }
+
+  @Override
+  public HyperlinkStyle.HighlightMode getHyperlinkHighlightingMode() {
+    return HyperlinkStyle.HighlightMode.HOVER;
   }
 
   @Override

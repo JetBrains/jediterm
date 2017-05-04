@@ -336,7 +336,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   @Nullable
   private HyperlinkStyle findHyperlink(Point p) {
     p = panelToCharCoords(p);
-    if (p.x>=0 && p.y>=0 && p.x<myTerminalTextBuffer.getWidth() && p.y <= myTerminalTextBuffer.getHeight()) {
+    if (p.x >= 0 && p.y >= 0 && p.x < myTerminalTextBuffer.getWidth() && p.y <= myTerminalTextBuffer.getHeight()) {
       TextStyle style = myTerminalTextBuffer.getStyleAt(p.x, p.y);
       if (style instanceof HyperlinkStyle) {
         return (HyperlinkStyle) style;
@@ -787,10 +787,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     if ((myClientScrollOrigin + getRowCount() > cursorY) && !hasUncommittedChars()) {
       int cursorX = myCursor.getCoordX();
       Pair<Character, TextStyle> sc = myTerminalTextBuffer.getStyledCharAt(cursorX, cursorY);
+      String cursorChar = "" + sc.first;
+      if (Character.isHighSurrogate(sc.first)) {
+        cursorChar += myTerminalTextBuffer.getStyledCharAt(cursorX+1, cursorY).first;
+      }
       TextStyle normalStyle = sc.second != null ? sc.second : myStyleState.getCurrent();
       TextStyle selectionStyle = getSelectionStyle(normalStyle);
       boolean inSelection = inSelection(cursorX, cursorY);
-      myCursor.drawCursor(sc.first, gfx, inSelection ? selectionStyle : normalStyle);
+      myCursor.drawCursor(cursorChar, gfx, inSelection ? selectionStyle : normalStyle);
     }
 
     drawInputMethodUncommitedChars(gfx);
@@ -861,7 +865,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     e.consume();
   }
-
 
 
   public void handleKeyEvent(KeyEvent e) {
@@ -1039,7 +1042,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       return computeBlinkingState();
     }
 
-    public void drawCursor(char c, Graphics2D gfx, TextStyle style) {
+    public void drawCursor(String c, Graphics2D gfx, TextStyle style) {
       TerminalCursorState state = computeCursorState();
 
       // hidden: do nothing
@@ -1051,12 +1054,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         if (y >= 0 && y < myTermSize.height) {
           if (state == TerminalCursorState.SHOWING) {
             TextStyle styleToDraw = getInversedStyle(style);
-            drawCharacters(x, y, styleToDraw, new CharBuffer(c, 1), gfx);
+            drawCharacters(x, y, styleToDraw, new CharBuffer(c), gfx);
           } else if (state == TerminalCursorState.NO_FOCUS) {
             int xCoord = x * myCharSize.width;
             int yCoord = y * myCharSize.height;
             gfx.setColor(getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun())));
-            gfx.drawRect(xCoord, yCoord, myCharSize.width - 1, myCharSize.height - 1);
+            gfx.drawRect(xCoord, yCoord, c.length()*myCharSize.width - 1, myCharSize.height - 1);
           }
         }
       }
@@ -1144,7 +1147,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
    * Nevertheless to improve kerning we draw word characters as one block for monospaced fonts.
    */
   private void drawChars(int x, int y, CharBuffer buf, TextStyle style, Graphics2D gfx) {
-    final int blockLen = 1;
+    int blockLen = 1;
     int offset = 0;
     int drawCharsOffset = 0;
 
@@ -1169,6 +1172,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 //              && (font == getFontToDisplay(buf.charAt(offset + blockLen - 1), style))) {
 //        blockLen++;
 //      }
+
+      if (offset + 2 <= buf.length() && Character.isSurrogatePair(renderingBuffer.getBuf()[buf.getStart() + offset], renderingBuffer.getBuf()[buf.getStart() + offset + 1])) {
+        blockLen = 2;
+      }
+
+
       gfx.setFont(font);
 
       int descent = gfx.getFontMetrics(font).getDescent();
@@ -1189,6 +1198,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
       drawCharsOffset += blockLen;
       offset += blockLen;
+      blockLen = 1;
     }
     gfx.setClip(null);
   }

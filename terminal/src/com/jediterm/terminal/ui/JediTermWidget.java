@@ -108,7 +108,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     return styleState;
   }
 
-  protected TerminalPanel createTerminalPanel(@NotNull SettingsProvider settingsProvider, @NotNull  StyleState styleState, @NotNull TerminalTextBuffer terminalTextBuffer) {
+  protected TerminalPanel createTerminalPanel(@NotNull SettingsProvider settingsProvider, @NotNull StyleState styleState, @NotNull TerminalTextBuffer terminalTextBuffer) {
     return new TerminalPanel(settingsProvider, terminalTextBuffer, styleState);
   }
 
@@ -198,7 +198,6 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   }
 
 
-
   public boolean canOpenSession() {
     return !isSessionRunning();
   }
@@ -226,7 +225,10 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   @Override
   public void close() {
-    myTerminalStarter.close();
+    if (myTerminalStarter != null) {
+      myTerminalStarter.close();
+    }
+    myTerminalPanel.dispose();
   }
 
   @Override

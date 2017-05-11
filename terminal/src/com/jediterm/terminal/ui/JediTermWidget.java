@@ -61,7 +61,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
     StyleState styleState = createDefaultStyle();
 
-    myTextProcessing = new TextProcessing(settingsProvider.getHyperlinkColor());
+    myTextProcessing = new TextProcessing(settingsProvider.getHyperlinkColor(), settingsProvider.getHyperlinkHighlightingMode());
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(columns, lines, styleState, settingsProvider.getBufferMaxLinesCount(), myTextProcessing);
 

@@ -68,6 +68,8 @@ public class ProcessMonitor extends Thread {
                         instance = new LinuxProcessMonitor();
                     } else if (UIUtil.isWindows) {
                         instance = new WindowsProcessMonitor();
+                    } else if(UIUtil.isMac) {
+                        instance = new MacProcessMonitor();
                     } else {
                         instance = new ProcessMonitor();
                     }

@@ -15,13 +15,13 @@ import java.util.Map;
 
 public class LinuxProcessMonitor extends ProcessMonitor {
     private class ProcfsStat {
-        public int pid = -1;
-        public String comm = "";
-        public int ppid = -1;
-        public int pgrp = -1;
-        public int tpgid = -1;
-        public long startTime = -1;
-        public ProcfsStat(String stat) {
+        private int pid = -1;
+        private String comm = "";
+        private int ppid = -1;
+        private int pgrp = -1;
+        private int tpgid = -1;
+        private long startTime = -1;
+        private ProcfsStat(String stat) {
             if(stat != null) {
                 String statArray[] = stat.split(" ");
                 pid = Integer.parseInt(statArray[0]);

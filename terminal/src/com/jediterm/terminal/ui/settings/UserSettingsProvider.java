@@ -52,5 +52,5 @@ public interface UserSettingsProvider {
 
   boolean ambiguousCharsAreDoubleWidth();
 
-  boolean jobNameAsTabName();
+  boolean showProcessNameInTabTitle();
 }

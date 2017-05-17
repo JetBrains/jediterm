@@ -113,7 +113,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
                 terminal);
 
     tabs.setTabComponentAt(tabs.getTabCount() - 1, createTabComponent(tabs, terminal));
-    if(myTabChangeListener != null && mySettingsProvider.jobNameAsTabName()) {
+    if(myTabChangeListener != null && mySettingsProvider.showProcessNameInTabTitle()) {
       myTabChangeListener.tabAdded(tabs, tabs.getTabCount() - 1, terminal);
     }
     tabs.setSelectedComponent(terminal);
@@ -202,7 +202,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
         fireTabClosed(terminal);
       } else if (myTermWidget == terminal) {
         myTermWidget = null;
-        if(myTabChangeListener != null && mySettingsProvider.jobNameAsTabName()) {
+        if(myTabChangeListener != null && mySettingsProvider.showProcessNameInTabTitle()) {
           myTabChangeListener.tabRemoved(myTabs, -1, terminal);
         }
         fireTabClosed(terminal);
@@ -246,7 +246,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     synchronized (myLock) {
       if (myTabs != null) {
         myTabs.remove(terminal);
-        if(mySettingsProvider.jobNameAsTabName() && myTabChangeListener != null) {
+        if(mySettingsProvider.showProcessNameInTabTitle() && myTabChangeListener != null) {
           myTabChangeListener.tabRemoved(myTabs, -1, terminal);
         }
       }
@@ -259,7 +259,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     myTabs.removeAll();
     remove(myTabs.getComponent());
     myTabs = null;
-    if(mySettingsProvider.jobNameAsTabName() && myTabChangeListener != null) {
+    if(mySettingsProvider.showProcessNameInTabTitle() && myTabChangeListener != null) {
       myTabChangeListener.tabRemoved(myTabs, -1, myTermWidget);
     }
     add(myTermWidget.getComponent(), BorderLayout.CENTER);

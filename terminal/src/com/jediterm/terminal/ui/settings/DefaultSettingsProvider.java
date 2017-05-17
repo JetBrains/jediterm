@@ -191,7 +191,7 @@ public class DefaultSettingsProvider implements SettingsProvider {
   }
 
   @Override
-  public boolean jobNameAsTabName() {
+  public boolean showProcessNameInTabTitle() {
     return true;
   }
 }

@@ -25,7 +25,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
 
   private TerminalPanelListener myTerminalPanelListener = null;
 
-  private TabChangeListener myTabChangeListener = null;
+  protected TabChangeListener myTabChangeListener = null;
 
   private JediTermWidget myTermWidget = null;
 
@@ -508,6 +508,9 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
         public void setNewName(int index, String name) {
           if (myTabs != null) {
             myTabs.setTitleAt(index, name);
+            if(myTabChangeListener != null && mySettingsProvider.showProcessNameInTabTitle()) {
+              myTabChangeListener.tabRenamed(myTabs, index, myTabs.getComponentAt(index), name);
+            }
           }
         }
       });

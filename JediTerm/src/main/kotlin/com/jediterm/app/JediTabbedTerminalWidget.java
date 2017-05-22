@@ -306,11 +306,12 @@ public class JediTabbedTerminalWidget extends TabbedTerminalWidget implements Di
           @Override
           public void setNewName(int index, String name) {
             setTitleAt(index, name);
+            if(myTabChangeListener != null && mySettingsProvider.showProcessNameInTabTitle()) {
+              myTabChangeListener.tabRenamed(JediTerminalTabs.this, index, JediTerminalTabs.this.getComponentAt(index), name);
+            }
           }
         });
       }
     }
-
-
   }
 }

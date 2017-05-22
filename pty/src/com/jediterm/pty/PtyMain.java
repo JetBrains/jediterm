@@ -97,46 +97,4 @@ public class PtyMain extends AbstractTerminalFrame {
       super.write(bytes);
     }
   }
-
-  public static class PtyTabChangeListener implements TabChangeListener {
-    @Override
-    public void tabAdded(TerminalTabs tabs, int index, JediTermWidget terminal) {
-      ProcessMonitor.getInstance().watchPid(
-              terminal.getTtyConnector().getTtyPid(),
-              new ProcessMonitor.TabNameChanger() {
-                int index = tabs.getTabCount() - 1;
-
-                @Override
-                public void changeName(String name) {
-                  if(index < tabs.getTabCount()) {
-                    tabs.setTitleAt(index, name);
-                  }
-                }
-              }
-      );
-    }
-
-    @Override
-    public void tabRemoved(TerminalTabs tabs, int index, JediTermWidget terminal) {
-      ProcessMonitor.getInstance().unwatchPid(terminal.getTtyConnector().getTtyPid());
-      if (tabs != null){
-        for (int i = 0; i < tabs.getTabCount(); i++) {
-          final int ind = i;
-          ProcessMonitor.getInstance().watchPid(
-                  tabs.getComponentAt(i).getTtyConnector().getTtyPid(),
-                  new ProcessMonitor.TabNameChanger() {
-                    int index = ind;
-
-                    @Override
-                    public void changeName(String name) {
-                      if(index < tabs.getTabCount()) {
-                        tabs.setTitleAt(index, name);
-                      }
-                    }
-                  }
-          );
-        }
-      }
-    }
-  }
 }

@@ -9,6 +9,7 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Pair
 import com.intellij.util.EncodingEnvironmentUtil
 import com.jediterm.pty.PtyProcessTtyConnector
+import com.jediterm.pty.PtyTabChangeListener
 import com.jediterm.terminal.LoggingTtyConnector
 import com.jediterm.terminal.TtyConnector
 import com.jediterm.terminal.model.StyleState
@@ -69,7 +70,7 @@ class JediTerm : AbstractTerminalFrame(), Disposable {
     }
 
     override fun createTabbedTerminalWidget(): TabbedTerminalWidget {
-        return object : JediTabbedTerminalWidget(DefaultTabbedSettingsProvider(), object : Predicate<Pair<TerminalWidget, String>> {
+        val widget = object : JediTabbedTerminalWidget(DefaultTabbedSettingsProvider(), object : Predicate<Pair<TerminalWidget, String>> {
             override fun apply(pair: Pair<TerminalWidget, String>?): Boolean {
                 openSession(pair?.first)
                 return true
@@ -79,6 +80,8 @@ class JediTerm : AbstractTerminalFrame(), Disposable {
                 return createTerminalWidget(settingsProvider)
             }
         }
+        widget.setTabChangeListener(PtyTabChangeListener())
+        return widget
     }
 
     override fun createTtyConnector(): TtyConnector {

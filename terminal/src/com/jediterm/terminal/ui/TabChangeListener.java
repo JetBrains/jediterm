@@ -5,5 +5,6 @@ package com.jediterm.terminal.ui;
  */
 public interface TabChangeListener {
     void tabAdded(TerminalTabs tabs, int index, JediTermWidget terminal);
+    void tabRenamed(TerminalTabs tabs, int index, JediTermWidget terminal, String name);
     void tabRemoved(TerminalTabs tabs, int index, JediTermWidget terminal);
 }

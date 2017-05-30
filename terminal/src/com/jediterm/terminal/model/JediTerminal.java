@@ -1048,17 +1048,26 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
   @NotNull
   private CharBuffer newCharBuf(char[] str) {
-    int wdcCount = CharUtils.countDoubleWidthCharacters(str, 0, str.length, myDisplay.ambiguousCharsAreDoubleWidth());
+    int dwcCount = CharUtils.countDoubleWidthCharacters(str, 0, str.length, myDisplay.ambiguousCharsAreDoubleWidth());
 
     char[] buf;
 
-    if (wdcCount > 0) {
-      buf = new char[wdcCount * 2 + str.length - wdcCount];
+    if (dwcCount > 0) {
+      // Leave gaps for the private use "DWC" character, which simply tells the rendering code to advance one cell.
+      buf = new char[str.length + dwcCount];
 
       int j = 0;
       for (int i = 0; i < str.length; i++) {
         buf[j] = str[i];
-        if (CharUtils.isDoubleWidthCharacter(str[i], myDisplay.ambiguousCharsAreDoubleWidth())) {
+        int codePoint = Character.codePointAt(str, i);
+        boolean doubleWidthCharacter = CharUtils.isDoubleWidthCharacter(codePoint, myDisplay.ambiguousCharsAreDoubleWidth());
+        if (Character.charCount(Character.codePointAt(str, i)) == 2) {
+          // Copy the next character too before adding the DWC.
+          i++;
+          j++;
+          buf[j] = str[i];
+        }
+        if (doubleWidthCharacter) {
           j++;
           buf[j] = CharUtils.DWC;
         }

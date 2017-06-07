@@ -84,10 +84,10 @@ public class MacProcessMonitor  extends ProcessMonitor {
                     (stat.flags & P_CONTROLT) > 0 &&
                     startTimeMax < stat.startTime) {
                 startTimesMax.put(stat.ppid, stat.startTime);
-                newJobNames.put(stat.ppid, stat.comm.substring(1, stat.comm.length() - 1));
+                newJobNames.put(stat.ppid, stat.comm);
             }
             if (!newJobNames.containsKey(stat.pid) && pidsToWatch.containsKey(stat.pid)) {
-                newJobNames.put(stat.pid, stat.comm.substring(1, stat.comm.length() - 1));
+                newJobNames.put(stat.pid, stat.comm);
             }
         }
         return newJobNames;

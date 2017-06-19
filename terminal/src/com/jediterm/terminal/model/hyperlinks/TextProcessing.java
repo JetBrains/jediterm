@@ -15,9 +15,11 @@ import java.util.List;
 public class TextProcessing {
   private final List<HyperlinkFilter> myHyperlinkFilter;
   private TextStyle myHyperlinkColor;
+  private HyperlinkStyle.HighlightMode myHighlightMode;
 
-  public TextProcessing(TextStyle hyperlinkColor) {
+  public TextProcessing(TextStyle hyperlinkColor, HyperlinkStyle.HighlightMode highlightMode) {
     myHyperlinkColor = hyperlinkColor;
+    myHighlightMode = highlightMode;
     myHyperlinkFilter = Lists.newArrayList();
   }
 
@@ -26,7 +28,7 @@ public class TextProcessing {
       LinkResult result = filter.apply(line.getText());
       if (result != null) {
         for (LinkResultItem item : result.getItems()) {
-          TextStyle style = new HyperlinkStyle(myHyperlinkColor.getForeground(), myHyperlinkColor.getBackground(), item.getLinkInfo());
+          TextStyle style = new HyperlinkStyle(myHyperlinkColor.getForeground(), myHyperlinkColor.getBackground(), item.getLinkInfo()).withHighlightMode(myHighlightMode);
           line.writeString(item.getStartOffset(), new CharBuffer(line.getText().substring(item.getStartOffset(), item.getEndOffset())), style);
         }
       }

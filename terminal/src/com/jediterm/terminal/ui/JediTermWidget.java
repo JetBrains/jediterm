@@ -62,7 +62,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
     StyleState styleState = createDefaultStyle();
 
-    myTextProcessing = new TextProcessing(settingsProvider.getHyperlinkColor());
+    myTextProcessing = new TextProcessing(settingsProvider.getHyperlinkColor(), settingsProvider.getHyperlinkHighlightingMode());
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(columns, lines, styleState, settingsProvider.getBufferMaxLinesCount(), myTextProcessing);
 
@@ -109,7 +109,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     return styleState;
   }
 
-  protected TerminalPanel createTerminalPanel(@NotNull SettingsProvider settingsProvider, @NotNull  StyleState styleState, @NotNull TerminalTextBuffer terminalTextBuffer) {
+  protected TerminalPanel createTerminalPanel(@NotNull SettingsProvider settingsProvider, @NotNull StyleState styleState, @NotNull TerminalTextBuffer terminalTextBuffer) {
     return new TerminalPanel(settingsProvider, terminalTextBuffer, styleState);
   }
 
@@ -199,7 +199,6 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   }
 
 
-
   public boolean canOpenSession() {
     return !isSessionRunning();
   }
@@ -227,7 +226,10 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   @Override
   public void close() {
-    myTerminalStarter.close();
+    if (myTerminalStarter != null) {
+      myTerminalStarter.close();
+    }
+    myTerminalPanel.dispose();
   }
 
   @Override

@@ -11,7 +11,7 @@ public class HyperlinkStyle extends TextStyle implements Runnable {
   @NotNull
   private final LinkInfo myLinkInfo;
 
-  @Nullable
+  @NotNull
   private TextStyle myHighlightStyle;
 
   @NotNull

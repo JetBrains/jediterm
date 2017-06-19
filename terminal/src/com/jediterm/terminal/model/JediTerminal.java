@@ -255,6 +255,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
       myCursorY -= 1;
       myCursorX = myTerminalWidth - 1;
     }
+    adjustXY(-1);
     myDisplay.setCursor(myCursorX, myCursorY);
   }
 
@@ -977,8 +978,8 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   private void adjustXY(int dirX) {
-    if (myTerminalTextBuffer.getCharAt(myCursorX, myCursorY - 1) == CharUtils.DWC) {
-      // we don't want to place cursor on the second part of double width character
+    if (Character.isLowSurrogate(myTerminalTextBuffer.getCharAt(myCursorX, myCursorY - 1))) {
+      // we don't want to place cursor on the second part of surrogate pair
       if (dirX > 0) { // so we move it into the predefined direction
         if (myCursorX == myTerminalWidth) { //if it is the last in the line we return where we were
           myCursorX -= 1;
@@ -986,7 +987,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
           myCursorX += 1;
         }
       } else {
-        myCursorX -= 1; //dwc can't be the first character in the line
+        myCursorX -= 1; //low surrogate character can't be the first character in the line
       }
     }
   }
@@ -1106,7 +1107,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
       @Override
       public void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
         for (int i = 0; i < characters.length(); i++) {
-          finder.nextChar(x, y - startRow , characters, i);
+          finder.nextChar(x, y - startRow, characters, i);
         }
       }
 

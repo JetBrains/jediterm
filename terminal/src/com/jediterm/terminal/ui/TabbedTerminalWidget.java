@@ -597,7 +597,6 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     void tabClosed(JediTermWidget terminal);
   }
 
-  @Override
   public void setTabChangeListener(TabChangeListener tabChangeListener) {
     myTabChangeListener = tabChangeListener;
   }

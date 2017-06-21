@@ -1,5 +1,7 @@
 package com.jediterm.terminal;
 
+import com.jediterm.terminal.ui.TerminalWidget;
+
 import java.awt.*;
 import java.io.IOException;
 

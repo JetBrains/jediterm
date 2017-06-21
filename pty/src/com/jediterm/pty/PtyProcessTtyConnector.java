@@ -1,6 +1,7 @@
 package com.jediterm.pty;
 
 import com.jediterm.terminal.ProcessTtyConnector;
+import com.jediterm.terminal.ui.TerminalWidget;
 import com.pty4j.PtyProcess;
 import com.pty4j.WinSize;
 

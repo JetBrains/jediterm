@@ -8,6 +8,7 @@ import com.jcraft.jsch.*;
 import com.jediterm.terminal.Questioner;
 import com.jediterm.terminal.TtyConnector;
 
+import com.jediterm.terminal.ui.TerminalWidget;
 import org.apache.log4j.Logger;
 
 import java.awt.*;

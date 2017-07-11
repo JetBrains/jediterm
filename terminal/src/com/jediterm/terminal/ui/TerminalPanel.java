@@ -327,10 +327,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private void handleHyperlinks(Component component, boolean controlDown) {
     PointerInfo a = MouseInfo.getPointerInfo();
-    Point b = a.getLocation();
-    SwingUtilities.convertPointFromScreen(b, component);
-
-    handleHyperlinks(b, controlDown);
+    if (a != null) {
+      Point b = a.getLocation();
+      SwingUtilities.convertPointFromScreen(b, component);
+      handleHyperlinks(b, controlDown);
+    }
   }
 
   @Nullable

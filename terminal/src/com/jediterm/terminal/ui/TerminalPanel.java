@@ -661,7 +661,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     myDescent = fo.getDescent();
     myCharSize.width = fo.charWidth('W');
-    myCharSize.height = fo.getHeight() + (int) (lineSpace * 2);
+    // The magic +2 here is to give lines a tiny bit of extra height to avoid clipping when rendering some Apple
+    // emoji, which are slightly higher than the font metrics reported character height :(
+    myCharSize.height = fo.getHeight() + (int) (lineSpace * 2) + 2;
     myDescent += lineSpace;
 
     myMonospaced = isMonospaced(fo);
@@ -1190,8 +1192,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
       gfx.setClip(xCoord,
               yCoord,
-              Math.min(textLength * myCharSize.width, getWidth() - xCoord),
-              Math.min(myCharSize.height, getHeight() - yCoord));
+              getWidth() - xCoord,
+              getHeight() - yCoord);
 
       gfx.setColor(getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun())));
 

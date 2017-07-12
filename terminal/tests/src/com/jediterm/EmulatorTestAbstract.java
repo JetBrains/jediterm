@@ -42,9 +42,10 @@ public abstract class EmulatorTestAbstract extends TestCase {
 
     Terminal terminal = new BackBufferTerminal(terminalTextBuffer, state);
 
-    ArrayTerminalDataStream
-        fileStream = new ArrayTerminalDataStream(FileUtil.loadFileText(new File(getPathToTest() + ".txt"),
-        "UTF-8"));
+    char[] chars = FileUtil.loadFileText(new File(getPathToTest() + ".txt"), "UTF-8");
+    // LF in test data files should be handled as CRLF to emulate a tty stream
+    String crlfText = new String(chars).replaceAll("\r?\n", "\r\n");
+    ArrayTerminalDataStream fileStream = new ArrayTerminalDataStream(crlfText.toCharArray());
 
     Emulator emulator = new JediEmulator(fileStream, terminal);
 

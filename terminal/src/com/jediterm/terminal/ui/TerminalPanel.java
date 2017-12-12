@@ -35,6 +35,7 @@ import java.text.AttributedCharacterIterator;
 import java.text.CharacterIterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -86,7 +87,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private String myInputMethodUncommittedChars;
 
   private Timer myRepaintTimer;
-  private AtomicBoolean needScrollUpdate = new AtomicBoolean(true);
+  private AtomicInteger scrollDy = new AtomicInteger(0);
   private AtomicBoolean needRepaint = new AtomicBoolean(true);
 
   private int myMaxFPS = 50;
@@ -108,7 +109,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     myTermSize.height = terminalTextBuffer.getHeight();
     myMaxFPS = mySettingsProvider.maxRefreshRate();
 
-    updateScrolling();
+    updateScrolling(true);
 
     enableEvents(AWTEvent.KEY_EVENT_MASK | AWTEvent.INPUT_METHOD_EVENT_MASK);
     enableInputMethods(true);
@@ -430,9 +431,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       TerminalPanel terminalPanel = ref.get();
       if (terminalPanel != null) {
         terminalPanel.myCursor.changeStateIfNeeded();
-        if (terminalPanel.needScrollUpdate.getAndSet(false)) {
-          terminalPanel.updateScrolling();
-        }
+        terminalPanel.updateScrolling(false);
         if (terminalPanel.needRepaint.getAndSet(false)) {
           try {
             terminalPanel.doRepaint();
@@ -633,12 +632,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         if (myTerminalPanelListener != null) {
           myTerminalPanelListener.onPanelResize(pixelDimension, origin);
         }
-        SwingUtilities.invokeLater(new Runnable() {
-          @Override
-          public void run() {
-            updateScrolling();
-          }
-        });
+        SwingUtilities.invokeLater(() -> updateScrolling(true));
       } finally {
         myTerminalTextBuffer.unlock();
       }
@@ -1228,16 +1222,30 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   public void scrollArea(final int scrollRegionTop, final int scrollRegionSize, int dy) {
-    if (dy < 0) {
-      needScrollUpdate.set(true);
-    }
+    scrollDy.set(dy);
     mySelection = null;
   }
 
-  private void updateScrolling() {
+  private void updateScrolling(boolean forceUpdate) {
+    int dy = scrollDy.getAndSet(0);
+    if (dy == 0 && !forceUpdate) {
+      return;
+    }
     if (myScrollingEnabled) {
-      myBoundedRangeModel
-              .setRangeProperties(0, myTermSize.height, -myTerminalTextBuffer.getHistoryBuffer().getLineCount(), myTermSize.height, false);
+      int value = myBoundedRangeModel.getValue();
+      int historyLineCount = myTerminalTextBuffer.getHistoryBuffer().getLineCount();
+      if (value == 0) {
+        myBoundedRangeModel
+                .setRangeProperties(0, myTermSize.height, -historyLineCount, myTermSize.height, false);
+      }
+      else {
+        // if scrolled to a specific area, update scroll to keep showing this area
+        myBoundedRangeModel.setRangeProperties(
+                Math.min(Math.max(value + dy, -historyLineCount), myTermSize.height),
+                myTermSize.height,
+                -historyLineCount,
+                myTermSize.height, false);
+      }
     } else {
       myBoundedRangeModel.setRangeProperties(0, myTermSize.height, 0, myTermSize.height, false);
     }
@@ -1291,12 +1299,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   public void setScrollingEnabled(boolean scrollingEnabled) {
     myScrollingEnabled = scrollingEnabled;
 
-    SwingUtilities.invokeLater(new Runnable() {
-      @Override
-      public void run() {
-        updateScrolling();
-      }
-    });
+    SwingUtilities.invokeLater(() -> updateScrolling(true));
   }
 
   @Override
@@ -1412,7 +1415,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         myTerminalTextBuffer.addLine(line);
       }
 
-      updateScrolling();
+      myBoundedRangeModel.setValue(0);
+      updateScrolling(true);
 
       myClientScrollOrigin = myBoundedRangeModel.getValue();
     }

@@ -1222,7 +1222,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   public void scrollArea(final int scrollRegionTop, final int scrollRegionSize, int dy) {
-    scrollDy.set(dy);
+    scrollDy.addAndGet(dy);
     mySelection = null;
   }
 

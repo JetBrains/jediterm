@@ -726,72 +726,80 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     gfx.fillRect(0, 0, getWidth(), getHeight());
 
-    myTerminalTextBuffer.processHistoryAndScreenLines(myClientScrollOrigin, myTermSize.height, new StyledTextConsumer() {
-      final int columnCount = getColumnCount();
+    try {
+      myTerminalTextBuffer.lock();
+      // update myClientScrollOrigin as scrollArea might have been invoked after last WeakRedrawTimer action
+      updateScrolling(false);
+      myTerminalTextBuffer.processHistoryAndScreenLines(myClientScrollOrigin, myTermSize.height, new StyledTextConsumer() {
+        final int columnCount = getColumnCount();
 
-      @Override
-      public void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
-        int row = y - startRow;
-        drawCharacters(x, row, style, characters, gfx);
+        @Override
+        public void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
+          int row = y - startRow;
+          drawCharacters(x, row, style, characters, gfx);
 
-        if (myFindResult != null) {
-          List<Pair<Integer, Integer>> ranges = myFindResult.getRanges(characters);
-          if (ranges != null) {
-            for (Pair<Integer, Integer> range : ranges) {
-              TextStyle foundPatternStyle = getFoundPattern(style);
-              CharBuffer foundPatternChars = characters.subBuffer(range);
+          if (myFindResult != null) {
+            List<Pair<Integer, Integer>> ranges = myFindResult.getRanges(characters);
+            if (ranges != null) {
+              for (Pair<Integer, Integer> range : ranges) {
+                TextStyle foundPatternStyle = getFoundPattern(style);
+                CharBuffer foundPatternChars = characters.subBuffer(range);
 
-              drawCharacters(x + range.first, row, foundPatternStyle, foundPatternChars, gfx);
+                drawCharacters(x + range.first, row, foundPatternStyle, foundPatternChars, gfx);
+              }
+            }
+          }
+
+          if (mySelection != null) {
+            Pair<Integer, Integer> interval = mySelection.intersect(x, row + myClientScrollOrigin, characters.length());
+            if (interval != null) {
+              TextStyle selectionStyle = getSelectionStyle(style);
+              CharBuffer selectionChars = characters.subBuffer(interval.first - x, interval.second);
+
+              drawCharacters(interval.first, row, selectionStyle, selectionChars, gfx);
             }
           }
         }
 
-        if (mySelection != null) {
-          Pair<Integer, Integer> interval = mySelection.intersect(x, row + myClientScrollOrigin, characters.length());
-          if (interval != null) {
-            TextStyle selectionStyle = getSelectionStyle(style);
-            CharBuffer selectionChars = characters.subBuffer(interval.first - x, interval.second);
+        @Override
+        public void consumeNul(int x, int y, int nulIndex, TextStyle style, CharBuffer characters, int startRow) {
+          int row = y - startRow;
+          if (mySelection != null) {
+            // compute intersection with all NUL areas, non-breaking
+            Pair<Integer, Integer> interval = mySelection.intersect(nulIndex, row + myClientScrollOrigin, columnCount - nulIndex);
+            if (interval != null) {
+              TextStyle selectionStyle = getSelectionStyle(style);
+              drawCharacters(x, row, selectionStyle, characters, gfx);
+              return;
+            }
+          }
+          drawCharacters(x, row, style, characters, gfx);
+        }
 
-            drawCharacters(interval.first, row, selectionStyle, selectionChars, gfx);
+        @Override
+        public void consumeQueue(int x, int y, int nulIndex, int startRow) {
+          if (x < columnCount) {
+            consumeNul(x, y, nulIndex, TextStyle.EMPTY, new CharBuffer(CharUtils.EMPTY_CHAR, columnCount - x), startRow);
           }
         }
-      }
+      });
 
-      @Override
-      public void consumeNul(int x, int y, int nulIndex, TextStyle style, CharBuffer characters, int startRow) {
-        int row = y - startRow;
-        if (mySelection != null) {
-          // compute intersection with all NUL areas, non-breaking
-          Pair<Integer, Integer> interval = mySelection.intersect(nulIndex, row + myClientScrollOrigin, columnCount - nulIndex);
-          if (interval != null) {
-            TextStyle selectionStyle = getSelectionStyle(style);
-            drawCharacters(x, row, selectionStyle, characters, gfx);
-            return;
-          }
+      int cursorY = myCursor.getCoordY();
+      if ((myClientScrollOrigin + getRowCount() > cursorY) && !hasUncommittedChars()) {
+        int cursorX = myCursor.getCoordX();
+        Pair<Character, TextStyle> sc = myTerminalTextBuffer.getStyledCharAt(cursorX, cursorY);
+        String cursorChar = "" + sc.first;
+        if (Character.isHighSurrogate(sc.first)) {
+          cursorChar += myTerminalTextBuffer.getStyledCharAt(cursorX+1, cursorY).first;
         }
-        drawCharacters(x, row, style, characters, gfx);
+        TextStyle normalStyle = sc.second != null ? sc.second : myStyleState.getCurrent();
+        TextStyle selectionStyle = getSelectionStyle(normalStyle);
+        boolean inSelection = inSelection(cursorX, cursorY);
+        myCursor.drawCursor(cursorChar, gfx, inSelection ? selectionStyle : normalStyle);
       }
-
-      @Override
-      public void consumeQueue(int x, int y, int nulIndex, int startRow) {
-        if (x < columnCount) {
-          consumeNul(x, y, nulIndex, TextStyle.EMPTY, new CharBuffer(CharUtils.EMPTY_CHAR, columnCount - x), startRow);
-        }
-      }
-    });
-
-    int cursorY = myCursor.getCoordY();
-    if ((myClientScrollOrigin + getRowCount() > cursorY) && !hasUncommittedChars()) {
-      int cursorX = myCursor.getCoordX();
-      Pair<Character, TextStyle> sc = myTerminalTextBuffer.getStyledCharAt(cursorX, cursorY);
-      String cursorChar = "" + sc.first;
-      if (Character.isHighSurrogate(sc.first)) {
-        cursorChar += myTerminalTextBuffer.getStyledCharAt(cursorX+1, cursorY).first;
-      }
-      TextStyle normalStyle = sc.second != null ? sc.second : myStyleState.getCurrent();
-      TextStyle selectionStyle = getSelectionStyle(normalStyle);
-      boolean inSelection = inSelection(cursorX, cursorY);
-      myCursor.drawCursor(cursorChar, gfx, inSelection ? selectionStyle : normalStyle);
+    }
+    finally {
+      myTerminalTextBuffer.unlock();
     }
 
     drawInputMethodUncommitedChars(gfx);
@@ -1221,6 +1229,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     gfx.fillRect(width, 0, getWidth() - width, getHeight());
   }
 
+  // Called in a background thread with myTerminalTextBuffer.lock() acquired
   public void scrollArea(final int scrollRegionTop, final int scrollRegionSize, int dy) {
     scrollDy.addAndGet(dy);
     mySelection = null;
@@ -1233,7 +1242,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
     if (myScrollingEnabled) {
       int value = myBoundedRangeModel.getValue();
-      int historyLineCount = myTerminalTextBuffer.getHistoryBuffer().getLineCount();
+      int historyLineCount = myTerminalTextBuffer.getHistoryLinesCount();
       if (value == 0) {
         myBoundedRangeModel
                 .setRangeProperties(0, myTermSize.height, -historyLineCount, myTermSize.height, false);

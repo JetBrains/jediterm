@@ -197,7 +197,6 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     myTerminalPanel.requestFocus();
   }
 
-
   public boolean canOpenSession() {
     return !isSessionRunning();
   }
@@ -271,7 +270,14 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
         }
 
         private void textUpdated() {
-          findText(myFindComponent.getText());
+          findText(myFindComponent.getText(), myFindComponent.ignoreCase());
+        }
+      });
+
+      myFindComponent.addIgnoreCaseListener(new ItemListener() {
+        @Override
+        public void itemStateChanged(ItemEvent e) {
+          findText(myFindComponent.getText(), myFindComponent.ignoreCase());
         }
       });
 
@@ -306,11 +312,15 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   protected interface SearchComponent {
     String getText();
 
+    boolean ignoreCase();
+
     JComponent getComponent();
 
     void addDocumentChangeListener(DocumentListener listener);
 
     void addKeyListener(KeyListener listener);
+
+    void addIgnoreCaseListener(ItemListener listener);
 
     void onResultUpdated(FindResult results);
 
@@ -319,8 +329,8 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     void prevFindResultItem(FindItem selectedItem);
   }
 
-  private void findText(String text) {
-    FindResult results = myTerminal.searchInTerminalTextBuffer(text);
+  private void findText(String text, boolean ignoreCase) {
+    FindResult results = myTerminal.searchInTerminalTextBuffer(text, ignoreCase);
     myTerminalPanel.setFindResult(results);
     myFindComponent.onResultUpdated(results);
     myScrollBar.repaint();
@@ -372,6 +382,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     private final JLabel label = new JLabel();
     private final JButton prev;
     private final JButton next;
+    private final JCheckBox ignoreCaseCheckBox = new JCheckBox("Ignore Case", true);
 
     public SearchPanel() {
       next = createNextButton();
@@ -398,6 +409,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
       updateLabel(null);
 
       add(myTextField);
+      add(ignoreCaseCheckBox);
       add(label);
       add(next);
       add(prev);
@@ -440,6 +452,11 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     }
 
     @Override
+    public boolean ignoreCase() {
+      return ignoreCaseCheckBox.isSelected();
+    }
+
+    @Override
     public JComponent getComponent() {
       return this;
     }
@@ -456,6 +473,11 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     @Override
     public void addKeyListener(KeyListener listener) {
       myTextField.addKeyListener(listener);
+    }
+
+    @Override
+    public void addIgnoreCaseListener(ItemListener listener) {
+      ignoreCaseCheckBox.addItemListener(listener);
     }
 
   }

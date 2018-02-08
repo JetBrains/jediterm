@@ -1104,13 +1104,12 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     return myStyleState;
   }
 
-  public SubstringFinder.FindResult searchInTerminalTextBuffer(final String pattern) {
+  public SubstringFinder.FindResult searchInTerminalTextBuffer(final String pattern, boolean ignoreCase) {
     if (pattern.length() == 0) {
       return null;
     }
 
-    final SubstringFinder finder = new SubstringFinder(pattern, true);
-
+    final SubstringFinder finder = new SubstringFinder(pattern, ignoreCase);
 
     myTerminalTextBuffer.processHistoryAndScreenLines(-myTerminalTextBuffer.getHistoryLinesCount(), -1, new StyledTextConsumer() {
       @Override

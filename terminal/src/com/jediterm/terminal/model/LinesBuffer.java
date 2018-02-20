@@ -9,6 +9,7 @@ import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.swing.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -147,7 +148,9 @@ public class LinesBuffer {
     line.writeString(x, str, style);
 
     if (myTextProcessing != null) {
-      myTextProcessing.processHyperlinks(line);
+      SwingUtilities.invokeLater(() -> {
+        myTextProcessing.processHyperlinks(line);
+      });
     }
   }
 

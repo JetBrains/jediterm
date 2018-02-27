@@ -29,7 +29,9 @@ public class TextProcessing {
       if (result != null) {
         for (LinkResultItem item : result.getItems()) {
           TextStyle style = new HyperlinkStyle(myHyperlinkColor.getForeground(), myHyperlinkColor.getBackground(), item.getLinkInfo()).withHighlightMode(myHighlightMode);
-          line.writeString(item.getStartOffset(), new CharBuffer(line.getText().substring(item.getStartOffset(), item.getEndOffset())), style);
+          if (item.getStartOffset()>=0 && item.getEndOffset()<=line.getText().length()) {
+            line.writeString(item.getStartOffset(), new CharBuffer(line.getText().substring(item.getStartOffset(), item.getEndOffset())), style);
+          }
         }
       }
     }

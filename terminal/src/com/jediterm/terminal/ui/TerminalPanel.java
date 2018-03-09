@@ -624,18 +624,20 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       myTerminalTextBuffer.lock();
       try {
         myTerminalTextBuffer.resize(newSize, origin, cursorY, resizeHandler, mySelection);
-        myTermSize = (Dimension) newSize.clone();
 
-        final Dimension pixelDimension = new Dimension(getPixelWidth(), getPixelHeight());
-
-        setPreferredSize(pixelDimension);
-        if (myTerminalPanelListener != null) {
-          myTerminalPanelListener.onPanelResize(pixelDimension, origin);
-        }
-        SwingUtilities.invokeLater(() -> updateScrolling(true));
       } finally {
         myTerminalTextBuffer.unlock();
       }
+
+      myTermSize = (Dimension) newSize.clone();
+
+      final Dimension pixelDimension = new Dimension(getPixelWidth(), getPixelHeight());
+
+      setPreferredSize(pixelDimension);
+      if (myTerminalPanelListener != null) {
+        myTerminalPanelListener.onPanelResize(pixelDimension, origin);
+      }
+      SwingUtilities.invokeLater(() -> updateScrolling(true));
     }
 
     return new Dimension(getPixelWidth(), getPixelHeight());

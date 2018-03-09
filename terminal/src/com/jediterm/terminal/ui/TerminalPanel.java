@@ -196,13 +196,13 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       }
     });
 
-    addMouseWheelListener(new MouseWheelListener() {
-      @Override
-      public void mouseWheelMoved(MouseWheelEvent e) {
-        if (isLocalMouseAction(e)) {
-          int notches = e.getWheelRotation();
-          moveScrollBar(notches);
+    addMouseWheelListener(e -> {
+      if (isLocalMouseAction(e)) {
+        int notches = e.getWheelRotation();
+        if (Math.abs(e.getPreciseWheelRotation()) < 0.01) {
+          notches = 0;
         }
+        moveScrollBar(notches);
       }
     });
 
@@ -790,15 +790,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         Pair<Character, TextStyle> sc = myTerminalTextBuffer.getStyledCharAt(cursorX, cursorY);
         String cursorChar = "" + sc.first;
         if (Character.isHighSurrogate(sc.first)) {
-          cursorChar += myTerminalTextBuffer.getStyledCharAt(cursorX+1, cursorY).first;
+          cursorChar += myTerminalTextBuffer.getStyledCharAt(cursorX + 1, cursorY).first;
         }
         TextStyle normalStyle = sc.second != null ? sc.second : myStyleState.getCurrent();
         TextStyle selectionStyle = getSelectionStyle(normalStyle);
         boolean inSelection = inSelection(cursorX, cursorY);
         myCursor.drawCursor(cursorChar, gfx, inSelection ? selectionStyle : normalStyle);
       }
-    }
-    finally {
+    } finally {
       myTerminalTextBuffer.unlock();
     }
 
@@ -1064,7 +1063,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             int xCoord = x * myCharSize.width;
             int yCoord = y * myCharSize.height;
             gfx.setColor(getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun())));
-            gfx.drawRect(xCoord, yCoord, c.length()*myCharSize.width - 1, myCharSize.height - 1);
+            gfx.drawRect(xCoord, yCoord, c.length() * myCharSize.width - 1, myCharSize.height - 1);
           }
         }
       }
@@ -1246,8 +1245,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       if (value == 0) {
         myBoundedRangeModel
                 .setRangeProperties(0, myTermSize.height, -historyLineCount, myTermSize.height, false);
-      }
-      else {
+      } else {
         // if scrolled to a specific area, update scroll to keep showing this area
         myBoundedRangeModel.setRangeProperties(
                 Math.min(Math.max(value + dy, -historyLineCount), myTermSize.height),

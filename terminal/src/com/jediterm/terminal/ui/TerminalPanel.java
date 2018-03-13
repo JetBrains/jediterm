@@ -479,14 +479,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   protected Point panelToCharCoords(final Point p) {
-    int x = Math.min(p.x / myCharSize.width, getColumnCount() - 1);
+    int x = Math.min((p.x - getInsetX()) / myCharSize.width, getColumnCount() - 1);
     x = Math.max(0, x);
     int y = Math.min(p.y / myCharSize.height, getRowCount() - 1) + myClientScrollOrigin;
     return new Point(x, y);
   }
 
   protected Point charToPanelCoords(final Point p) {
-    return new Point(p.x * myCharSize.width, (p.y - myClientScrollOrigin) * myCharSize.height);
+    return new Point(p.x * myCharSize.width + getInsetX(), (p.y - myClientScrollOrigin) * myCharSize.height);
   }
 
   void setUpClipboard() {
@@ -596,7 +596,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private void sizeTerminalFromComponent() {
     if (myTerminalStarter != null) {
-      final int newWidth = getWidth() / myCharSize.width;
+      final int newWidth = (getWidth() - getInsetX()) / myCharSize.width;
       final int newHeight = getHeight() / myCharSize.height;
 
       if (newHeight > 0 && newWidth > 0) {
@@ -831,7 +831,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private void drawInputMethodUncommitedChars(Graphics2D gfx) {
     if (hasUncommittedChars()) {
-      int xCoord = (myCursor.getCoordX() + 1) * myCharSize.width;
+      int xCoord = (myCursor.getCoordX() + 1) * myCharSize.width + getInsetX();
 
       int y = myCursor.getCoordY() + 1;
 
@@ -904,7 +904,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     return myWindowTitle;
   }
 
-  private int getInsetX() {
+  protected int getInsetX() {
     return 4;
   }
 
@@ -1062,7 +1062,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             TextStyle styleToDraw = getInversedStyle(style);
             drawCharacters(x, y, styleToDraw, new CharBuffer(c), gfx);
           } else if (state == TerminalCursorState.NO_FOCUS) {
-            int xCoord = x * myCharSize.width;
+            int xCoord = x * myCharSize.width + getInsetX();
             int yCoord = y * myCharSize.height;
             gfx.setColor(getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun())));
             gfx.drawRect(xCoord, yCoord, c.length() * myCharSize.width - 1, myCharSize.height - 1);
@@ -1625,7 +1625,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private class MyInputMethodRequests implements InputMethodRequests {
     @Override
     public Rectangle getTextLocation(TextHitInfo offset) {
-      Rectangle r = new Rectangle(myCursor.getCoordX() * myCharSize.width, (myCursor.getCoordY() + 1) * myCharSize.height,
+      Rectangle r = new Rectangle(myCursor.getCoordX() * myCharSize.width + getInsetX(), (myCursor.getCoordY() + 1) * myCharSize.height,
               0, 0);
       Point p = TerminalPanel.this.getLocationOnScreen();
       r.translate(p.x, p.y);

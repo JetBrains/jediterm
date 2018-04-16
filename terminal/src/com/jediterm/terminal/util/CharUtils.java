@@ -288,7 +288,6 @@ public class CharUtils {
     return 1 +
             ((ucs >= 0x1100 &&
                     (ucs <= 0x115f ||                    /* Hangul Jamo init. consonants */
-                            isEmoji(ucs) ||
                             ucs == 0x2329 || ucs == 0x232a ||
                             (ucs >= 0x2e80 && ucs <= 0xa4cf &&
                                     ucs != 0x303f) ||                  /* CJK ... Yi */
@@ -300,22 +299,5 @@ public class CharUtils {
                             (ucs >= 0xffe0 && ucs <= 0xffe6) ||
                             (ucs >= 0x20000 && ucs <= 0x2fffd) ||
                             (ucs >= 0x30000 && ucs <= 0x3fffd))) ? 1 : 0);
-  }
-
-  private static boolean isEmoji(int ucs) {
-    // There is still more work to do here in order to support the flags, which use combining characters.
-    Character.UnicodeBlock block = Character.UnicodeBlock.of(ucs);
-    return (block != null) && (
-        block.equals(Character.UnicodeBlock.DINGBATS) ||
-        block.equals(Character.UnicodeBlock.ENCLOSED_ALPHANUMERICS) ||
-        block.equals(Character.UnicodeBlock.ENCLOSED_ALPHANUMERIC_SUPPLEMENT) ||
-        block.equals(Character.UnicodeBlock.MISCELLANEOUS_SYMBOLS) ||
-        block.equals(Character.UnicodeBlock.MISCELLANEOUS_SYMBOLS_AND_ARROWS) ||
-        block.equals(Character.UnicodeBlock.MISCELLANEOUS_SYMBOLS_AND_PICTOGRAPHS) ||
-        block.equals(Character.UnicodeBlock.MISCELLANEOUS_TECHNICAL) ||
-        block.equals(Character.UnicodeBlock.ARROWS) ||
-        block.equals(Character.UnicodeBlock.SUPPLEMENTAL_ARROWS_A) ||
-        block.equals(Character.UnicodeBlock.SUPPLEMENTAL_ARROWS_B)
-    );
   }
 }

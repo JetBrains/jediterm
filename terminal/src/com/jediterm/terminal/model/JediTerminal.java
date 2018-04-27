@@ -1061,12 +1061,6 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
         buf[j] = str[i];
         int codePoint = Character.codePointAt(str, i);
         boolean doubleWidthCharacter = CharUtils.isDoubleWidthCharacter(codePoint, myDisplay.ambiguousCharsAreDoubleWidth());
-        if (Character.charCount(Character.codePointAt(str, i)) == 2) {
-          // Copy the next character too before adding the DWC.
-          i++;
-          j++;
-          buf[j] = str[i];
-        }
         if (doubleWidthCharacter) {
           j++;
           buf[j] = CharUtils.DWC;

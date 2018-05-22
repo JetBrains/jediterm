@@ -1410,18 +1410,35 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     return false;
   }
 
-  private void clearBuffer() {
+  public void clearBuffer() {
+    clearBuffer(true);
+  }
+
+  /**
+   * @param keepLastLine true to keep last line (e.g. to keep terminal prompt)
+   *                     false to clear entire terminal panel (relevant for terminal console)
+   */
+  protected void clearBuffer(boolean keepLastLine) {
     if (!myTerminalTextBuffer.isUsingAlternateBuffer()) {
       myTerminalTextBuffer.clearHistory();
 
-      if (myCoordsAccessor != null && myCoordsAccessor.getY() > 0) {
-        TerminalLine line = myTerminalTextBuffer.getLine(myCoordsAccessor.getY() - 1);
-
-        myTerminalTextBuffer.clearAll();
-
-        myCoordsAccessor.setY(0);
-        myCursor.setY(1);
-        myTerminalTextBuffer.addLine(line);
+      if (myCoordsAccessor != null) {
+        if (keepLastLine) {
+          if (myCoordsAccessor.getY() > 0) {
+            TerminalLine lastLine = myTerminalTextBuffer.getLine(myCoordsAccessor.getY() - 1);
+            myTerminalTextBuffer.clearAll();
+            myCoordsAccessor.setY(0);
+            myCursor.setY(1);
+            myTerminalTextBuffer.addLine(lastLine);
+          }
+        }
+        else {
+          myTerminalTextBuffer.clearAll();
+          myCoordsAccessor.setX(0);
+          myCoordsAccessor.setY(1);
+          myCursor.setX(0);
+          myCursor.setY(1);
+        }
       }
 
       myBoundedRangeModel.setValue(0);

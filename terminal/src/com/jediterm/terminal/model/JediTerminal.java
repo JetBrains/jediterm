@@ -11,6 +11,7 @@ import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.swing.*;
 import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.MouseEvent;
@@ -18,8 +19,6 @@ import java.awt.event.MouseWheelEvent;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.*;
-
-import javax.swing.SwingUtilities;
 
 /**
  * Terminal that reflects obtained commands and text at {@link TerminalDisplay}(handles change of cursor position, screen size etc)
@@ -971,14 +970,9 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     myMouseFormat = mouseFormat;
   }
 
-  @Override
-  public void setY(int y) {
-    myCursorY = y;
-    adjustXY(-1);
-  }
-
   private void adjustXY(int dirX) {
-    if (Character.isLowSurrogate(myTerminalTextBuffer.getCharAt(myCursorX, myCursorY - 1))) {
+    if (myCursorY > -myTerminalTextBuffer.getHistoryLinesCount() &&
+        Character.isLowSurrogate(myTerminalTextBuffer.getCharAt(myCursorX, myCursorY - 1))) {
       // we don't want to place cursor on the second part of surrogate pair
       if (dirX > 0) { // so we move it into the predefined direction
         if (myCursorX == myTerminalWidth) { //if it is the last in the line we return where we were
@@ -998,8 +992,20 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   @Override
+  public void setX(int x) {
+    myCursorX = x;
+    adjustXY(-1);
+  }
+
+  @Override
   public int getY() {
     return myCursorY;
+  }
+
+  @Override
+  public void setY(int y) {
+    myCursorY = y;
+    adjustXY(-1);
   }
 
   public void writeString(String s) {

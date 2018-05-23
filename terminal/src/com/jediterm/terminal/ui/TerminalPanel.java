@@ -1519,7 +1519,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             || keycode == KeyEvent.VK_LEFT
             || keycode == KeyEvent.VK_RIGHT
             || keycode == KeyEvent.VK_BACK_SPACE
-            || keycode == KeyEvent.VK_DELETE;
+            || keycode == KeyEvent.VK_DELETE
+            || keycode == KeyEvent.VK_ENTER;
   }
 
   private void processTerminalKeyTyped(KeyEvent e) {

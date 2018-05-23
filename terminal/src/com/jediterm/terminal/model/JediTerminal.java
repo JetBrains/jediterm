@@ -1028,6 +1028,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
         myTerminalHeight = termHeight;
         myCursorY = cursorY;
         myCursorX = Math.min(myCursorX, myTerminalWidth - 1);
+        myDisplay.setCursor(myCursorX, myCursorY);
 
         myTabulator.resize(myTerminalWidth);
       }

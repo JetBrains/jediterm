@@ -269,6 +269,12 @@ public class TerminalLine {
     return true;
   }
 
+  public void runWithLock(Runnable r) {
+    synchronized (this) {
+      r.run();
+    }
+  }
+
   static class TextEntry {
     private final TextStyle myStyle;
     private final CharBuffer myText;

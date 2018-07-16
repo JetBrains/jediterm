@@ -1,23 +1,37 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
+    }
+}
+
+apply plugin: 'java'
+
+def projectVersion = new File(rootProject.projectDir, 'VERSION').text
+
+ext.projectVersion = projectVersion
+
+if (System.getenv('BINTRAY_USER') == null) {
+    ext.projectVersion = ext.projectVersion + '-SNAPSHOT'
+}
+
+
 allprojects {
-    version = new File(rootProject.projectDir, 'VERSION').text
+    version = projectVersion
 
     buildDir = new File(rootProject.projectDir, ".gradleBuild/" + project.name)
 }
 
 subprojects {
     repositories {
+        mavenCentral()
+    }
+
+    repositories {
         flatDir dirs: ['../lib', 'libs']
     }
 }
-
-
-//task jediterm_libs(type: Copy, dependsOn: ':pty:ptyJar') {
-//    inputs.file project(':pty').getTasksByName('ptyJar').archivePath
-//    from project(':pty').tasks.getByName('ptyJar').archivePath
-//    include('*.jar')
-//    from project(':ssh').jar.archivePath
-//    into "$projectDir/build"
-//}
-
 
 

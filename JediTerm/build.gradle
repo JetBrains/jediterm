@@ -9,8 +9,8 @@ buildscript {
 }
 
 plugins {
-    id "edu.sc.seis.macAppBundle" version "2.1.6"
-    id 'edu.sc.seis.launch4j' version '1.6.2'
+    id "edu.sc.seis.macAppBundle" version "2.2.1"
+    id 'edu.sc.seis.launch4j' version '2.4.4'
 }
 
 apply plugin: 'application'

@@ -14,7 +14,7 @@ public interface TerminalWidget {
 
   JComponent getComponent();
 
-  default Component getPreferredFocusableComponent() {
+  default JComponent getPreferredFocusableComponent() {
     return getComponent();
   }
 

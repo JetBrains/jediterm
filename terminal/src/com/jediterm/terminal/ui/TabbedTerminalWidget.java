@@ -515,12 +515,12 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     return myPanel;
   }
 
-  public Component getFocusableComponent() {
+  public JComponent getFocusableComponent() {
     return myTabs != null ? myTabs.getComponent() : myTermWidget != null ? myTermWidget : this;
   }
 
   @Override
-  public Component getPreferredFocusableComponent() {
+  public JComponent getPreferredFocusableComponent() {
     return getFocusableComponent();
   }
 

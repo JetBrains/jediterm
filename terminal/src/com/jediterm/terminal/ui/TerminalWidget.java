@@ -14,6 +14,10 @@ public interface TerminalWidget {
 
   JComponent getComponent();
 
+  default JComponent getPreferredFocusableComponent() {
+    return getComponent();
+  }
+
   boolean canOpenSession();
 
   void setTerminalPanelListener(TerminalPanelListener terminalPanelListener);

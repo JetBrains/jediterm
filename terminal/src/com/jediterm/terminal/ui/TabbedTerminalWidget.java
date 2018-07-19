@@ -317,10 +317,6 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     myCreateNewSessionAction.apply(this);
   }
 
-  public Component getFocusableComponent() {
-    return myTabs != null ? myTabs.getComponent() : myTermWidget != null ? myTermWidget : this;
-  }
-
   public static class TabRenamer {
 
     public interface RenameCallBack {
@@ -517,6 +513,15 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   @Override
   public JComponent getComponent() {
     return myPanel;
+  }
+
+  public JComponent getFocusableComponent() {
+    return myTabs != null ? myTabs.getComponent() : myTermWidget != null ? myTermWidget : this;
+  }
+
+  @Override
+  public JComponent getPreferredFocusableComponent() {
+    return getFocusableComponent();
   }
 
   @Override

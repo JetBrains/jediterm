@@ -24,17 +24,21 @@ public class TextProcessing {
   }
 
   public void processHyperlinks(TerminalLine line) {
-    for (HyperlinkFilter filter : myHyperlinkFilter) {
-      LinkResult result = filter.apply(line.getText());
-      if (result != null) {
-        for (LinkResultItem item : result.getItems()) {
-          TextStyle style = new HyperlinkStyle(myHyperlinkColor.getForeground(), myHyperlinkColor.getBackground(), item.getLinkInfo()).withHighlightMode(myHighlightMode);
-          if (item.getStartOffset()>=0 && item.getEndOffset()<=line.getText().length()) {
-            line.writeString(item.getStartOffset(), new CharBuffer(line.getText().substring(item.getStartOffset(), item.getEndOffset())), style);
+    if (myHyperlinkFilter.isEmpty()) return;
+    line.runWithLock(() -> {
+      String lineStr = line.getText();
+      for (HyperlinkFilter filter : myHyperlinkFilter) {
+        LinkResult result = filter.apply(lineStr);
+        if (result != null) {
+          for (LinkResultItem item : result.getItems()) {
+            TextStyle style = new HyperlinkStyle(myHyperlinkColor.getForeground(), myHyperlinkColor.getBackground(), item.getLinkInfo()).withHighlightMode(myHighlightMode);
+            if (item.getStartOffset() >= 0 && item.getEndOffset() <= lineStr.length()) {
+              line.writeString(item.getStartOffset(), new CharBuffer(lineStr.substring(item.getStartOffset(), item.getEndOffset())), style);
+            }
           }
         }
       }
-    }
+    });
   }
 
   public void addHyperlinkFilter(@NotNull HyperlinkFilter filter) {

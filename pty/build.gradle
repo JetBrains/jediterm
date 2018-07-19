@@ -38,11 +38,19 @@ task mainJar(type: Jar) {
     manifest {
         attributes 'Main-Class': mainClassName
     }
+    from sourceSets.main.output
 }
 
+jar {
+    baseName = "jediterm-pty"
+
+    manifest {
+        attributes 'Main-Class': mainClassName
+    }
+    from sourceSets.main.output
+}
 
 task sourcesJar(type: Jar, dependsOn: classes) {
-    classifier = 'sources'
     baseName "jediterm-pty"
     classifier "src"
     from sourceSets.main.allSource
@@ -102,9 +110,9 @@ if (System.getenv('BINTRAY_USER') != null) {
 
 
         pkg {
-            repo = 'generic'
+            repo = 'jediterm'
             name = 'org.jetbrains:jediterm'
-            userOrg = 'dtraff'
+            userOrg = 'jetbrains'
             licenses = ['LGPL-3.0']
             vcsUrl = 'https://github.com/JetBrains/jediterm.git'
 

@@ -79,6 +79,8 @@ public interface Terminal {
 
   void cursorBackward(int dX);
 
+  void cursorShape(CursorShape shape);
+
   void eraseInLine(int arg);
 
   void deleteCharacters(int count);

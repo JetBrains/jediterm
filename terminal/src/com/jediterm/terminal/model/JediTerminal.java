@@ -593,6 +593,11 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   @Override
+  public void cursorShape(CursorShape shape) {
+    myDisplay.setCursorShape(shape);
+  }
+
+  @Override
   public void cursorHorizontalAbsolute(int x) {
     cursorPosition(x, myCursorY);
   }

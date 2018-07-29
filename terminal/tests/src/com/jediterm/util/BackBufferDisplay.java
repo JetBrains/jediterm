@@ -1,5 +1,6 @@
 package com.jediterm.util;
 
+import com.jediterm.terminal.CursorShape;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TerminalDisplay;
 import com.jediterm.terminal.model.TerminalTextBuffer;
@@ -32,6 +33,10 @@ public class BackBufferDisplay implements TerminalDisplay {
 
   @Override
   public void setCursor(int x, int y) {
+  }
+
+  @Override
+  public void setCursorShape(CursorShape shape) {
   }
 
   @Override

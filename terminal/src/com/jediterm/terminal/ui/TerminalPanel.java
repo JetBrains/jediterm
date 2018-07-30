@@ -970,6 +970,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     // cursor state
     private boolean myCursorIsShown; // blinking state
     protected Point myCursorCoordinates = new Point();
+    private CursorShape shape = CursorShape.BLINK_BLOCK;
 
     // terminal modes
     private boolean myShouldDrawCursor = true;
@@ -1048,27 +1049,62 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
       return computeBlinkingState();
     }
 
-    public void drawCursor(String c, Graphics2D gfx, TextStyle style) {
+    void drawCursor(String c, Graphics2D gfx, TextStyle style) {
       TerminalCursorState state = computeCursorState();
 
       // hidden: do nothing
       if (state == TerminalCursorState.HIDDEN) {
         return;
-      } else {
-        final int x = getCoordX();
-        final int y = getCoordY();
-        if (y >= 0 && y < myTermSize.height) {
-          if (state == TerminalCursorState.SHOWING) {
-            TextStyle styleToDraw = getInversedStyle(style);
-            drawCharacters(x, y, styleToDraw, new CharBuffer(c), gfx);
-          } else if (state == TerminalCursorState.NO_FOCUS) {
-            int xCoord = x * myCharSize.width + getInsetX();
-            int yCoord = y * myCharSize.height;
-            gfx.setColor(getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun())));
-            gfx.drawRect(xCoord, yCoord, c.length() * myCharSize.width - 1, myCharSize.height - 1);
-          }
-        }
       }
+
+      final int x = getCoordX();
+      final int y = getCoordY();
+      // Outside bounds of window: do nothing
+      if (y < 0 || y >= myTermSize.height) {
+        return;
+      }
+
+      CharBuffer buf = new CharBuffer(c);
+      int xCoord = x * myCharSize.width + getInsetX();
+      int yCoord = y * myCharSize.height;
+      int textLength = CharUtils.getTextLengthDoubleWidthAware(buf.getBuf(), buf.getStart(), buf.length(), mySettingsProvider.ambiguousCharsAreDoubleWidth());
+      int height = Math.min(myCharSize.height, getHeight() - yCoord);
+      int width = Math.min(textLength * TerminalPanel.this.myCharSize.width, TerminalPanel.this.getWidth() - xCoord);
+      int lineStrokeSize = 2;
+
+      Color fgColor = getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun()));
+      TextStyle inversedStyle = getInversedStyle(style);
+      Color inverseBg = getPalette().getColor(myStyleState.getBackground(inversedStyle.getBackgroundForRun()));
+
+      switch (shape) {
+        case BLINK_BLOCK:
+        case STEADY_BLOCK:
+          if (state == TerminalCursorState.SHOWING) {
+            gfx.setColor(inverseBg);
+            gfx.fillRect(xCoord, yCoord, width, height);
+            drawCharacters(x, y, inversedStyle, buf, gfx);
+          } else {
+            gfx.setColor(fgColor);
+            gfx.drawRect(xCoord, yCoord, width, height);
+          }
+          break;
+
+        case BLINK_UNDERLINE:
+        case STEADY_UNDERLINE:
+          gfx.setColor(fgColor);
+          gfx.fillRect(xCoord, yCoord + height, width, lineStrokeSize);
+          break;
+
+        case BLINK_VERTICAL_BAR:
+        case STEADY_VERTICAL_BAR:
+          gfx.setColor(fgColor);
+          gfx.fillRect(xCoord, yCoord, lineStrokeSize, height);
+          break;
+      }
+    }
+
+    void setShape(CursorShape shape) {
+      this.shape = shape;
     }
   }
 
@@ -1105,11 +1141,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
 
     int textLength = CharUtils.getTextLengthDoubleWidthAware(buf.getBuf(), buf.getStart(), buf.length(), mySettingsProvider.ambiguousCharsAreDoubleWidth());
-    int height = Math.min(myCharSize.height, getHeight() - yCoord);
-    int width = Math.min(textLength * TerminalPanel.this.myCharSize.width, TerminalPanel.this.getWidth() - xCoord);
 
     if (style instanceof HyperlinkStyle) {
-      Rectangle rectangle = new Rectangle(xCoord, yCoord, width, height);
       HyperlinkStyle hyperlinkStyle = (HyperlinkStyle) style;
 
       if (hyperlinkStyle.getHighlightMode() == HyperlinkStyle.HighlightMode.ALWAYS || (isHoveredHyperlink(hyperlinkStyle) && hyperlinkStyle.getHighlightMode() == HyperlinkStyle.HighlightMode.HOVER)) {
@@ -1118,16 +1151,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         style = hyperlinkStyle.getHighlightStyle();
       }
     }
-
-    Color backgroundColor = getPalette().getColor(myStyleState.getBackground(style.getBackgroundForRun()));
-
-    gfx.setColor(backgroundColor);
-
-
-    gfx.fillRect(xCoord,
-            yCoord,
-            width,
-            height);
 
     if (buf.isNul()) {
       return; // nothing more to do
@@ -1263,6 +1286,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   public void setCursor(final int x, final int y) {
     myCursor.setX(x);
     myCursor.setY(y);
+  }
+
+  @Override
+  public void setCursorShape(CursorShape shape) {
+    myCursor.setShape(shape);
   }
 
   public void beep() {

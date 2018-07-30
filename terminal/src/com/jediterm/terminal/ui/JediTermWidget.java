@@ -23,6 +23,9 @@ import javax.swing.plaf.basic.BasicScrollBarUI;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -45,6 +48,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   private TerminalActionProvider myNextActionProvider;
   private JLayeredPane myInnerPanel;
   private final TextProcessing myTextProcessing;
+  private final List<TerminalWidgetListener> myListeners = new CopyOnWriteArrayList<>();
 
   public JediTermWidget(@NotNull SettingsProvider settingsProvider) {
     this(80, 24, settingsProvider);
@@ -214,6 +218,12 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   @Override
   public TerminalSession createTerminalSession(TtyConnector ttyConnector) {
     setTtyConnector(ttyConnector);
+    new TtyConnectorWaitFor(ttyConnector, Executors.newSingleThreadExecutor()).setTerminationCallback(x -> {
+      for (TerminalWidgetListener listener : myListeners) {
+        listener.allSessionsClosed(this);
+      }
+      return true;
+    });
     return this;
   }
 
@@ -367,6 +377,9 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
         } catch (Exception e) {
         }
         mySessionRunning.set(false);
+        TerminalPanelListener terminalPanelListener = myTerminalPanel.getTerminalPanelListener();
+        if (terminalPanelListener != null)
+          terminalPanelListener.onSessionChanged(getCurrentSession());
         myTerminalPanel.setKeyListener(myPreConnectHandler);
       }
     }
@@ -629,5 +642,15 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   public void addHyperlinkFilter(HyperlinkFilter filter) {
     myTextProcessing.addHyperlinkFilter(filter);
+  }
+
+  @Override
+  public void addListener(TerminalWidgetListener listener) {
+    myListeners.add(listener);
+  }
+
+  @Override
+  public void removeListener(TerminalWidgetListener listener) {
+    myListeners.remove(listener);
   }
 }

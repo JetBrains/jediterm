@@ -293,7 +293,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   }
 
   /**
-   * This method is used to handle unknown sequences. Can be overriden.
+   * This method is used to handle unknown sequences. Can be overridden.
    *
    * @param sequenceChars are the characters of the unhandled sequence following the ESC character
    *                      (first ESC is excluded from the sequenceChars)
@@ -399,6 +399,8 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         return characterAttributes(args); //Character Attributes (SGR)
       case 'n':
         return deviceStatusReport(args); //DSR
+      case 'q':
+        return cursorShape(args); //DECSCUSR
       case 'r':
         if (args.startsWithQuestionMark()) {
           return restoreDecPrivateModeValues(args); //
@@ -614,6 +616,33 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     } else {
       LOG.error("Sending Device Report Status : unsupported parameter: " + args.toString());
       return false;
+    }
+  }
+
+  private boolean cursorShape(ControlSequence args) {
+    myTerminal.cursorBackward(1);
+    switch (args.getArg(0, 0)) {
+      case 1:
+        myTerminal.cursorShape(CursorShape.BLINK_BLOCK);
+        return true;
+      case 2:
+        myTerminal.cursorShape(CursorShape.STEADY_BLOCK);
+        return true;
+      case 3:
+        myTerminal.cursorShape(CursorShape.BLINK_UNDERLINE);
+        return true;
+      case 4:
+        myTerminal.cursorShape(CursorShape.STEADY_UNDERLINE);
+        return true;
+      case 5:
+        myTerminal.cursorShape(CursorShape.BLINK_VERTICAL_BAR);
+        return true;
+      case 6:
+        myTerminal.cursorShape(CursorShape.STEADY_VERTICAL_BAR);
+        return true;
+      default:
+        LOG.error("Setting cursor shape : unsupported parameter " + args.toString());
+        return false;
     }
   }
 

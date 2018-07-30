@@ -14,6 +14,8 @@ public interface TerminalDisplay {
 
   void setCursor(int x, int y);
 
+  void setCursorShape(CursorShape shape);
+
   void beep();
 
   Dimension requestResize(Dimension pendingResize, RequestOrigin origin, int cursorY, JediTerminal.ResizeHandler resizeHandler);

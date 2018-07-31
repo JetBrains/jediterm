@@ -217,13 +217,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   @Override
   public TerminalSession createTerminalSession(TtyConnector ttyConnector) {
-    setTtyConnector(ttyConnector);
-    new TtyConnectorWaitFor(ttyConnector, Executors.newSingleThreadExecutor()).setTerminationCallback(x -> {
-      for (TerminalWidgetListener listener : myListeners) {
-        listener.allSessionsClosed(this);
-      }
-      return true;
-    });
+    setTtyConnector(ttyConnector);;
     return this;
   }
 
@@ -380,6 +374,9 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
         TerminalPanelListener terminalPanelListener = myTerminalPanel.getTerminalPanelListener();
         if (terminalPanelListener != null)
           terminalPanelListener.onSessionChanged(getCurrentSession());
+        for (TerminalWidgetListener listener : myListeners) {
+          listener.allSessionsClosed(JediTermWidget.this);
+        }
         myTerminalPanel.setKeyListener(myPreConnectHandler);
       }
     }

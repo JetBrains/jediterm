@@ -217,7 +217,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   @Override
   public TerminalSession createTerminalSession(TtyConnector ttyConnector) {
-    setTtyConnector(ttyConnector);;
+    setTtyConnector(ttyConnector);
     return this;
   }
 

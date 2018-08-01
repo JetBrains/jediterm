@@ -122,6 +122,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     });
   }
 
+  public TerminalPanelListener getTerminalPanelListener() {
+    return myTerminalPanelListener;
+  }
+
   @Override
   public void repaint() {
     needRepaint.set(true);
@@ -643,8 +647,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     return new Dimension(getPixelWidth(), getPixelHeight());
   }
 
-  public void setTerminalPanelListener(final TerminalPanelListener resizeDelegate) {
-    myTerminalPanelListener = resizeDelegate;
+  public void setTerminalPanelListener(final TerminalPanelListener terminalPanelListener) {
+    myTerminalPanelListener = terminalPanelListener;
   }
 
   private void establishFontMetrics() {

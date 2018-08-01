@@ -1,20 +1,20 @@
 package com.jediterm.pty;
 
-import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.jediterm.pty.process.monitor.ProcessMonitor;
 import com.jediterm.terminal.LoggingTtyConnector;
 import com.jediterm.terminal.TtyConnector;
-import com.jediterm.terminal.emulator.ColorPalette;
-import com.jediterm.terminal.ui.AbstractTerminalFrame;
-import com.jediterm.terminal.ui.UIUtil;
+import com.jediterm.terminal.ui.*;
+import com.jediterm.terminal.ui.settings.DefaultTabbedSettingsProvider;
+import com.jediterm.terminal.ui.settings.TabbedSettingsProvider;
 import com.pty4j.PtyProcess;
-import com.sun.jna.Platform;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
@@ -44,6 +44,17 @@ public class PtyMain extends AbstractTerminalFrame {
     } catch (Exception e) {
       throw new IllegalStateException(e);
     }
+  }
+
+  @NotNull
+  @Override
+  protected TabbedTerminalWidget createTabbedTerminalWidget() {
+    TabbedTerminalWidget widget = new TabbedTerminalWidget(new DefaultTabbedSettingsProvider(), terminalWidget -> {
+      openSession(terminalWidget);
+      return true;
+    });
+    widget.setTabChangeListener(new PtyTabChangeListener());
+    return widget;
   }
 
   public static void main(final String[] arg) {

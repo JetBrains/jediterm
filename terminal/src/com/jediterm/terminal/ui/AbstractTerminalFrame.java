@@ -132,7 +132,6 @@ public abstract class AbstractTerminalFrame {
 
   protected AbstractTerminalFrame() {
     myTerminal = createTabbedTerminalWidget();
-
     final JFrame frame = new JFrame("JediTerm");
 
     frame.addWindowListener(new WindowAdapter() {

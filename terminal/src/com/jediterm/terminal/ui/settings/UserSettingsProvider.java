@@ -54,4 +54,6 @@ public interface UserSettingsProvider {
   boolean altSendsEscape();
 
   boolean ambiguousCharsAreDoubleWidth();
+
+  boolean showProcessNameInTabTitle();
 }

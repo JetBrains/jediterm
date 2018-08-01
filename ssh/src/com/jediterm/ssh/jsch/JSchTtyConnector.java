@@ -216,4 +216,10 @@ public abstract class JSchTtyConnector<T extends Channel> implements TtyConnecto
     return channel != null && channel.getExitStatus() < 0 && channel.isConnected();
   }
 
+  @Override
+  public int getTtyPid() {
+    // TODO: Do some more research if it's possible to get pid of remote shell.
+    // Returning -1 for now. ProcessCache won't add pids that are equal to -1.
+    return -1;
+  }
 }

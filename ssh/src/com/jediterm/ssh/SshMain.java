@@ -5,6 +5,7 @@ import com.jediterm.ssh.jsch.JSchTtyConnector;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.ui.AbstractTerminalFrame;
 
+import com.jediterm.terminal.ui.TabChangeListener;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -24,5 +25,4 @@ public class SshMain extends AbstractTerminalFrame {
   public TtyConnector createTtyConnector() {
     return new JSchShellTtyConnector();
   }
-
 }

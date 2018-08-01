@@ -24,4 +24,6 @@ public interface TtyConnector {
   void write(String string) throws IOException;
 
   int waitFor() throws InterruptedException;
+
+  int getTtyPid();
 }

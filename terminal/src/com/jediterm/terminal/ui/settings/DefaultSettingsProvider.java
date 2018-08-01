@@ -195,4 +195,9 @@ public class DefaultSettingsProvider implements SettingsProvider {
   public boolean ambiguousCharsAreDoubleWidth() {
     return false;
   }
+
+  @Override
+  public boolean showProcessNameInTabTitle() {
+    return true;
+  }
 }

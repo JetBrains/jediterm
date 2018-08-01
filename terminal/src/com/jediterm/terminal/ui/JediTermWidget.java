@@ -45,6 +45,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   private TerminalActionProvider myNextActionProvider;
   private JLayeredPane myInnerPanel;
   private final TextProcessing myTextProcessing;
+  private TabChangeListener myTabChangeListener;
 
   public JediTermWidget(@NotNull SettingsProvider settingsProvider) {
     this(80, 24, settingsProvider);
@@ -629,5 +630,10 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   public void addHyperlinkFilter(HyperlinkFilter filter) {
     myTextProcessing.addHyperlinkFilter(filter);
+  }
+
+  @Override
+  public void setTabChangeListener(TabChangeListener tabChangeListener) {
+    myTabChangeListener = tabChangeListener;
   }
 }

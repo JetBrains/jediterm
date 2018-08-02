@@ -413,7 +413,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
       myTextField.setPreferredSize(new Dimension(
               myTerminalPanel.myCharSize.width * 30,
-              myTerminalPanel.myCharSize.height + 3));
+              myTerminalPanel.myLineHeight + 3));
       myTextField.setEditable(true);
 
       updateLabel(null);

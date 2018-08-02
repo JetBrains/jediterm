@@ -51,6 +51,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private Font myBoldFont;
   private Font myBoldItalicFont;
   private int myDescent = 0;
+  protected int myLineHeight = 0;
   protected Dimension myCharSize = new Dimension();
   private boolean myMonospaced;
   protected Dimension myTermSize = new Dimension(80, 24);
@@ -485,12 +486,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   protected Point panelToCharCoords(final Point p) {
     int x = Math.min((p.x - getInsetX()) / myCharSize.width, getColumnCount() - 1);
     x = Math.max(0, x);
-    int y = Math.min(p.y / myCharSize.height, getRowCount() - 1) + myClientScrollOrigin;
+    int y = Math.min(p.y / myLineHeight, getRowCount() - 1) + myClientScrollOrigin;
     return new Point(x, y);
   }
 
   protected Point charToPanelCoords(final Point p) {
-    return new Point(p.x * myCharSize.width + getInsetX(), (p.y - myClientScrollOrigin) * myCharSize.height);
+    return new Point(p.x * myCharSize.width + getInsetX(), (p.y - myClientScrollOrigin) * myLineHeight);
   }
 
   void setUpClipboard() {
@@ -601,7 +602,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private void sizeTerminalFromComponent() {
     if (myTerminalStarter != null) {
       final int newWidth = (getWidth() - getInsetX()) / myCharSize.width;
-      final int newHeight = getHeight() / myCharSize.height;
+      final int newHeight = getHeight() / myLineHeight;
 
       if (newHeight > 0 && newWidth > 0) {
         final Dimension newSize = new Dimension(newWidth, newHeight);
@@ -661,10 +662,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     myDescent = fo.getDescent();
     myCharSize.width = fo.charWidth('W');
-    // The magic +2 here is to give lines a tiny bit of extra height to avoid clipping when rendering some Apple
-    // emoji, which are slightly higher than the font metrics reported character height :(
-    myCharSize.height = fo.getHeight() + (int) (lineSpace * 2) + 2;
-    myDescent += lineSpace;
+    myCharSize.height = fo.getAscent() + fo.getDescent();
+    myLineHeight = lineSpace > 0 ? (int)Math.round(Math.ceil(myCharSize.height * lineSpace)) : myCharSize.height;
+    myDescent += (myLineHeight - myCharSize.height) / 2;
 
     myMonospaced = isMonospaced(fo);
     if (!myMonospaced) {
@@ -839,12 +839,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
       int y = myCursor.getCoordY() + 1;
 
-      int yCoord = y * myCharSize.height - 3;
+      int yCoord = y * myLineHeight - 3;
 
       int len = (myInputMethodUncommittedChars.length()) * myCharSize.width;
 
       gfx.setColor(getBackground());
-      gfx.fillRect(xCoord, (y - 1) * myCharSize.height - 3, len, myCharSize.height);
+      gfx.fillRect(xCoord, (y - 1) * myLineHeight - 3, len, myLineHeight);
 
       gfx.setColor(getForeground());
       gfx.setFont(myNormalFont);
@@ -893,7 +893,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   public int getPixelHeight() {
-    return myCharSize.height * myTermSize.height;
+    return myLineHeight * myTermSize.height;
   }
 
   public int getColumnCount() {
@@ -1067,9 +1067,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             drawCharacters(x, y, styleToDraw, new CharBuffer(c), gfx);
           } else if (state == TerminalCursorState.NO_FOCUS) {
             int xCoord = x * myCharSize.width + getInsetX();
-            int yCoord = y * myCharSize.height;
+            int yCoord = y * myLineHeight;
             gfx.setColor(getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun())));
-            gfx.drawRect(xCoord, yCoord, c.length() * myCharSize.width - 1, myCharSize.height - 1);
+            gfx.drawRect(xCoord, yCoord, c.length() * myCharSize.width - 1, myLineHeight - 1);
           }
         }
       }
@@ -1102,14 +1102,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private void drawCharacters(int x, int y, TextStyle style, CharBuffer buf, Graphics2D gfx) {
     int xCoord = x * myCharSize.width + getInsetX();
-    int yCoord = y * myCharSize.height;
+    int yCoord = y * myLineHeight;
 
     if (xCoord < 0 || xCoord > getWidth() || yCoord < 0 || yCoord > getHeight()) {
       return;
     }
 
     int textLength = CharUtils.getTextLengthDoubleWidthAware(buf.getBuf(), buf.getStart(), buf.length(), mySettingsProvider.ambiguousCharsAreDoubleWidth());
-    int height = Math.min(myCharSize.height, getHeight() - yCoord);
+    int height = Math.min(myLineHeight, getHeight() - yCoord);
     int width = Math.min(textLength * TerminalPanel.this.myCharSize.width, TerminalPanel.this.getWidth() - xCoord);
 
     if (style instanceof HyperlinkStyle) {
@@ -1141,7 +1141,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
     gfx.setColor(getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun())));
 
-    int baseLine = (y + 1) * myCharSize.height - myDescent;
+    int baseLine = (y + 1) * myLineHeight - myDescent;
 
     if (style.hasOption(TextStyle.Option.UNDERLINED)) {
       gfx.drawLine(xCoord, baseLine + 3, (x + textLength) * myCharSize.width + getInsetX(), baseLine + 3);
@@ -1190,12 +1190,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
       gfx.setFont(font);
 
-      int descent = gfx.getFontMetrics(font).getDescent();
-      int baseLine = (y + 1) * myCharSize.height - descent;
+      int descent = myDescent;
+      int baseLine = (y + 1) * myLineHeight - descent;
       int xCoord = (x + drawCharsOffset) * myCharSize.width + getInsetX();
       int textLength = CharUtils.getTextLengthDoubleWidthAware(buf.getBuf(), buf.getStart() + offset, blockLen, mySettingsProvider.ambiguousCharsAreDoubleWidth());
 
-      int yCoord = y * myCharSize.height;
+      int yCoord = y * myLineHeight;
 
       gfx.setClip(xCoord,
               yCoord,
@@ -1652,7 +1652,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private class MyInputMethodRequests implements InputMethodRequests {
     @Override
     public Rectangle getTextLocation(TextHitInfo offset) {
-      Rectangle r = new Rectangle(myCursor.getCoordX() * myCharSize.width + getInsetX(), (myCursor.getCoordY() + 1) * myCharSize.height,
+      Rectangle r = new Rectangle(myCursor.getCoordX() * myCharSize.width + getInsetX(), (myCursor.getCoordY() + 1) * myLineHeight,
               0, 0);
       Point p = TerminalPanel.this.getLocationOnScreen();
       r.translate(p.x, p.y);

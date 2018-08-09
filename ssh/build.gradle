@@ -2,10 +2,12 @@ apply plugin: 'java'
 apply plugin: 'application'
 
 sourceSets {
-    main.java.srcDirs 'src', '../terminal/src'
+    main.java.srcDirs 'src'
 }
 
 dependencies {
+    compile project(':terminal')
+
     compile ':log4j:1.2.14'
     compile ':annotations'
     compile ':guava:14.0.1'
@@ -24,5 +26,8 @@ jar {
     manifest {
         attributes 'Main-Class': mainClassName
     }
+
+    from sourceSets.main.output
+    from fileTree(dir: '../terminal/build/classes/main') // find a better way to include classes into jar
 }
 

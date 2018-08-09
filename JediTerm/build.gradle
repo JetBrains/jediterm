@@ -24,11 +24,13 @@ repositories {
 }
 
 sourceSets {
-    main.java.srcDirs += 'src/main/kotlin'
+    main.java.srcDirs += 'src/main/java'
+    main.kotlin.srcDirs += 'src/main/kotlin'
 }
 
 dependencies {
     compile project(':pty')
+
     compile ":eawtstub:"
 
     runtime files('../pty/libs') //TODO: add only suitable libs for each platform

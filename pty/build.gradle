@@ -4,13 +4,15 @@ apply plugin: 'maven-publish'
 apply plugin: 'com.jfrog.bintray'
 
 
-sourceSets.main.java.srcDirs = ['src', '../terminal/src']
+sourceSets.main.java.srcDirs = ['src']
 
 repositories {
     flatDir dirs: ['libs']
 }
 
 dependencies {
+    compile project(':terminal')
+
     compile ':log4j:1.2.14'
     compile ':annotations'
     compile ':guava:14.0.1'
@@ -39,6 +41,8 @@ task mainJar(type: Jar) {
         attributes 'Main-Class': mainClassName
     }
     from sourceSets.main.output
+
+    from fileTree(dir: '../terminal/build/classes/main') // find a better way to include classes into jar
 }
 
 jar {

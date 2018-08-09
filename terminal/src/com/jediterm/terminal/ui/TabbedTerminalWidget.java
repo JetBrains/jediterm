@@ -18,6 +18,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 
 /**
@@ -35,6 +36,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   private TabbedSettingsProvider mySettingsProvider;
 
   private List<TabListener> myTabListeners = Lists.newArrayList();
+  private List<TerminalWidgetListener> myWidgetListeners = new CopyOnWriteArrayList<>();
   private TerminalActionProvider myNextActionProvider;
 
   private final Predicate<TerminalWidget> myCreateNewSessionAction;
@@ -97,6 +99,11 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
       public boolean apply(Integer integer) {
         if (mySettingsProvider.shouldCloseTabOnLogout(ttyConnector)) {
           closeTab(widget);
+          if (myTabs.getTabCount() == 0) {
+            for (TerminalWidgetListener widgetListener : myWidgetListeners) {
+              widgetListener.allSessionsClosed(widget);
+            }
+          }
         }
         return true;
       }
@@ -583,5 +590,15 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
 
   public interface TabListener {
     void tabClosed(JediTermWidget terminal);
+  }
+
+  @Override
+  public void addListener(TerminalWidgetListener listener) {
+    myWidgetListeners.add(listener);
+  }
+
+  @Override
+  public void removeListener(TerminalWidgetListener listener) {
+    myWidgetListeners.remove(listener);
   }
 }

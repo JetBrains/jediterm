@@ -5,7 +5,7 @@
       <configuration version="3" platform="JVM 1.6" useProjectSettings="false">
         <compilerSettings />
         <compilerArguments>
-          <option name="destination" value="$MODULE_DIR$/../../../.gradleBuild/jediterm/kotlin-classes/test" />
+          <option name="destination" value="$MODULE_DIR$/../../../.gradleBuild/JediTerm/kotlin-classes/test" />
           <option name="noStdlib" value="true" />
           <option name="noReflect" value="true" />
           <option name="moduleName" value="JediTerm" />
@@ -32,8 +32,19 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="Projects-jediterm_main" />
-    <orderEntry type="module" module-name="Projects-jediterm_main" />
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="file://$MODULE_DIR$/../../../.gradleBuild/JediTerm/classes/main" />
+          <root url="file://$MODULE_DIR$/../../../.gradleBuild/JediTerm/resources/main" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="file://$MODULE_DIR$/../../../src/main/java" />
+          <root url="file://$MODULE_DIR$/../../../src/main/resources" />
+        </SOURCES>
+      </library>
+    </orderEntry>
     <orderEntry type="module" module-name="pty_main" />
     <orderEntry type="library" name="Gradle: :eawtstub:" level="project" />
     <orderEntry type="module-library" scope="RUNTIME">

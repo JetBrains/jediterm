@@ -6,7 +6,7 @@ JediTerm
 [![Build Status](https://travis-ci.org/JetBrains/jediterm.png?branch=master)](https://travis-ci.org/JetBrains/jediterm)
 
 
-The main purpose of the project is to provide a pure Java terminal widget that can be easily embedde 
+The main purpose of the project is to provide a pure Java terminal widget that can be easily embedded 
 into an IDE.
 It supports terminal sessions both for SSH connections and local PTY on Mac OSX, Linux and Windows.
 

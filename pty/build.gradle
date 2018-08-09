@@ -42,7 +42,7 @@ task mainJar(type: Jar) {
     }
     from sourceSets.main.output
 
-    from fileTree(dir: '../terminal/build/classes/main') // find a better way to include classes into jar
+    from fileTree(dir: '../.gradleBuild/terminal/classes/java/main') // find a better way to include classes into jar
 }
 
 jar {

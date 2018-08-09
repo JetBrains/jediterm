@@ -5,7 +5,7 @@
       <configuration version="3" platform="JVM 1.6" useProjectSettings="false">
         <compilerSettings />
         <compilerArguments>
-          <option name="destination" value="$MODULE_DIR$/../../../.gradleBuild/jediterm/kotlin-classes/main" />
+          <option name="destination" value="$MODULE_DIR$/../../../.gradleBuild/JediTerm/kotlin-classes/main" />
           <option name="noStdlib" value="true" />
           <option name="noReflect" value="true" />
           <option name="moduleName" value="JediTerm" />

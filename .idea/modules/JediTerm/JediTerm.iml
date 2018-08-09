@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<module external.linked.project.id=":JediTerm" external.linked.project.path="$MODULE_DIR$/../../../JediTerm" external.root.project.path="$MODULE_DIR$/../../.." external.system.id="GRADLE" external.system.module.group="jediterm" external.system.module.version="2.5" type="JAVA_MODULE" version="4">
+<module external.linked.project.id=":JediTerm" external.linked.project.path="$MODULE_DIR$/../../../JediTerm" external.root.project.path="$MODULE_DIR$/../../.." external.system.id="GRADLE" external.system.module.group="jediterm" external.system.module.version="2.10" type="JAVA_MODULE" version="4">
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
     <content url="file://$MODULE_DIR$/../../../JediTerm">
       <excludeFolder url="file://$MODULE_DIR$/../../../JediTerm/.gradle" />
+      <excludeFolder url="file://$MODULE_DIR$/../../../JediTerm/out" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

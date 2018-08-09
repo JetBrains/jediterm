@@ -1,3 +1,4 @@
 out/**
 .gradle
 .gradleBuild
+*/build

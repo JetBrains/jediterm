@@ -1,7 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<module external.linked.project.id=":JediTerm:test" external.linked.project.path="$MODULE_DIR$/../../../JediTerm" external.root.project.path="$MODULE_DIR$/../../.." external.system.id="GRADLE" external.system.module.group="jediterm" external.system.module.type="sourceSet" external.system.module.version="2.5" type="JAVA_MODULE" version="4">
-  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_8" inherit-compiler-output="false">
-    <output-test url="file://$MODULE_DIR$/../../../.gradleBuild/JediTerm/classes/test" />
+<module external.linked.project.id=":JediTerm:test" external.linked.project.path="$MODULE_DIR$/../../../JediTerm" external.root.project.path="$MODULE_DIR$/../../.." external.system.id="GRADLE" external.system.module.group="jediterm" external.system.module.type="sourceSet" external.system.module.version="2.10" type="JAVA_MODULE" version="4">
+  <component name="FacetManager">
+    <facet type="kotlin-language" name="Kotlin">
+      <configuration version="3" platform="JVM 1.6" useProjectSettings="false">
+        <compilerSettings />
+        <compilerArguments>
+          <option name="destination" value="$MODULE_DIR$/../../../.gradleBuild/jediterm/kotlin-classes/test" />
+          <option name="noStdlib" value="true" />
+          <option name="noReflect" value="true" />
+          <option name="moduleName" value="JediTerm" />
+          <option name="addCompilerBuiltIns" value="true" />
+          <option name="languageVersion" value="1.2" />
+          <option name="apiVersion" value="1.2" />
+          <option name="pluginOptions">
+            <array />
+          </option>
+          <option name="pluginClasspaths">
+            <array />
+          </option>
+        </compilerArguments>
+      </configuration>
+    </facet>
+  </component>
+  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_8">
+    <output-test url="file://$MODULE_DIR$/../../../JediTerm/out/test/classes" />
     <exclude-output />
     <content url="file://$MODULE_DIR$/../../../JediTerm/src/test">
       <sourceFolder url="file://$MODULE_DIR$/../../../JediTerm/src/test/java" isTestSource="true" />
@@ -10,10 +32,10 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="JediTerm_main" />
+    <orderEntry type="module" module-name="Projects-jediterm_main" />
+    <orderEntry type="module" module-name="Projects-jediterm_main" />
     <orderEntry type="module" module-name="pty_main" />
     <orderEntry type="library" name="Gradle: :eawtstub:" level="project" />
-    <orderEntry type="library" name="Gradle: org.jetbrains.kotlin:kotlin-stdlib:1.0.3" level="project" />
     <orderEntry type="module-library" scope="RUNTIME">
       <library>
         <CLASSES>
@@ -23,9 +45,11 @@
         <SOURCES />
       </library>
     </orderEntry>
+    <orderEntry type="library" name="Gradle: org.jetbrains.kotlin:kotlin-stdlib:1.2.51" level="project" />
     <orderEntry type="library" name="Gradle: org.jetbrains:annotations:13.0" level="project" />
     <orderEntry type="library" name="Gradle: :trove4j:" level="project" />
     <orderEntry type="library" name="Gradle: :junit:4.10" level="project" />
+    <orderEntry type="module" module-name="terminal_main" />
     <orderEntry type="library" name="Gradle: :log4j:1.2.14" level="project" />
     <orderEntry type="library" name="Gradle: :annotations:" level="project" />
     <orderEntry type="library" name="Gradle: :guava:14.0.1" level="project" />
@@ -33,7 +57,7 @@
     <orderEntry type="library" name="Gradle: :jna-platform:" level="project" />
     <orderEntry type="library" name="Gradle: :pty4j:0.7.2" level="project" />
     <orderEntry type="library" name="Gradle: :purejavacomm-0.0.17:" level="project" />
-    <orderEntry type="library" name="Gradle: org.jetbrains.kotlin:kotlin-runtime:1.0.3" level="project" />
+    <orderEntry type="library" name="Gradle: org.jetbrains.kotlin:kotlin-stdlib-common:1.2.51" level="project" />
   </component>
   <component name="TestModuleProperties" production-module="JediTerm_main" />
 </module>

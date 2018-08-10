@@ -20,18 +20,19 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
 
 /**
  * @author traff
  */
-public class TabbedTerminalWidget extends JPanel implements TerminalWidget, TerminalActionProvider {
+public abstract class AbstractTabbedTerminalWidget<T extends JediTermWidget> extends JPanel implements TerminalWidget, TerminalActionProvider {
   private final Object myLock = new Object();
 
   private TerminalPanelListener myTerminalPanelListener = null;
 
-  private JediTermWidget myTermWidget = null;
+  private T myTermWidget = null;
 
-  private TerminalTabs myTabs;
+  private AbstractTabs<T> myTabs;
 
   private TabbedSettingsProvider mySettingsProvider;
 
@@ -39,11 +40,11 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   private List<TerminalWidgetListener> myWidgetListeners = new CopyOnWriteArrayList<>();
   private TerminalActionProvider myNextActionProvider;
 
-  private final Predicate<TerminalWidget> myCreateNewSessionAction;
+  private final Function<AbstractTabbedTerminalWidget<T>, T> myCreateNewSessionAction;
 
   private JPanel myPanel;
 
-  public TabbedTerminalWidget(@NotNull TabbedSettingsProvider settingsProvider, @NotNull Predicate<TerminalWidget> createNewSessionAction) {
+  public AbstractTabbedTerminalWidget(@NotNull TabbedSettingsProvider settingsProvider, @NotNull Function<AbstractTabbedTerminalWidget<T>, T> createNewSessionAction) {
     super(new BorderLayout());
     mySettingsProvider = settingsProvider;
     myCreateNewSessionAction = createNewSessionAction;
@@ -55,12 +56,29 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   }
 
   @Override
-  public TerminalSession createTerminalSession(final TtyConnector ttyConnector) {
-    final JediTermWidget terminal = createInnerTerminalWidget(mySettingsProvider);
-    terminal.createTerminalSession(ttyConnector);
-    terminal.setNextProvider(this);
+  public T createTerminalSession(final TtyConnector ttyConnector) {
+    final T terminal = createNewTabWidget();
 
+    initSession(ttyConnector, terminal);
+
+    return terminal;
+  }
+
+  public void initSession(TtyConnector ttyConnector, T terminal) {
+    terminal.createTerminalSession(ttyConnector);
+    if (myTabs != null) {
+      int index = myTabs.indexOfComponent(terminal);
+      if (index != -1) {
+        myTabs.setTitleAt(index, generateUniqueName(terminal, myTabs));
+      }
+    }
     setupTtyConnectorWaitFor(ttyConnector, terminal);
+  }
+
+  public T createNewTabWidget() {
+    final T terminal = createInnerTerminalWidget();
+
+    terminal.setNextProvider(this);
 
     if (myTerminalPanelListener != null) {
       terminal.setTerminalPanelListener(myTerminalPanelListener);
@@ -89,34 +107,33 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     return terminal;
   }
 
-  protected JediTermWidget createInnerTerminalWidget(TabbedSettingsProvider settingsProvider) {
-    return new JediTermWidget(settingsProvider);
-  }
+  public abstract T createInnerTerminalWidget();
 
-  protected void setupTtyConnectorWaitFor(final TtyConnector ttyConnector, final JediTermWidget widget) {
-    new TtyConnectorWaitFor(ttyConnector, Executors.newSingleThreadExecutor()).setTerminationCallback(new Predicate<Integer>() {
-      @Override
-      public boolean apply(Integer integer) {
-        if (mySettingsProvider.shouldCloseTabOnLogout(ttyConnector)) {
-          closeTab(widget);
-          if (myTabs.getTabCount() == 0) {
-            for (TerminalWidgetListener widgetListener : myWidgetListeners) {
-              widgetListener.allSessionsClosed(widget);
-            }
+  protected void setupTtyConnectorWaitFor(final TtyConnector ttyConnector, final T widget) {
+    new TtyConnectorWaitFor(ttyConnector, Executors.newSingleThreadExecutor()).setTerminationCallback(integer -> {
+      if (mySettingsProvider.shouldCloseTabOnLogout(ttyConnector)) {
+        closeTab(widget);
+        if (myTabs.getTabCount() == 0) {
+          for (TerminalWidgetListener widgetListener : myWidgetListeners) {
+            widgetListener.allSessionsClosed(widget);
           }
         }
-        return true;
       }
+      return true;
     });
   }
 
-  private void addTab(JediTermWidget terminal, TerminalTabs tabs) {
-    String name = generateUniqueName(mySettingsProvider.tabName(terminal.getTtyConnector(), terminal.getSessionName()), tabs);
+  private void addTab(T terminal, AbstractTabs<T> tabs) {
+    String name = generateUniqueName(terminal, tabs);
 
     addTab(terminal, tabs, name);
   }
 
-  private void addTab(JediTermWidget terminal, TerminalTabs tabs, String name) {
+  private String generateUniqueName(T terminal, AbstractTabs<T> tabs) {
+    return generateUniqueName(mySettingsProvider.tabName(terminal.getTtyConnector(), terminal.getSessionName()), tabs);
+  }
+
+  private void addTab(T terminal, AbstractTabs<T> tabs, String name) {
     tabs.addTab(name,
                 terminal);
 
@@ -124,7 +141,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     tabs.setSelectedComponent(terminal);
   }
 
-  public void addTab(String name, JediTermWidget terminal) {
+  public void addTab(String name, T terminal) {
     if (myTabs == null) {
       myTabs = setupTabs();
     }
@@ -132,7 +149,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     addTab(terminal, myTabs, name);
   }
 
-  private static String generateUniqueName(String suggestedName, TerminalTabs tabs) {
+  private String generateUniqueName(String suggestedName, AbstractTabs<T> tabs) {
     final Set<String> names = Sets.newHashSet();
     for (int i = 0; i < tabs.getTabCount(); i++) {
       names.add(tabs.getTitleAt(i));
@@ -145,8 +162,8 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     return newSdkName;
   }
 
-  private TerminalTabs setupTabs() {
-    final TerminalTabs tabs = createTabbedPane();
+  private AbstractTabs<T> setupTabs() {
+    final AbstractTabs<T> tabs = createTabbedPane();
 
     tabs.addChangeListener(new AbstractTabs.TabChangeListener() {
       @Override
@@ -178,7 +195,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   }
 
   private void onSessionChanged() {
-    JediTermWidget session = getCurrentSession();
+    T session = getCurrentSession();
     if (session != null) {
       if (myTerminalPanelListener != null) {
         myTerminalPanelListener.onSessionChanged(session);
@@ -187,15 +204,13 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     }
   }
 
-  protected TerminalTabs createTabbedPane() {
-    return new TerminalTabsImpl();
-  }
+  protected abstract AbstractTabs<T> createTabbedPane();
 
-  protected Component createTabComponent(TerminalTabs tabs, JediTermWidget terminal) {
+  protected Component createTabComponent(AbstractTabs<T> tabs, T terminal) {
     return new TabComponent(tabs, terminal);
   }
 
-  public void closeTab(final JediTermWidget terminal) {
+  public void closeTab(final T terminal) {
     if (terminal != null) {
       if (myTabs != null && myTabs.indexOfComponent(terminal) != -1) {
           SwingUtilities.invokeLater(new Runnable() {
@@ -213,7 +228,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   }
 
   public void closeCurrentSession() {
-    JediTermWidget session = getCurrentSession();
+    T session = getCurrentSession();
     if (session != null) {
       session.close();
       closeTab(session);
@@ -226,8 +241,8 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     }
   }
 
-  private List<JediTermWidget> getAllTerminalSessions() {
-    List<JediTermWidget> session = Lists.newArrayList();
+  private List<T> getAllTerminalSessions() {
+    List<T> session = Lists.newArrayList();
     if (myTabs != null) {
       for (int i = 0; i < myTabs.getTabCount(); i++) {
         session.add(getTerminalPanel(i));
@@ -241,7 +256,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     return session;
   }
 
-  private void removeTab(JediTermWidget terminal) {
+  public void removeTab(T terminal) {
     synchronized (myLock) {
       if (myTabs != null) {
         myTabs.remove(terminal);
@@ -386,7 +401,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
 
   private class TabComponent extends JPanel implements FocusListener {
 
-    private JediTermWidget myTerminal;
+    private T myTerminal;
 
     private MyLabelHolder myLabelHolder = new MyLabelHolder();
 
@@ -416,7 +431,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
       }
     }
 
-    private TabComponent(final @NotNull TerminalTabs tabs, final JediTermWidget terminal) {
+    private TabComponent(final @NotNull AbstractTabs<T> tabs, final T terminal) {
       super(new FlowLayout(FlowLayout.LEFT, 0, 0));
       myTerminal = terminal;
       setOpaque(false);
@@ -467,7 +482,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     protected JPopupMenu createPopup() {
       JPopupMenu popupMenu = new JPopupMenu();
 
-      TerminalAction.addToMenu(popupMenu, TabbedTerminalWidget.this);
+      TerminalAction.addToMenu(popupMenu, AbstractTabbedTerminalWidget.this);
 
       JMenuItem rename = new JMenuItem("Rename Tab");
 
@@ -513,7 +528,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     }
   }
 
-  public TerminalTabs getTerminalTabs() {
+  public AbstractTabs<T> getTerminalTabs() {
     return myTabs;
   }
 
@@ -550,7 +565,7 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
 
   @Override
   @Nullable
-  public JediTermWidget getCurrentSession() {
+  public T getCurrentSession() {
     if (myTabs != null) {
       return getTerminalPanel(myTabs.getSelectedIndex());
     }
@@ -565,9 +580,9 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   }
 
   @Nullable
-  private JediTermWidget getTerminalPanel(int index) {
+  private T getTerminalPanel(int index) {
     if (index < myTabs.getTabCount() && index >= 0) {
-      return (JediTermWidget) myTabs.getComponentAt(index);
+      return (T) myTabs.getComponentAt(index);
     }
     else {
       return null;
@@ -582,14 +597,14 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
     myTabListeners.remove(listener);
   }
 
-  private void fireTabClosed(JediTermWidget terminal) {
+  private void fireTabClosed(T terminal) {
     for (TabListener l : myTabListeners) {
       l.tabClosed(terminal);
     }
   }
 
-  public interface TabListener {
-    void tabClosed(JediTermWidget terminal);
+  public interface TabListener<T extends JediTermWidget> {
+    void tabClosed(T terminal);
   }
 
   @Override
@@ -600,5 +615,9 @@ public class TabbedTerminalWidget extends JPanel implements TerminalWidget, Term
   @Override
   public void removeListener(TerminalWidgetListener listener) {
     myWidgetListeners.remove(listener);
+  }
+
+  public TabbedSettingsProvider getSettingsProvider() {
+    return mySettingsProvider;
   }
 }

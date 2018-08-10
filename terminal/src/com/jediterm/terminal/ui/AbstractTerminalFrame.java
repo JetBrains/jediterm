@@ -1,6 +1,7 @@
 package com.jediterm.terminal.ui;
 
 import com.jediterm.terminal.RequestOrigin;
+import com.jediterm.terminal.TabbedTerminalWidget;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.debug.BufferPanel;
 import com.jediterm.terminal.model.SelectionUtil;
@@ -10,6 +11,7 @@ import com.jediterm.terminal.util.Pair;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
@@ -117,15 +119,18 @@ public abstract class AbstractTerminalFrame {
     return mb;
   }
 
-  protected void openSession(TerminalWidget terminal) {
+  @Nullable
+  protected JediTermWidget openSession(TerminalWidget terminal) {
     if (terminal.canOpenSession()) {
-      openSession(terminal, createTtyConnector());
+      return openSession(terminal, createTtyConnector());
     }
+    return null;
   }
 
-  public void openSession(TerminalWidget terminal, TtyConnector ttyConnector) {
-    TerminalSession session = terminal.createTerminalSession(ttyConnector);
+  public JediTermWidget openSession(TerminalWidget terminal, TtyConnector ttyConnector) {
+    JediTermWidget session = terminal.createTerminalSession(ttyConnector);
     session.start();
+    return session;
   }
 
   public abstract TtyConnector createTtyConnector();
@@ -176,14 +181,11 @@ public abstract class AbstractTerminalFrame {
   }
 
   @NotNull
-  protected TabbedTerminalWidget createTabbedTerminalWidget() {
-    return new TabbedTerminalWidget(new DefaultTabbedSettingsProvider(), terminalWidget -> {
-      openSession(terminalWidget);
-      return true;
-    }) {
+  protected AbstractTabbedTerminalWidget createTabbedTerminalWidget() {
+    return new TabbedTerminalWidget(new DefaultTabbedSettingsProvider(), this::openSession) {
       @Override
-      protected JediTermWidget createInnerTerminalWidget(TabbedSettingsProvider settingsProvider) {
-        return createTerminalWidget(settingsProvider);
+      public JediTermWidget createInnerTerminalWidget() {
+        return createTerminalWidget(getSettingsProvider());
       }
     };
   }

@@ -11,7 +11,10 @@ import com.intellij.ui.tabs.impl.JBEditorTabs;
 import com.intellij.ui.tabs.impl.JBTabsImpl;
 import com.intellij.ui.tabs.impl.TabLabel;
 import com.intellij.util.ui.UIUtil;
-import com.jediterm.terminal.ui.*;
+import com.jediterm.terminal.ui.AbstractTabbedTerminalWidget;
+import com.jediterm.terminal.ui.AbstractTabs;
+import com.jediterm.terminal.ui.TerminalAction;
+import com.jediterm.terminal.ui.TerminalWidget;
 import com.jediterm.terminal.ui.settings.TabbedSettingsProvider;
 import org.jetbrains.annotations.NotNull;
 
@@ -22,45 +25,39 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.function.Function;
 
 /**
  * @author traff
  */
-public class JediTabbedTerminalWidget extends TabbedTerminalWidget implements Disposable {
+public class JediTabbedTerminalWidget extends AbstractTabbedTerminalWidget<JediTerminalWidget> implements Disposable {
 
   private final TabbedSettingsProvider mySettingsProvider;
   private Disposable myParent;
 
   public JediTabbedTerminalWidget(@NotNull TabbedSettingsProvider settingsProvider,
-                                  final @NotNull Predicate<Pair<TerminalWidget, String>> createNewSessionAction, @NotNull Disposable parent) {
-    super(settingsProvider, new Predicate<TerminalWidget>() {
-      @Override
-      public boolean apply(TerminalWidget input) {
-        return createNewSessionAction.apply(Pair.<TerminalWidget, String>create(input, null));
-      }
-    });
+                                  final @NotNull Function<Pair<TerminalWidget, String>, JediTerminalWidget> createNewSessionAction, @NotNull Disposable parent) {
+    super(settingsProvider, input -> createNewSessionAction.apply(Pair.create(input, null)));
 
     mySettingsProvider = settingsProvider;
     myParent = parent;
 
 
     Disposer.register(parent, this);
-//    Disposer.register(this, settingsProvider);
-
   }
 
 
   @Override
-  protected JediTermWidget createInnerTerminalWidget(TabbedSettingsProvider settingsProvider) {
+  public JediTerminalWidget createInnerTerminalWidget() {
     return new JediTerminalWidget(mySettingsProvider, myParent);
   }
 
   @Override
-  protected TerminalTabs createTabbedPane() {
+  protected JediTerminalTabs createTabbedPane() {
     return new JediTerminalTabs(myParent);
   }
 
-  public class JediTerminalTabs implements TerminalTabs {
+  public class JediTerminalTabs implements AbstractTabs<JediTerminalWidget> {
     private final JBEditorTabs myTabs;
 
     private final CopyOnWriteArraySet<TabChangeListener> myListeners = new CopyOnWriteArraySet<>();
@@ -137,8 +134,8 @@ public class JediTabbedTerminalWidget extends TabbedTerminalWidget implements Di
 
 
     @Override
-    public JediTermWidget getComponentAt(int i) {
-      return (JediTermWidget)getTabAt(i).getComponent();
+    public JediTerminalWidget getComponentAt(int i) {
+      return (JediTerminalWidget)getTabAt(i).getComponent();
     }
 
     @Override
@@ -152,7 +149,7 @@ public class JediTabbedTerminalWidget extends TabbedTerminalWidget implements Di
     }
 
     @Override
-    public void setSelectedComponent(JediTermWidget terminal) {
+    public void setSelectedComponent(JediTerminalWidget terminal) {
       TabInfo info = myTabs.findInfo(terminal);
       if (info != null) {
         myTabs.select(info, true);
@@ -170,11 +167,11 @@ public class JediTabbedTerminalWidget extends TabbedTerminalWidget implements Di
     }
 
     @Override
-    public void addTab(String name, JediTermWidget terminal) {
+    public void addTab(String name, JediTerminalWidget terminal) {
       myTabs.addTab(createTabInfo(name, terminal));
     }
 
-    private TabInfo createTabInfo(String name, JediTermWidget terminal) {
+    private TabInfo createTabInfo(String name, JediTerminalWidget terminal) {
       TabInfo tabInfo = new TabInfo(terminal).setText(name);
       return tabInfo;
     }
@@ -188,7 +185,7 @@ public class JediTabbedTerminalWidget extends TabbedTerminalWidget implements Di
     }
 
     @Override
-    public void remove(JediTermWidget terminal) {
+    public void remove(JediTerminalWidget terminal) {
       TabInfo info = myTabs.findInfo(terminal);
       if (info != null) {
         myTabs.removeTab(info);

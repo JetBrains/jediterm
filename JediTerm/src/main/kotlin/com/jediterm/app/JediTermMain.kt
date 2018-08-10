@@ -11,21 +11,20 @@ import com.intellij.util.EncodingEnvironmentUtil
 import com.jediterm.pty.PtyProcessTtyConnector
 import com.jediterm.terminal.LoggingTtyConnector
 import com.jediterm.terminal.TtyConnector
-import com.jediterm.terminal.model.StyleState
-import com.jediterm.terminal.model.TerminalTextBuffer
-import com.jediterm.terminal.ui.*
+import com.jediterm.terminal.ui.AbstractTerminalFrame
+import com.jediterm.terminal.ui.TerminalWidget
+import com.jediterm.terminal.ui.UIUtil
 import com.jediterm.terminal.ui.settings.DefaultTabbedSettingsProvider
-import com.jediterm.terminal.ui.settings.SettingsProvider
 import com.jediterm.terminal.ui.settings.TabbedSettingsProvider
 import com.pty4j.PtyProcess
 import org.apache.log4j.BasicConfigurator
-import org.apache.log4j.ConsoleAppender
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import java.awt.KeyboardFocusManager
 import java.io.IOException
 import java.nio.charset.Charset
 import java.util.*
+import java.util.function.Function
 
 /**
  * Created by traff on 22/08/16.
@@ -68,14 +67,9 @@ class JediTerm : AbstractTerminalFrame(), Disposable {
         // TODO
     }
 
-    override fun createTabbedTerminalWidget(): TabbedTerminalWidget {
-        return object : JediTabbedTerminalWidget(DefaultTabbedSettingsProvider(), object : Predicate<Pair<TerminalWidget, String>> {
-            override fun apply(pair: Pair<TerminalWidget, String>?): Boolean {
-                openSession(pair?.first)
-                return true
-            }
-        }, this) {
-            override fun createInnerTerminalWidget(settingsProvider: TabbedSettingsProvider): JediTermWidget {
+    override fun createTabbedTerminalWidget(): JediTabbedTerminalWidget {
+        return object : JediTabbedTerminalWidget(DefaultTabbedSettingsProvider(), Function<Pair<TerminalWidget, String>, JediTerminalWidget> { pair -> openSession(pair?.first) as JediTerminalWidget }, this) {
+            override fun createInnerTerminalWidget(): JediTerminalWidget {
                 return createTerminalWidget(settingsProvider)
             }
         }
@@ -109,7 +103,7 @@ class JediTerm : AbstractTerminalFrame(), Disposable {
 
     }
 
-    override fun createTerminalWidget(settingsProvider: TabbedSettingsProvider): JediTermWidget {
+    override fun createTerminalWidget(settingsProvider: TabbedSettingsProvider): JediTerminalWidget {
         val widget = JediTerminalWidget(settingsProvider, this)
         widget.addHyperlinkFilter(UrlFilter())
         return widget

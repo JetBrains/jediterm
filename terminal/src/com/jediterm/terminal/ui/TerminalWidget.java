@@ -10,7 +10,7 @@ import java.awt.*;
  * @author traff
  */
 public interface TerminalWidget {
-  TerminalSession createTerminalSession(TtyConnector ttyConnector);
+  JediTermWidget createTerminalSession(TtyConnector ttyConnector);
 
   JComponent getComponent();
 

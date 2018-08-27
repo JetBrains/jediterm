@@ -17,11 +17,11 @@ sourceSets {
 }
 
 dependencies {
-    compile ':log4j:1.2.14'
-    compile ':annotations'
-    compile ':guava:14.0.1'
+    compile 'log4j:log4j:1.2.14'
+    compile 'org.jetbrains:annotations:13.0'
+    compile 'com.google.guava:guava:14.0.1'
 
-    testCompile ':junit:4.10'
+    testCompile 'junit:junit:4.12'
 }
 
 test {

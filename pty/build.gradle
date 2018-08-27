@@ -7,22 +7,23 @@ apply plugin: 'com.jfrog.bintray'
 sourceSets.main.java.srcDirs = ['src']
 
 repositories {
-    flatDir dirs: ['libs']
+    jcenter()
 }
+
 
 dependencies {
     compile project(':terminal')
 
-    compile ':log4j:1.2.14'
-    compile ':annotations'
-    compile ':guava:14.0.1'
+    compile 'log4j:log4j:1.2.17'
+    compile 'org.jetbrains:annotations:13.0'
+    compile 'com.google.guava:guava:14.0.1'
 
-    compile ':jna'
-    compile ':jna-platform'
-    compile ':pty4j:0.7.2'
-    compile ':purejavacomm-0.0.17'
+    compile 'net.java.dev.jna:jna:4.5.2'
+    compile 'net.java.dev.jna:jna-platform:4.0.0'
+    compile 'com.github.purejavacomm:purejavacomm:1.0.2.RELEASE'
+    compile 'org.jetbrains.intellij.deps:pty4j:0.7.7'
 
-    testCompile ':junit:4.10'
+    testCompile 'junit:junit:4.10'
 }
 
 archivesBaseName = "jediterm-pty"

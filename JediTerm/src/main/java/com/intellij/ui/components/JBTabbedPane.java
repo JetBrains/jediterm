@@ -39,11 +39,11 @@ public class JBTabbedPane extends JTabbedPane implements HierarchyListener {
   public JBTabbedPane() {
   }
 
-  public JBTabbedPane(@JdkConstants.TabPlacement int tabPlacement) {
+  public JBTabbedPane( int tabPlacement) {
     super(tabPlacement);
   }
 
-  public JBTabbedPane(@JdkConstants.TabPlacement int tabPlacement, @JdkConstants.TabLayoutPolicy int tabLayoutPolicy) {
+  public JBTabbedPane(int tabPlacement, int tabLayoutPolicy) {
     super(tabPlacement, tabLayoutPolicy);
   }
 

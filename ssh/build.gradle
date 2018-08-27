@@ -8,14 +8,14 @@ sourceSets {
 dependencies {
     compile project(':terminal')
 
-    compile ':log4j:1.2.14'
-    compile ':annotations'
-    compile ':guava:14.0.1'
+    compile 'log4j:log4j:1.2.14'
+    compile 'org.jetbrains:annotations:13.0'
+    compile 'com.google.guava:guava:14.0.1'
 
-    compile ':jsch:0.1.51'
-    compile ':jzlib:1.1.1'
+    compile 'com.jcraft:jsch:0.1.54'
+    compile 'com.jcraft:jzlib:1.1.3'
 
-    testCompile ':junit:4.10'
+    testCompile 'junit:junit:4.12'
 }
 
 mainClassName = 'com.jediterm.ssh.SshMain'

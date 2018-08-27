@@ -21,6 +21,7 @@ apply plugin: 'kotlin'
 repositories {
     flatDir dirs: ['libs', '../pty/libs']
     mavenCentral()
+    jcenter()
 }
 
 sourceSets {
@@ -33,8 +34,7 @@ dependencies {
 
     compile ":eawtstub:"
 
-    runtime files('../pty/libs') //TODO: add only suitable libs for each platform
-    testCompile ':junit:4.10'
+    testCompile 'junit:junit:4.12'
 
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     compile "org.jetbrains:annotations:13.0"
@@ -56,5 +56,3 @@ launch4j {
     mainClassName = "com.jediterm.app.JediTermMain"
     icon = "$projectDir/img/JediTerm.ico"
 }
-
-

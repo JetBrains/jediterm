@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="Gradle: :pty4j:0.7.2">
-    <CLASSES>
-      <root url="jar://$PROJECT_DIR$/pty/libs/pty4j-0.7.2.jar!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>

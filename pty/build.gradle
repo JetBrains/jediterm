@@ -16,12 +16,12 @@ dependencies {
 
     compile 'log4j:log4j:1.2.17'
     compile 'org.jetbrains:annotations:13.0'
-    compile 'com.google.guava:guava:14.0.1'
+    compile 'com.google.guava:guava:24.0-jre'
 
     compile 'net.java.dev.jna:jna:4.5.2'
     compile 'net.java.dev.jna:jna-platform:4.0.0'
     compile 'com.github.purejavacomm:purejavacomm:1.0.2.RELEASE'
-    compile 'org.jetbrains.pty4j:pty4j:0.7.9'
+    compile 'org.jetbrains.pty4j:pty4j:0.8.0'
 
     testCompile 'junit:junit:4.10'
 }
@@ -31,7 +31,7 @@ archivesBaseName = "jediterm-pty"
 mainClassName = 'com.jediterm.pty.PtyMain'
 
 
-group 'org.jetbrains'
+group 'org.jetbrains.jediterm'
 version rootProject.ext.projectVersion
 
 
@@ -57,7 +57,7 @@ jar {
 
 task sourcesJar(type: Jar, dependsOn: classes) {
     baseName "jediterm-pty"
-    classifier "src"
+    classifier "sources"
     from sourceSets.main.allSource
 }
 
@@ -69,11 +69,10 @@ artifacts {
 publishing {
     publications {
         mavenJava(MavenPublication) {
+            groupId group
             artifactId archivesBaseName
             artifact mainJar
-            artifact sourcesJar {
-                classifier 'sources'
-            }
+            artifact sourcesJar
             pom.withXml {
                 asNode().children().last() + {
                     resolveStrategy = DELEGATE_FIRST

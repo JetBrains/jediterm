@@ -19,7 +19,7 @@ sourceSets {
 dependencies {
     compile 'log4j:log4j:1.2.14'
     compile 'org.jetbrains:annotations:13.0'
-    compile 'com.google.guava:guava:14.0.1'
+    compile 'com.google.guava:guava:24.0-jre'
 
     testCompile 'junit:junit:4.12'
 }

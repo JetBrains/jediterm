@@ -40,7 +40,7 @@
     <orderEntry type="library" name="Gradle: com.google.guava:guava:14.0.1" level="project" />
     <orderEntry type="library" name="Gradle: net.java.dev.jna:jna:4.5.2" level="project" />
     <orderEntry type="library" name="Gradle: com.github.purejavacomm:purejavacomm:1.0.2.RELEASE" level="project" />
-    <orderEntry type="library" name="Gradle: org.jetbrains.intellij.deps:pty4j:0.7.7" level="project" />
+    <orderEntry type="library" name="Gradle: org.jetbrains.pty4j:pty4j:0.7.9" level="project" />
     <orderEntry type="library" name="Gradle: org.jetbrains.kotlin:kotlin-stdlib-common:1.2.51" level="project" />
     <orderEntry type="library" name="Gradle: org.jetbrains:annotations:16.0.2" level="project" />
     <orderEntry type="library" name="Gradle: net.java.dev.jna:jna-platform:4.1.0" level="project" />

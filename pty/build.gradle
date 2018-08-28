@@ -21,7 +21,7 @@ dependencies {
     compile 'net.java.dev.jna:jna:4.5.2'
     compile 'net.java.dev.jna:jna-platform:4.0.0'
     compile 'com.github.purejavacomm:purejavacomm:1.0.2.RELEASE'
-    compile 'org.jetbrains.intellij.deps:pty4j:0.7.7'
+    compile 'org.jetbrains.pty4j:pty4j:0.7.9'
 
     testCompile 'junit:junit:4.10'
 }
@@ -116,7 +116,7 @@ if (System.getenv('BINTRAY_USER') != null) {
 
         pkg {
             repo = 'jediterm'
-            name = 'org.jetbrains:jediterm'
+            name = 'org.jetbrains.jediterm:jediterm-pty'
             userOrg = 'jetbrains'
             licenses = ['LGPL-3.0']
             vcsUrl = 'https://github.com/JetBrains/jediterm.git'

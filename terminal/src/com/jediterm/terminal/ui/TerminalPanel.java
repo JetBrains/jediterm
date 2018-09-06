@@ -342,7 +342,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   @Nullable
   private HyperlinkStyle findHyperlink(Point p) {
     p = panelToCharCoords(p);
-    if (p.x >= 0 && p.x < myTerminalTextBuffer.getWidth() && p.y <= myTerminalTextBuffer.getHeight()) {
+    if (p.x >= 0 && p.x < myTerminalTextBuffer.getWidth() &&
+        p.y >= -myTerminalTextBuffer.getHistoryLinesCount() && p.y <= myTerminalTextBuffer.getHeight()) {
       TextStyle style = myTerminalTextBuffer.getStyleAt(p.x, p.y);
       if (style instanceof HyperlinkStyle) {
         return (HyperlinkStyle) style;

@@ -155,7 +155,7 @@ public abstract class JSchTtyConnector<T extends Channel> implements TtyConnecto
 
       try {
         HostAndPort hostAndPort = HostAndPort.fromString(myHost);
-        myHost = hostAndPort.getHostText();
+        myHost = hostAndPort.getHost();
         // override myPort only if specified in the input
         myPort = hostAndPort.getPortOrDefault(myPort);
       } catch (IllegalArgumentException e) {

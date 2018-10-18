@@ -29,6 +29,11 @@ public abstract class ProcessTtyConnector implements TtyConnector {
     myProcess = process;
   }
 
+  @NotNull
+  public Process getProcess() {
+    return myProcess;
+  }
+
   @Override
   public void resize(Dimension termSize, Dimension pixelSize) {
     setPendingTermSize(termSize);

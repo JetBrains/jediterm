@@ -24,8 +24,6 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -40,7 +38,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   protected final JediTerminal myTerminal;
   protected final AtomicBoolean mySessionRunning = new AtomicBoolean();
   private SearchComponent myFindComponent;
-  protected PreConnectHandler myPreConnectHandler;
+  private final PreConnectHandler myPreConnectHandler;
   private TtyConnector myTtyConnector;
   private TerminalStarter myTerminalStarter;
   private Thread myEmuThread;
@@ -79,7 +77,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     myTerminalPanel.setCoordAccessor(myTerminal);
 
     myPreConnectHandler = createPreConnectHandler(myTerminal);
-    myTerminalPanel.setKeyListener(myPreConnectHandler);
+    myTerminalPanel.addCustomKeyListener(myPreConnectHandler);
     myScrollBar = createScrollBar();
 
     myInnerPanel = new JLayeredPane();
@@ -355,7 +353,8 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
         mySessionRunning.set(true);
         Thread.currentThread().setName("Connector-" + myTtyConnector.getName());
         if (myTtyConnector.init(myPreConnectHandler)) {
-          myTerminalPanel.initKeyHandler();
+          myTerminalPanel.addCustomKeyListener(myTerminalPanel.getTerminalKeyListener());
+          myTerminalPanel.removeCustomKeyListener(myPreConnectHandler);
           SwingUtilities.invokeLater(new Runnable() {
             public void run() {
               myTerminalPanel.requestFocusInWindow();
@@ -377,7 +376,8 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
         for (TerminalWidgetListener listener : myListeners) {
           listener.allSessionsClosed(JediTermWidget.this);
         }
-        myTerminalPanel.setKeyListener(myPreConnectHandler);
+        myTerminalPanel.addCustomKeyListener(myPreConnectHandler);
+        myTerminalPanel.removeCustomKeyListener(myTerminalPanel.getTerminalKeyListener());
       }
     }
   }

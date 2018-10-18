@@ -34,6 +34,7 @@ import java.net.URI;
 import java.text.AttributedCharacterIterator;
 import java.text.CharacterIterator;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -79,7 +80,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   private boolean myScrollingEnabled = true;
   protected int myClientScrollOrigin;
-  protected KeyListener myKeyListener;
+  private final List<KeyListener> myCustomKeyListeners = new CopyOnWriteArrayList<>();
 
   private String myWindowTitle = "Terminal";
 
@@ -100,6 +101,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private LinkInfo myHoveredHyperlink = null;
 
   private int myCursorType = Cursor.DEFAULT_CURSOR;
+  private final TerminalKeyHandler myTerminalKeyHandler = new TerminalKeyHandler();
 
   public TerminalPanel(@NotNull SettingsProvider settingsProvider, @NotNull TerminalTextBuffer terminalTextBuffer, @NotNull StyleState styleState) {
     mySettingsProvider = settingsProvider;
@@ -617,8 +619,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     sizeTerminalFromComponent();
   }
 
-  public void setKeyListener(final KeyListener keyListener) {
-    this.myKeyListener = keyListener;
+  public void addCustomKeyListener(@NotNull KeyListener keyListener) {
+    myCustomKeyListeners.add(keyListener);
+  }
+
+  public void removeCustomKeyListener(@NotNull KeyListener keyListener) {
+    myCustomKeyListeners.remove(keyListener);
   }
 
   public Dimension requestResize(final Dimension newSize,
@@ -877,15 +883,17 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     e.consume();
   }
 
-
-  public void handleKeyEvent(KeyEvent e) {
+  // also called from com.intellij.terminal.JBTerminalPanel
+  public void handleKeyEvent(@NotNull KeyEvent e) {
     final int id = e.getID();
     if (id == KeyEvent.KEY_PRESSED) {
-      myKeyListener.keyPressed(e);
-    } else if (id == KeyEvent.KEY_RELEASED) {
-      /* keyReleased(e); */
+      for (KeyListener keyListener : myCustomKeyListeners) {
+        keyListener.keyPressed(e);
+      }
     } else if (id == KeyEvent.KEY_TYPED) {
-      myKeyListener.keyTyped(e);
+      for (KeyListener keyListener : myCustomKeyListeners) {
+        keyListener.keyTyped(e);
+      }
     }
   }
 
@@ -962,8 +970,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     });
   }
 
-  public void initKeyHandler() {
-    setKeyListener(new TerminalKeyHandler());
+  @NotNull
+  KeyListener getTerminalKeyListener() {
+    return myTerminalKeyHandler;
   }
 
   public enum TerminalCursorState {

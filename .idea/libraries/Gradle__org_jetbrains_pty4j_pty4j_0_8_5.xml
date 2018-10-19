@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: org.jetbrains.pty4j:pty4j:0.8.5">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jetbrains.pty4j/pty4j/0.8.5/3fd4795e1bdbe72a040758b4dabeb940737c88ef/pty4j-0.8.5.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jetbrains.pty4j/pty4j/0.8.5/3f96b4791bdec59f62e6650f861631d22d36f681/pty4j-0.8.5-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

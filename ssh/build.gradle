@@ -10,7 +10,7 @@ dependencies {
 
     compile 'log4j:log4j:1.2.14'
     compile 'org.jetbrains:annotations:13.0'
-    compile 'com.google.guava:guava:24.0-jre'
+    compile 'com.google.guava:guava:25.1-jre'
 
     compile 'com.jcraft:jsch:0.1.54'
     compile 'com.jcraft:jzlib:1.1.3'

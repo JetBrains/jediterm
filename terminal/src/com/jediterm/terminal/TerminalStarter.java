@@ -3,6 +3,7 @@ package com.jediterm.terminal;
 import com.jediterm.terminal.emulator.Emulator;
 import com.jediterm.terminal.emulator.JediEmulator;
 import org.apache.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.io.IOException;
@@ -70,17 +71,20 @@ public class TerminalStarter implements TerminalOutputStream {
   }
 
   public void postResize(final Dimension dimension, final RequestOrigin origin) {
-    execute(new Runnable() {
-      @Override
-      public void run() {
-        final Dimension pixelSize;
-        synchronized (myTerminal) {
-          pixelSize = myTerminal.resize(dimension, origin);
-        }
+    execute(() -> resizeTerminal(myTerminal, myTtyConnector, dimension, origin));
+  }
 
-        myTtyConnector.resize(dimension, pixelSize);
-      }
-    });
+  /**
+   * Resizes terminal and tty connector, should be called on a pooled thread.
+   */
+  public static void resizeTerminal(@NotNull Terminal terminal, @NotNull TtyConnector ttyConnector,
+                                    @NotNull Dimension terminalDimension, @NotNull RequestOrigin origin) {
+    Dimension pixelSize;
+    //noinspection SynchronizationOnLocalVariableOrMethodParameter
+    synchronized (terminal) {
+      pixelSize = terminal.resize(terminalDimension, origin);
+    }
+    ttyConnector.resize(terminalDimension, pixelSize);
   }
 
   @Override

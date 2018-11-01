@@ -601,14 +601,17 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
             BufferedImage.TYPE_INT_RGB);
   }
 
+  @Nullable
+  public Dimension getTerminalSizeFromComponent() {
+    int newWidth = (getWidth() - getInsetX()) / myCharSize.width;
+    int newHeight = getHeight() / myCharSize.height;
+    return newHeight > 0 && newWidth > 0 ? new Dimension(newWidth, newHeight) : null;
+  }
+
   private void sizeTerminalFromComponent() {
     if (myTerminalStarter != null) {
-      final int newWidth = (getWidth() - getInsetX()) / myCharSize.width;
-      final int newHeight = getHeight() / myCharSize.height;
-
-      if (newHeight > 0 && newWidth > 0) {
-        final Dimension newSize = new Dimension(newWidth, newHeight);
-
+      Dimension newSize = getTerminalSizeFromComponent();
+      if (newSize != null) {
         myTerminalStarter.postResize(newSize, RequestOrigin.User);
       }
     }

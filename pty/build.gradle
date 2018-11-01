@@ -53,9 +53,11 @@ jar {
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {
+    evaluationDependsOn(':terminal')
     baseName "jediterm-pty"
     classifier "sources"
     from sourceSets.main.allSource
+    from project(':terminal').sourceSets.main.allSource
 }
 
 artifacts {

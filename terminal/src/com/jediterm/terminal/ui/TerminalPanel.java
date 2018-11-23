@@ -156,7 +156,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   public void init() {
     initFont();
 
-    setUpClipboard();
+    if (!Boolean.getBoolean("java.awt.headless")) {
+      setUpClipboard();
+    }
 
     setPreferredSize(new Dimension(getPixelWidth(), getPixelHeight()));
 

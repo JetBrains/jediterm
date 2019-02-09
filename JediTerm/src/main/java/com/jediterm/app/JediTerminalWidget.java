@@ -1,4 +1,4 @@
-package com.jeditem.app;
+package com.jediterm.app;
 
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.util.Disposer;

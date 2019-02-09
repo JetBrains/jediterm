@@ -1,10 +1,11 @@
-package com.jediterm.app;
+package com.jeditem.app;
 
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.ui.components.JBScrollBar;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.ui.RegionPainter;
+import com.jediterm.app.JediTerminalPanel;
 import com.jediterm.terminal.SubstringFinder;
 import com.jediterm.terminal.TerminalStarter;
 import com.jediterm.terminal.TtyBasedArrayDataStream;
@@ -30,8 +31,8 @@ public class JediTerminalWidget extends JediTermWidget implements Disposable {
 
   @Override
   protected JediTerminalPanel createTerminalPanel(@NotNull SettingsProvider settingsProvider,
-                                                @NotNull StyleState styleState,
-                                                @NotNull TerminalTextBuffer textBuffer) {
+                                                  @NotNull StyleState styleState,
+                                                  @NotNull TerminalTextBuffer textBuffer) {
     JediTerminalPanel panel = new JediTerminalPanel(settingsProvider, styleState, textBuffer);
     Disposer.register(this, panel);
     return panel;

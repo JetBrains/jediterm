@@ -1,6 +1,5 @@
-package com.jediterm.app;
+package com.jeditem.app;
 
-import com.google.common.base.Predicate;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.util.Pair;

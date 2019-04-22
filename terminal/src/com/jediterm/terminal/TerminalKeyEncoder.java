@@ -1,11 +1,14 @@
 package com.jediterm.terminal;
 
 import com.google.common.base.Ascii;
+import com.jediterm.terminal.ui.UIUtil;
 import com.jediterm.terminal.util.CharUtils;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.event.InputEvent;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import static java.awt.event.KeyEvent.*;
 
@@ -15,7 +18,7 @@ import static java.awt.event.KeyEvent.*;
 public class TerminalKeyEncoder {
   private static final int ESC = Ascii.ESC;
 
-  private final Map<Integer, byte[]> myKeyCodes = new HashMap<Integer, byte[]>();
+  private final Map<KeyCodeAndModifier, byte[]> myKeyCodes = new HashMap<KeyCodeAndModifier, byte[]>();
   
   private boolean myAltSendsEscape = true;
   private boolean myMetaSendsEscape = false;
@@ -53,6 +56,15 @@ public class TerminalKeyEncoder {
     putCode(VK_DOWN, ESC, 'O', 'B');
     putCode(VK_RIGHT, ESC, 'O', 'C');
     putCode(VK_LEFT, ESC, 'O', 'D');
+
+    if (UIUtil.isLinux) {
+      putCode(new KeyCodeAndModifier(VK_RIGHT, InputEvent.CTRL_MASK), ESC, '[',  '1', ';', '5', 'C'); // ^[[1;5C
+      putCode(new KeyCodeAndModifier(VK_LEFT, InputEvent.CTRL_MASK), ESC, '[',  '1', ';', '5', 'D'); // ^[[1;5D
+    }
+    else {
+      putCode(new KeyCodeAndModifier(VK_RIGHT, InputEvent.ALT_MASK), ESC, '[',  '1', ';', '5', 'C'); // ^[[1;5C
+      putCode(new KeyCodeAndModifier(VK_LEFT, InputEvent.ALT_MASK), ESC, '[',  '1', ';', '5', 'D'); // ^[[1;5D
+    }
   }
 
   public void arrowKeysAnsiCursorSequences() {
@@ -83,13 +95,22 @@ public class TerminalKeyEncoder {
   }
 
   void putCode(final int code, final int... bytesAsInt) {
-    myKeyCodes.put(code, CharUtils.makeCode(bytesAsInt));
+    myKeyCodes.put(new KeyCodeAndModifier(code, 0), CharUtils.makeCode(bytesAsInt));
+  }
+
+  private void putCode(@NotNull KeyCodeAndModifier key, final int... bytesAsInt) {
+    myKeyCodes.put(key, CharUtils.makeCode(bytesAsInt));
   }
 
   public byte[] getCode(final int key, int modifiers) {
-    byte[] bytes = myKeyCodes.get(key);
+    byte[] bytes = myKeyCodes.get(new KeyCodeAndModifier(key, modifiers));
+    boolean handleModifier = false;
     if (bytes == null) {
-      return null;
+      bytes = myKeyCodes.get(new KeyCodeAndModifier(key, 0));
+      handleModifier = true;
+      if (bytes == null) {
+        return null;
+      }
     }
 
     if ((myAltSendsEscape || alwaysSendEsc(key)) && (modifiers & InputEvent.ALT_MASK) != 0) {
@@ -100,7 +121,7 @@ public class TerminalKeyEncoder {
       return insertCodeAt(bytes, CharUtils.makeCode(ESC), 0);
     }
 
-    if (isCursorKey(key)) {
+    if (handleModifier && isCursorKey(key)) {
       return getCodeWithModifiers(bytes, modifiers);
     }
     
@@ -191,5 +212,28 @@ public class TerminalKeyEncoder {
 
   public void setMetaSendsEscape(boolean metaSendsEscape) {
     myMetaSendsEscape = metaSendsEscape;
+  }
+
+  private static class KeyCodeAndModifier {
+    private final int myCode;
+    private final int myModifier;
+
+    public KeyCodeAndModifier(int code, int modifier) {
+      myCode = code;
+      myModifier = modifier;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+      KeyCodeAndModifier that = (KeyCodeAndModifier) o;
+      return myCode == that.myCode && myModifier == that.myModifier;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(myCode, myModifier);
+    }
   }
 }

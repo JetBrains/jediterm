@@ -19,7 +19,7 @@ public class TerminalKeyEncoder {
   private static final int ESC = Ascii.ESC;
 
   private final Map<KeyCodeAndModifier, byte[]> myKeyCodes = new HashMap<KeyCodeAndModifier, byte[]>();
-  
+
   private boolean myAltSendsEscape = true;
   private boolean myMetaSendsEscape = false;
 
@@ -62,8 +62,8 @@ public class TerminalKeyEncoder {
       putCode(new KeyCodeAndModifier(VK_LEFT, InputEvent.CTRL_MASK), ESC, '[',  '1', ';', '5', 'D'); // ^[[1;5D
     }
     else {
-      putCode(new KeyCodeAndModifier(VK_RIGHT, InputEvent.ALT_MASK), ESC, '[',  '1', ';', '5', 'C'); // ^[[1;5C
-      putCode(new KeyCodeAndModifier(VK_LEFT, InputEvent.ALT_MASK), ESC, '[',  '1', ';', '5', 'D'); // ^[[1;5D
+      putCode(new KeyCodeAndModifier(VK_RIGHT, InputEvent.ALT_MASK), ESC, 'f'); // ^[f
+      putCode(new KeyCodeAndModifier(VK_LEFT, InputEvent.ALT_MASK), ESC, 'b'); // ^[b
     }
   }
 
@@ -72,6 +72,10 @@ public class TerminalKeyEncoder {
     putCode(VK_DOWN, ESC, '[', 'B');
     putCode(VK_RIGHT, ESC, '[', 'C');
     putCode(VK_LEFT, ESC, '[', 'D');
+    if (UIUtil.isMac) {
+      putCode(new KeyCodeAndModifier(VK_RIGHT, InputEvent.ALT_MASK), ESC, 'f'); // ^[f
+      putCode(new KeyCodeAndModifier(VK_LEFT, InputEvent.ALT_MASK), ESC, 'b'); // ^[b
+    }
   }
 
   public void keypadApplicationSequences() {
@@ -104,30 +108,29 @@ public class TerminalKeyEncoder {
 
   public byte[] getCode(final int key, int modifiers) {
     byte[] bytes = myKeyCodes.get(new KeyCodeAndModifier(key, modifiers));
-    boolean handleModifier = false;
+    if (bytes != null) {
+      return bytes;
+    }
+    bytes = myKeyCodes.get(new KeyCodeAndModifier(key, 0));
     if (bytes == null) {
-      bytes = myKeyCodes.get(new KeyCodeAndModifier(key, 0));
-      handleModifier = true;
-      if (bytes == null) {
-        return null;
-      }
+      return null;
     }
 
     if ((myAltSendsEscape || alwaysSendEsc(key)) && (modifiers & InputEvent.ALT_MASK) != 0) {
       return insertCodeAt(bytes, CharUtils.makeCode(ESC), 0);
     }
-    
+
     if ((myMetaSendsEscape || alwaysSendEsc(key)) && (modifiers & InputEvent.META_MASK) != 0) {
       return insertCodeAt(bytes, CharUtils.makeCode(ESC), 0);
     }
 
-    if (handleModifier && isCursorKey(key)) {
+    if (isCursorKey(key)) {
       return getCodeWithModifiers(bytes, modifiers);
     }
-    
+
     return bytes;
   }
-  
+
   private boolean alwaysSendEsc(int key) {
     return isCursorKey(key) || key == '\b';
   }
@@ -153,7 +156,6 @@ public class TerminalKeyEncoder {
     System.arraycopy(bytes, 0, res, 0, bytes.length);
     System.arraycopy(bytes, at, res, at + code.length, bytes.length - at);
     System.arraycopy(code, 0, res, at, code.length);
-    
     return res;
   }
 

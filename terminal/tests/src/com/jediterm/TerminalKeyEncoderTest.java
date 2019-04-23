@@ -2,11 +2,11 @@ package com.jediterm;
 
 import com.google.common.base.Ascii;
 import com.jediterm.terminal.TerminalKeyEncoder;
+import com.jediterm.terminal.ui.UIUtil;
 import junit.framework.TestCase;
 import org.junit.Assert;
 
 import java.awt.event.InputEvent;
-import java.nio.charset.Charset;
 
 /**
  * @author traff
@@ -20,6 +20,7 @@ public class TerminalKeyEncoderTest extends TestCase {
 
   public void testAltLeft() {
     TerminalKeyEncoder terminalKeyEncoder = new TerminalKeyEncoder();
-    Assert.assertArrayEquals(new byte[]{Ascii.ESC, Ascii.ESC, '[', 'D'}, terminalKeyEncoder.getCode(37, InputEvent.ALT_MASK));
+    byte[] expected = UIUtil.isMac ? new byte[]{Ascii.ESC, 'b'} : new byte[]{Ascii.ESC, Ascii.ESC, '[', 'D'};
+    Assert.assertArrayEquals(expected, terminalKeyEncoder.getCode(37, InputEvent.ALT_MASK));
   }
 }

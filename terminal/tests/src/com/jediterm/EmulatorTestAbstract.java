@@ -31,7 +31,7 @@ public abstract class EmulatorTestAbstract extends TestCase {
     return doTest(80, 24);
   }
 
-  private TerminalTextBuffer doTest(int width, int height) throws IOException {
+  protected TerminalTextBuffer doTest(int width, int height) throws IOException {
     return doTest(width, height, FileUtil.loadFileLines(new File(getPathToTest() + ".after.txt")));
   }
 

@@ -57,8 +57,12 @@ public class SystemCommandSequence {
     }
   }
 
-  private static boolean isEnd(char b) {
-    return b == Ascii.BEL || b == 0x9c;
+  private boolean isEnd(char b) {
+    if (b == Ascii.BEL || b == 0x9c) {
+      return true;
+    }
+    int len = mySequenceString.length();
+    return len >= 2 && mySequenceString.charAt(len - 2) == Ascii.ESC && b == '\\';
   }
 
   public String getStringAt(int i) {

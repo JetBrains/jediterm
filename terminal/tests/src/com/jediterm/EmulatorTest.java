@@ -36,6 +36,10 @@ public class EmulatorTest extends EmulatorTestAbstract {
     doTest();
   }
 
+  public void testSystemCommands() throws IOException {
+    doTest(30, 2);
+  }
+
   @Override
   protected String getPathToTest() {
     return TestPathsManager.getTestDataPath() + getName();

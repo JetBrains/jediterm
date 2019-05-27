@@ -29,6 +29,9 @@ public class SystemCommandSequence {
       mySequenceString.append(b);
 
       if (b == ';' || isEnd(b)) {
+        if (isTwoBytesEnd(b)) {
+          string.delete(string.length() - 1, string.length());
+        }
         if (isNumber) {
           myArgs.add(number);
         }
@@ -58,11 +61,12 @@ public class SystemCommandSequence {
   }
 
   private boolean isEnd(char b) {
-    if (b == Ascii.BEL || b == 0x9c) {
-      return true;
-    }
+    return b == Ascii.BEL || b == 0x9c || isTwoBytesEnd(b);
+  }
+
+  private boolean isTwoBytesEnd(char ch) {
     int len = mySequenceString.length();
-    return len >= 2 && mySequenceString.charAt(len - 2) == Ascii.ESC && b == '\\';
+    return len >= 2 && mySequenceString.charAt(len - 2) == Ascii.ESC && ch == '\\';
   }
 
   public String getStringAt(int i) {

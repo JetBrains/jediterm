@@ -5,6 +5,7 @@ import com.jediterm.terminal.emulator.charset.CharacterSet;
 import com.jediterm.terminal.emulator.charset.GraphicSet;
 import com.jediterm.terminal.emulator.charset.GraphicSetState;
 import com.jediterm.terminal.emulator.mouse.*;
+import com.jediterm.terminal.model.hyperlinks.LinkInfo;
 import com.jediterm.terminal.ui.TerminalCoordinates;
 import com.jediterm.terminal.util.CharUtils;
 import org.apache.log4j.Logger;
@@ -17,6 +18,7 @@ import java.awt.event.InputEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.*;
 
@@ -967,6 +969,28 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   public void deviceAttributes(byte[] response) {
     if (myTerminalOutput != null) {
       myTerminalOutput.sendBytes(response);
+    }
+  }
+
+  @Override
+  public void setLinkUriStarted(@NotNull String uri) {
+    TextStyle style = myStyleState.getCurrent();
+    myStyleState.setCurrent(new HyperlinkStyle(style, new LinkInfo(() -> {
+      try {
+        Desktop.getDesktop().browse(new URI(uri));
+      } catch (Exception ignored) {
+      }
+    })));
+  }
+
+  @Override
+  public void setLinkUriFinished() {
+    TextStyle current = myStyleState.getCurrent();
+    if (current instanceof HyperlinkStyle) {
+      TextStyle prevTextStyle = ((HyperlinkStyle) current).getPrevTextStyle();
+      if (prevTextStyle != null) {
+        myStyleState.setCurrent(prevTextStyle);
+      }
     }
   }
 

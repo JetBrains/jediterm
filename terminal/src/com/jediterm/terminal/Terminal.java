@@ -150,4 +150,8 @@ public interface Terminal {
   void deviceStatusReport(String str);
 
   void deviceAttributes(byte[] response);
+
+  void setLinkUriStarted(@NotNull String uri);
+
+  void setLinkUriFinished();
 }

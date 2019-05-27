@@ -213,6 +213,19 @@ public class JediEmulator extends DataStreamIteratingEmulator {
             myTerminal.setCurrentPath(path);
             return true;
           }
+          break;
+        case 8: // Hyperlink
+          String uri = args.getStringAt(2);
+          if (uri != null) {
+            if (!uri.isEmpty()) {
+              myTerminal.setLinkUriStarted(uri);
+            }
+            else {
+              myTerminal.setLinkUriFinished();
+            }
+            return true;
+          }
+          break;
       }
     }
 

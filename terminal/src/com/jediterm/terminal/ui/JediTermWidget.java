@@ -355,11 +355,6 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
         if (myTtyConnector.init(myPreConnectHandler)) {
           myTerminalPanel.addCustomKeyListener(myTerminalPanel.getTerminalKeyListener());
           myTerminalPanel.removeCustomKeyListener(myPreConnectHandler);
-          SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-              myTerminalPanel.requestFocusInWindow();
-            }
-          });
           myTerminalStarter.start();
         }
       } catch (Exception e) {

@@ -73,6 +73,9 @@ public class TextStyle implements Cloneable {
 
   @NotNull
   public static TextStyle getCanonicalStyle(TextStyle currentStyle) {
+    if (currentStyle instanceof HyperlinkStyle) {
+      return currentStyle;
+    }
     final WeakReference<TextStyle> canonRef = styles.get(currentStyle);
     if (canonRef != null) {
       final TextStyle canonStyle = canonRef.get();

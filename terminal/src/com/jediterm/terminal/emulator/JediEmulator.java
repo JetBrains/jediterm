@@ -635,6 +635,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   private boolean cursorShape(ControlSequence args) {
     myTerminal.cursorBackward(1);
     switch (args.getArg(0, 0)) {
+      case 0:
       case 1:
         myTerminal.cursorShape(CursorShape.BLINK_BLOCK);
         return true;

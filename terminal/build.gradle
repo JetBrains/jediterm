@@ -24,6 +24,12 @@ dependencies {
     testCompile 'junit:junit:4.12'
 }
 
+compileJava {
+    sourceCompatibility = '1.8'
+    targetCompatibility = '1.8'
+    options.debugOptions.debugLevel = 'lines,vars,source'
+}
+
 test {
     testLogging {
         exceptionFormat = 'full'

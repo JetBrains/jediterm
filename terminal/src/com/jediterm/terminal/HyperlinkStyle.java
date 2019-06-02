@@ -4,8 +4,6 @@ import com.jediterm.terminal.model.hyperlinks.LinkInfo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.EnumSet;
-
 /**
  * @author traff
  */
@@ -14,69 +12,37 @@ public class HyperlinkStyle extends TextStyle implements Runnable {
   private final LinkInfo myLinkInfo;
 
   @NotNull
-  private TextStyle myHighlightStyle;
+  private final TextStyle myHighlightStyle;
 
   @Nullable
-  private TextStyle myPrevTextStyle;
+  private final TextStyle myPrevTextStyle;
 
   @NotNull
-  private HighlightMode myHighlightMode = HighlightMode.HOVER;
+  private final HighlightMode myHighlightMode;
 
   public HyperlinkStyle(@NotNull TextStyle prevTextStyle, @NotNull LinkInfo hyperlinkInfo) {
-    this(prevTextStyle.getForeground(), prevTextStyle.getBackground(), hyperlinkInfo);
-    myPrevTextStyle = prevTextStyle;
+    this(prevTextStyle.getForeground(), prevTextStyle.getBackground(), hyperlinkInfo, HighlightMode.HOVER, prevTextStyle);
   }
 
-  public HyperlinkStyle(@NotNull TerminalColor foreground, @NotNull TerminalColor background, @NotNull LinkInfo hyperlinkInfo) {
+  public HyperlinkStyle(@Nullable TerminalColor foreground,
+                        @Nullable TerminalColor background,
+                        @NotNull LinkInfo hyperlinkInfo,
+                        @NotNull HighlightMode mode,
+                        @Nullable TextStyle prevTextStyle) {
     super(null, null);
-    myHighlightStyle = new TextStyle(foreground, background);
-    myHighlightStyle.setOption(Option.UNDERLINED, true);
+    myHighlightStyle = new TextStyle.Builder()
+      .setBackground(background)
+      .setForeground(foreground)
+      .setOption(Option.UNDERLINED, true)
+      .build();
     myLinkInfo = hyperlinkInfo;
+    myHighlightMode = mode;
+    myPrevTextStyle = prevTextStyle;
   }
 
   @Nullable
   public TextStyle getPrevTextStyle() {
     return myPrevTextStyle;
-  }
-
-  @NotNull
-  public HyperlinkStyle withHighlightMode(@NotNull HighlightMode mode) {
-    myHighlightMode = mode;
-    return this;
-  }
-
-  @Override
-  public TextStyle clone() {
-    HyperlinkStyle style = new HyperlinkStyle(getForeground(), getBackground(), myLinkInfo);
-    style.myPrevTextStyle = myPrevTextStyle;
-    style.myHighlightMode = myHighlightMode;
-    return style;
-  }
-
-  public TextStyle readonlyCopy() {
-    HyperlinkStyle result = new HyperlinkStyle(getForeground(), getBackground(), myLinkInfo) {
-      private TextStyle readonly() {
-        throw new IllegalStateException("Text Style is readonly");
-      }
-
-      @Override
-      public void setBackground(TerminalColor background) {
-        readonly();
-      }
-
-      @Override
-      public void setForeground(TerminalColor foreground) {
-        readonly();
-      }
-
-      @Override
-      public void setOptions(EnumSet<Option> options) {
-        readonly();
-      }
-    };
-    result.myPrevTextStyle = myPrevTextStyle != null ? myPrevTextStyle.readonlyCopy() : null;
-    result.myHighlightMode = myHighlightMode;
-    return result;
   }
 
   @Override
@@ -99,7 +65,41 @@ public class HyperlinkStyle extends TextStyle implements Runnable {
     return myHighlightMode;
   }
 
+  @NotNull
+  @Override
+  public Builder toBuilder() {
+    return new Builder(this);
+  }
+
   public enum HighlightMode {
     ALWAYS, NEVER, HOVER
+  }
+
+  public static class Builder extends TextStyle.Builder {
+
+    @NotNull
+    private LinkInfo myLinkInfo;
+
+    @NotNull
+    private TextStyle myHighlightStyle;
+
+    @Nullable
+    private TextStyle myPrevTextStyle;
+
+    @NotNull
+    private HighlightMode myHighlightMode;
+
+    private Builder(@NotNull HyperlinkStyle style) {
+      myLinkInfo = style.myLinkInfo;
+      myHighlightStyle = style.myHighlightStyle;
+      myPrevTextStyle = style.myPrevTextStyle;
+      myHighlightMode = style.myHighlightMode;
+    }
+
+    @NotNull
+    public HyperlinkStyle build() {
+      return new HyperlinkStyle(myHighlightStyle.getForeground(), myHighlightStyle.getBackground(),
+        myLinkInfo, myHighlightMode, myPrevTextStyle);
+    }
   }
 }

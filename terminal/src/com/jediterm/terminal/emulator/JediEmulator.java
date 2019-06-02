@@ -6,6 +6,7 @@ import com.jediterm.terminal.emulator.mouse.MouseFormat;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
 import com.jediterm.terminal.util.CharUtils;
 import org.apache.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.io.IOException;
@@ -808,17 +809,19 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   }
 
   private boolean characterAttributes(final ControlSequence args) {
-    TextStyle styleState = createStyleState(myTerminal.getStyleState().getCurrent().clone(), args);
+    TextStyle styleState = createStyleState(myTerminal.getStyleState().getCurrent(), args);
 
     myTerminal.characterAttributes(styleState);
 
     return true;
   }
 
-  private static TextStyle createStyleState(TextStyle textStyle, ControlSequence args) {
+  @NotNull
+  private static TextStyle createStyleState(@NotNull TextStyle textStyle, ControlSequence args) {
+    TextStyle.Builder builder = textStyle.toBuilder();
     final int argCount = args.getCount();
     if (argCount == 0) {
-      textStyle = new TextStyle();
+      builder = new TextStyle.Builder();
     }
 
     int i = 0;
@@ -834,47 +837,47 @@ public class JediEmulator extends DataStreamIteratingEmulator {
 
       switch (arg) {
         case 0: //Normal (default)
-          textStyle = new TextStyle();
+          builder = new TextStyle.Builder();
           break;
         case 1:// Bold
-          textStyle.setOption(TextStyle.Option.BOLD, true);
+          builder.setOption(TextStyle.Option.BOLD, true);
           break;
         case 2:// Dim
-          textStyle.setOption(TextStyle.Option.DIM, true);
+          builder.setOption(TextStyle.Option.DIM, true);
           break;
         case 3:// Italic
-          textStyle.setOption(TextStyle.Option.ITALIC, true);
+          builder.setOption(TextStyle.Option.ITALIC, true);
           break;
         case 4:// Underlined
-          textStyle.setOption(TextStyle.Option.UNDERLINED, true);
+          builder.setOption(TextStyle.Option.UNDERLINED, true);
           break;
         case 5:// Blink (appears as Bold)
-          textStyle.setOption(TextStyle.Option.BLINK, true);
+          builder.setOption(TextStyle.Option.BLINK, true);
           break;
         case 7:// Inverse
-          textStyle.setOption(TextStyle.Option.INVERSE, true);
+          builder.setOption(TextStyle.Option.INVERSE, true);
           break;
         case 8: // Invisible (hidden)
-          textStyle.setOption(TextStyle.Option.HIDDEN, true);
+          builder.setOption(TextStyle.Option.HIDDEN, true);
           break;
         case 22: //Normal (neither bold nor faint)
-          textStyle.setOption(TextStyle.Option.BOLD, false);
-          textStyle.setOption(TextStyle.Option.DIM, false);
+          builder.setOption(TextStyle.Option.BOLD, false);
+          builder.setOption(TextStyle.Option.DIM, false);
           break;
         case 23: // Not italic
-          textStyle.setOption(TextStyle.Option.ITALIC, false);
+          builder.setOption(TextStyle.Option.ITALIC, false);
           break;
         case 24: // Not underlined
-          textStyle.setOption(TextStyle.Option.UNDERLINED, false);
+          builder.setOption(TextStyle.Option.UNDERLINED, false);
           break;
         case 25: //Steady (not blinking)
-          textStyle.setOption(TextStyle.Option.BLINK, false);
+          builder.setOption(TextStyle.Option.BLINK, false);
           break;
         case 27: //Positive (not inverse)
-          textStyle.setOption(TextStyle.Option.INVERSE, false);
+          builder.setOption(TextStyle.Option.INVERSE, false);
           break;
         case 28: //Visible, i.e. not hidden
-          textStyle.setOption(TextStyle.Option.HIDDEN, false);
+          builder.setOption(TextStyle.Option.HIDDEN, false);
           break;
         case 30:
         case 31:
@@ -884,17 +887,17 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 35:
         case 36:
         case 37:
-          textStyle.setForeground(TerminalColor.index(arg - 30));
+          builder.setForeground(TerminalColor.index(arg - 30));
           break;
         case 38: // Set xterm-256 text color
           TerminalColor color256 = getColor256(args, i);
           if (color256 != null) {
-            textStyle.setForeground(color256);
+            builder.setForeground(color256);
             step = getColor256Step(args, i);
           }
           break;
         case 39: // Default (original) foreground
-          textStyle.setForeground(null);
+          builder.setForeground(null);
           break;
         case 40:
         case 41:
@@ -904,17 +907,17 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 45:
         case 46:
         case 47:
-          textStyle.setBackground(TerminalColor.index(arg - 40));
+          builder.setBackground(TerminalColor.index(arg - 40));
           break;
         case 48: // Set xterm-256 background color
           TerminalColor bgColor256 = getColor256(args, i);
           if (bgColor256 != null) {
-            textStyle.setBackground(bgColor256);
+            builder.setBackground(bgColor256);
             step = getColor256Step(args, i);
           }
           break;
         case 49: //Default (original) foreground
-          textStyle.setBackground(null);
+          builder.setBackground(null);
           break;
         case 90:
         case 91:
@@ -925,7 +928,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 96:
         case 97:
           //Bright versions of the ISO colors for foreground
-          textStyle.setForeground(ColorPalette.getIndexedColor(arg - 82));
+          builder.setForeground(ColorPalette.getIndexedColor(arg - 82));
           break;
         case 100:
         case 101:
@@ -936,14 +939,14 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 106:
         case 107:
           //Bright versions of the ISO colors for background
-          textStyle.setBackground(ColorPalette.getIndexedColor(arg - 92));
+          builder.setBackground(ColorPalette.getIndexedColor(arg - 92));
           break;
         default:
           LOG.error("Unknown character attribute:" + arg);
       }
       i = i + step;
     }
-    return textStyle;
+    return builder.build();
   }
 
   private static TerminalColor getColor256(ControlSequence args, int index) {

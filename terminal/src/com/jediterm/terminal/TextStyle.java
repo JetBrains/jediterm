@@ -1,75 +1,37 @@
 package com.jediterm.terminal;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
 import java.util.EnumSet;
+import java.util.Objects;
 import java.util.WeakHashMap;
 
-public class TextStyle implements Cloneable {
-  public static final EnumSet<Option> NO_OPTIONS = EnumSet.noneOf(Option.class);
+public class TextStyle {
+  private static final EnumSet<Option> NO_OPTIONS = EnumSet.noneOf(Option.class);
 
   public static final TextStyle EMPTY = new TextStyle();
 
-  private static final WeakHashMap<TextStyle, WeakReference<TextStyle>> styles = new WeakHashMap<TextStyle, WeakReference<TextStyle>>();
+  private static final WeakHashMap<TextStyle, WeakReference<TextStyle>> styles = new WeakHashMap<>();
 
-  private TerminalColor myForeground;
-  private TerminalColor myBackground;
-  private EnumSet<Option> myOptions;
+  private final TerminalColor myForeground;
+  private final TerminalColor myBackground;
+  private final EnumSet<Option> myOptions;
 
   public TextStyle() {
     this(null, null, NO_OPTIONS);
   }
 
-  public TextStyle(final TerminalColor foreground, final TerminalColor background) {
+  public TextStyle(@Nullable TerminalColor foreground, @Nullable TerminalColor background) {
     this(foreground, background, NO_OPTIONS);
   }
 
-  public TextStyle(final TerminalColor foreground, final TerminalColor background, final EnumSet<Option> options) {
+  public TextStyle(@Nullable TerminalColor foreground, @Nullable TerminalColor background, @NotNull EnumSet<Option> options) {
     myForeground = foreground;
     myBackground = background;
     myOptions = options.clone();
   }
-
-  public void setBackground(TerminalColor background) {
-    myBackground = background;
-  }
-
-  public void setForeground(TerminalColor foreground) {
-    myForeground = foreground;
-  }
-
-  public void setOptions(EnumSet<Option> options) {
-    myOptions = options;
-  }
-
-  public void setOption(final Option opt, final boolean val) {
-    setOptions(opt.set(EnumSet.copyOf(myOptions), val));
-  }
-
-  public TextStyle readonlyCopy() {
-    return new TextStyle(myForeground, myBackground, myOptions) {
-      private TextStyle readonly() {
-        throw new IllegalStateException("Text Style is readonly");
-      }
-
-      @Override
-      public void setBackground(TerminalColor background) {
-        readonly();
-      }
-
-      @Override
-      public void setForeground(TerminalColor foreground) {
-        readonly();
-      }
-
-      @Override
-      public void setOptions(EnumSet<Option> options) {
-        readonly();
-      }
-    };
-  }
-
 
   @NotNull
   public static TextStyle getCanonicalStyle(TextStyle currentStyle) {
@@ -83,24 +45,20 @@ public class TextStyle implements Cloneable {
         return canonStyle;
       }
     }
-    styles.put(currentStyle, new WeakReference<TextStyle>(currentStyle));
+    styles.put(currentStyle, new WeakReference<>(currentStyle));
     return currentStyle;
   }
 
-
+  @Nullable
   public TerminalColor getForeground() {
     return myForeground;
   }
 
+  @Nullable
   public TerminalColor getBackground() {
     return myBackground;
   }
 
-  @Override
-  public TextStyle clone() {
-    return new TextStyle(myForeground, myBackground, myOptions);
-  }
-  
   public TextStyle createEmptyWithColors() {
     return new TextStyle(myForeground, myBackground);
   }
@@ -114,52 +72,18 @@ public class TextStyle implements Cloneable {
   }
 
   @Override
-  public int hashCode() {
-    final int PRIME = 31;
-    int result = 1;
-    result = PRIME * result + (myBackground == null ? 0 : myBackground.hashCode());
-    result = PRIME * result + (myForeground == null ? 0 : myForeground.hashCode());
-    result = PRIME * result + (myOptions == null ? 0 : myOptions.hashCode());
-    return result;
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    TextStyle textStyle = (TextStyle) o;
+    return Objects.equals(myForeground, textStyle.myForeground) &&
+      Objects.equals(myBackground, textStyle.myBackground) &&
+      myOptions.equals(textStyle.myOptions);
   }
 
   @Override
-  public boolean equals(final Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    final TextStyle other = (TextStyle)obj;
-    if (myBackground == null) {
-      if (other.myBackground != null) {
-        return false;
-      }
-    }
-    else if (!myBackground.equals(other.myBackground)) {
-      return false;
-    }
-    if (myForeground == null) {
-      if (other.myForeground != null) {
-        return false;
-      }
-    }
-    else if (!myForeground.equals(other.myForeground)) {
-      return false;
-    }
-    if (myOptions == null) {
-      if (other.myOptions != null) {
-        return false;
-      }
-    }
-    else if (!myOptions.equals(other.myOptions)) {
-      return false;
-    }
-    return true;
+  public int hashCode() {
+    return Objects.hash(myForeground, myBackground, myOptions);
   }
 
   public TerminalColor getBackgroundForRun() {
@@ -170,8 +94,9 @@ public class TextStyle implements Cloneable {
     return myOptions.contains(Option.INVERSE) ? myBackground : myForeground;
   }
 
-  public void clearOptions() {
-    myOptions.clear();
+  @NotNull
+  public Builder toBuilder() {
+    return new Builder(this);
   }
 
   public enum Option {
@@ -183,14 +108,54 @@ public class TextStyle implements Cloneable {
     UNDERLINED,
     HIDDEN;
 
-    public EnumSet<Option> set(EnumSet<Option> options, boolean val) {
+    private void set(@NotNull EnumSet<Option> options, boolean val) {
       if (val) {
         options.add(this);
       }
       else {
         options.remove(this);
       }
-      return options;
+    }
+  }
+
+  public static class Builder {
+    private TerminalColor myForeground;
+    private TerminalColor myBackground;
+    private EnumSet<Option> myOptions;
+
+    private Builder(@NotNull TextStyle textStyle) {
+      myForeground = textStyle.myForeground;
+      myBackground = textStyle.myBackground;
+      myOptions = textStyle.myOptions.clone();
+    }
+
+    public Builder() {
+      myForeground = null;
+      myBackground = null;
+      myOptions = EnumSet.noneOf(Option.class);
+    }
+
+    @NotNull
+    public Builder setForeground(@Nullable TerminalColor foreground) {
+      myForeground = foreground;
+      return this;
+    }
+
+    @NotNull
+    public Builder setBackground(@Nullable TerminalColor background) {
+      myBackground = background;
+      return this;
+    }
+
+    @NotNull
+    public Builder setOption(@NotNull Option option, boolean val) {
+      option.set(myOptions, val);
+      return this;
+    }
+
+    @NotNull
+    public TextStyle build() {
+      return new TextStyle(myForeground, myBackground, myOptions);
     }
   }
 }

@@ -11,31 +11,26 @@ public class StyleState {
   private TextStyle myMergedStyle = null;
 
   public StyleState() {
-    this(TextStyle.EMPTY);
-  }
-
-  public StyleState(TextStyle textStyle) {
-    myCurrentStyle = textStyle;
   }
 
   public TextStyle getCurrent() {
     return TextStyle.getCanonicalStyle(getMergedStyle());
   }
 
+  @NotNull
   private static TextStyle merge(@NotNull TextStyle style, @NotNull TextStyle defaultStyle) {
-    TextStyle newStyle = style.clone();
-    if (newStyle.getBackground() == null && defaultStyle.getBackground() != null) {
-      newStyle.setBackground(defaultStyle.getBackground());
+    TextStyle.Builder builder = style.toBuilder();
+    if (style.getBackground() == null && defaultStyle.getBackground() != null) {
+      builder.setBackground(defaultStyle.getBackground());
     }
-    if (newStyle.getForeground() == null && defaultStyle.getForeground() != null) {
-      newStyle.setForeground(defaultStyle.getForeground());
+    if (style.getForeground() == null && defaultStyle.getForeground() != null) {
+      builder.setForeground(defaultStyle.getForeground());
     }
-    
-    return newStyle.readonlyCopy();
+    return builder.build();
   }
 
   public void reset() {
-    myCurrentStyle = myDefaultStyle.clone();
+    myCurrentStyle = myDefaultStyle;
     myMergedStyle = null;
   }
 
@@ -64,16 +59,12 @@ public class StyleState {
     return color != null ? color : myDefaultStyle.getForeground();
   }
 
-  public StyleState clone() {
-    return new StyleState(myCurrentStyle);
-  }
-
   public void setCurrent(TextStyle current) {
     myCurrentStyle = current;
     myMergedStyle = null;
   }
 
-  public TextStyle getMergedStyle() {
+  private TextStyle getMergedStyle() {
     if (myMergedStyle == null) {
       myMergedStyle = merge(myCurrentStyle, myDefaultStyle);
     }

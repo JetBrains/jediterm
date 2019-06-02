@@ -687,7 +687,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   private StoredCursor createCursorState() {
-    return new StoredCursor(myCursorX, myCursorY, myStyleState.getCurrent().clone(),
+    return new StoredCursor(myCursorX, myCursorY, myStyleState.getCurrent(),
             isAutoWrap(), isOriginMode(), myGraphicSetState);
   }
 
@@ -715,7 +715,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
     adjustXY(-1);
 
-    myStyleState.setCurrent(storedCursor.getTextStyle().clone());
+    myStyleState.setCurrent(storedCursor.getTextStyle());
 
     setModeEnabled(TerminalMode.AutoWrap, storedCursor.isAutoWrap());
     setModeEnabled(TerminalMode.OriginMode, storedCursor.isOriginMode());

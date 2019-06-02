@@ -31,7 +31,8 @@ public class TextProcessing {
         LinkResult result = filter.apply(lineStr);
         if (result != null) {
           for (LinkResultItem item : result.getItems()) {
-            TextStyle style = new HyperlinkStyle(myHyperlinkColor.getForeground(), myHyperlinkColor.getBackground(), item.getLinkInfo()).withHighlightMode(myHighlightMode);
+            TextStyle style = new HyperlinkStyle(myHyperlinkColor.getForeground(), myHyperlinkColor.getBackground(),
+              item.getLinkInfo(), myHighlightMode, null);
             if (item.getStartOffset() >= 0 && item.getEndOffset() <= lineStr.length()) {
               line.writeString(item.getStartOffset(), new CharBuffer(lineStr.substring(item.getStartOffset(), item.getEndOffset())), style);
             }

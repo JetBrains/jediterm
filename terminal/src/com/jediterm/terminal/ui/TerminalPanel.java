@@ -824,25 +824,25 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     drawMargins(gfx, getWidth(), getHeight());
   }
 
-  private TextStyle getSelectionStyle(TextStyle style) {
-    TextStyle selectionStyle = style.clone();
+  @NotNull
+  private TextStyle getSelectionStyle(@NotNull TextStyle style) {
     if (mySettingsProvider.useInverseSelectionColor()) {
-      selectionStyle = getInversedStyle(style);
-    } else {
-      TextStyle mySelectionStyle = mySettingsProvider.getSelectionColor();
-      selectionStyle.setBackground(mySelectionStyle.getBackground());
-      selectionStyle.setForeground(mySelectionStyle.getForeground());
+      return getInversedStyle(style);
     }
-    return selectionStyle;
+    TextStyle.Builder builder = style.toBuilder();
+    TextStyle mySelectionStyle = mySettingsProvider.getSelectionColor();
+    builder.setBackground(mySelectionStyle.getBackground());
+    builder.setForeground(mySelectionStyle.getForeground());
+    return builder.build();
   }
 
-  private TextStyle getFoundPattern(TextStyle style) {
-    TextStyle foundPatternStyle = style.clone();
-    TextStyle myFoundPattern = mySettingsProvider.getFoundPatternColor();
-    foundPatternStyle.setBackground(myFoundPattern.getBackground());
-    foundPatternStyle.setForeground(myFoundPattern.getForeground());
-
-    return foundPatternStyle;
+  @NotNull
+  private TextStyle getFoundPattern(@NotNull TextStyle style) {
+    TextStyle.Builder builder = style.toBuilder();
+    TextStyle foundPattern = mySettingsProvider.getFoundPatternColor();
+    builder.setBackground(foundPattern.getBackground());
+    builder.setForeground(foundPattern.getForeground());
+    return builder.build();
   }
 
   private void drawInputMethodUncommitedChars(Graphics2D gfx) {
@@ -1138,17 +1138,17 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     g.drawImage(image, dx1, dy1, dx2, dy2, sx1, sy1, sx2, sy2, null);
   }
 
-  private TextStyle getInversedStyle(TextStyle style) {
-    TextStyle selectionStyle;
-    selectionStyle = style.clone();
-    selectionStyle.setOption(Option.INVERSE, !selectionStyle.hasOption(Option.INVERSE));
-    if (selectionStyle.getForeground() == null) {
-      selectionStyle.setForeground(myStyleState.getForeground());
+  @NotNull
+  private TextStyle getInversedStyle(@NotNull TextStyle style) {
+    TextStyle.Builder builder = style.toBuilder();
+    builder.setOption(Option.INVERSE, !style.hasOption(Option.INVERSE));
+    if (style.getForeground() == null) {
+      builder.setForeground(myStyleState.getForeground());
     }
-    if (selectionStyle.getBackground() == null) {
-      selectionStyle.setBackground(myStyleState.getBackground());
+    if (style.getBackground() == null) {
+      builder.setBackground(myStyleState.getBackground());
     }
-    return selectionStyle;
+    return builder.build();
   }
 
   private void drawCharacters(int x, int y, TextStyle style, CharBuffer buf, Graphics2D gfx) {

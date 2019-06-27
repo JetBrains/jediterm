@@ -436,4 +436,18 @@ public class TerminalTextBuffer {
     myHistoryBuffer.clearAll();
     fireModelChangeEvent();
   }
+
+  void moveScreenLinesToHistory() {
+    myLock.lock();
+    try {
+      myScreenBuffer.removeBottomEmptyLines(myScreenBuffer.getLineCount() - 1, myScreenBuffer.getLineCount());
+      myScreenBuffer.moveTopLinesTo(Math.max(0, myScreenBuffer.getLineCount() - 1), myHistoryBuffer);
+      if (myHistoryBuffer.getLineCount() > 0) {
+        myHistoryBuffer.getLine(myHistoryBuffer.getLineCount() - 1).setWrapped(false);
+      }
+    }
+    finally {
+      myLock.unlock();
+    }
+  }
 }

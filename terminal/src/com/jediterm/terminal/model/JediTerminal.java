@@ -312,7 +312,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
           break;
         case 2:
           beginY = 0;
-          endY = myTerminalHeight;
+          endY = myTerminalHeight - 1;
           break;
         default:
           LOG.error("Unsupported erase in display mode:" + arg);

@@ -1,14 +1,20 @@
 package com.jediterm.terminal.model;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
-import com.jediterm.terminal.util.CharUtils;
 import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.TextStyle;
+import com.jediterm.terminal.util.CharUtils;
 import com.jediterm.terminal.util.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * @author traff
@@ -273,6 +279,24 @@ public class TerminalLine {
     synchronized (this) {
       r.run();
     }
+  }
+
+  void forEachEntry(@NotNull Consumer<TextEntry> action) {
+    myTextEntries.forEach(action);
+  }
+
+  void appendEntry(@NotNull TextEntry entry) {
+    myTextEntries.add(entry);
+  }
+
+  @Override
+  public String toString() {
+    return myTextEntries.length() + " chars, " +
+        (myWrapped ? "wrapped, " : "") +
+        myTextEntries.myTextEntries.size() + " entries: " +
+        Joiner.on("|").join(myTextEntries.myTextEntries.stream().map(
+            entry -> entry.getText().toString()).collect(Collectors.toList())
+        );
   }
 
   static class TextEntry {

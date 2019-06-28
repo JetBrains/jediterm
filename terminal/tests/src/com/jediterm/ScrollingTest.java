@@ -79,7 +79,7 @@ public class ScrollingTest extends TestCase {
   public void testScrollAndResize() {
     StyleState state = new StyleState();
 
-    TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(10, 3, state);
+    TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(10, 4, state);
 
     JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
 
@@ -90,17 +90,22 @@ public class ScrollingTest extends TestCase {
     terminal.newLine();
     terminal.carriageReturn();
 
-    terminal.resize(new Dimension(7, 3), RequestOrigin.User);
+    terminal.resize(new Dimension(7, 4), RequestOrigin.User);
 
     terminal.writeString("3456789");
     terminal.newLine();
     terminal.carriageReturn();
 
-    assertEquals("2345678\n" +
+    assertEquals(
+            "2345678\n" +
+            "901    \n" +
             "3456789\n" +
-            "       \n", terminalTextBuffer.getScreenLines());
+            "       \n"
+        , terminalTextBuffer.getScreenLines());
 
-    assertEquals("1234567890", terminalTextBuffer.getHistoryBuffer().getLines());
+    assertEquals(
+        "1234567\n" +
+        "890", terminalTextBuffer.getHistoryBuffer().getLines());
   }
 
   public void testScrollingOrigin() {

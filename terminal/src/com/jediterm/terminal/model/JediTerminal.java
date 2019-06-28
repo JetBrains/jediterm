@@ -1043,7 +1043,12 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   public interface ResizeHandler {
+    @Deprecated
     void sizeUpdated(int termWidth, int termHeight, int cursorY);
+
+    default void sizeUpdated(int termWidth, int termHeight, int cursorX, int cursorY) {
+      sizeUpdated(termWidth, termHeight, cursorY);
+    }
   }
 
   public Dimension resize(final Dimension pendingResize, final RequestOrigin origin) {
@@ -1051,13 +1056,17 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     if (pendingResize.width <= MIN_WIDTH) {
       pendingResize.setSize(MIN_WIDTH, pendingResize.height);
     }
-    final Dimension pixelSize = myDisplay.requestResize(pendingResize, origin, myCursorY, new ResizeHandler() {
+    final Dimension pixelSize = myDisplay.requestResize(pendingResize, origin, myCursorX, myCursorY, new ResizeHandler() {
       @Override
       public void sizeUpdated(int termWidth, int termHeight, int cursorY) {
+      }
+
+      @Override
+      public void sizeUpdated(int termWidth, int termHeight, int cursorX, int cursorY) {
         myTerminalWidth = termWidth;
         myTerminalHeight = termHeight;
         myCursorY = cursorY;
-        myCursorX = Math.min(myCursorX, myTerminalWidth - 1);
+        myCursorX = Math.min(cursorX, myTerminalWidth - 1);
         myDisplay.setCursor(myCursorX, myCursorY);
 
         myTabulator.resize(myTerminalWidth);

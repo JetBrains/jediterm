@@ -62,7 +62,11 @@ public class SelectionTest extends TestCase {
 
     writer.resize(new Dimension(8, 10), RequestOrigin.User);
 
-    assertEquals("text to select \nand copy", SelectionUtil.getSelectionText(new Point(0, 0), new Point(8, 1), terminalTextBuffer));
+    //text to 
+    //select 
+    //and copy
+
+    assertEquals("text to select \nand copy", SelectionUtil.getSelectionText(new Point(0, 0), new Point(8, 2), terminalTextBuffer));
   }
 
   public void testSelectionTheLastLine() {

@@ -87,17 +87,44 @@ public class TerminalTextBuffer {
 
   public Dimension resize(@NotNull final Dimension pendingResize,
                           @NotNull final RequestOrigin origin,
+                          int cursorY,
+                          @NotNull JediTerminal.ResizeHandler resizeHandler,
+                          @Nullable TerminalSelection selection) {
+    return resize(pendingResize, origin, 0, cursorY, resizeHandler, selection);
+  }
+
+  public Dimension resize(@NotNull final Dimension pendingResize,
+                          @NotNull final RequestOrigin origin,
+                          final int cursorX,
                           final int cursorY,
                           @NotNull JediTerminal.ResizeHandler resizeHandler,
                           @Nullable TerminalSelection mySelection) {
-
     final int newWidth = pendingResize.width;
     final int newHeight = pendingResize.height;
+    int newCursorX = cursorX;
+    int newCursorY = cursorY;
+
+    if (myWidth != newWidth) {
+      ChangeWidthOperation changeWidthOperation = new ChangeWidthOperation(this, newWidth, newHeight);
+      Point cursor = new Point(cursorX, cursorY - 1);
+      changeWidthOperation.addPointToTrack(cursor);
+      if (mySelection != null) {
+        changeWidthOperation.addPointToTrack(mySelection.getStart());
+        changeWidthOperation.addPointToTrack(mySelection.getEnd());
+      }
+      changeWidthOperation.run();
+      myWidth = newWidth;
+      myHeight = newHeight;
+      Point newCursor = changeWidthOperation.getTrackedPoint(cursor);
+      newCursorX = newCursor.x;
+      newCursorY = newCursor.y + 1;
+      if (mySelection != null) {
+        mySelection.getStart().setLocation(changeWidthOperation.getTrackedPoint(mySelection.getStart()));
+        mySelection.getEnd().setLocation(changeWidthOperation.getTrackedPoint(mySelection.getEnd()));
+      }
+    }
 
     final int oldHeight = myHeight;
-
-    final int newCursorY;
-
     if (newHeight < oldHeight) {
       int count = oldHeight - newHeight;
       if (!myAlternateBuffer) {
@@ -124,15 +151,13 @@ public class TerminalTextBuffer {
       if (mySelection != null) {
         mySelection.shiftY(newHeight - cursorY);
       }
-    } else {
-      newCursorY = cursorY;
     }
 
     myWidth = newWidth;
     myHeight = newHeight;
 
 
-    resizeHandler.sizeUpdated(myWidth, myHeight, newCursorY);
+    resizeHandler.sizeUpdated(myWidth, myHeight, newCursorX, newCursorY);
 
 
     fireModelChangeEvent();
@@ -449,5 +474,15 @@ public class TerminalTextBuffer {
     finally {
       myLock.unlock();
     }
+  }
+
+  @NotNull
+  LinesBuffer getHistoryBufferOrBackup() {
+    return myUsingAlternateBuffer ? myHistoryBufferBackup : myHistoryBuffer;
+  }
+
+  @NotNull
+  LinesBuffer getScreenBufferOrBackup() {
+    return myUsingAlternateBuffer ? myScreenBufferBackup : myScreenBuffer;
   }
 }

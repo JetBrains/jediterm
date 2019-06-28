@@ -187,27 +187,39 @@ public class BufferResizeTest extends TestCase {
     terminal.carriageReturn();
     terminal.writeString(">");
 
-    assertEquals(">line2\n" +
+    assertEquals(">line1", textBuffer.getHistoryBuffer().getLines());
+    assertEquals(
+        ">line2\n" +
         ">line3\n" +
         ">line4\n" +
         ">line5\n" +
         ">     \n", textBuffer.getScreenLines());
 
-    terminal.resize(new Dimension(3, 5), RequestOrigin.User);
+    terminal.resize(new Dimension(3, 5), RequestOrigin.User); // JediTerminal.MIN_WIDTH = 5
 
-    assertEquals(">line\n" +         //minimum width is 5
+    assertEquals(
         ">line\n" +
+        "1\n" +
         ">line\n" +
+        "2\n" +
         ">line\n" +
+        "3", textBuffer.getHistoryBuffer().getLines());
+    assertEquals(
+        ">line\n" +
+        "4    \n" +
+        ">line\n" +
+        "5    \n" + 
         ">    \n", textBuffer.getScreenLines());
 
     terminal.resize(new Dimension(6, 5), RequestOrigin.User);
 
-    assertEquals(">line2\n" +
-        ">line3\n" +
-        ">line4\n" +
-        ">line5\n" +
-        ">     \n", textBuffer.getScreenLines());
+    assertEquals(">line1", textBuffer.getHistoryBuffer().getLines());
+    assertEquals(
+        ">line2\n" +
+            ">line3\n" +
+            ">line4\n" +
+            ">line5\n" +
+            ">     \n", textBuffer.getScreenLines());
   }
 
   public void testSelectionAfterResize() {
@@ -306,5 +318,70 @@ public class BufferResizeTest extends TestCase {
     assertEquals("hi>       \n" +
             "          \n" +
             "          \n", terminalTextBuffer.getScreenLines());
+  }
+
+  public void testResizeWidth1() {
+    StyleState state = new StyleState();
+    TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(15, 24, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    terminal.writeString("$ cat long.txt");
+    terminal.crnl();
+    terminal.writeString("1_2_3_4_5_6_7_8");
+    terminal.writeString("_9_10_11_12_13_");
+    terminal.writeString("14_15_16_17_18_");
+    terminal.writeString("19_20_21_22_23_");
+    terminal.writeString("24_25_26");
+    terminal.crnl();
+    terminal.writeString("$ ");
+    assertEquals(3, terminal.getCursorX());
+    assertEquals(7, terminal.getCursorY());
+    assertEquals("", terminalTextBuffer.getHistoryBuffer().getLines());
+    terminal.resize(new Dimension(20, 7), RequestOrigin.User);
+
+    assertEquals("", terminalTextBuffer.getHistoryBuffer().getLines());
+    assertEquals("$ cat long.txt      \n" +
+                 "1_2_3_4_5_6_7_8_9_10\n" +
+                 "_11_12_13_14_15_16_1\n" +
+                 "7_18_19_20_21_22_23_\n" +
+                 "24_25_26            \n" +
+                 "$                   \n" +
+                 "                    \n", terminalTextBuffer.getScreenLines());
+  }
+
+  public void testResizeWidth2() {
+    StyleState state = new StyleState();
+    TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(100, 5, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    terminal.writeString("$ cat long.txt");
+    terminal.crnl();
+    terminal.writeString("1_2_3_4_5_6_7_8_9_10_11_12_13_14_15_16_17_18_19_20_21_22_23_24_25_26_27_28_30");
+    terminal.crnl();
+    terminal.crnl();
+    terminal.writeString("$ ");
+    assertEquals(3, terminal.getCursorX());
+    assertEquals(4, terminal.getCursorY());
+    assertEquals("", terminalTextBuffer.getHistoryBuffer().getLines());
+    terminal.resize(new Dimension(6, 4), RequestOrigin.User);
+
+    assertEquals(
+        "$ cat \n" +
+        "long.t\n" +
+        "xt\n" +
+        "1_2_3_\n" +
+        "4_5_6_\n" +
+        "7_8_9_\n" +
+        "10_11_\n" +
+        "12_13_\n" +
+        "14_15_\n" +
+        "16_17_\n" +
+        "18_19_\n" +
+        "20_21_\n" +
+        "22_23_\n" +
+        "24_25_", terminalTextBuffer.getHistoryBuffer().getLines());
+    assertEquals(
+        "26_27_\n" +
+        "28_30 \n" +
+        "      \n" +
+        "$     \n", terminalTextBuffer.getScreenLines());
   }
 }

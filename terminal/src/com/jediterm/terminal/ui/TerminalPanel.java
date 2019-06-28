@@ -632,14 +632,23 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     myCustomKeyListeners.remove(keyListener);
   }
 
+  @Deprecated
   public Dimension requestResize(final Dimension newSize,
                                  final RequestOrigin origin,
+                                 int cursorY,
+                                 JediTerminal.ResizeHandler resizeHandler) {
+    return requestResize(newSize, origin, 0, cursorY, resizeHandler);
+  }
+
+  public Dimension requestResize(final Dimension newSize,
+                                 final RequestOrigin origin,
+                                 int cursorX,
                                  int cursorY,
                                  JediTerminal.ResizeHandler resizeHandler) {
     if (!newSize.equals(myTermSize)) {
       myTerminalTextBuffer.lock();
       try {
-        myTerminalTextBuffer.resize(newSize, origin, cursorY, resizeHandler, mySelection);
+        myTerminalTextBuffer.resize(newSize, origin, cursorX, cursorY, resizeHandler, mySelection);
 
       } finally {
         myTerminalTextBuffer.unlock();

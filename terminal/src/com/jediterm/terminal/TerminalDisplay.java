@@ -18,7 +18,14 @@ public interface TerminalDisplay {
 
   void beep();
 
+  @SuppressWarnings("DeprecatedIsStillUsed")
+  @Deprecated
   Dimension requestResize(Dimension pendingResize, RequestOrigin origin, int cursorY, JediTerminal.ResizeHandler resizeHandler);
+
+  default Dimension requestResize(Dimension pendingResize, RequestOrigin origin, int cursorX, int cursorY,
+                                  JediTerminal.ResizeHandler resizeHandler) {
+    return requestResize(pendingResize, origin, cursorY, resizeHandler);
+  }
 
   void scrollArea(final int scrollRegionTop, final int scrollRegionSize, int dy);
 

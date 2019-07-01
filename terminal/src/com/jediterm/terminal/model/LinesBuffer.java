@@ -149,7 +149,7 @@ public class LinesBuffer {
 
     if (myTextProcessing != null) {
       SwingUtilities.invokeLater(() -> {
-        myTextProcessing.processHyperlinks(this, y);
+        myTextProcessing.processHyperlinks(this, line);
       });
     }
   }

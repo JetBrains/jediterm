@@ -5,8 +5,10 @@ import com.jediterm.terminal.HyperlinkStyle;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.model.CharBuffer;
 import com.jediterm.terminal.model.LinesBuffer;
+import com.jediterm.terminal.model.TerminalLine;
 import com.jediterm.terminal.model.TerminalTextBuffer;
 import com.jediterm.terminal.util.CharUtils;
+import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -15,6 +17,9 @@ import java.util.List;
  * @author traff
  */
 public class TextProcessing {
+
+  private static final Logger LOG = Logger.getLogger(TextProcessing.class);
+
   private final List<HyperlinkFilter> myHyperlinkFilter;
   private TextStyle myHyperlinkColor;
   private HyperlinkStyle.HighlightMode myHighlightMode;
@@ -30,10 +35,15 @@ public class TextProcessing {
     myTerminalTextBuffer = terminalTextBuffer;
   }
 
-  public void processHyperlinks(@NotNull LinesBuffer buffer, int updatedLineInd) {
+  public void processHyperlinks(@NotNull LinesBuffer buffer, @NotNull TerminalLine updatedLine) {
     if (myHyperlinkFilter.isEmpty()) return;
     myTerminalTextBuffer.lock();
     try {
+      int updatedLineInd = findLineInd(buffer, updatedLine);
+      if (updatedLineInd == -1) {
+        LOG.warn("Cannot find line for links processing");
+        return;
+      }
       int startLineInd = updatedLineInd;
       while (startLineInd > 0 && buffer.getLine(startLineInd - 1).isWrapped()) {
         startLineInd--;
@@ -63,6 +73,16 @@ public class TextProcessing {
     finally {
       myTerminalTextBuffer.unlock();
     }
+  }
+
+  private static int findLineInd(@NotNull LinesBuffer buffer, @NotNull TerminalLine line) {
+    for (int i = 0; i < buffer.getLineCount(); i++) {
+      TerminalLine l = buffer.getLine(i);
+      if (l == line) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   @NotNull

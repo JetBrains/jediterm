@@ -19,7 +19,7 @@ import java.util.List;
 public class LinesBuffer {
   private static final Logger LOG = Logger.getLogger(LinesBuffer.class);
 
-  public static final int DEFAULT_MAX_LINES_COUNT = 1000;
+  public static final int DEFAULT_MAX_LINES_COUNT = 5000;
 
   // negative number means no limit
   private int myBufferMaxLinesCount = DEFAULT_MAX_LINES_COUNT;

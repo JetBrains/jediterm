@@ -41,8 +41,13 @@ public class TextProcessing {
     try {
       int updatedLineInd = findLineInd(buffer, updatedLine);
       if (updatedLineInd == -1) {
-        LOG.warn("Cannot find line for links processing");
-        return;
+        // When lines arrive fast enough, the line might be pushed to the history buffer already.
+        updatedLineInd = findHistoryLineInd(myTerminalTextBuffer.getHistoryBuffer(), updatedLine);
+        if (updatedLineInd == -1) {
+          LOG.info("Cannot find line for links processing");
+          return;
+        }
+        buffer = myTerminalTextBuffer.getHistoryBuffer();
       }
       int startLineInd = updatedLineInd;
       while (startLineInd > 0 && buffer.getLine(startLineInd - 1).isWrapped()) {
@@ -73,6 +78,16 @@ public class TextProcessing {
     finally {
       myTerminalTextBuffer.unlock();
     }
+  }
+
+  private int findHistoryLineInd(@NotNull LinesBuffer historyBuffer, @NotNull TerminalLine line) {
+    int lastLineInd = Math.max(0, historyBuffer.getLineCount() - 200); // check only last lines in history buffer
+    for (int i = historyBuffer.getLineCount() - 1; i >= lastLineInd; i--) {
+      if (historyBuffer.getLine(i) == line) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   private static int findLineInd(@NotNull LinesBuffer buffer, @NotNull TerminalLine line) {

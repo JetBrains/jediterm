@@ -1149,7 +1149,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   @NotNull
   private TextStyle getInversedStyle(@NotNull TextStyle style) {
-    TextStyle.Builder builder = style.toBuilder();
+    TextStyle.Builder builder = new TextStyle.Builder(style);
     builder.setOption(Option.INVERSE, !style.hasOption(Option.INVERSE));
     if (style.getForeground() == null) {
       builder.setForeground(myStyleState.getForeground());

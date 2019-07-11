@@ -123,7 +123,7 @@ public class TextStyle {
     private TerminalColor myBackground;
     private EnumSet<Option> myOptions;
 
-    private Builder(@NotNull TextStyle textStyle) {
+    public Builder(@NotNull TextStyle textStyle) {
       myForeground = textStyle.myForeground;
       myBackground = textStyle.myBackground;
       myOptions = textStyle.myOptions.clone();

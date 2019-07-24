@@ -227,6 +227,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   @Override
   public void close() {
+    stop();
     if (myTerminalStarter != null) {
       myTerminalStarter.close();
     }

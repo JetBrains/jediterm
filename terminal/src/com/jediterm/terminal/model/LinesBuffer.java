@@ -148,9 +148,7 @@ public class LinesBuffer {
     line.writeString(x, str, style);
 
     if (myTextProcessing != null) {
-      SwingUtilities.invokeLater(() -> {
-        myTextProcessing.processHyperlinks(this, line);
-      });
+      myTextProcessing.processHyperlinks(this, line);
     }
   }
 

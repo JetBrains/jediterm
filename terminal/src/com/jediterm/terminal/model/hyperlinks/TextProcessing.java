@@ -7,6 +7,7 @@ import com.jediterm.terminal.model.CharBuffer;
 import com.jediterm.terminal.model.LinesBuffer;
 import com.jediterm.terminal.model.TerminalLine;
 import com.jediterm.terminal.model.TerminalTextBuffer;
+import com.jediterm.terminal.ui.JediTermWidget;
 import com.jediterm.terminal.util.CharUtils;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -20,12 +21,16 @@ public class TextProcessing {
 
   private static final Logger LOG = Logger.getLogger(TextProcessing.class);
 
+  private final JediTermWidget myWidget;
   private final List<HyperlinkFilter> myHyperlinkFilter;
   private TextStyle myHyperlinkColor;
   private HyperlinkStyle.HighlightMode myHighlightMode;
   private TerminalTextBuffer myTerminalTextBuffer;
 
-  public TextProcessing(TextStyle hyperlinkColor, HyperlinkStyle.HighlightMode highlightMode) {
+  public TextProcessing(@NotNull JediTermWidget widget,
+                        @NotNull TextStyle hyperlinkColor,
+                        @NotNull HyperlinkStyle.HighlightMode highlightMode) {
+    myWidget = widget;
     myHyperlinkColor = hyperlinkColor;
     myHighlightMode = highlightMode;
     myHyperlinkFilter = Lists.newArrayList();
@@ -37,6 +42,10 @@ public class TextProcessing {
 
   public void processHyperlinks(@NotNull LinesBuffer buffer, @NotNull TerminalLine updatedLine) {
     if (myHyperlinkFilter.isEmpty()) return;
+    myWidget.runFilters(() -> doProcessHyperlinks(buffer, updatedLine));
+  }
+
+  private void doProcessHyperlinks(@NotNull LinesBuffer buffer, @NotNull TerminalLine updatedLine) {
     myTerminalTextBuffer.lock();
     try {
       int updatedLineInd = findLineInd(buffer, updatedLine);
@@ -44,7 +53,7 @@ public class TextProcessing {
         // When lines arrive fast enough, the line might be pushed to the history buffer already.
         updatedLineInd = findHistoryLineInd(myTerminalTextBuffer.getHistoryBuffer(), updatedLine);
         if (updatedLineInd == -1) {
-          LOG.info("Cannot find line for links processing");
+          LOG.debug("Cannot find line for links processing");
           return;
         }
         buffer = myTerminalTextBuffer.getHistoryBuffer();

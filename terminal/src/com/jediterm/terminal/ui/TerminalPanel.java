@@ -842,6 +842,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     TextStyle mySelectionStyle = mySettingsProvider.getSelectionColor();
     builder.setBackground(mySelectionStyle.getBackground());
     builder.setForeground(mySelectionStyle.getForeground());
+    if (builder instanceof HyperlinkStyle.Builder) {
+      return ((HyperlinkStyle.Builder)builder).build(true);
+    }
     return builder.build();
   }
 

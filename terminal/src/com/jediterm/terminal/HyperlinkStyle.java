@@ -29,12 +29,21 @@ public class HyperlinkStyle extends TextStyle implements Runnable {
                         @NotNull LinkInfo hyperlinkInfo,
                         @NotNull HighlightMode mode,
                         @Nullable TextStyle prevTextStyle) {
-    super(null, null);
+    this(false, foreground, background, hyperlinkInfo, mode, prevTextStyle);
+  }
+
+  private HyperlinkStyle(boolean keepColors,
+                         @Nullable TerminalColor foreground,
+                         @Nullable TerminalColor background,
+                         @NotNull LinkInfo hyperlinkInfo,
+                         @NotNull HighlightMode mode,
+                         @Nullable TextStyle prevTextStyle) {
+    super(keepColors ? foreground : null, keepColors ? background : null);
     myHighlightStyle = new TextStyle.Builder()
-      .setBackground(background)
-      .setForeground(foreground)
-      .setOption(Option.UNDERLINED, true)
-      .build();
+        .setBackground(background)
+        .setForeground(foreground)
+        .setOption(Option.UNDERLINED, true)
+        .build();
     myLinkInfo = hyperlinkInfo;
     myHighlightMode = mode;
     myPrevTextStyle = prevTextStyle;
@@ -98,8 +107,19 @@ public class HyperlinkStyle extends TextStyle implements Runnable {
 
     @NotNull
     public HyperlinkStyle build() {
-      return new HyperlinkStyle(myHighlightStyle.getForeground(), myHighlightStyle.getBackground(),
-        myLinkInfo, myHighlightMode, myPrevTextStyle);
+      return build(false);
+    }
+
+    @NotNull
+    public HyperlinkStyle build(boolean keepColors) {
+      TerminalColor foreground = myHighlightStyle.getForeground();
+      TerminalColor background = myHighlightStyle.getBackground();
+      if (keepColors) {
+        TextStyle style = super.build();
+        foreground = style.getForeground() != null ? style.getForeground() : myHighlightStyle.getForeground();
+        background = style.getBackground() != null ? style.getBackground() : myHighlightStyle.getBackground();
+      }
+      return new HyperlinkStyle(keepColors, foreground, background, myLinkInfo, myHighlightMode, myPrevTextStyle);
     }
   }
 }

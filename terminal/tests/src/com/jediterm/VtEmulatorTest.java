@@ -1,5 +1,7 @@
 package com.jediterm;
 
+import com.sun.org.apache.xpath.internal.operations.Bool;
+
 import java.io.IOException;
 
 /**
@@ -75,6 +77,7 @@ public class VtEmulatorTest extends EmulatorTestAbstract {
    */
 
   public void testTest3_Characters_1() throws IOException {
+    System.setProperty("jediterm.enable.shift_out.character.support", Boolean.TRUE.toString());
     doVtTest();
   }
 

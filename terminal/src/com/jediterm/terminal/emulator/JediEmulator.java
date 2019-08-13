@@ -67,7 +67,9 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       case Ascii.SO: //Shift Out (Ctrl-N) -> Switch to Alternate Character Set. This invokes the G1 character set (the default)
         //LS1 (locking shift 1)
         //Map G1 into GL
-        terminal.mapCharsetToGL(1);
+        if (Boolean.getBoolean("jediterm.enable.shift_out.character.support")) {
+          terminal.mapCharsetToGL(1);
+        }
         break;
       case Ascii.HT: // Horizontal Tab (HT) (Ctrl-I)
         terminal.horizontalTab();

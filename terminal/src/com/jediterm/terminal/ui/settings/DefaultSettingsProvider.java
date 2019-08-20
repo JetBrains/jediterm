@@ -82,7 +82,7 @@ public class DefaultSettingsProvider implements SettingsProvider {
     } else {
       fontName = "Monospaced";
     }
-    return Font.decode(fontName).deriveFont(getTerminalFontSize());
+    return new Font(fontName, Font.PLAIN, (int)getTerminalFontSize());
   }
 
   @Override

@@ -49,10 +49,11 @@ public class SelectionUtil {
   public static String getSelectionText(TerminalSelection selection, TerminalTextBuffer terminalTextBuffer) {
     return getSelectionText(selection.getStart(), selection.getEnd(), terminalTextBuffer);
   }
-  
-  public static String getSelectionText(final Point selectionStart,
-                                        final Point selectionEnd,
-                                        final TerminalTextBuffer terminalTextBuffer) {
+
+  @NotNull
+  public static String getSelectionText(@NotNull Point selectionStart,
+                                        @NotNull Point selectionEnd,
+                                        @NotNull TerminalTextBuffer terminalTextBuffer) {
 
     Pair<Point, Point> pair = sortPoints(selectionStart, selectionEnd);
     pair.first.y = Math.max(pair.first.y, - terminalTextBuffer.getHistoryLinesCount());

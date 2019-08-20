@@ -22,13 +22,14 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
-import java.awt.datatransfer.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.ClipboardOwner;
+import java.awt.datatransfer.Transferable;
 import java.awt.event.*;
 import java.awt.font.TextHitInfo;
 import java.awt.im.InputMethodRequests;
 import java.awt.image.BufferedImage;
 import java.awt.image.ImageObserver;
-import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.net.URI;
 import java.text.AttributedCharacterIterator;
@@ -37,8 +38,6 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 public class TerminalPanel extends JComponent implements TerminalDisplay, ClipboardOwner, TerminalActionProvider {
   private static final Logger LOG = Logger.getLogger(TerminalPanel.class);
@@ -62,8 +61,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   private Point mySelectionStartPoint = null;
   private TerminalSelection mySelection = null;
 
-  private Clipboard mySelectionClipboard;
-  private Clipboard myClipboard;
+  private final TerminalCopyPasteHandler myCopyPasteHandler;
 
   private TerminalPanelListener myTerminalPanelListener;
 
@@ -110,6 +108,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     myTermSize.width = terminalTextBuffer.getWidth();
     myTermSize.height = terminalTextBuffer.getHeight();
     myMaxFPS = mySettingsProvider.maxRefreshRate();
+    myCopyPasteHandler = createCopyPasteHandler();
 
     updateScrolling(true);
 
@@ -122,6 +121,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
         repaint();
       }
     });
+  }
+
+  @NotNull
+  protected TerminalCopyPasteHandler createCopyPasteHandler() {
+    return new DefaultTerminalCopyPasteHandler();
   }
 
   public TerminalPanelListener getTerminalPanelListener() {
@@ -155,10 +159,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
 
   public void init() {
     initFont();
-
-    if (!Boolean.getBoolean("java.awt.headless")) {
-      setUpClipboard();
-    }
 
     setPreferredSize(new Dimension(getPixelWidth(), getPixelHeight()));
 
@@ -498,43 +498,20 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     return new Point(p.x * myCharSize.width + getInsetX(), (p.y - myClientScrollOrigin) * myCharSize.height);
   }
 
-  void setUpClipboard() {
-    mySelectionClipboard = Toolkit.getDefaultToolkit().getSystemSelection();
-    if (mySelectionClipboard == null) {
-      mySelectionClipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-    }
-    myClipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-  }
-
-  protected void copySelection(final Point selectionStart, final Point selectionEnd, @NotNull Consumer<StringSelection> copyHandler) {
+  private void copySelection(@Nullable Point selectionStart,
+                             @Nullable Point selectionEnd,
+                             boolean useSystemSelectionClipboardIfAvailable) {
     if (selectionStart == null || selectionEnd == null) {
       return;
     }
-
-    final String selectionText = SelectionUtil
-            .getSelectionText(selectionStart, selectionEnd, myTerminalTextBuffer);
-
+    String selectionText = SelectionUtil.getSelectionText(selectionStart, selectionEnd, myTerminalTextBuffer);
     if (selectionText.length() != 0) {
-      try {
-        copyHandler.accept(new StringSelection(selectionText));
-      } catch (final IllegalStateException e) {
-        LOG.error("Could not set clipboard:", e);
-      }
+      myCopyPasteHandler.setContents(selectionText, useSystemSelectionClipboardIfAvailable);
     }
   }
 
-  protected void setCopyContents(StringSelection selection) {
-    myClipboard.setContents(selection, this);
-  }
-
-  protected void setCopySelectionContents(StringSelection selection) {
-    if (mySelectionClipboard != null) {
-      mySelectionClipboard.setContents(selection, this);
-    }
-  }
-
-  protected void pasteFromClipboard(Supplier<String> clipboardStringSupplier) {
-    String text = clipboardStringSupplier.get();
+  private void pasteFromClipboard(boolean useSystemSelectionClipboardIfAvailable) {
+    String text = myCopyPasteHandler.getContents(useSystemSelectionClipboardIfAvailable);
 
     if (text == null) {
       return;
@@ -557,35 +534,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
     }
   }
 
+  @Nullable
   private String getClipboardString() {
-    try {
-      return getClipboardContent(myClipboard);
-    } catch (final Exception e) {
-      LOG.info(e);
-    }
-    return null;
-  }
-
-  private String getSelectionClipboardString() {
-    try {
-      if (mySelectionClipboard != null) {
-        return getClipboardContent(mySelectionClipboard);
-      } else {
-        return getClipboardContent(myClipboard);
-      }
-    } catch (final Exception e) {
-      LOG.info(e);
-    }
-    return null;
-  }
-
-  protected String getClipboardContent(Clipboard clipboard) throws IOException, UnsupportedFlavorException {
-    try {
-      return (String) clipboard.getData(DataFlavor.stringFlavor);
-    } catch (Exception e) {
-      LOG.info(e);
-      return null;
-    }
+    return myCopyPasteHandler.getContents(false);
   }
 
   /* Do not care
@@ -1644,18 +1595,18 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   private void handlePaste() {
-    pasteFromClipboard(this::getClipboardString);
+    pasteFromClipboard(false);
   }
 
   private void handlePasteSelection() {
-    pasteFromClipboard(this::getSelectionClipboardString);
+    pasteFromClipboard(true);
   }
 
   // "unselect" is needed to handle Ctrl+C copy shortcut collision with ^C signal shortcut
-  private boolean handleCopy(boolean unselect, Consumer<StringSelection> copyHandler) {
+  private boolean handleCopy(boolean unselect, boolean useSystemSelectionClipboardIfAvailable) {
     if (mySelection != null) {
       Pair<Point, Point> points = mySelection.pointsForRun(myTermSize.width);
-      copySelection(points.first, points.second, copyHandler);
+      copySelection(points.first, points.second, useSystemSelectionClipboardIfAvailable);
       if (unselect) {
         mySelection = null;
         repaint();
@@ -1666,13 +1617,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   }
 
   private boolean handleCopy() {
-    return handleCopy(true, this::setCopyContents);
+    return handleCopy(true, false);
   }
 
-  private boolean handleCopyOnSelect() {
-    return handleCopy(false, this::setCopySelectionContents);
+  private void handleCopyOnSelect() {
+    handleCopy(false, true);
   }
-
 
   /**
    * InputMethod implementation

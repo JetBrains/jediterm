@@ -1,7 +1,5 @@
 package com.jediterm;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
-
 import java.io.IOException;
 
 /**

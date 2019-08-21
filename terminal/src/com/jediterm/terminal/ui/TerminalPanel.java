@@ -39,7 +39,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class TerminalPanel extends JComponent implements TerminalDisplay, ClipboardOwner, TerminalActionProvider {
+public class TerminalPanel extends JComponent implements TerminalDisplay, TerminalActionProvider {
   private static final Logger LOG = Logger.getLogger(TerminalPanel.class);
   private static final long serialVersionUID = -1048763516632093014L;
 
@@ -537,11 +537,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Clipbo
   @Nullable
   private String getClipboardString() {
     return myCopyPasteHandler.getContents(false);
-  }
-
-  /* Do not care
-   */
-  public void lostOwnership(final Clipboard clipboard, final Transferable contents) {
   }
 
   protected void drawImage(Graphics2D gfx, BufferedImage image, int x, int y, ImageObserver observer) {

@@ -12,7 +12,6 @@ import java.io.IOException;
 public class ArrayTerminalDataStream implements TerminalDataStream {
   protected char[] myBuf;
   protected int myOffset;
-  protected int myLength;
 
   public ArrayTerminalDataStream(char[] buf, int offset, int length) {
     myBuf = buf;

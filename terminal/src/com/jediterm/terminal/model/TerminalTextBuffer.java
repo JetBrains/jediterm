@@ -466,7 +466,7 @@ public class TerminalTextBuffer {
     myLock.lock();
     try {
       myScreenBuffer.removeBottomEmptyLines(myScreenBuffer.getLineCount() - 1, myScreenBuffer.getLineCount());
-      myScreenBuffer.moveTopLinesTo(Math.max(0, myScreenBuffer.getLineCount() - 1), myHistoryBuffer);
+      myScreenBuffer.moveTopLinesTo(myScreenBuffer.getLineCount(), myHistoryBuffer);
       if (myHistoryBuffer.getLineCount() > 0) {
         myHistoryBuffer.getLine(myHistoryBuffer.getLineCount() - 1).setWrapped(false);
       }

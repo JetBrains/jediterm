@@ -47,7 +47,7 @@ public class DefaultSettingsProvider implements SettingsProvider {
   public KeyStroke[] getClearBufferKeyStrokes() {
     return new KeyStroke[]{UIUtil.isMac
             ? KeyStroke.getKeyStroke(KeyEvent.VK_K, InputEvent.META_DOWN_MASK)
-            : KeyStroke.getKeyStroke(KeyEvent.VK_K, InputEvent.CTRL_DOWN_MASK)};
+            : KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK)};
   }
 
   @Override

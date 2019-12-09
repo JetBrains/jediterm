@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.jediterm.terminal.model.CharBuffer;
 import com.jediterm.terminal.util.Pair;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -62,7 +63,8 @@ public class SubstringFinder {
     if (myCurrentLength == myPattern.length() &&
             myCurrentHash == myPatternHash) {
       FindResult.FindItem item = new FindResult.FindItem(myTokens, myFirstIndex, index, -1);
-      if (myPattern.equals(myIgnoreCase ? item.toString().toLowerCase() : item.toString())) {
+      String itemText = item.getText();
+      if (myPattern.equals(myIgnoreCase ? itemText.toLowerCase() : itemText)) {
         myResult.patternMatched(myTokens, myFirstIndex, index);
         myCurrentHash = 0;
         myCurrentLength = 0;
@@ -114,7 +116,8 @@ public class SubstringFinder {
         this.index = index;
       }
 
-      public String toString() {
+      @NotNull
+      public String getText() {
         StringBuilder b = new StringBuilder();
 
         if (tokens.size() > 1) {
@@ -126,7 +129,7 @@ public class SubstringFinder {
         }
 
         for (int i = 1; i < tokens.size() - 1; i++) {
-          b.append(tokens.get(i));
+          b.append(tokens.get(i).buf);
         }
 
         if (tokens.size() > 1) {
@@ -135,6 +138,11 @@ public class SubstringFinder {
         }
 
         return b.toString();
+      }
+
+      @Override
+      public String toString() {
+        return getText();
       }
 
       // index in the result list

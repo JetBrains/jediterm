@@ -30,6 +30,12 @@ compileJava {
     options.debugOptions.debugLevel = 'lines,vars,source'
 }
 
+compileTestJava {
+    sourceCompatibility = '1.8'
+    targetCompatibility = '1.8'
+    options.debugOptions.debugLevel = 'lines,vars,source'
+}
+
 test {
     testLogging {
         exceptionFormat = 'full'

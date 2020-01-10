@@ -1,5 +1,5 @@
 language: java
 jdk:
-  - oraclejdk8
+  - oraclejdk11
 install: true
 script: ./gradlew --settings-file travis-settings.gradle test

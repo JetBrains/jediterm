@@ -8,11 +8,12 @@ import com.jediterm.terminal.util.CharUtils;
 import com.jediterm.terminal.util.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.TestOnly;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -285,6 +286,11 @@ public class TerminalLine {
     myTextEntries.forEach(action);
   }
 
+  @TestOnly
+  public List<TextEntry> getEntries() {
+    return myTextEntries.entries();
+  }
+
   void appendEntry(@NotNull TextEntry entry) {
     myTextEntries.add(entry);
   }
@@ -299,7 +305,7 @@ public class TerminalLine {
         );
   }
 
-  static class TextEntry {
+  public static class TextEntry {
     private final TextStyle myStyle;
     private final CharBuffer myText;
 
@@ -323,10 +329,15 @@ public class TerminalLine {
     public boolean isNul() {
       return myText.isNul();
     }
+
+    @Override
+    public String toString() {
+      return myText.length() + " chars, style: " + myStyle + ", text: " + myText;
+    }
   }
 
   private static class TextEntries implements Iterable<TextEntry> {
-    private ArrayList<TextEntry> myTextEntries = new ArrayList<TextEntry>();
+    private List<TextEntry> myTextEntries = new ArrayList<>();
 
     private int myLength = 0;
 
@@ -343,10 +354,11 @@ public class TerminalLine {
       myLength += entry.getLength();
     }
 
-    private Collection<TextEntry> entries() {
-      return Collections.unmodifiableCollection(myTextEntries);
+    private List<TextEntry> entries() {
+      return Collections.unmodifiableList(myTextEntries);
     }
 
+    @NotNull
     public Iterator<TextEntry> iterator() {
       return entries().iterator();
     }

@@ -63,8 +63,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
     StyleState styleState = createDefaultStyle();
 
-    myTextProcessing = new TextProcessing(this,
-                                          settingsProvider.getHyperlinkColor(),
+    myTextProcessing = new TextProcessing(settingsProvider.getHyperlinkColor(),
                                           settingsProvider.getHyperlinkHighlightingMode());
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(columns, lines, styleState, settingsProvider.getBufferMaxLinesCount(), myTextProcessing);
@@ -638,10 +637,6 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   public void addHyperlinkFilter(HyperlinkFilter filter) {
     myTextProcessing.addHyperlinkFilter(filter);
-  }
-
-  public void runFilters(@NotNull Runnable runnable) {
-    runnable.run();
   }
 
   @Override

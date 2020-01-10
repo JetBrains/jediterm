@@ -21,16 +21,13 @@ public class TextProcessing {
 
   private static final Logger LOG = Logger.getLogger(TextProcessing.class);
 
-  private final JediTermWidget myWidget;
   private final List<HyperlinkFilter> myHyperlinkFilter;
   private TextStyle myHyperlinkColor;
   private HyperlinkStyle.HighlightMode myHighlightMode;
   private TerminalTextBuffer myTerminalTextBuffer;
 
-  public TextProcessing(@NotNull JediTermWidget widget,
-                        @NotNull TextStyle hyperlinkColor,
+  public TextProcessing(@NotNull TextStyle hyperlinkColor,
                         @NotNull HyperlinkStyle.HighlightMode highlightMode) {
-    myWidget = widget;
     myHyperlinkColor = hyperlinkColor;
     myHighlightMode = highlightMode;
     myHyperlinkFilter = Lists.newArrayList();
@@ -42,7 +39,7 @@ public class TextProcessing {
 
   public void processHyperlinks(@NotNull LinesBuffer buffer, @NotNull TerminalLine updatedLine) {
     if (myHyperlinkFilter.isEmpty()) return;
-    myWidget.runFilters(() -> doProcessHyperlinks(buffer, updatedLine));
+    doProcessHyperlinks(buffer, updatedLine);
   }
 
   private void doProcessHyperlinks(@NotNull LinesBuffer buffer, @NotNull TerminalLine updatedLine) {

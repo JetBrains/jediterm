@@ -423,6 +423,9 @@ public class TerminalTextBuffer {
     if (y >= 0) {
       myScreenBuffer.clearArea(leftX, y, rightX, y + 1, style);
       fireModelChangeEvent();
+      if (myTextProcessing != null && y < getHeight()) {
+        myTextProcessing.processHyperlinks(myScreenBuffer, getLine(y));
+      }
     } else {
       LOG.error("Attempt to erase characters in line: " + y);
     }

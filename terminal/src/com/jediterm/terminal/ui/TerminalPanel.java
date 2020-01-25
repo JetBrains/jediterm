@@ -471,12 +471,24 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
   private void pageUp() {
     int val = myBoundedRangeModel.getValue() - myTermSize.height;
-    myBoundedRangeModel.setValue(val >= myBoundedRangeModel.getMinimum() ? val : myBoundedRangeModel.getMinimum());
+    myBoundedRangeModel.setValue(Math.max(val, myBoundedRangeModel.getMinimum()));
   }
 
   private void pageDown() {
     int val = myBoundedRangeModel.getValue() + myTermSize.height;
-    myBoundedRangeModel.setValue(val <= myBoundedRangeModel.getMaximum() ? val : myBoundedRangeModel.getMaximum());
+    myBoundedRangeModel.setValue(Math.min(val, myBoundedRangeModel.getMaximum()));
+  }
+
+  private void scrollUp() {
+    int val = myBoundedRangeModel.getValue() - 1;
+    int minimum = myBoundedRangeModel.getMinimum();
+    myBoundedRangeModel.setValue(Math.max(val, minimum));
+  }
+
+  private void scrollDown() {
+    int val = myBoundedRangeModel.getValue() + 1;
+    int maximum = myBoundedRangeModel.getMaximum();
+    myBoundedRangeModel.setValue(Math.min(val, maximum));
   }
 
   private void moveScrollBar(int k) {
@@ -1366,26 +1378,34 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   @Override
   public List<TerminalAction> getActions() {
     return Lists.newArrayList(
-            new TerminalAction("Open as URL", new KeyStroke[0], input ->
-                    openSelectionAsURL()).withEnabledSupplier(this::selectionTextIsUrl),
-            new TerminalAction("Copy", mySettingsProvider.getCopyKeyStrokes(), input ->
-                    handleCopy()).withMnemonicKey(KeyEvent.VK_C).withEnabledSupplier(() -> mySelection != null),
-            new TerminalAction("Paste", mySettingsProvider.getPasteKeyStrokes(), input -> {
-              handlePaste();
-              return true;
-            }).withMnemonicKey(KeyEvent.VK_P).withEnabledSupplier(() -> getClipboardString() != null),
-            new TerminalAction("Clear Buffer", mySettingsProvider.getClearBufferKeyStrokes(), input -> {
-              clearBuffer();
-              return true;
-            }).withMnemonicKey(KeyEvent.VK_K).withEnabledSupplier(() -> !myTerminalTextBuffer.isUsingAlternateBuffer()).separatorBefore(true),
-            new TerminalAction("Page Up", mySettingsProvider.getPageUpKeyStrokes(), input -> {
-              pageUp();
-              return true;
-            }).withEnabledSupplier(() -> !myTerminalTextBuffer.isUsingAlternateBuffer()).separatorBefore(true),
-            new TerminalAction("Page Down", mySettingsProvider.getPageDownKeyStrokes(), input -> {
-              pageDown();
-              return true;
-            }).withEnabledSupplier(() -> !myTerminalTextBuffer.isUsingAlternateBuffer())
+        new TerminalAction("Open as URL", new KeyStroke[0], input ->
+            openSelectionAsURL()).withEnabledSupplier(this::selectionTextIsUrl),
+        new TerminalAction("Copy", mySettingsProvider.getCopyKeyStrokes(), input ->
+            handleCopy()).withMnemonicKey(KeyEvent.VK_C).withEnabledSupplier(() -> mySelection != null),
+        new TerminalAction("Paste", mySettingsProvider.getPasteKeyStrokes(), input -> {
+          handlePaste();
+          return true;
+        }).withMnemonicKey(KeyEvent.VK_P).withEnabledSupplier(() -> getClipboardString() != null),
+        new TerminalAction("Clear Buffer", mySettingsProvider.getClearBufferKeyStrokes(), input -> {
+          clearBuffer();
+          return true;
+        }).withMnemonicKey(KeyEvent.VK_K).withEnabledSupplier(() -> !myTerminalTextBuffer.isUsingAlternateBuffer()).separatorBefore(true),
+        new TerminalAction("Page Up", mySettingsProvider.getPageUpKeyStrokes(), input -> {
+          pageUp();
+          return true;
+        }).withEnabledSupplier(() -> !myTerminalTextBuffer.isUsingAlternateBuffer()).separatorBefore(true),
+        new TerminalAction("Page Down", mySettingsProvider.getPageDownKeyStrokes(), input -> {
+          pageDown();
+          return true;
+        }).withEnabledSupplier(() -> !myTerminalTextBuffer.isUsingAlternateBuffer()).separatorBefore(true),
+        new TerminalAction("Scroll Up", mySettingsProvider.getScrollUpKeyStrokes(), input -> {
+          scrollUp();
+          return true;
+        }).withEnabledSupplier(() -> !myTerminalTextBuffer.isUsingAlternateBuffer()).separatorBefore(true),
+        new TerminalAction("Scroll Down", mySettingsProvider.getScrollDownKeyStrokes(), input -> {
+          scrollDown();
+          return true;
+        })
 
     );
   }

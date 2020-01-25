@@ -68,6 +68,16 @@ public class DefaultSettingsProvider implements SettingsProvider {
   }
 
   @Override
+  public KeyStroke[] getScrollUpKeyStrokes() {
+    return new KeyStroke[]{KeyStroke.getKeyStroke(KeyEvent.VK_UP, InputEvent.CTRL_DOWN_MASK)};
+  }
+
+  @Override
+  public KeyStroke[] getScrollDownKeyStrokes() {
+    return new KeyStroke[]{KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, InputEvent.CTRL_DOWN_MASK)};
+  }
+
+  @Override
   public ColorPalette getTerminalColorPalette() {
     return UIUtil.isWindows ? ColorPalette.WINDOWS_PALETTE : ColorPalette.XTERM_PALETTE;
   }

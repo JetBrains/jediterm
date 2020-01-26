@@ -18,4 +18,8 @@ public interface SystemSettingsProvider {
   KeyStroke[] getPageUpKeyStrokes();
 
   KeyStroke[] getPageDownKeyStrokes();
+
+  KeyStroke[] getLineUpKeyStrokes();
+
+  KeyStroke[] getLineDownKeyStrokes();
 }

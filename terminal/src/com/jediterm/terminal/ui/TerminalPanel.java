@@ -22,9 +22,6 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.ClipboardOwner;
-import java.awt.datatransfer.Transferable;
 import java.awt.event.*;
 import java.awt.font.TextHitInfo;
 import java.awt.im.InputMethodRequests;
@@ -470,13 +467,19 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   }
 
   private void pageUp() {
-    int val = myBoundedRangeModel.getValue() - myTermSize.height;
-    myBoundedRangeModel.setValue(val >= myBoundedRangeModel.getMinimum() ? val : myBoundedRangeModel.getMinimum());
+    moveScrollBar(-myTermSize.height);
   }
 
   private void pageDown() {
-    int val = myBoundedRangeModel.getValue() + myTermSize.height;
-    myBoundedRangeModel.setValue(val <= myBoundedRangeModel.getMaximum() ? val : myBoundedRangeModel.getMaximum());
+    moveScrollBar(myTermSize.height);
+  }
+
+  private void scrollUp() {
+    moveScrollBar(-1);
+  }
+
+  private void scrollDown() {
+    moveScrollBar(1);
   }
 
   private void moveScrollBar(int k) {
@@ -1385,9 +1388,15 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
             new TerminalAction("Page Down", mySettingsProvider.getPageDownKeyStrokes(), input -> {
               pageDown();
               return true;
-            }).withEnabledSupplier(() -> !myTerminalTextBuffer.isUsingAlternateBuffer())
-
-    );
+            }).withEnabledSupplier(() -> !myTerminalTextBuffer.isUsingAlternateBuffer()),
+            new TerminalAction("Line Up", mySettingsProvider.getLineUpKeyStrokes(), input -> {
+              scrollUp();
+              return true;
+            }).withEnabledSupplier(() -> !myTerminalTextBuffer.isUsingAlternateBuffer()).separatorBefore(true),
+            new TerminalAction("Line Down", mySettingsProvider.getLineDownKeyStrokes(), input -> {
+              scrollDown();
+              return true;
+            }));
   }
 
   @NotNull

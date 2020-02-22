@@ -290,7 +290,7 @@ public abstract class AbstractTabbedTerminalWidget<T extends JediTermWidget> ext
           return true;
         }
       }).withMnemonicKey(KeyEvent.VK_S),
-      new TerminalAction("Next Tab", mySettingsProvider.getNextTabKeyStrokes(), new Predicate<KeyEvent>() {
+      new TerminalAction(mySettingsProvider.getNextTabActionPresentation(), new Predicate<KeyEvent>() {
         @Override
         public boolean apply(KeyEvent input) {
           selectNextTab();
@@ -302,7 +302,7 @@ public abstract class AbstractTabbedTerminalWidget<T extends JediTermWidget> ext
           return myTabs != null && myTabs.getSelectedIndex() < myTabs.getTabCount() - 1;
         }
       }),
-      new TerminalAction("Previous Tab", mySettingsProvider.getPreviousTabKeyStrokes(), new Predicate<KeyEvent>() {
+      new TerminalAction(mySettingsProvider.getPreviousTabActionPresentation(), new Predicate<KeyEvent>() {
         @Override
         public boolean apply(KeyEvent input) {
           selectPreviousTab();

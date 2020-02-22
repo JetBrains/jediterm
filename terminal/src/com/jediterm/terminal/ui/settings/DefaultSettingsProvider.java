@@ -5,80 +5,92 @@ import com.jediterm.terminal.TerminalColor;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.emulator.ColorPalette;
 import com.jediterm.terminal.model.LinesBuffer;
+import com.jediterm.terminal.ui.TerminalActionPresentation;
 import com.jediterm.terminal.ui.UIUtil;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.util.Collections;
 
 public class DefaultSettingsProvider implements SettingsProvider {
   @Override
-  public KeyStroke[] getNewSessionKeyStrokes() {
-    return new KeyStroke[]{UIUtil.isMac
-                           ? KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.META_DOWN_MASK)
-                           : KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK)};
+  public @NotNull TerminalActionPresentation getNewSessionActionPresentation() {
+    return new TerminalActionPresentation("New Session", UIUtil.isMac
+      ? KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.META_DOWN_MASK)
+      : KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
   }
 
   @Override
-  public KeyStroke[] getCloseSessionKeyStrokes() {
-    return new KeyStroke[]{UIUtil.isMac
-                           ? KeyStroke.getKeyStroke(KeyEvent.VK_W, InputEvent.META_DOWN_MASK)
-                           : KeyStroke.getKeyStroke(KeyEvent.VK_W, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK)};
+  public @NotNull TerminalActionPresentation getOpenUrlActionPresentation() {
+    return new TerminalActionPresentation("Open as URL", Collections.emptyList());
   }
 
   @Override
-  public KeyStroke[] getCopyKeyStrokes() {
-    return new KeyStroke[]{UIUtil.isMac
-                           ? KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.META_DOWN_MASK)
-                           // CTRL + C is used for signal; use CTRL + SHIFT + C instead
-                           : KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK)};
+  public @NotNull TerminalActionPresentation getCopyActionPresentation() {
+    KeyStroke keyStroke = UIUtil.isMac
+      ? KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.META_DOWN_MASK)
+      // CTRL + C is used for signal; use CTRL + SHIFT + C instead
+      : KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK);
+    return new TerminalActionPresentation("Copy", keyStroke);
   }
 
   @Override
-  public KeyStroke[] getPasteKeyStrokes() {
-    return new KeyStroke[]{UIUtil.isMac
-                           ? KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.META_DOWN_MASK)
-                           // CTRL + V is used for signal; use CTRL + SHIFT + V instead
-                           : KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK)};
+  public @NotNull TerminalActionPresentation getPasteActionPresentation() {
+    KeyStroke keyStroke = UIUtil.isMac
+      ? KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.META_DOWN_MASK)
+      // CTRL + V is used for signal; use CTRL + SHIFT + V instead
+      : KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK);
+    return new TerminalActionPresentation("Paste", keyStroke);
   }
 
   @Override
-  public KeyStroke[] getClearBufferKeyStrokes() {
-    return new KeyStroke[]{UIUtil.isMac
-            ? KeyStroke.getKeyStroke(KeyEvent.VK_K, InputEvent.META_DOWN_MASK)
-            : KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK)};
+  public @NotNull TerminalActionPresentation getClearBufferActionPresentation() {
+    return new TerminalActionPresentation("Clear Buffer", UIUtil.isMac
+      ? KeyStroke.getKeyStroke(KeyEvent.VK_K, InputEvent.META_DOWN_MASK)
+      : KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK));
   }
 
   @Override
-  public KeyStroke[] getFindKeyStrokes() {
-    return new KeyStroke[]{UIUtil.isMac
-            ? KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.META_DOWN_MASK)
-            : KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK)};
+  public @NotNull TerminalActionPresentation getPageUpActionPresentation() {
+    return new TerminalActionPresentation("Page Up",
+      KeyStroke.getKeyStroke(KeyEvent.VK_PAGE_UP, InputEvent.SHIFT_DOWN_MASK));
   }
 
   @Override
-  public KeyStroke[] getPageUpKeyStrokes() {
-    return new KeyStroke[]{KeyStroke.getKeyStroke(KeyEvent.VK_PAGE_UP, InputEvent.SHIFT_DOWN_MASK)};
+  public @NotNull TerminalActionPresentation getPageDownActionPresentation() {
+    return new TerminalActionPresentation("Page Down",
+      KeyStroke.getKeyStroke(KeyEvent.VK_PAGE_DOWN, InputEvent.SHIFT_DOWN_MASK));
   }
 
   @Override
-  public KeyStroke[] getPageDownKeyStrokes() {
-    return new KeyStroke[]{KeyStroke.getKeyStroke(KeyEvent.VK_PAGE_DOWN, InputEvent.SHIFT_DOWN_MASK)};
-  }
-
-  @Override
-  public KeyStroke[] getLineUpKeyStrokes() {
-    return new KeyStroke[]{UIUtil.isMac
+  public @NotNull TerminalActionPresentation getLineUpActionPresentation() {
+    return new TerminalActionPresentation("Line Up", UIUtil.isMac
       ? KeyStroke.getKeyStroke(KeyEvent.VK_UP, InputEvent.META_DOWN_MASK)
-      : KeyStroke.getKeyStroke(KeyEvent.VK_UP, InputEvent.CTRL_DOWN_MASK)};
+      : KeyStroke.getKeyStroke(KeyEvent.VK_UP, InputEvent.CTRL_DOWN_MASK));
   }
 
   @Override
-  public KeyStroke[] getLineDownKeyStrokes() {
-    return new KeyStroke[]{UIUtil.isMac
+  public @NotNull TerminalActionPresentation getLineDownActionPresentation() {
+    return new TerminalActionPresentation("Line Down", UIUtil.isMac
       ? KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, InputEvent.META_DOWN_MASK)
-      : KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, InputEvent.CTRL_DOWN_MASK)};
+      : KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, InputEvent.CTRL_DOWN_MASK));
+  }
+
+  @Override
+  public @NotNull TerminalActionPresentation getCloseSessionActionPresentation() {
+    return new TerminalActionPresentation("Close Session", UIUtil.isMac
+      ? KeyStroke.getKeyStroke(KeyEvent.VK_W, InputEvent.META_DOWN_MASK)
+      : KeyStroke.getKeyStroke(KeyEvent.VK_W, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
+  }
+
+  @Override
+  public @NotNull TerminalActionPresentation getFindActionPresentation() {
+    return new TerminalActionPresentation("Find", UIUtil.isMac
+      ? KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.META_DOWN_MASK)
+      : KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK));
   }
 
   @Override

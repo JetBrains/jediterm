@@ -237,7 +237,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   @Override
   public List<TerminalAction> getActions() {
-    return Lists.newArrayList(new TerminalAction("Find", mySettingsProvider.getFindKeyStrokes(),
+    return Lists.newArrayList(new TerminalAction(mySettingsProvider.getFindActionPresentation(),
             new Predicate<KeyEvent>() {
               @Override
               public boolean apply(KeyEvent input) {

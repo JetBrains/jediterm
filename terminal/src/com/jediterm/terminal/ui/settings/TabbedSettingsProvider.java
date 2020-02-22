@@ -1,8 +1,8 @@
 package com.jediterm.terminal.ui.settings;
 
 import com.jediterm.terminal.TtyConnector;
-
-import javax.swing.*;
+import com.jediterm.terminal.ui.TerminalActionPresentation;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author traff
@@ -12,7 +12,7 @@ public interface TabbedSettingsProvider extends SettingsProvider {
 
   String tabName(TtyConnector ttyConnector, String sessionName);
 
-  KeyStroke[] getNextTabKeyStrokes();
+  @NotNull TerminalActionPresentation getPreviousTabActionPresentation();
 
-  KeyStroke[] getPreviousTabKeyStrokes();
+  @NotNull TerminalActionPresentation getNextTabActionPresentation();
 }

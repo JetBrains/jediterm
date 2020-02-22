@@ -276,14 +276,14 @@ public abstract class AbstractTabbedTerminalWidget<T extends JediTermWidget> ext
   @Override
   public List<TerminalAction> getActions() {
     return Lists.newArrayList(
-      new TerminalAction("New Session", mySettingsProvider.getNewSessionKeyStrokes(), new Predicate<KeyEvent>() {
+      new TerminalAction(mySettingsProvider.getNewSessionActionPresentation(), new Predicate<KeyEvent>() {
         @Override
         public boolean apply(KeyEvent input) {
           handleNewSession();
           return true;
         }
       }).withMnemonicKey(KeyEvent.VK_N),
-      new TerminalAction("Close Session", mySettingsProvider.getCloseSessionKeyStrokes(), new Predicate<KeyEvent>() {
+      new TerminalAction(mySettingsProvider.getCloseSessionActionPresentation(), new Predicate<KeyEvent>() {
         @Override
         public boolean apply(KeyEvent input) {
           closeCurrentSession();

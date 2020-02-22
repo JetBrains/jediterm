@@ -1,25 +1,28 @@
 package com.jediterm.terminal.ui.settings;
 
-import javax.swing.*;
+import com.jediterm.terminal.ui.TerminalActionPresentation;
+import org.jetbrains.annotations.NotNull;
 
 public interface SystemSettingsProvider {
-  KeyStroke[] getCopyKeyStrokes();
+  @NotNull TerminalActionPresentation getNewSessionActionPresentation();
 
-  KeyStroke[] getPasteKeyStrokes();
+  @NotNull TerminalActionPresentation getOpenUrlActionPresentation();
 
-  KeyStroke[] getClearBufferKeyStrokes();
+  @NotNull TerminalActionPresentation getCopyActionPresentation();
 
-  KeyStroke[] getNewSessionKeyStrokes();
+  @NotNull TerminalActionPresentation getPasteActionPresentation();
 
-  KeyStroke[] getCloseSessionKeyStrokes();
+  @NotNull TerminalActionPresentation getClearBufferActionPresentation();
 
-  KeyStroke[] getFindKeyStrokes();
+  @NotNull TerminalActionPresentation getPageUpActionPresentation();
 
-  KeyStroke[] getPageUpKeyStrokes();
+  @NotNull TerminalActionPresentation getPageDownActionPresentation();
 
-  KeyStroke[] getPageDownKeyStrokes();
+  @NotNull TerminalActionPresentation getLineUpActionPresentation();
 
-  KeyStroke[] getLineUpKeyStrokes();
+  @NotNull TerminalActionPresentation getLineDownActionPresentation();
 
-  KeyStroke[] getLineDownKeyStrokes();
+  @NotNull TerminalActionPresentation getCloseSessionActionPresentation();
+
+  @NotNull TerminalActionPresentation getFindActionPresentation();
 }

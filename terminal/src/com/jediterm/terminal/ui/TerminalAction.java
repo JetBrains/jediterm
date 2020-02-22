@@ -1,12 +1,11 @@
 package com.jediterm.terminal.ui;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Supplier;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 /**
  * @author traff
@@ -22,7 +21,11 @@ public class TerminalAction {
   private boolean mySeparatorBefore = false;
   private boolean myHidden = false;
 
-  public TerminalAction(String name, KeyStroke[] keyStrokes, Predicate<KeyEvent> runnable) {
+  public TerminalAction(@NotNull TerminalActionPresentation presentation, @NotNull Predicate<KeyEvent> runnable) {
+    this(presentation.getName(), presentation.getKeyStrokes().toArray(new KeyStroke[0]), runnable);
+  }
+
+  public TerminalAction(@NotNull String name, @NotNull KeyStroke[] keyStrokes, @NotNull Predicate<KeyEvent> runnable) {
     myName = name;
     myKeyStrokes = keyStrokes;
     myRunnable = runnable;
@@ -41,7 +44,7 @@ public class TerminalAction {
     if (myEnabledSupplier != null && !myEnabledSupplier.get()) {
       return false;
     }
-    return myRunnable.apply(e);
+    return myRunnable.test(e);
   }
 
   public static boolean processEvent(TerminalActionProvider actionProvider, final KeyEvent e) {
@@ -143,12 +146,7 @@ public class TerminalAction {
       menuItem.setAccelerator(myKeyStrokes[0]);
     }
 
-    menuItem.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent actionEvent) {
-        myRunnable.apply(null);
-      }
-    });
+    menuItem.addActionListener(actionEvent -> myRunnable.test(null));
     menuItem.setEnabled(isEnabled());
     
     return menuItem;

@@ -1,6 +1,7 @@
 package com.jediterm.terminal.ui;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.event.KeyEvent;
@@ -16,13 +17,17 @@ public class TerminalAction {
   private final Predicate<KeyEvent> myRunnable;
 
   private Character myMnemonic = null;
-  private Supplier<Boolean> myEnabledSupplier = null;
+  private Supplier<Boolean> myEnabledSupplier = () -> true;
   private Integer myMnemonicKey = null;
   private boolean mySeparatorBefore = false;
   private boolean myHidden = false;
 
   public TerminalAction(@NotNull TerminalActionPresentation presentation, @NotNull Predicate<KeyEvent> runnable) {
     this(presentation.getName(), presentation.getKeyStrokes().toArray(new KeyStroke[0]), runnable);
+  }
+
+  public TerminalAction(@NotNull TerminalActionPresentation presentation) {
+    this(presentation, keyEvent -> true);
   }
 
   public TerminalAction(@NotNull String name, @NotNull KeyStroke[] keyStrokes, @NotNull Predicate<KeyEvent> runnable) {
@@ -40,17 +45,18 @@ public class TerminalAction {
     return false;
   }
 
-  public boolean perform(KeyEvent e) {
-    if (myEnabledSupplier != null && !myEnabledSupplier.get()) {
-      return false;
-    }
+  public boolean isEnabled() {
+    return myEnabledSupplier.get();
+  }
+
+  public boolean actionPerformed(@Nullable KeyEvent e) {
     return myRunnable.test(e);
   }
 
   public static boolean processEvent(TerminalActionProvider actionProvider, final KeyEvent e) {
     for (TerminalAction a : actionProvider.getActions()) {
       if (a.matches(e)) {
-        return a.perform(e);
+        return a.isEnabled() && a.actionPerformed(e);
       }
     }
 
@@ -115,14 +121,7 @@ public class TerminalAction {
     return this;
   }
 
-  public boolean isEnabled() {
-    if (myEnabledSupplier != null) {
-      return myEnabledSupplier.get();
-    }
-    return true;
-  }
-  
-  public TerminalAction withEnabledSupplier(Supplier<Boolean> enabledSupplier) {
+  public TerminalAction withEnabledSupplier(@NotNull Supplier<Boolean> enabledSupplier) {
     myEnabledSupplier = enabledSupplier;
     return this;
   }
@@ -146,7 +145,7 @@ public class TerminalAction {
       menuItem.setAccelerator(myKeyStrokes[0]);
     }
 
-    menuItem.addActionListener(actionEvent -> myRunnable.test(null));
+    menuItem.addActionListener(actionEvent -> actionPerformed(null));
     menuItem.setEnabled(isEnabled());
     
     return menuItem;

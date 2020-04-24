@@ -13,10 +13,8 @@ import javax.swing.*;
 /**
  * @autor Nikita Sirotenko
  */
-public abstract class AbstractTerminalPanel {
+public abstract class AbstractTerminalPanel extends JPanel {
     public static final Logger LOG = Logger.getLogger(AbstractTerminalFrame.class);
-
-    private JPanel terminalPanel = new JPanel();
 
     private TerminalWidget myTerminal;
 
@@ -36,13 +34,10 @@ public abstract class AbstractTerminalPanel {
 
     public abstract TtyConnector createTtyConnector();
 
-    public JPanel getTerminalPanel() {
-        return terminalPanel;
-    }
 
     protected AbstractTerminalPanel(int column, int lines) {
         myTerminal = createTabbedTerminalWidget(column, lines);
-        this.terminalPanel.add(myTerminal.getComponent());
+        add(myTerminal.getComponent());
         openSession(myTerminal);
     }
 
@@ -60,4 +55,3 @@ public abstract class AbstractTerminalPanel {
         return new JediTermWidget(column,lines,settingsProvider);
     }
 }
-

@@ -60,11 +60,11 @@ public class SubstringFinder {
 
     myCurrentHash = 31 * myCurrentHash + charHash(characters.charAt(index));
 
-    if (myCurrentLength == myPattern.length() &&
-            myCurrentHash == myPatternHash) {
+    if (myCurrentLength == myPattern.length() && myCurrentHash == myPatternHash) {
       FindResult.FindItem item = new FindResult.FindItem(myTokens, myFirstIndex, index, -1);
       String itemText = item.getText();
-      if (myPattern.equals(myIgnoreCase ? itemText.toLowerCase() : itemText)) {
+      boolean matched = myPattern.equals(myIgnoreCase ? itemText.toLowerCase() : itemText);
+      if (matched && accept(item)) {
         myResult.patternMatched(myTokens, myFirstIndex, index);
         myCurrentHash = 0;
         myCurrentLength = 0;
@@ -78,6 +78,10 @@ public class SubstringFinder {
         }
       }
     }
+  }
+
+  public boolean accept(@NotNull FindResult.FindItem item) {
+    return true;
   }
 
   private int charHash(char c) {

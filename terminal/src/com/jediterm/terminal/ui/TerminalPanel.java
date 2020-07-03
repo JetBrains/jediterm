@@ -1372,9 +1372,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
             new TerminalAction(mySettingsProvider.getOpenUrlActionPresentation(), input -> {
               return openSelectionAsURL();
             }).withEnabledSupplier(this::selectionTextIsUrl),
-            new TerminalAction(mySettingsProvider.getCopyActionPresentation(), input -> {
-              return handleCopy();
-            }).withMnemonicKey(KeyEvent.VK_C).withEnabledSupplier(() -> mySelection != null),
+            new TerminalAction(mySettingsProvider.getCopyActionPresentation(), this::handleCopy) {
+              @Override
+              public boolean isEnabled(@Nullable KeyEvent e) {
+                return e != null || mySelection != null;
+              }
+            }.withMnemonicKey(KeyEvent.VK_C),
             new TerminalAction(mySettingsProvider.getPasteActionPresentation(), input -> {
               handlePaste();
               return true;
@@ -1608,8 +1611,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     pasteFromClipboard(true);
   }
 
-  // "unselect" is needed to handle Ctrl+C copy shortcut collision with ^C signal shortcut
-  private boolean handleCopy(boolean unselect, boolean useSystemSelectionClipboardIfAvailable) {
+  /**
+   * Copies selected text to clipboard.
+   * @param unselect true to unselect currently selected text
+   * @param useSystemSelectionClipboardIfAvailable true to use {@link Toolkit#getSystemSelection()} if available
+   */
+  private void handleCopy(boolean unselect, boolean useSystemSelectionClipboardIfAvailable) {
     if (mySelection != null) {
       Pair<Point, Point> points = mySelection.pointsForRun(myTermSize.width);
       copySelection(points.first, points.second, useSystemSelectionClipboardIfAvailable);
@@ -1617,13 +1624,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
         mySelection = null;
         repaint();
       }
-      return true;
     }
-    return false;
   }
 
-  private boolean handleCopy() {
-    return handleCopy(true, false);
+  private boolean handleCopy(@Nullable KeyEvent e) {
+    boolean ctrlC = e != null && e.getKeyCode() == KeyEvent.VK_C && e.getModifiersEx() == InputEvent.CTRL_DOWN_MASK;
+    boolean sendCtrlC = ctrlC && mySelection == null;
+    handleCopy(ctrlC, false);
+    return !sendCtrlC;
   }
 
   private void handleCopyOnSelect() {

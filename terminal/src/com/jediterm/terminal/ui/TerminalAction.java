@@ -45,7 +45,7 @@ public class TerminalAction {
     return false;
   }
 
-  public boolean isEnabled() {
+  public boolean isEnabled(@Nullable KeyEvent e) {
     return myEnabledSupplier.get();
   }
 
@@ -53,10 +53,10 @@ public class TerminalAction {
     return myRunnable.test(e);
   }
 
-  public static boolean processEvent(TerminalActionProvider actionProvider, final KeyEvent e) {
+  public static boolean processEvent(@NotNull TerminalActionProvider actionProvider, @NotNull KeyEvent e) {
     for (TerminalAction a : actionProvider.getActions()) {
       if (a.matches(e)) {
-        return a.isEnabled() && a.actionPerformed(e);
+        return a.isEnabled(e) && a.actionPerformed(e);
       }
     }
 
@@ -146,7 +146,7 @@ public class TerminalAction {
     }
 
     menuItem.addActionListener(actionEvent -> actionPerformed(null));
-    menuItem.setEnabled(isEnabled());
+    menuItem.setEnabled(isEnabled(null));
     
     return menuItem;
   }
@@ -162,5 +162,10 @@ public class TerminalAction {
   public TerminalAction withHidden(boolean hidden) {
     myHidden = hidden;
     return this;
+  }
+
+  @Override
+  public String toString() {
+    return "'" + myName + "'";
   }
 }

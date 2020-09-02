@@ -15,7 +15,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -51,7 +53,7 @@ public class TerminalTextBuffer {
 
   private boolean myUsingAlternateBuffer = false;
 
-  private java.util.List<TerminalModelListener> myListeners = Lists.newArrayList();
+  private final List<TerminalModelListener> myListeners = new CopyOnWriteArrayList<>();
 
   @Nullable
   private final TextProcessing myTextProcessing;

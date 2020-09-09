@@ -117,11 +117,6 @@ public class DefaultSettingsProvider implements SettingsProvider {
   }
 
   @Override
-  public float getLineSpace() {
-    return 0;
-  }
-
-  @Override
   public TextStyle getDefaultStyle() {
     return new TextStyle(TerminalColor.BLACK, TerminalColor.WHITE);
     // return new TextStyle(TerminalColor.WHITE, TerminalColor.rgb(24, 24, 24));

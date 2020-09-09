@@ -13,7 +13,21 @@ public interface UserSettingsProvider {
 
   float getTerminalFontSize();
 
-  float getLineSpace();
+  /**
+   * @return vertical scaling factor
+   */
+  default float getLineSpacing() {
+    return getLineSpace();
+  }
+
+  /**
+   * @deprecated use {@link #getLineSpacing()} instead
+   */
+  @SuppressWarnings("DeprecatedIsStillUsed")
+  @Deprecated
+  default float getLineSpace() {
+    return 1.0f;
+  }
 
   TextStyle getDefaultStyle();
 

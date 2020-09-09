@@ -626,15 +626,23 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     final Graphics2D graphics = img.createGraphics();
     graphics.setFont(myNormalFont);
 
-    final float lineSpace = mySettingsProvider.getLineSpace();
+    final float lineSpacing = mySettingsProvider.getLineSpacing();
     final FontMetrics fo = graphics.getFontMetrics();
 
-    myDescent = fo.getDescent();
     myCharSize.width = fo.charWidth('W');
     // The magic +2 here is to give lines a tiny bit of extra height to avoid clipping when rendering some Apple
     // emoji, which are slightly higher than the font metrics reported character height :(
-    myCharSize.height = fo.getHeight() + (int) (lineSpace * 2) + 2;
-    myDescent += lineSpace;
+    int fontMetricsHeight = fo.getHeight();
+    myCharSize.height = (int)Math.ceil(fontMetricsHeight * lineSpacing);
+    myDescent = fo.getDescent() + (myCharSize.height - fontMetricsHeight) / 2;
+    if (LOG.isDebugEnabled()) {
+      // The magic +2 here is to give lines a tiny bit of extra height to avoid clipping when rendering some Apple
+      // emoji, which are slightly higher than the font metrics reported character height :(
+      int oldCharHeight = fontMetricsHeight + (int) (lineSpacing * 2) + 2;
+      int oldDescent = fo.getDescent() + (int)lineSpacing;
+      LOG.debug("charHeight=" + oldCharHeight + "->" + myCharSize.height +
+        ", descent=" + oldDescent + "->" + myDescent);
+    }
 
     myMonospaced = isMonospaced(fo);
     if (!myMonospaced) {

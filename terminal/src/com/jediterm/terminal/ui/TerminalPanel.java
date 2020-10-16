@@ -851,10 +851,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   @Override
   public void processKeyEvent(final KeyEvent e) {
     handleKeyEvent(e);
-
     handleHyperlinks(e.getComponent(), e.isControlDown());
-
-    e.consume();
   }
 
   // also called from com.intellij.terminal.JBTerminalPanel
@@ -1519,29 +1516,35 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       // although it send the char '.'
       if (keycode == KeyEvent.VK_DELETE && keychar == '.') {
         myTerminalStarter.sendBytes(new byte[]{'.'});
+        e.consume();
         return;
       }
       // CTRL + Space is not handled in KeyEvent; handle it manually
       else if (keychar == ' ' && (e.getModifiers() & InputEvent.CTRL_MASK) != 0) {
         myTerminalStarter.sendBytes(new byte[]{Ascii.NUL});
+        e.consume();
         return;
       }
 
       final byte[] code = myTerminalStarter.getCode(keycode, e.getModifiers());
       if (code != null) {
         myTerminalStarter.sendBytes(code);
+        e.consume();
         if (mySettingsProvider.scrollToBottomOnTyping() && isCodeThatScrolls(keycode)) {
           scrollToBottom();
         }
-      } else if (Character.isISOControl(keychar)) { // keys filtered out here will be processed in processTerminalKeyTyped
-        processCharacter(keychar, e.getModifiers());
+      }
+      else if (Character.isISOControl(keychar)) { // keys filtered out here will be processed in processTerminalKeyTyped
+        processCharacter(e);
       }
     } catch (final Exception ex) {
       LOG.error("Error sending pressed key to emulator", ex);
     }
   }
 
-  private void processCharacter(char keychar, int modifiers) {
+  private void processCharacter(@NotNull KeyEvent e) {
+    char keychar = e.getKeyChar();
+    int modifiers = e.getModifiers();
     final char[] obuffer;
     if (mySettingsProvider.altSendsEscape() && (modifiers & InputEvent.ALT_MASK) != 0) {
       obuffer = new char[]{Ascii.ESC, keychar};
@@ -1555,6 +1558,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     }
 
     myTerminalStarter.sendString(new String(obuffer));
+    e.consume();
 
     if (mySettingsProvider.scrollToBottomOnTyping()) {
       scrollToBottom();
@@ -1584,14 +1588,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     final char keychar = e.getKeyChar();
     if (!Character.isISOControl(keychar)) { // keys filtered out here will be processed in processTerminalKeyPressed
       try {
-        processCharacter(keychar, e.getModifiers());
+        processCharacter(e);
       } catch (final Exception ex) {
         LOG.error("Error sending typed key to emulator", ex);
       }
     }
   }
 
-  public class TerminalKeyHandler implements KeyListener {
+  private class TerminalKeyHandler extends KeyAdapter {
 
     public TerminalKeyHandler() {
     }
@@ -1604,10 +1608,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
     public void keyTyped(final KeyEvent e) {
       processTerminalKeyTyped(e);
-    }
-
-    //Ignore releases
-    public void keyReleased(KeyEvent e) {
     }
   }
 

@@ -208,7 +208,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
         if (Math.abs(e.getPreciseWheelRotation()) < 0.01) {
           notches = 0;
         }
-        moveScrollBar(notches);
+        moveScrollBar(notches * 3);
       }
     });
 

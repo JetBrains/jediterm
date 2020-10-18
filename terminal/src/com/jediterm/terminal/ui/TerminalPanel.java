@@ -48,6 +48,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   private Font myBoldFont;
   private Font myBoldItalicFont;
   private int myDescent = 0;
+  private int mySpaceBetweenLines = 0;
   protected Dimension myCharSize = new Dimension();
   private boolean myMonospaced;
   protected Dimension myTermSize = new Dimension(80, 24);
@@ -634,7 +635,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     // emoji, which are slightly higher than the font metrics reported character height :(
     int fontMetricsHeight = fo.getHeight();
     myCharSize.height = (int)Math.ceil(fontMetricsHeight * lineSpacing);
-    myDescent = fo.getDescent() + (myCharSize.height - fontMetricsHeight) / 2;
+    mySpaceBetweenLines = Math.max(0, ((myCharSize.height - fontMetricsHeight) / 2) * 2);
+    myDescent = fo.getDescent();
     if (LOG.isDebugEnabled()) {
       // The magic +2 here is to give lines a tiny bit of extra height to avoid clipping when rendering some Apple
       // emoji, which are slightly higher than the font metrics reported character height :(
@@ -720,7 +722,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
         @Override
         public void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
           int row = y - startRow;
-          drawCharacters(x, row, style, characters, gfx);
+          drawCharacters(x, row, style, characters, gfx, false);
 
           if (myFindResult != null) {
             List<Pair<Integer, Integer>> ranges = myFindResult.getRanges(characters);
@@ -1118,15 +1120,20 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   }
 
   private void drawCharacters(int x, int y, TextStyle style, CharBuffer buf, Graphics2D gfx) {
+    drawCharacters(x, y, style, buf, gfx, true);
+  }
+
+  private void drawCharacters(int x, int y, TextStyle style, CharBuffer buf, Graphics2D gfx,
+                              boolean includeSpaceBetweenLines) {
     int xCoord = x * myCharSize.width + getInsetX();
-    int yCoord = y * myCharSize.height;
+    int yCoord = y * myCharSize.height + (includeSpaceBetweenLines ? 0 : mySpaceBetweenLines / 2);
 
     if (xCoord < 0 || xCoord > getWidth() || yCoord < 0 || yCoord > getHeight()) {
       return;
     }
 
     int textLength = CharUtils.getTextLengthDoubleWidthAware(buf.getBuf(), buf.getStart(), buf.length(), mySettingsProvider.ambiguousCharsAreDoubleWidth());
-    int height = Math.min(myCharSize.height, getHeight() - yCoord);
+    int height = Math.min(myCharSize.height - (includeSpaceBetweenLines ? 0 : mySpaceBetweenLines), getHeight() - yCoord);
     int width = Math.min(textLength * TerminalPanel.this.myCharSize.width, TerminalPanel.this.getWidth() - xCoord);
 
     if (style instanceof HyperlinkStyle) {
@@ -1154,10 +1161,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
     gfx.setColor(getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun())));
 
-    int baseLine = (y + 1) * myCharSize.height - myDescent;
 
     if (style.hasOption(TextStyle.Option.UNDERLINED)) {
-      gfx.drawLine(xCoord, baseLine + 3, (x + textLength) * myCharSize.width + getInsetX(), baseLine + 3);
+      int baseLine = (y + 1) * myCharSize.height - mySpaceBetweenLines / 2 - myDescent;
+      int lineY = baseLine + 3;
+      gfx.drawLine(xCoord, lineY, (x + textLength) * myCharSize.width + getInsetX(), lineY);
     }
   }
 
@@ -1204,11 +1212,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       gfx.setFont(font);
 
       int descent = gfx.getFontMetrics(font).getDescent();
-      int baseLine = (y + 1) * myCharSize.height - descent;
+      int baseLine = (y + 1) * myCharSize.height - mySpaceBetweenLines / 2 - descent;
       int xCoord = (x + drawCharsOffset) * myCharSize.width + getInsetX();
       int textLength = CharUtils.getTextLengthDoubleWidthAware(buf.getBuf(), buf.getStart() + offset, blockLen, mySettingsProvider.ambiguousCharsAreDoubleWidth());
 
-      int yCoord = y * myCharSize.height;
+      int yCoord = y * myCharSize.height + mySpaceBetweenLines / 2;
 
       gfx.setClip(xCoord,
               yCoord,

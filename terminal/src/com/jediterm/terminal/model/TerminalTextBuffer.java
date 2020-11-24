@@ -89,18 +89,24 @@ public class TerminalTextBuffer {
 
   public Dimension resize(@NotNull final Dimension pendingResize,
                           @NotNull final RequestOrigin origin,
-                          int cursorY,
-                          @NotNull JediTerminal.ResizeHandler resizeHandler,
-                          @Nullable TerminalSelection selection) {
-    return resize(pendingResize, origin, 0, cursorY, resizeHandler, selection);
-  }
-
-  public Dimension resize(@NotNull final Dimension pendingResize,
-                          @NotNull final RequestOrigin origin,
                           final int cursorX,
                           final int cursorY,
                           @NotNull JediTerminal.ResizeHandler resizeHandler,
                           @Nullable TerminalSelection mySelection) {
+    lock();
+    try {
+      return doResize(pendingResize, origin, cursorX, cursorY, resizeHandler, mySelection);
+    } finally {
+      unlock();
+    }
+  }
+
+  private Dimension doResize(@NotNull final Dimension pendingResize,
+                             @NotNull final RequestOrigin origin,
+                             final int cursorX,
+                             final int cursorY,
+                             @NotNull JediTerminal.ResizeHandler resizeHandler,
+                             @Nullable TerminalSelection mySelection) {
     final int newWidth = pendingResize.width;
     final int newHeight = pendingResize.height;
     int newCursorX = cursorX;

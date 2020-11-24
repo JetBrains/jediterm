@@ -45,7 +45,7 @@ public class BackBufferDisplay implements TerminalDisplay {
 
   @Override
   public Dimension requestResize(Dimension pendingResize, RequestOrigin origin, int cursorY, JediTerminal.ResizeHandler resizeHandler) {
-    return myTerminalTextBuffer.resize(pendingResize, origin, cursorY, resizeHandler, mySelection);
+    return myTerminalTextBuffer.resize(pendingResize, origin, 0, cursorY, resizeHandler, mySelection);
   }
 
   @Override

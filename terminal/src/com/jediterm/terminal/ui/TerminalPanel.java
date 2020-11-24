@@ -596,13 +596,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
                                  int cursorY,
                                  JediTerminal.ResizeHandler resizeHandler) {
     if (!newSize.equals(myTermSize)) {
-      myTerminalTextBuffer.lock();
-      try {
-        myTerminalTextBuffer.resize(newSize, origin, cursorX, cursorY, resizeHandler, mySelection);
-
-      } finally {
-        myTerminalTextBuffer.unlock();
-      }
+      myTerminalTextBuffer.resize(newSize, origin, cursorX, cursorY, resizeHandler, mySelection);
 
       myTermSize = (Dimension) newSize.clone();
 

@@ -79,11 +79,7 @@ public class TerminalStarter implements TerminalOutputStream {
    */
   public static void resizeTerminal(@NotNull Terminal terminal, @NotNull TtyConnector ttyConnector,
                                     @NotNull Dimension terminalDimension, @NotNull RequestOrigin origin) {
-    Dimension pixelSize;
-    //noinspection SynchronizationOnLocalVariableOrMethodParameter
-    synchronized (terminal) {
-      pixelSize = terminal.resize(terminalDimension, origin);
-    }
+    Dimension pixelSize = terminal.resize(terminalDimension, origin);
     ttyConnector.resize(terminalDimension, pixelSize);
   }
 

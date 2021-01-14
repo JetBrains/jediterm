@@ -5,6 +5,7 @@ import com.pty4j.PtyProcess;
 import com.pty4j.WinSize;
 import org.jetbrains.annotations.NotNull;
 
+import java.awt.*;
 import java.nio.charset.Charset;
 
 /**
@@ -19,9 +20,9 @@ public class PtyProcessTtyConnector extends ProcessTtyConnector {
   }
 
   @Override
-  protected void resizeImmediately() {
-    if (getPendingTermSize() != null) {
-      myProcess.setWinSize(new WinSize(getPendingTermSize().width, getPendingTermSize().height));
+  public void resize(@NotNull Dimension termWinSize) {
+    if (isConnected()) {
+      myProcess.setWinSize(new WinSize(termWinSize.width, termWinSize.height));
     }
   }
 

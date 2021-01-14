@@ -14,7 +14,7 @@ public interface TtyConnector {
   void close();
 
   default void resize(@NotNull Dimension termWinSize) {
-    resize(termWinSize, termWinSize);
+    resize(termWinSize, new Dimension(0, 0));
   }
 
   /**

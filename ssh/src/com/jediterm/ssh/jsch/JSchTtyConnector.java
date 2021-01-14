@@ -4,11 +4,14 @@
 package com.jediterm.ssh.jsch;
 
 import com.google.common.net.HostAndPort;
-import com.jcraft.jsch.*;
+import com.jcraft.jsch.Channel;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.Session;
 import com.jediterm.terminal.Questioner;
 import com.jediterm.terminal.TtyConnector;
-
 import org.apache.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.io.*;
@@ -32,7 +35,6 @@ public abstract class JSchTtyConnector<T extends Channel> implements TtyConnecto
   private String myPassword = null;
 
   private Dimension myPendingTermSize;
-  private Dimension myPendingPixelSize;
   private InputStreamReader myInputStreamReader;
   private OutputStreamWriter myOutputStreamWriter;
 
@@ -51,21 +53,21 @@ public abstract class JSchTtyConnector<T extends Channel> implements TtyConnecto
     this.myPassword = password;
   }
 
-  public void resize(Dimension termSize, Dimension pixelSize) {
+  @Override
+  public void resize(@NotNull Dimension termSize) {
     myPendingTermSize = termSize;
-    myPendingPixelSize = pixelSize;
     if (myChannelShell != null) {
       resizeImmediately();
     }
   }
 
+  @SuppressWarnings("SameParameterValue")
   abstract protected void setPtySize(T channel, int col, int row, int wp, int hp);
 
   private void resizeImmediately() {
-    if (myPendingTermSize != null && myPendingPixelSize != null) {
-      setPtySize(myChannelShell, myPendingTermSize.width, myPendingTermSize.height, myPendingPixelSize.width, myPendingPixelSize.height);
+    if (myPendingTermSize != null) {
+      setPtySize(myChannelShell, myPendingTermSize.width, myPendingTermSize.height, 0, 0);
       myPendingTermSize = null;
-      myPendingPixelSize = null;
     }
   }
 

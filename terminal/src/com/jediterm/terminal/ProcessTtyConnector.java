@@ -43,7 +43,11 @@ public abstract class ProcessTtyConnector implements TtyConnector {
     }
   }
 
-  protected abstract void resizeImmediately();
+  /**
+   * @deprecated override {@link #resize(Dimension)} instead
+   */
+  @Deprecated
+  protected void resizeImmediately() {}
 
   @Override
   public abstract String getName();
@@ -66,10 +70,18 @@ public abstract class ProcessTtyConnector implements TtyConnector {
     write(string.getBytes(myCharset));
   }
 
+  /**
+   * @deprecated override {@link #resize(Dimension)} instead
+   */
+  @Deprecated
   protected void setPendingTermSize(@Nullable Dimension pendingTermSize) {
     myPendingTermSize = pendingTermSize;
   }
 
+  /**
+   * @deprecated override {@link #resize(Dimension)} instead
+   */
+  @Deprecated
   protected @Nullable Dimension getPendingTermSize() {
     return myPendingTermSize;
   }

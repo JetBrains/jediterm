@@ -276,12 +276,6 @@ public class TerminalLine {
     return true;
   }
 
-  public void runWithLock(Runnable r) {
-    synchronized (this) {
-      r.run();
-    }
-  }
-
   void forEachEntry(@NotNull Consumer<TextEntry> action) {
     myTextEntries.forEach(action);
   }

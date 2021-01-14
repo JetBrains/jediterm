@@ -1051,12 +1051,12 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     }
   }
 
-  public Dimension resize(final Dimension pendingResize, final RequestOrigin origin) {
+  public void resize(@NotNull Dimension pendingResize, final RequestOrigin origin) {
     final int oldHeight = myTerminalHeight;
     if (pendingResize.width <= MIN_WIDTH) {
       pendingResize.setSize(MIN_WIDTH, pendingResize.height);
     }
-    final Dimension pixelSize = myDisplay.requestResize(pendingResize, origin, myCursorX, myCursorY, new ResizeHandler() {
+    myDisplay.requestResize(pendingResize, origin, myCursorX, myCursorY, new ResizeHandler() {
       @Override
       public void sizeUpdated(int termWidth, int termHeight, int cursorY) {
       }
@@ -1074,7 +1074,6 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     });
 
     myScrollRegionBottom += myTerminalHeight - oldHeight;
-    return pixelSize;
   }
 
   @Override

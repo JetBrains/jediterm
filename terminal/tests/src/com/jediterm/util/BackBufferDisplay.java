@@ -7,6 +7,7 @@ import com.jediterm.terminal.model.TerminalTextBuffer;
 import com.jediterm.terminal.model.JediTerminal;
 import com.jediterm.terminal.model.TerminalSelection;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 
@@ -44,8 +45,8 @@ public class BackBufferDisplay implements TerminalDisplay {
   }
 
   @Override
-  public Dimension requestResize(Dimension pendingResize, RequestOrigin origin, int cursorY, JediTerminal.ResizeHandler resizeHandler) {
-    return myTerminalTextBuffer.resize(pendingResize, origin, 0, cursorY, resizeHandler, mySelection);
+  public void requestResize(@NotNull Dimension newWinSize, RequestOrigin origin, int cursorX, int cursorY, JediTerminal.ResizeHandler resizeHandler) {
+    myTerminalTextBuffer.resize(newWinSize, origin, cursorX, cursorY, resizeHandler, mySelection);
   }
 
   @Override

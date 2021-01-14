@@ -1,5 +1,7 @@
 package com.jediterm.terminal;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.awt.*;
 import java.io.IOException;
 
@@ -11,7 +13,15 @@ public interface TtyConnector {
 
   void close();
 
-  void resize(Dimension termSize, Dimension pixelSize);
+  default void resize(@NotNull Dimension termWinSize) {
+    resize(termWinSize, termWinSize);
+  }
+
+  /**
+   * @deprecated use {@link #resize(Dimension)} instead
+   */
+  @Deprecated
+  default void resize(Dimension termWinSize, Dimension pixelSize) {}
 
   String getName();
 

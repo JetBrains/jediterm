@@ -4,13 +4,12 @@ import com.jediterm.terminal.ArrayTerminalDataStream;
 import com.jediterm.terminal.Terminal;
 import com.jediterm.terminal.TerminalColor;
 import com.jediterm.terminal.TextStyle;
-import com.jediterm.terminal.model.TerminalTextBuffer;
-import com.jediterm.terminal.model.StyleState;
 import com.jediterm.terminal.emulator.Emulator;
 import com.jediterm.terminal.emulator.JediEmulator;
+import com.jediterm.terminal.model.StyleState;
+import com.jediterm.terminal.model.TerminalTextBuffer;
 import com.jediterm.util.BackBufferTerminal;
 import com.jediterm.util.FileUtil;
-import com.jediterm.util.NullTerminalOutputStream;
 import junit.framework.TestCase;
 import org.junit.Ignore;
 

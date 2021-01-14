@@ -3,6 +3,7 @@ package com.jediterm.pty;
 import com.jediterm.terminal.ProcessTtyConnector;
 import com.pty4j.PtyProcess;
 import com.pty4j.WinSize;
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.charset.Charset;
 
@@ -10,19 +11,17 @@ import java.nio.charset.Charset;
  * @author traff
  */
 public class PtyProcessTtyConnector extends ProcessTtyConnector {
-  private PtyProcess myProcess;
+  private final PtyProcess myProcess;
 
-  public PtyProcessTtyConnector(PtyProcess process, Charset charset) {
+  public PtyProcessTtyConnector(@NotNull PtyProcess process, @NotNull Charset charset) {
     super(process, charset);
-
     myProcess = process;
   }
 
   @Override
   protected void resizeImmediately() {
-    if (getPendingTermSize() != null && getPendingPixelSize() != null) {
-      myProcess.setWinSize(
-          new WinSize(getPendingTermSize().width, getPendingTermSize().height, getPendingPixelSize().width, getPendingPixelSize().height));
+    if (getPendingTermSize() != null) {
+      myProcess.setWinSize(new WinSize(getPendingTermSize().width, getPendingTermSize().height));
     }
   }
 

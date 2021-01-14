@@ -18,7 +18,7 @@ dependencies {
     compile 'org.jetbrains:annotations:13.0'
     compile 'com.google.guava:guava:25.1-jre'
 
-    compile 'org.jetbrains.pty4j:pty4j:0.8.5'
+    compile 'org.jetbrains.pty4j:pty4j:0.11.3'
 
     testCompile 'junit:junit:4.12'
 }

@@ -582,19 +582,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     myCustomKeyListeners.remove(keyListener);
   }
 
-  @Deprecated
-  public Dimension requestResize(final Dimension newSize,
-                                 final RequestOrigin origin,
-                                 int cursorY,
-                                 JediTerminal.ResizeHandler resizeHandler) {
-    return requestResize(newSize, origin, 0, cursorY, resizeHandler);
-  }
-
-  public Dimension requestResize(final Dimension newSize,
-                                 final RequestOrigin origin,
-                                 int cursorX,
-                                 int cursorY,
-                                 JediTerminal.ResizeHandler resizeHandler) {
+  public void requestResize(@NotNull Dimension newSize,
+                            final RequestOrigin origin,
+                            int cursorX,
+                            int cursorY,
+                            JediTerminal.ResizeHandler resizeHandler) {
     if (!newSize.equals(myTermSize)) {
       myTerminalTextBuffer.resize(newSize, origin, cursorX, cursorY, resizeHandler, mySelection);
 
@@ -608,8 +600,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       }
       SwingUtilities.invokeLater(() -> updateScrolling(true));
     }
-
-    return new Dimension(getPixelWidth(), getPixelHeight());
   }
 
   public void setTerminalPanelListener(final TerminalPanelListener terminalPanelListener) {

@@ -3,6 +3,7 @@ package com.jediterm.terminal;
 import com.jediterm.terminal.model.JediTerminal;
 import com.jediterm.terminal.model.TerminalSelection;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 
@@ -18,14 +19,8 @@ public interface TerminalDisplay {
 
   void beep();
 
-  @SuppressWarnings("DeprecatedIsStillUsed")
-  @Deprecated
-  Dimension requestResize(Dimension pendingResize, RequestOrigin origin, int cursorY, JediTerminal.ResizeHandler resizeHandler);
-
-  default Dimension requestResize(Dimension pendingResize, RequestOrigin origin, int cursorX, int cursorY,
-                                  JediTerminal.ResizeHandler resizeHandler) {
-    return requestResize(pendingResize, origin, cursorY, resizeHandler);
-  }
+  void requestResize(@NotNull Dimension newWinSize, RequestOrigin origin, int cursorX, int cursorY,
+                     JediTerminal.ResizeHandler resizeHandler);
 
   void scrollArea(final int scrollRegionTop, final int scrollRegionSize, int dy);
 

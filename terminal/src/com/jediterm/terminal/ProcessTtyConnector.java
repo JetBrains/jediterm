@@ -1,6 +1,7 @@
 package com.jediterm.terminal;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.io.IOException;
@@ -18,10 +19,9 @@ public abstract class ProcessTtyConnector implements TtyConnector {
   protected final InputStreamReader myReader;
   protected Charset myCharset;
   private Dimension myPendingTermSize;
-  private Dimension myPendingPixelSize;
-  private Process myProcess;
+  private final Process myProcess;
 
-  public ProcessTtyConnector(@NotNull Process process, Charset charset) {
+  public ProcessTtyConnector(@NotNull Process process, @NotNull Charset charset) {
     myOutputStream = process.getOutputStream();
     myCharset = charset;
     myInputStream = process.getInputStream();
@@ -35,13 +35,11 @@ public abstract class ProcessTtyConnector implements TtyConnector {
   }
 
   @Override
-  public void resize(Dimension termSize, Dimension pixelSize) {
-    setPendingTermSize(termSize);
-    setPendingPixelSize(pixelSize);
+  public void resize(@NotNull Dimension termWinSize) {
+    setPendingTermSize(termWinSize);
     if (isConnected()) {
       resizeImmediately();
       setPendingTermSize(null);
-      setPendingPixelSize(null);
     }
   }
 
@@ -68,20 +66,20 @@ public abstract class ProcessTtyConnector implements TtyConnector {
     write(string.getBytes(myCharset));
   }
 
-  protected void setPendingTermSize(Dimension pendingTermSize) {
-    this.myPendingTermSize = pendingTermSize;
+  protected void setPendingTermSize(@Nullable Dimension pendingTermSize) {
+    myPendingTermSize = pendingTermSize;
   }
 
-  protected void setPendingPixelSize(Dimension pendingPixelSize) {
-    this.myPendingPixelSize = pendingPixelSize;
-  }
-
-  protected Dimension getPendingTermSize() {
+  protected @Nullable Dimension getPendingTermSize() {
     return myPendingTermSize;
   }
 
+  /**
+   * @deprecated don't use it (pixel size is not used anymore)
+   */
+  @Deprecated
   protected Dimension getPendingPixelSize() {
-    return myPendingPixelSize;
+    return myPendingTermSize;
   }
 
   @Override

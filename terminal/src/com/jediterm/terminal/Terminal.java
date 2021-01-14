@@ -15,7 +15,7 @@ import java.io.UnsupportedEncodingException;
  * @author traff
  */
 public interface Terminal {
-  Dimension resize(Dimension dimension, RequestOrigin origin);
+  void resize(@NotNull Dimension termWinSize, RequestOrigin origin);
 
   void beep();
 

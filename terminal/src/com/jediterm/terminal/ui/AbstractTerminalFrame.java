@@ -159,7 +159,7 @@ public abstract class AbstractTerminalFrame {
     frame.setResizable(true);
 
     myTerminal.setTerminalPanelListener(new TerminalPanelListener() {
-      public void onPanelResize(final Dimension pixelDimension, final RequestOrigin origin) {
+      public void onPanelResize(@NotNull RequestOrigin origin) {
         if (origin == RequestOrigin.Remote) {
           sizeFrameForTerm(frame);
         }

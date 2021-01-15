@@ -589,14 +589,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
                             JediTerminal.ResizeHandler resizeHandler) {
     if (!newSize.equals(myTermSize)) {
       myTerminalTextBuffer.resize(newSize, origin, cursorX, cursorY, resizeHandler, mySelection);
+      myTermSize = (Dimension)newSize.clone();
 
-      myTermSize = (Dimension) newSize.clone();
-
-      final Dimension pixelDimension = new Dimension(getPixelWidth(), getPixelHeight());
-
+      Dimension pixelDimension = new Dimension(getPixelWidth(), getPixelHeight());
       setPreferredSize(pixelDimension);
       if (myTerminalPanelListener != null) {
-        myTerminalPanelListener.onPanelResize(pixelDimension, origin);
+        myTerminalPanelListener.onPanelResize(origin);
       }
       SwingUtilities.invokeLater(() -> updateScrolling(true));
     }

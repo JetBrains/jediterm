@@ -92,7 +92,7 @@ public abstract class AbstractTabbedTerminalWidget<T extends JediTermWidget> ext
       setSize(size);
 
       if (myTerminalPanelListener != null) {
-        myTerminalPanelListener.onPanelResize(size, RequestOrigin.User);
+        myTerminalPanelListener.onPanelResize(RequestOrigin.User);
       }
 
       onSessionChanged();

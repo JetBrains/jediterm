@@ -1043,12 +1043,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   public interface ResizeHandler {
-    @Deprecated
-    void sizeUpdated(int termWidth, int termHeight, int cursorY);
-
-    default void sizeUpdated(int termWidth, int termHeight, int cursorX, int cursorY) {
-      sizeUpdated(termWidth, termHeight, cursorY);
-    }
+    void sizeUpdated(int termWidth, int termHeight, int cursorX, int cursorY);
   }
 
   public void resize(@NotNull Dimension pendingResize, final RequestOrigin origin) {
@@ -1056,21 +1051,14 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     if (pendingResize.width <= MIN_WIDTH) {
       pendingResize.setSize(MIN_WIDTH, pendingResize.height);
     }
-    myDisplay.requestResize(pendingResize, origin, myCursorX, myCursorY, new ResizeHandler() {
-      @Override
-      public void sizeUpdated(int termWidth, int termHeight, int cursorY) {
-      }
+    myDisplay.requestResize(pendingResize, origin, myCursorX, myCursorY, (termWidth, termHeight, cursorX, cursorY) -> {
+      myTerminalWidth = termWidth;
+      myTerminalHeight = termHeight;
+      myCursorY = cursorY;
+      myCursorX = Math.min(cursorX, myTerminalWidth - 1);
+      myDisplay.setCursor(myCursorX, myCursorY);
 
-      @Override
-      public void sizeUpdated(int termWidth, int termHeight, int cursorX, int cursorY) {
-        myTerminalWidth = termWidth;
-        myTerminalHeight = termHeight;
-        myCursorY = cursorY;
-        myCursorX = Math.min(cursorX, myTerminalWidth - 1);
-        myDisplay.setCursor(myCursorX, myCursorY);
-
-        myTabulator.resize(myTerminalWidth);
-      }
+      myTabulator.resize(myTerminalWidth);
     });
 
     myScrollRegionBottom += myTerminalHeight - oldHeight;

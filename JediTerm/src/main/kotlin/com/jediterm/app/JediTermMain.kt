@@ -24,6 +24,7 @@ import java.io.IOException
 import java.nio.charset.Charset
 import java.util.*
 import java.util.function.Function
+import javax.swing.SwingUtilities
 
 /**
  * Created by traff on 22/08/16.
@@ -38,7 +39,9 @@ object JediTermMain {
 
 //        initLoggingTracing()
 
-        JediTerm()
+        SwingUtilities.invokeLater {
+            JediTerm()
+        }
     }
 }
 

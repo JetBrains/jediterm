@@ -1,6 +1,3 @@
-/**
- *
- */
 package com.jediterm.terminal;
 
 import java.io.IOException;
@@ -9,7 +6,7 @@ import java.io.IOException;
  * Takes data from and sends it back to TTY input and output streams via {@link TtyConnector}
  */
 public class TtyBasedArrayDataStream extends ArrayTerminalDataStream {
-  private TtyConnector myTtyConnector;
+  private final TtyConnector myTtyConnector;
 
   public TtyBasedArrayDataStream(final TtyConnector ttyConnector) {
     super(new char[1024], 0, 0);

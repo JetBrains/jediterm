@@ -8,7 +8,6 @@ import com.jediterm.terminal.ui.settings.DefaultSettingsProvider;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import java.awt.*;
 import java.io.IOException;
 import java.io.PipedReader;
 import java.io.PipedWriter;
@@ -70,10 +69,6 @@ public class BasicTerminalExample {
 
     @Override
     public void close() {
-    }
-
-    @Override
-    public void resize(Dimension termSize, Dimension pixelSize) {
     }
 
     @Override

@@ -17,7 +17,7 @@ public abstract class ProcessTtyConnector implements TtyConnector {
   protected final InputStream myInputStream;
   protected final OutputStream myOutputStream;
   protected final InputStreamReader myReader;
-  protected Charset myCharset;
+  protected final Charset myCharset;
   private Dimension myPendingTermSize;
   private final Process myProcess;
 
@@ -54,7 +54,6 @@ public abstract class ProcessTtyConnector implements TtyConnector {
 
   public int read(char[] buf, int offset, int length) throws IOException {
     return myReader.read(buf, offset, length);
-    //return myInputStream.read(buf, offset, length);
   }
 
   public void write(byte[] bytes) throws IOException {
@@ -91,7 +90,7 @@ public abstract class ProcessTtyConnector implements TtyConnector {
    */
   @Deprecated
   protected Dimension getPendingPixelSize() {
-    return myPendingTermSize;
+    return new Dimension(0, 0);
   }
 
   @Override

@@ -23,7 +23,6 @@ public class TerminalStarter implements TerminalOutputStream {
   private final Emulator myEmulator;
 
   private final Terminal myTerminal;
-  private final TerminalDataStream myDataStream;
 
   private final TtyConnector myTtyConnector;
 
@@ -31,11 +30,9 @@ public class TerminalStarter implements TerminalOutputStream {
 
   public TerminalStarter(final Terminal terminal, final TtyConnector ttyConnector, TerminalDataStream dataStream) {
     myTtyConnector = ttyConnector;
-    //can be implemented - just recreate channel and that's it
-    myDataStream = dataStream;
     myTerminal = terminal;
     myTerminal.setTerminalOutput(this);
-    myEmulator = createEmulator(myDataStream, terminal);
+    myEmulator = createEmulator(dataStream, terminal);
   }
 
   protected JediEmulator createEmulator(TerminalDataStream dataStream, Terminal terminal) {

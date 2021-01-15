@@ -613,8 +613,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     final FontMetrics fo = graphics.getFontMetrics();
 
     myCharSize.width = fo.charWidth('W');
-    // The magic +2 here is to give lines a tiny bit of extra height to avoid clipping when rendering some Apple
-    // emoji, which are slightly higher than the font metrics reported character height :(
     int fontMetricsHeight = fo.getHeight();
     myCharSize.height = (int)Math.ceil(fontMetricsHeight * lineSpacing);
     mySpaceBetweenLines = Math.max(0, ((myCharSize.height - fontMetricsHeight) / 2) * 2);

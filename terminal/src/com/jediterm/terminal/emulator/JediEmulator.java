@@ -27,11 +27,6 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   private static int logThrottlerRatio = 100;
   private static int logThrottlerLimit = logThrottlerRatio;
 
-  @Deprecated
-  public JediEmulator(TerminalDataStream dataStream, TerminalOutputStream outputStream, Terminal terminal) {
-    super(dataStream, terminal);
-  }
-
   public JediEmulator(TerminalDataStream dataStream, Terminal terminal) {
     super(dataStream, terminal);
   }

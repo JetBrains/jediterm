@@ -115,7 +115,7 @@ public class TerminalLine {
     return pair;
   }
 
-  private static TextEntries collectFromBuffer(@NotNull char[] buf, @NotNull TextStyle[] styles) {
+  private static TextEntries collectFromBuffer(char[] buf, @NotNull TextStyle[] styles) {
     TextEntries result = new TextEntries();
 
     TextStyle curStyle = styles[0];
@@ -252,7 +252,7 @@ public class TerminalLine {
   public synchronized void process(int y, StyledTextConsumer consumer, int startRow) {
     int x = 0;
     int nulIndex = -1;
-    for (TextEntry te : Lists.newArrayList(myTextEntries)) {
+    for (TextEntry te : myTextEntries) {
       if (te.getText().isNul()) {
         if (nulIndex < 0) {
           nulIndex = x;
@@ -331,7 +331,7 @@ public class TerminalLine {
   }
 
   private static class TextEntries implements Iterable<TextEntry> {
-    private List<TextEntry> myTextEntries = new ArrayList<>();
+    private final List<TextEntry> myTextEntries = new ArrayList<>();
 
     private int myLength = 0;
 

@@ -1375,6 +1375,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
               handlePaste();
               return true;
             }).withMnemonicKey(KeyEvent.VK_P).withEnabledSupplier(() -> getClipboardString() != null),
+            new TerminalAction(mySettingsProvider.getSelectAllActionPresentation(), input -> {
+              selectAll();
+              return true;
+            }),
             new TerminalAction(mySettingsProvider.getClearBufferActionPresentation(), input -> {
               clearBuffer();
               return true;
@@ -1395,6 +1399,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
               scrollDown();
               return true;
             }));
+  }
+
+  public void selectAll() {
+    mySelection = new TerminalSelection(new Point(0, -myTerminalTextBuffer.getHistoryLinesCount()),
+      new Point(myTermSize.width, myTerminalTextBuffer.getScreenLinesCount()));
   }
 
   @NotNull

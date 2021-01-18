@@ -25,4 +25,6 @@ public interface SystemSettingsProvider {
   @NotNull TerminalActionPresentation getCloseSessionActionPresentation();
 
   @NotNull TerminalActionPresentation getFindActionPresentation();
+
+  @NotNull TerminalActionPresentation getSelectAllActionPresentation();
 }

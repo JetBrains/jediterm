@@ -94,6 +94,11 @@ public class DefaultSettingsProvider implements SettingsProvider {
   }
 
   @Override
+  public @NotNull TerminalActionPresentation getSelectAllActionPresentation() {
+    return new TerminalActionPresentation("Select All", Collections.emptyList());
+  }
+
+  @Override
   public ColorPalette getTerminalColorPalette() {
     return UIUtil.isWindows ? ColorPalette.WINDOWS_PALETTE : ColorPalette.XTERM_PALETTE;
   }

@@ -1,11 +1,6 @@
-/**
- *
- */
 package com.jediterm.terminal;
 
 import org.apache.log4j.Logger;
-
-import java.awt.*;
 
 public enum TerminalMode {
   Null,
@@ -19,10 +14,8 @@ public enum TerminalMode {
   WideColumn {
     @Override
     public void setEnabled(Terminal terminal, boolean enabled) {
-      int h = terminal.getTerminalHeight();
-      Dimension d = enabled ? new Dimension(132, h) : new Dimension(80, h);
-
-      terminal.resize(d, RequestOrigin.Remote);
+      // Skip resizing as it would require to resize parent container.
+      // Other terminal emulators (iTerm2, Terminal.app, GNOME Terminal) ignore it too.
       terminal.clearScreen();
       terminal.resetScrollRegions();
     }

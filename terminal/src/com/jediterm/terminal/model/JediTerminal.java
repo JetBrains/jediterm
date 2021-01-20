@@ -21,6 +21,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Terminal that reflects obtained commands and text at {@link TerminalDisplay}(handles change of cursor position, screen size etc)
@@ -32,14 +33,15 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   private static final Logger LOG = Logger.getLogger(JediTerminal.class.getName());
 
   private static final int MIN_WIDTH = 5;
+  private static final int MIN_HEIGHT = 2;
 
   private int myScrollRegionTop;
   private int myScrollRegionBottom;
   volatile private int myCursorX = 0;
   volatile private int myCursorY = 1;
 
-  private int myTerminalWidth = 80;
-  private int myTerminalHeight = 24;
+  private int myTerminalWidth;
+  private int myTerminalHeight;
 
   private final TerminalDisplay myDisplay;
   private final TerminalTextBuffer myTerminalTextBuffer;
@@ -63,6 +65,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
   private MouseMode myMouseMode = MouseMode.MOUSE_REPORTING_NONE;
   private Point myLastMotionReport = null;
+  private boolean myCursorYChanged;
 
   public JediTerminal(final TerminalDisplay display, final TerminalTextBuffer buf, final StyleState initialStyleState) {
     myDisplay = display;
@@ -124,6 +127,12 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   private void writeDecodedCharacters(char[] string) {
     myTerminalTextBuffer.lock();
     try {
+      if (myCursorYChanged && string.length > 0) {
+        myCursorYChanged = false;
+        if (myCursorY > 1) {
+          myTerminalTextBuffer.getLine(myCursorY - 2).setWrapped(false);
+        }
+      }
       wrapLines();
       scrollY();
 
@@ -191,6 +200,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
   @Override
   public void newLine() {
+    myCursorYChanged = true;
     myCursorY += 1;
 
     scrollY();
@@ -487,6 +497,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   public void cursorUp(final int countY) {
     myTerminalTextBuffer.lock();
     try {
+      myCursorYChanged = true;
       myCursorY -= countY;
       myCursorY = Math.max(myCursorY, scrollingRegionTop());
       adjustXY(-1);
@@ -500,6 +511,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   public void cursorDown(final int dY) {
     myTerminalTextBuffer.lock();
     try {
+      myCursorYChanged = true;
       myCursorY += dY;
       myCursorY = Math.min(myCursorY, scrollingRegionBottom());
       adjustXY(-1);
@@ -1046,12 +1058,32 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     void sizeUpdated(int termWidth, int termHeight, int cursorX, int cursorY);
   }
 
-  public void resize(@NotNull Dimension pendingResize, final RequestOrigin origin) {
-    final int oldHeight = myTerminalHeight;
-    if (pendingResize.width <= MIN_WIDTH) {
-      pendingResize.setSize(MIN_WIDTH, pendingResize.height);
+  @Override
+  public void resize(@NotNull Dimension newTermSize, @NotNull RequestOrigin origin) {
+    resize(newTermSize, origin, CompletableFuture.completedFuture(null));
+  }
+
+  @Override
+  public void resize(@NotNull Dimension newTermSize, @NotNull RequestOrigin origin, @NotNull CompletableFuture<?> promptUpdated) {
+    int oldHeight = myTerminalHeight;
+    ensureTermMinimumSize(newTermSize);
+    if (newTermSize.width == myTerminalWidth && newTermSize.height == myTerminalHeight) {
+      return;
     }
-    myDisplay.requestResize(pendingResize, origin, myCursorX, myCursorY, (termWidth, termHeight, cursorX, cursorY) -> {
+    if (newTermSize.width == myTerminalWidth) {
+      doResize(newTermSize, origin, oldHeight);
+    }
+    else {
+      myTerminalWidth = newTermSize.width;
+      myTerminalHeight = newTermSize.height;
+      promptUpdated.thenRun(() -> {
+        doResize(newTermSize, origin, oldHeight);
+      });
+    }
+  }
+
+  private void doResize(@NotNull Dimension newTermSize, @NotNull RequestOrigin origin, int oldHeight) {
+    myDisplay.requestResize(newTermSize, origin, myCursorX, myCursorY, (termWidth, termHeight, cursorX, cursorY) -> {
       myTerminalWidth = termWidth;
       myTerminalHeight = termHeight;
       myCursorY = cursorY;
@@ -1060,8 +1092,11 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
       myTabulator.resize(myTerminalWidth);
     });
-
     myScrollRegionBottom += myTerminalHeight - oldHeight;
+  }
+
+  public static void ensureTermMinimumSize(@NotNull Dimension termSize) {
+    termSize.setSize(Math.max(MIN_WIDTH, termSize.width), Math.max(MIN_HEIGHT, termSize.height));
   }
 
   @Override

@@ -19,6 +19,8 @@ public interface TerminalDataStream {
 
   void pushBackBuffer(char[] bytes, int length) throws IOException;
 
+  boolean isEmpty();
+
   class EOF extends IOException {
     public EOF() {
       super("EOF: There is no more data or connection is lost");

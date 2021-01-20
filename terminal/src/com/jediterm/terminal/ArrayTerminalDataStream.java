@@ -68,4 +68,9 @@ public class ArrayTerminalDataStream implements TerminalDataStream {
       pushChar(bytes[i]);
     }
   }
+
+  @Override
+  public boolean isEmpty() {
+    return myLength == 0;
+  }
 }

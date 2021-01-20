@@ -19,7 +19,7 @@ public class VtEmulatorTest extends EmulatorTestAbstract {
   }
 
   public void testTest2_Screen_3() throws IOException {
-    doVtTest();
+    doTest(132, 24);
   }
 
   public void testTest2_Screen_4() throws IOException {

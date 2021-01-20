@@ -10,6 +10,9 @@ import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * The main terminal emulator class.
@@ -26,6 +29,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   private static int logThrottlerCounter = 0;
   private static int logThrottlerRatio = 100;
   private static int logThrottlerLimit = logThrottlerRatio;
+  private volatile CompletableFuture<?> myResizeFuture;
 
   public JediEmulator(TerminalDataStream dataStream, Terminal terminal) {
     super(dataStream, terminal);
@@ -84,6 +88,9 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           terminal.writeCharacters(nonControlCharacters);
         }
         break;
+    }
+    if (myDataStream.isEmpty()) {
+      completeResize();
     }
   }
 
@@ -998,5 +1005,18 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   public void setMouseMode(MouseMode mouseMode) {
     myTerminal.setMouseMode(mouseMode);
   }
-}
 
+  public @NotNull CompletableFuture<?> getPromptUpdatedAfterResizeFuture(@NotNull ScheduledExecutorService executorService) {
+    myResizeFuture = new CompletableFuture<>();
+    executorService.schedule(this::completeResize, 100, TimeUnit.MILLISECONDS);
+    return myResizeFuture;
+  }
+
+  private void completeResize() {
+    CompletableFuture<?> resizeFuture = myResizeFuture;
+    if (resizeFuture != null) {
+      myResizeFuture = null;
+      resizeFuture.complete(null);
+    }
+  }
+}

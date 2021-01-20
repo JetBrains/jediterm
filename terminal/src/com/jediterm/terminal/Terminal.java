@@ -1,13 +1,14 @@
 package com.jediterm.terminal;
 
-import com.jediterm.terminal.model.StyleState;
 import com.jediterm.terminal.emulator.mouse.MouseFormat;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
+import com.jediterm.terminal.model.StyleState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.io.UnsupportedEncodingException;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Executes terminal commands interpreted by {@link com.jediterm.terminal.emulator.Emulator}, receives text
@@ -15,7 +16,9 @@ import java.io.UnsupportedEncodingException;
  * @author traff
  */
 public interface Terminal {
-  void resize(@NotNull Dimension termWinSize, RequestOrigin origin);
+  void resize(@NotNull Dimension newTermSize, @NotNull RequestOrigin origin);
+
+  void resize(@NotNull Dimension newTermSize, @NotNull RequestOrigin origin, @NotNull CompletableFuture<?> promptUpdated);
 
   void beep();
 

@@ -63,8 +63,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
   private TerminalPanelListener myTerminalPanelListener;
 
-  private SettingsProvider mySettingsProvider;
-  final private TerminalTextBuffer myTerminalTextBuffer;
+  private final SettingsProvider mySettingsProvider;
+  private final TerminalTextBuffer myTerminalTextBuffer;
 
   final private StyleState myStyleState;
 
@@ -564,7 +564,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     if (myTerminalStarter != null) {
       Dimension newSize = getTerminalSizeFromComponent();
       if (newSize != null) {
-        myTerminalStarter.postResize(newSize, RequestOrigin.User);
+        JediTerminal.ensureTermMinimumSize(newSize);
+        if (!myTermSize.equals(newSize)) {
+          myTerminalStarter.postResize(newSize, RequestOrigin.User);
+        }
       }
     }
   }

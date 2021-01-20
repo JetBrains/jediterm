@@ -8,8 +8,9 @@ import org.jetbrains.annotations.NotNull;
 import java.awt.*;
 import java.io.IOException;
 import java.io.InterruptedIOException;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 
 /**
@@ -26,7 +27,7 @@ public class TerminalStarter implements TerminalOutputStream {
 
   private final TtyConnector myTtyConnector;
 
-  private final ExecutorService myEmulatorExecutor = Executors.newSingleThreadExecutor();
+  private final ScheduledExecutorService myEmulatorExecutor = Executors.newSingleThreadScheduledExecutor();
 
   public TerminalStarter(final Terminal terminal, final TtyConnector ttyConnector, TerminalDataStream dataStream) {
     myTtyConnector = ttyConnector;
@@ -67,17 +68,19 @@ public class TerminalStarter implements TerminalOutputStream {
     return myTerminal.getCodeForKey(key, modifiers);
   }
 
-  public void postResize(final Dimension dimension, final RequestOrigin origin) {
-    execute(() -> resizeTerminal(myTerminal, myTtyConnector, dimension, origin));
+  public void postResize(@NotNull Dimension dimension, @NotNull RequestOrigin origin) {
+    execute(() -> {
+      resize(dimension, origin);
+    });
   }
 
   /**
    * Resizes terminal and tty connector, should be called on a pooled thread.
    */
-  public static void resizeTerminal(@NotNull Terminal terminal, @NotNull TtyConnector ttyConnector,
-                                    @NotNull Dimension terminalDimension, @NotNull RequestOrigin origin) {
-    terminal.resize(terminalDimension, origin);
-    ttyConnector.resize(terminalDimension);
+  protected void resize(@NotNull Dimension newTermSize, @NotNull RequestOrigin origin) {
+    CompletableFuture<?> promptUpdated = ((JediEmulator)myEmulator).getPromptUpdatedAfterResizeFuture(myEmulatorExecutor);
+    myTerminal.resize(newTermSize, origin, promptUpdated);
+    myTtyConnector.resize(newTermSize);
   }
 
   @Override

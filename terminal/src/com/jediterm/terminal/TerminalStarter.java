@@ -86,7 +86,7 @@ public class TerminalStarter implements TerminalOutputStream {
                             @NotNull TtyConnector ttyConnector,
                             @NotNull Dimension newTermSize,
                             @NotNull RequestOrigin origin,
-                            @NotNull BiConsumer<Integer, Runnable> taskScheduler) {
+                            @NotNull BiConsumer<Long, Runnable> taskScheduler) {
     CompletableFuture<?> promptUpdated = ((JediEmulator)emulator).getPromptUpdatedAfterResizeFuture(taskScheduler);
     terminal.resize(newTermSize, origin, promptUpdated);
     ttyConnector.resize(newTermSize);

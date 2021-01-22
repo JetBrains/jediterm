@@ -1007,9 +1007,9 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     myTerminal.setMouseMode(mouseMode);
   }
 
-  public @NotNull CompletableFuture<?> getPromptUpdatedAfterResizeFuture(@NotNull BiConsumer<Integer, Runnable> taskScheduler) {
+  public @NotNull CompletableFuture<?> getPromptUpdatedAfterResizeFuture(@NotNull BiConsumer<Long, Runnable> taskScheduler) {
     CompletableFuture<Void> resizeFuture = new CompletableFuture<>();
-    taskScheduler.accept(100, this::completeResize);
+    taskScheduler.accept(100L, this::completeResize);
     myResizeFutureQueue.add(resizeFuture);
     return resizeFuture;
   }

@@ -11,6 +11,8 @@ import java.io.InterruptedIOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 
 
 /**
@@ -70,17 +72,24 @@ public class TerminalStarter implements TerminalOutputStream {
 
   public void postResize(@NotNull Dimension dimension, @NotNull RequestOrigin origin) {
     execute(() -> {
-      resize(dimension, origin);
+      resize(myEmulator, myTerminal, myTtyConnector, dimension, origin, (millisDelay, runnable) -> {
+        myEmulatorExecutor.schedule(runnable, millisDelay, TimeUnit.MILLISECONDS);
+      });
     });
   }
 
   /**
    * Resizes terminal and tty connector, should be called on a pooled thread.
    */
-  protected void resize(@NotNull Dimension newTermSize, @NotNull RequestOrigin origin) {
-    CompletableFuture<?> promptUpdated = ((JediEmulator)myEmulator).getPromptUpdatedAfterResizeFuture(myEmulatorExecutor);
-    myTerminal.resize(newTermSize, origin, promptUpdated);
-    myTtyConnector.resize(newTermSize);
+  public static void resize(@NotNull Emulator emulator,
+                            @NotNull Terminal terminal,
+                            @NotNull TtyConnector ttyConnector,
+                            @NotNull Dimension newTermSize,
+                            @NotNull RequestOrigin origin,
+                            @NotNull BiConsumer<Integer, Runnable> taskScheduler) {
+    CompletableFuture<?> promptUpdated = ((JediEmulator)emulator).getPromptUpdatedAfterResizeFuture(taskScheduler);
+    terminal.resize(newTermSize, origin, promptUpdated);
+    ttyConnector.resize(newTermSize);
   }
 
   @Override

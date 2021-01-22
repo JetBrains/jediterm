@@ -10,9 +10,10 @@ import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.io.IOException;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.BiConsumer;
 
 /**
  * The main terminal emulator class.
@@ -29,7 +30,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   private static int logThrottlerCounter = 0;
   private static int logThrottlerRatio = 100;
   private static int logThrottlerLimit = logThrottlerRatio;
-  private volatile CompletableFuture<?> myResizeFuture;
+  private final BlockingQueue<CompletableFuture<Void>> myResizeFutureQueue = new LinkedBlockingQueue<>();
 
   public JediEmulator(TerminalDataStream dataStream, Terminal terminal) {
     super(dataStream, terminal);
@@ -1006,16 +1007,16 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     myTerminal.setMouseMode(mouseMode);
   }
 
-  public @NotNull CompletableFuture<?> getPromptUpdatedAfterResizeFuture(@NotNull ScheduledExecutorService executorService) {
-    myResizeFuture = new CompletableFuture<>();
-    executorService.schedule(this::completeResize, 100, TimeUnit.MILLISECONDS);
-    return myResizeFuture;
+  public @NotNull CompletableFuture<?> getPromptUpdatedAfterResizeFuture(@NotNull BiConsumer<Integer, Runnable> taskScheduler) {
+    CompletableFuture<Void> resizeFuture = new CompletableFuture<>();
+    taskScheduler.accept(100, this::completeResize);
+    myResizeFutureQueue.add(resizeFuture);
+    return resizeFuture;
   }
 
   private void completeResize() {
-    CompletableFuture<?> resizeFuture = myResizeFuture;
-    if (resizeFuture != null) {
-      myResizeFuture = null;
+    CompletableFuture<Void> resizeFuture;
+    while ((resizeFuture = myResizeFutureQueue.poll()) != null) {
       resizeFuture.complete(null);
     }
   }

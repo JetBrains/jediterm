@@ -20,8 +20,11 @@ public interface TtyConnector {
   /**
    * @deprecated use {@link #resize(Dimension)} instead
    */
+  @SuppressWarnings("unused")
   @Deprecated
-  default void resize(Dimension termWinSize, Dimension pixelSize) {}
+  default void resize(Dimension termWinSize, Dimension pixelSize) {
+    resize(termWinSize);
+  }
 
   String getName();
 

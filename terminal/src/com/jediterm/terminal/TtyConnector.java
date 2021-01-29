@@ -14,7 +14,9 @@ public interface TtyConnector {
   void close();
 
   default void resize(@NotNull Dimension termWinSize) {
+    // support old implementations not overriding this method
     resize(termWinSize, new Dimension(0, 0));
+    // StackOverflowError is only possible if both resize(Dimension) and resize(Dimension,Dimension) are not overridden.
   }
 
   /**
@@ -23,6 +25,7 @@ public interface TtyConnector {
   @SuppressWarnings("unused")
   @Deprecated
   default void resize(Dimension termWinSize, Dimension pixelSize) {
+    // support old code that calls this method on new implementations (not overriding this deprecated method)
     resize(termWinSize);
   }
 

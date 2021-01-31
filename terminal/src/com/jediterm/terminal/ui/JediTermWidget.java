@@ -23,6 +23,7 @@ import javax.swing.plaf.basic.BasicScrollBarUI;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -501,7 +502,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
         int anchorHeight = Math.max(2, trackBounds.height / modelHeight);
 
         Color color = mySettingsProvider.getTerminalColorPalette()
-                .getColor(mySettingsProvider.getFoundPatternColor().getBackground());
+                .getBackground(Objects.requireNonNull(mySettingsProvider.getFoundPatternColor().getBackground()));
         g.setColor(color);
         for (FindItem r : result.getItems()) {
           int where = trackBounds.height * r.getStart().y / modelHeight;

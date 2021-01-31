@@ -5,7 +5,6 @@ import com.intellij.openapi.util.Disposer;
 import com.intellij.ui.components.JBScrollBar;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.ui.RegionPainter;
-import com.jediterm.app.JediTerminalPanel;
 import com.jediterm.terminal.SubstringFinder;
 import com.jediterm.terminal.TerminalStarter;
 import com.jediterm.terminal.TtyBasedArrayDataStream;
@@ -19,6 +18,7 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.Objects;
 
 public class JediTerminalWidget extends JediTermWidget implements Disposable {
 
@@ -57,7 +57,7 @@ public class JediTerminalWidget extends JediTermWidget implements Disposable {
           int anchorHeight = Math.max(2, height / modelHeight);
 
           Color color = mySettingsProvider.getTerminalColorPalette()
-            .getColor(mySettingsProvider.getFoundPatternColor().getBackground());
+            .getBackground(Objects.requireNonNull(mySettingsProvider.getFoundPatternColor().getBackground()));
           g.setColor(color);
           for (SubstringFinder.FindResult.FindItem r : result.getItems()) {
             int where = height * r.getStart().y / modelHeight;

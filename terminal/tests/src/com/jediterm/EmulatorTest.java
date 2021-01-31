@@ -27,9 +27,9 @@ public class EmulatorTest extends EmulatorTestAbstract {
   public void testMidnightCommanderOnXTerm() throws IOException {
     TerminalTextBuffer terminalTextBuffer = doTest();
 
-    assertColor(terminalTextBuffer.getStyleAt(8, 2), ColorPalette.getIndexedColor(3), ColorPalette.getIndexedColor(4));
-    assertColor(terminalTextBuffer.getStyleAt(23, 4), ColorPalette.getIndexedColor(7), ColorPalette.getIndexedColor(4));
-    assertColor(terminalTextBuffer.getStyleAt(2, 0), ColorPalette.getIndexedColor(0), ColorPalette.getIndexedColor(6));
+    assertColor(terminalTextBuffer.getStyleAt(8, 2), ColorPalette.getIndexedTerminalColor(3), ColorPalette.getIndexedTerminalColor(4));
+    assertColor(terminalTextBuffer.getStyleAt(23, 4), ColorPalette.getIndexedTerminalColor(7), ColorPalette.getIndexedTerminalColor(4));
+    assertColor(terminalTextBuffer.getStyleAt(2, 0), ColorPalette.getIndexedTerminalColor(0), ColorPalette.getIndexedTerminalColor(6));
   }
 
   public void testEraseBeyondTerminalWidth() throws IOException {

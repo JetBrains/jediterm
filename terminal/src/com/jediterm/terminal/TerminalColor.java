@@ -1,8 +1,10 @@
 package com.jediterm.terminal;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
+import java.util.Objects;
 
 /**
  * @author traff
@@ -11,11 +13,11 @@ public class TerminalColor {
   public static final TerminalColor BLACK = index(0);
   public static final TerminalColor WHITE = index(15);
 
-  private int myColorIndex;
-  private Color myColor;
+  private final int myColorIndex;
+  private final Color myColor;
 
-  public TerminalColor(int index) {
-    myColorIndex = index;
+  public TerminalColor(int colorIndex) {
+    myColorIndex = colorIndex;
     myColor = null;
   }
 
@@ -24,8 +26,8 @@ public class TerminalColor {
     myColor = new Color(r, g, b);
   }
 
-  public static TerminalColor index(int index) {
-    return new TerminalColor(index);
+  public static @NotNull TerminalColor index(int colorIndex) {
+    return new TerminalColor(colorIndex);
   }
 
   public static TerminalColor rgb(int r, int g, int b) {
@@ -44,7 +46,7 @@ public class TerminalColor {
     return myColor;
   }
 
-  public int getIndex() {
+  public int getColorIndex() {
     return myColorIndex;
   }
 
@@ -52,28 +54,16 @@ public class TerminalColor {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
-
     TerminalColor that = (TerminalColor) o;
-
-    if (isIndexed()) {
-      if (!that.isIndexed()) return false;
-      if (myColorIndex != that.myColorIndex) return false;
-    } else {
-      if (that.isIndexed()) {
-        return false;
-      }
-      return myColor.equals(that.myColor);
-    }
-    return true;
+    return myColorIndex == that.myColorIndex && Objects.equals(myColor, that.myColor);
   }
 
   @Override
   public int hashCode() {
-    return myColor != null ? myColor.hashCode() : myColorIndex;
+    return Objects.hash(myColorIndex, myColor);
   }
 
-  @Nullable
-  public static TerminalColor awt(@Nullable Color color) {
+  public static @Nullable TerminalColor awt(@Nullable Color color) {
     if (color == null) {
       return null;
     }

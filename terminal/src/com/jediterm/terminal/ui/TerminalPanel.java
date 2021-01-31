@@ -677,12 +677,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
   @Override
   public Color getBackground() {
-    return getPalette().getColor(myStyleState.getBackground());
+    return getPalette().getBackground(myStyleState.getBackground());
   }
 
   @Override
   public Color getForeground() {
-    return getPalette().getColor(myStyleState.getForeground());
+    return getPalette().getForeground(myStyleState.getForeground());
   }
 
   @Override
@@ -1042,9 +1042,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       int width = Math.min(textLength * TerminalPanel.this.myCharSize.width, TerminalPanel.this.getWidth() - xCoord);
       int lineStrokeSize = 2;
 
-      Color fgColor = getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun()));
+      Color fgColor = getPalette().getForeground(myStyleState.getForeground(style.getForegroundForRun()));
       TextStyle inversedStyle = getInversedStyle(style);
-      Color inverseBg = getPalette().getColor(myStyleState.getBackground(inversedStyle.getBackgroundForRun()));
+      Color inverseBg = getPalette().getBackground(myStyleState.getBackground(inversedStyle.getBackgroundForRun()));
 
       switch (myShape) {
         case BLINK_BLOCK:
@@ -1129,7 +1129,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       }
     }
 
-    Color backgroundColor = getPalette().getColor(myStyleState.getBackground(style.getBackgroundForRun()));
+    Color backgroundColor = getPalette().getBackground(myStyleState.getBackground(style.getBackgroundForRun()));
     gfx.setColor(backgroundColor);
     gfx.fillRect(xCoord,
             yCoord,
@@ -1142,7 +1142,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
     drawChars(x, y, buf, style, gfx);
 
-    gfx.setColor(getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun())));
+    gfx.setColor(getPalette().getForeground(myStyleState.getForeground(style.getForegroundForRun())));
 
 
     if (style.hasOption(TextStyle.Option.UNDERLINED)) {
@@ -1206,7 +1206,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
               getWidth() - xCoord,
               getHeight() - yCoord);
 
-      gfx.setColor(getPalette().getColor(myStyleState.getForeground(style.getForegroundForRun())));
+      gfx.setColor(getPalette().getForeground(myStyleState.getForeground(style.getForegroundForRun())));
 
       gfx.drawChars(renderingBuffer.getBuf(), buf.getStart() + offset, blockLen, xCoord, baseLine);
 

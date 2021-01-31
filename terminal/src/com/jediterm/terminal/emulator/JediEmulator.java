@@ -933,7 +933,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 96:
         case 97:
           //Bright versions of the ISO colors for foreground
-          builder.setForeground(ColorPalette.getIndexedColor(arg - 82));
+          builder.setForeground(ColorPalette.getIndexedTerminalColor(arg - 82));
           break;
         case 100:
         case 101:
@@ -944,7 +944,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 106:
         case 107:
           //Bright versions of the ISO colors for background
-          builder.setBackground(ColorPalette.getIndexedColor(arg - 92));
+          builder.setBackground(ColorPalette.getIndexedTerminalColor(arg - 92));
           break;
         default:
           LOG.error("Unknown character attribute:" + arg);
@@ -972,7 +972,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       }
     } else if (code == 5) {
       /* indexed color */
-      return ColorPalette.getIndexedColor(args.getArg(index + 2, 0));
+      return ColorPalette.getIndexedTerminalColor(args.getArg(index + 2, 0));
     } else {
       LOG.error("Unsupported code for color attribute " + args.toString());
       return null;

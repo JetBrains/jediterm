@@ -4,6 +4,7 @@ import com.jediterm.terminal.HyperlinkStyle;
 import com.jediterm.terminal.TerminalColor;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.emulator.ColorPalette;
+import com.jediterm.terminal.emulator.ColorPaletteImpl;
 import com.jediterm.terminal.model.LinesBuffer;
 import com.jediterm.terminal.ui.TerminalActionPresentation;
 import com.jediterm.terminal.ui.UIUtil;
@@ -100,7 +101,7 @@ public class DefaultSettingsProvider implements SettingsProvider {
 
   @Override
   public ColorPalette getTerminalColorPalette() {
-    return UIUtil.isWindows ? ColorPalette.WINDOWS_PALETTE : ColorPalette.XTERM_PALETTE;
+    return UIUtil.isWindows ? ColorPaletteImpl.WINDOWS_PALETTE : ColorPaletteImpl.XTERM_PALETTE;
   }
 
   @Override

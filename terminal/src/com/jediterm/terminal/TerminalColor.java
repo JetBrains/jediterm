@@ -5,6 +5,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 /**
  * @author traff
@@ -15,15 +16,34 @@ public class TerminalColor {
 
   private final int myColorIndex;
   private final Color myColor;
+  private final Supplier<Color> myColorSupplier;
 
   public TerminalColor(int colorIndex) {
-    myColorIndex = colorIndex;
-    myColor = null;
+    this(colorIndex, null, null);
   }
 
   public TerminalColor(int r, int g, int b) {
-    myColorIndex = -1;
-    myColor = new Color(r, g, b);
+    this(-1, new Color(r, g, b), null);
+  }
+
+  public TerminalColor(@NotNull Supplier<Color> colorSupplier) {
+    this(-1, null, colorSupplier);
+  }
+
+  private TerminalColor(int colorIndex, @Nullable Color color, @Nullable Supplier<Color> colorSupplier) {
+    if (colorIndex != -1) {
+      assert color == null;
+      assert colorSupplier == null;
+    }
+    else if (color != null) {
+      assert colorSupplier == null;
+    }
+    else {
+      assert colorSupplier != null;
+    }
+    myColorIndex = colorIndex;
+    myColor = color;
+    myColorSupplier = colorSupplier;
   }
 
   public static @NotNull TerminalColor index(int colorIndex) {
@@ -38,12 +58,12 @@ public class TerminalColor {
     return myColorIndex != -1;
   }
 
-  public Color toAwtColor() {
+  public @NotNull Color toAwtColor() {
     if (isIndexed()) {
       throw new IllegalArgumentException("Color is indexed color so a palette is needed");
     }
 
-    return myColor;
+    return myColor != null ? myColor : Objects.requireNonNull(myColorSupplier).get();
   }
 
   public int getColorIndex() {

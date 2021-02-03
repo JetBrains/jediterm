@@ -44,8 +44,7 @@ public class JediTerminalWidget extends JediTermWidget implements Disposable {
     return new TerminalStarter(terminal, connector, new TtyBasedArrayDataStream(connector));
   }
 
-  @Override
-  protected JScrollBar createScrollBar() {
+  protected @NotNull JScrollBar createScrollBar() {
     JBScrollBar bar = new JBScrollBar();
     bar.putClientProperty(JBScrollPane.Alignment.class, JBScrollPane.Alignment.RIGHT);
     bar.putClientProperty(JBScrollBar.TRACK, new RegionPainter<Object>() {

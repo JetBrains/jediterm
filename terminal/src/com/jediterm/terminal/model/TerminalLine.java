@@ -228,7 +228,7 @@ public class TerminalLine {
 
   public synchronized void clearArea(int leftX, int rightX, @NotNull TextStyle style) {
     if (rightX == -1) {
-      rightX = myTextEntries.length();
+      rightX = Math.max(myTextEntries.length(), leftX);
     }
     writeCharacters(leftX, style, new CharBuffer(
             rightX >= myTextEntries.length() ? CharUtils.NUL_CHAR : CharUtils.EMPTY_CHAR,

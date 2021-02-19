@@ -320,7 +320,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     return new SearchPanel();
   }
 
-  protected interface SearchComponent {
+  public interface SearchComponent {
     String getText();
 
     boolean ignoreCase();

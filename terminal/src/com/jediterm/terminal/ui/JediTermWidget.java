@@ -90,7 +90,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     setFocusable(false);
 
     mySessionRunning.set(false);
-    myTerminalPanel.init();
+    myTerminalPanel.init(myScrollBar);
     myTerminalPanel.setVisible(true);
   }
 

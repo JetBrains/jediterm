@@ -155,7 +155,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     establishFontMetrics();
   }
 
-  public void init() {
+  public void init(@NotNull JScrollBar scrollBar) {
     initFont();
 
     setPreferredSize(new Dimension(getPixelWidth(), getPixelHeight()));
@@ -204,11 +204,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
     addMouseWheelListener(e -> {
       if (isLocalMouseAction(e)) {
-        int notches = e.getWheelRotation();
-        if (Math.abs(e.getPreciseWheelRotation()) < 0.01) {
-          notches = 0;
-        }
-        moveScrollBar(notches * 3);
+        handleMouseWheelEvent(e, scrollBar);
       }
     });
 
@@ -312,6 +308,16 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
                                                   });
 
     createRepaintTimer();
+  }
+
+  protected void handleMouseWheelEvent(@NotNull MouseWheelEvent e, @NotNull JScrollBar scrollBar) {
+    double rotation = e.getPreciseWheelRotation();
+    if (Math.abs(rotation) < 0.01) {
+      return;
+    }
+    int direction = rotation < 0 ? -1 : 1;
+    moveScrollBar(direction * e.getScrollAmount());
+    e.consume();
   }
 
   private void handleHyperlinks(Point p, boolean isControlDown) {

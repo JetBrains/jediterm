@@ -311,12 +311,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   }
 
   protected void handleMouseWheelEvent(@NotNull MouseWheelEvent e, @NotNull JScrollBar scrollBar) {
-    double rotation = e.getPreciseWheelRotation();
-    if (Math.abs(rotation) < 0.01) {
+    if (e.isShiftDown() || e.getUnitsToScroll() == 0 || Math.abs(e.getPreciseWheelRotation()) < 0.01) {
       return;
     }
-    int direction = rotation < 0 ? -1 : 1;
-    moveScrollBar(direction * e.getScrollAmount());
+    moveScrollBar(e.getUnitsToScroll());
     e.consume();
   }
 

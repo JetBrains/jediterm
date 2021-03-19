@@ -290,7 +290,7 @@ public class TerminalLine {
     for (int i = startTextOffsetInd; i < endTextOffsetInd; i++) {
       int length = offsets[i + 1] - offsets[i];
       if (length == 0) continue;
-      CharBuffer subText = text.subBuffer(offsets[i] - startTextOffset, length);
+      CharBuffer subText = new SubCharBuffer(text, offsets[i] - startTextOffset, length);
       if (highlighting.intersectsWith(offsets[i], offsets[i + 1])) {
         consumer.consume(offsets[i], y, highlighting.mergeWith(te.getStyle()), subText, startRow);
       }

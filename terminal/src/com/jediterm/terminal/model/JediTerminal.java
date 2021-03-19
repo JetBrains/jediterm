@@ -1176,7 +1176,14 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     myTerminalTextBuffer.processHistoryAndScreenLines(-myTerminalTextBuffer.getHistoryLinesCount(), -1, new StyledTextConsumer() {
       @Override
       public void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
-        for (int i = 0; i < characters.length(); i++) {
+        int offset = 0;
+        int length = characters.length();
+        if (characters instanceof SubCharBuffer) {
+          SubCharBuffer subCharBuffer = (SubCharBuffer) characters;
+          characters = subCharBuffer.getParent();
+          offset = subCharBuffer.getOffset();
+        }
+        for (int i = offset; i < offset + length; i++) {
           finder.nextChar(x, y - startRow, characters, i);
         }
       }

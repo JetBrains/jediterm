@@ -1300,6 +1300,16 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     }
   }
 
+  public @Nullable Rectangle getBounds(@NotNull TerminalLineIntervalHighlighting highlighting) {
+    TerminalLine line = highlighting.getLine();
+    int index = myTerminalTextBuffer.findScreenLineIndex(line);
+    if (index >= 0 && !highlighting.isDisposed()) {
+      Point topLeft = new Point(highlighting.getStartOffset() * myCharSize.width + getInsetX(), index * myCharSize.height);
+      return new Rectangle(topLeft, new Dimension(myCharSize.width * highlighting.getLength(), myCharSize.height));
+    }
+    return null;
+  }
+
   public BoundedRangeModel getBoundedRangeModel() {
     return myBoundedRangeModel;
   }

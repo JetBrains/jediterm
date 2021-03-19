@@ -262,4 +262,8 @@ public class LinesBuffer {
 
     return i;
   }
+
+  synchronized int findLineIndex(@NotNull TerminalLine line) {
+    return myLines.indexOf(line);
+  }
 }

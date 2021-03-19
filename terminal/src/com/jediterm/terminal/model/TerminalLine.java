@@ -288,14 +288,14 @@ public class TerminalLine {
       return;
     }
     for (int i = startTextOffsetInd; i < endTextOffsetInd; i++) {
-      if (offsets[i] == offsets[i + 1]) continue;
+      int length = offsets[i + 1] - offsets[i];
+      if (length == 0) continue;
+      CharBuffer subText = text.subBuffer(offsets[i] - startTextOffset, length);
       if (highlighting.intersectsWith(offsets[i], offsets[i + 1])) {
-        int length = offsets[i + 1] - offsets[i];
-        CharBuffer subBuffer = text.subBuffer(offsets[i] - startTextOffset, length);
-        consumer.consume(offsets[i], y, highlighting.mergeWith(te.getStyle()), subBuffer, startRow);
+        consumer.consume(offsets[i], y, highlighting.mergeWith(te.getStyle()), subText, startRow);
       }
       else {
-        consumer.consume(offsets[i], y, te.getStyle(), text, startRow);
+        consumer.consume(offsets[i], y, te.getStyle(), subText, startRow);
       }
     }
   }

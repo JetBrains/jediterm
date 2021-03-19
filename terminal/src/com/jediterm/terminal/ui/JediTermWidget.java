@@ -14,15 +14,16 @@ import com.jediterm.terminal.model.hyperlinks.TextProcessing;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.plaf.basic.BasicArrowButton;
+import javax.swing.plaf.basic.BasicScrollBarUI;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -34,7 +35,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   private static final Logger LOG = Logger.getLogger(JediTermWidget.class);
 
   protected final TerminalPanel myTerminalPanel;
-  private final JScrollBar myScrollBar;
+  protected final JScrollBar myScrollBar;
   protected final JediTerminal myTerminal;
   protected final AtomicBoolean mySessionRunning = new AtomicBoolean();
   private SearchComponent myFindComponent;
@@ -44,7 +45,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   private Thread myEmuThread;
   protected final SettingsProvider mySettingsProvider;
   private TerminalActionProvider myNextActionProvider;
-  private final JLayeredPane myLayeredPane;
+  private JLayeredPane myInnerPanel;
   private final TextProcessing myTextProcessing;
   private final List<TerminalWidgetListener> myListeners = new CopyOnWriteArrayList<>();
 
@@ -64,7 +65,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     StyleState styleState = createDefaultStyle();
 
     myTextProcessing = new TextProcessing(settingsProvider.getHyperlinkColor(),
-                                          settingsProvider.getHyperlinkHighlightingMode());
+      settingsProvider.getHyperlinkHighlightingMode());
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(columns, lines, styleState, settingsProvider.getBufferMaxLinesCount(), myTextProcessing);
     myTextProcessing.setTerminalTextBuffer(terminalTextBuffer);
@@ -81,36 +82,29 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     myPreConnectHandler = createPreConnectHandler(myTerminal);
     myTerminalPanel.addCustomKeyListener(myPreConnectHandler);
     myScrollBar = createScrollBar();
-    myScrollBar.setModel(myTerminalPanel.getBoundedRangeModel());
 
-    myLayeredPane = createLayeredPane();
-    setupLayeredPane();
-
-    add(myLayeredPane, BorderLayout.CENTER);
+    myInnerPanel = new JLayeredPane();
+    myInnerPanel.setFocusable(false);
     setFocusable(false);
 
+    myInnerPanel.setLayout(new TerminalLayout());
+    myInnerPanel.add(myTerminalPanel, TerminalLayout.TERMINAL);
+    myInnerPanel.add(myScrollBar, TerminalLayout.SCROLL);
+
+    add(myInnerPanel, BorderLayout.CENTER);
+
+    myScrollBar.setModel(myTerminalPanel.getBoundedRangeModel());
     mySessionRunning.set(false);
+
     myTerminalPanel.init(myScrollBar);
+
     myTerminalPanel.setVisible(true);
   }
 
-  protected @NotNull JScrollBar createScrollBar() {
-    return new JScrollBar();
-  }
-
-  protected @NotNull JLayeredPane createLayeredPane() {
-    return new JLayeredPane();
-  }
-
-  private void setupLayeredPane() {
-    myLayeredPane.setFocusable(false);
-
-    JPanel terminalWithScrollPanel = new JPanel(new BorderLayout());
-    terminalWithScrollPanel.add(myTerminalPanel, BorderLayout.CENTER);
-    terminalWithScrollPanel.add(myScrollBar, BorderLayout.EAST);
-
-    myLayeredPane.setLayout(new TerminalLayoutManager(terminalWithScrollPanel, myScrollBar));
-    myLayeredPane.add(terminalWithScrollPanel, JLayeredPane.DEFAULT_LAYER);
+  protected JScrollBar createScrollBar() {
+    JScrollBar scrollBar = new JScrollBar();
+    scrollBar.setUI(new FindResultScrollBarUI());
+    return scrollBar;
   }
 
   protected StyleState createDefaultStyle() {
@@ -245,13 +239,13 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   @Override
   public List<TerminalAction> getActions() {
     return Lists.newArrayList(new TerminalAction(mySettingsProvider.getFindActionPresentation(),
-            new Predicate<KeyEvent>() {
-              @Override
-              public boolean apply(KeyEvent input) {
-                showFindText();
-                return true;
-              }
-            }).withMnemonicKey(KeyEvent.VK_F));
+      new Predicate<KeyEvent>() {
+        @Override
+        public boolean apply(KeyEvent input) {
+          showFindText();
+          return true;
+        }
+      }).withMnemonicKey(KeyEvent.VK_F));
   }
 
   private void showFindText() {
@@ -259,9 +253,10 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
       myFindComponent = createSearchComponent();
 
       final JComponent component = myFindComponent.getComponent();
-      myLayeredPane.add(component, JLayeredPane.PALETTE_LAYER);
-      myLayeredPane.revalidate();
-      myLayeredPane.repaint();
+      myInnerPanel.add(component, TerminalLayout.FIND);
+      myInnerPanel.moveToFront(component);
+      myInnerPanel.revalidate();
+      myInnerPanel.repaint();
       component.requestFocus();
 
       myFindComponent.addDocumentChangeListener(new DocumentListener() {
@@ -296,9 +291,9 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
         @Override
         public void keyPressed(KeyEvent keyEvent) {
           if (keyEvent.getKeyCode() == KeyEvent.VK_ESCAPE) {
-            myLayeredPane.remove(component);
-            myLayeredPane.revalidate();
-            myLayeredPane.repaint();
+            myInnerPanel.remove(component);
+            myInnerPanel.revalidate();
+            myInnerPanel.repaint();
             myFindComponent = null;
             myTerminalPanel.setFindResult(null);
             myTerminalPanel.requestFocusInWindow();
@@ -320,7 +315,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     return new SearchPanel();
   }
 
-  public interface SearchComponent {
+  protected interface SearchComponent {
     String getText();
 
     boolean ignoreCase();
@@ -416,8 +411,8 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
       });
 
       myTextField.setPreferredSize(new Dimension(
-              myTerminalPanel.myCharSize.width * 30,
-              myTerminalPanel.myCharSize.height + 3));
+        myTerminalPanel.myCharSize.width * 30,
+        myTerminalPanel.myCharSize.height + 3));
       myTextField.setEditable(true);
 
       updateLabel(null);
@@ -452,7 +447,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     private void updateLabel(FindItem selectedItem) {
       FindResult result = myTerminalPanel.getFindResult();
       label.setText(((selectedItem != null) ? selectedItem.getIndex() : 0)
-              + " of " + ((result != null) ? result.getItems().size() : 0));
+        + " of " + ((result != null) ? result.getItems().size() : 0));
     }
 
     @Override
@@ -496,6 +491,150 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   }
 
+  private class FindResultScrollBarUI extends BasicScrollBarUI {
+
+    protected void paintTrack(Graphics g, JComponent c, Rectangle trackBounds) {
+      super.paintTrack(g, c, trackBounds);
+
+      FindResult result = myTerminalPanel.getFindResult();
+      if (result != null) {
+        int modelHeight = scrollbar.getModel().getMaximum() - scrollbar.getModel().getMinimum();
+        int anchorHeight = Math.max(2, trackBounds.height / modelHeight);
+
+        Color color = mySettingsProvider.getTerminalColorPalette()
+          .getBackground(Objects.requireNonNull(mySettingsProvider.getFoundPatternColor().getBackground()));
+        g.setColor(color);
+        for (FindItem r : result.getItems()) {
+          int where = trackBounds.height * r.getStart().y / modelHeight;
+          g.fillRect(trackBounds.x, trackBounds.y + where, trackBounds.width, anchorHeight);
+        }
+      }
+    }
+
+  }
+
+  private static class TerminalLayout implements LayoutManager {
+    public static final String TERMINAL = "TERMINAL";
+    public static final String SCROLL = "SCROLL";
+    public static final String FIND = "FIND";
+
+    private Component terminal;
+    private Component scroll;
+    private Component find;
+
+    @Override
+    public void addLayoutComponent(String name, Component comp) {
+      if (TERMINAL.equals(name)) {
+        terminal = comp;
+      } else if (FIND.equals(name)) {
+        find = comp;
+      } else if (SCROLL.equals(name)) {
+        scroll = comp;
+      } else throw new IllegalArgumentException("unknown component name " + name);
+    }
+
+    @Override
+    public void removeLayoutComponent(Component comp) {
+      if (comp == terminal) {
+        terminal = null;
+      }
+      if (comp == scroll) {
+        scroll = null;
+      }
+      if (comp == find) {
+        find = comp;
+      }
+    }
+
+    @Override
+    public Dimension preferredLayoutSize(Container target) {
+      synchronized (target.getTreeLock()) {
+        Dimension dim = new Dimension(0, 0);
+
+        if (terminal != null) {
+          Dimension d = terminal.getPreferredSize();
+          dim.width = Math.max(d.width, dim.width);
+          dim.height = Math.max(d.height, dim.height);
+        }
+
+        if (scroll != null) {
+          Dimension d = scroll.getPreferredSize();
+          dim.width += d.width;
+          dim.height = Math.max(d.height, dim.height);
+        }
+
+        if (find != null) {
+          Dimension d = find.getPreferredSize();
+          dim.width = Math.max(d.width, dim.width);
+          dim.height = Math.max(d.height, dim.height);
+        }
+
+        Insets insets = target.getInsets();
+        dim.width += insets.left + insets.right;
+        dim.height += insets.top + insets.bottom;
+
+        return dim;
+      }
+    }
+
+    @Override
+    public Dimension minimumLayoutSize(Container target) {
+      synchronized (target.getTreeLock()) {
+        Dimension dim = new Dimension(0, 0);
+
+        if (terminal != null) {
+          Dimension d = terminal.getMinimumSize();
+          dim.width = Math.max(d.width, dim.width);
+          dim.height = Math.max(d.height, dim.height);
+        }
+
+        if (scroll != null) {
+          Dimension d = scroll.getPreferredSize();
+          dim.width += d.width;
+          dim.height = Math.max(d.height, dim.height);
+        }
+
+        if (find != null) {
+          Dimension d = find.getMinimumSize();
+          dim.width = Math.max(d.width, dim.width);
+          dim.height = Math.max(d.height, dim.height);
+        }
+
+        Insets insets = target.getInsets();
+        dim.width += insets.left + insets.right;
+        dim.height += insets.top + insets.bottom;
+
+        return dim;
+      }
+    }
+
+    @Override
+    public void layoutContainer(Container target) {
+      synchronized (target.getTreeLock()) {
+        Insets insets = target.getInsets();
+        int top = insets.top;
+        int bottom = target.getHeight() - insets.bottom;
+        int left = insets.left;
+        int right = target.getWidth() - insets.right;
+
+        Dimension scrollDim = new Dimension(0, 0);
+        if (scroll != null) {
+          scrollDim = scroll.getPreferredSize();
+          scroll.setBounds(right - scrollDim.width, top, scrollDim.width, bottom - top);
+        }
+
+        if (terminal != null) {
+          terminal.setBounds(left, top, right - left - scrollDim.width, bottom - top);
+        }
+
+        if (find != null) {
+          Dimension d = find.getPreferredSize();
+          find.setBounds(right - d.width - scrollDim.width, top, d.width, d.height);
+        }
+      }
+
+    }
+  }
 
   public void addHyperlinkFilter(HyperlinkFilter filter) {
     myTextProcessing.addHyperlinkFilter(filter);
@@ -509,69 +648,5 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   @Override
   public void removeListener(TerminalWidgetListener listener) {
     myListeners.remove(listener);
-  }
-
-  private static class TerminalLayoutManager implements LayoutManager {
-
-    private final Component myMainChild;
-    private final JScrollBar myScrollBar;
-
-    public TerminalLayoutManager(@NotNull Component mainChild, @NotNull JScrollBar scrollBar) {
-      myMainChild = mainChild;
-      myScrollBar = scrollBar;
-    }
-
-    @Override
-    public void addLayoutComponent(String name, Component comp) {}
-
-    @Override
-    public void removeLayoutComponent(Component comp) {}
-
-    @Override
-    public Dimension preferredLayoutSize(Container target) {
-      Component mainChild = findMainChild(target);
-      return mainChild != null ? mainChild.getPreferredSize() : new Dimension(0, 0);
-    }
-
-    @Override
-    public Dimension minimumLayoutSize(Container target) {
-      Component mainChild = findMainChild(target);
-      return mainChild != null ? mainChild.getMinimumSize() : new Dimension(0, 0);
-    }
-
-    private @Nullable Component findMainChild(Container target) {
-      synchronized (target.getTreeLock()) {
-        Component[] children = target.getComponents();
-        for (Component child : children) {
-          if (child == myMainChild) {
-            return child;
-          }
-        }
-        return null;
-      }
-    }
-
-    @Override
-    public void layoutContainer(Container target) {
-      synchronized (target.getTreeLock()) {
-        Component[] children = target.getComponents();
-        Rectangle targetBounds = target.getBounds();
-        Insets insets = target.getInsets();
-        for (Component child : children) {
-          if (child == myMainChild) {
-            child.setBounds(insets.left, insets.top,
-                            targetBounds.width - insets.left - insets.right,
-                            targetBounds.height - insets.top - insets.bottom);
-          }
-          else {
-            // search component
-            Dimension searchCompSize = child.getPreferredSize();
-            child.setBounds(targetBounds.width - insets.right - myScrollBar.getWidth() - searchCompSize.width,
-                            insets.top, searchCompSize.width, searchCompSize.height);
-
-          }
-        }
-      }
-    }
   }
 }

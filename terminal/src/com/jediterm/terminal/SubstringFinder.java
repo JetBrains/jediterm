@@ -3,8 +3,10 @@ package com.jediterm.terminal;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.jediterm.terminal.model.CharBuffer;
+import com.jediterm.terminal.model.SubCharBuffer;
 import com.jediterm.terminal.util.Pair;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -102,7 +104,28 @@ public class SubstringFinder {
     private int currentFindItem = 0;
 
     public List<Pair<Integer, Integer>> getRanges(CharBuffer characters) {
+      if (characters instanceof SubCharBuffer) {
+        SubCharBuffer subCharBuffer = (SubCharBuffer) characters;
+        List<Pair<Integer, Integer>> pairs = ranges.get(subCharBuffer.getParent());
+        if (pairs != null) {
+          List<Pair<Integer, Integer>> filtered = new ArrayList<>();
+          for (Pair<Integer, Integer> pair : pairs) {
+            Pair<Integer, Integer> intersected = intersect(pair, subCharBuffer.getOffset(), subCharBuffer.getOffset() + subCharBuffer.length());
+            if (intersected != null) {
+              filtered.add(Pair.create(intersected.first - subCharBuffer.getOffset(), intersected.second - subCharBuffer.getOffset()));
+            }
+          }
+          return filtered;
+        }
+        return null;
+      }
       return ranges.get(characters);
+    }
+
+    private @Nullable Pair<Integer, Integer> intersect(@NotNull Pair<Integer, Integer> interval, int a, int b) {
+      int start = Math.max(interval.first, a);
+      int end = Math.min(interval.second, b);
+      return start < end ? Pair.create(start, end) : null;
     }
 
     public static class FindItem {

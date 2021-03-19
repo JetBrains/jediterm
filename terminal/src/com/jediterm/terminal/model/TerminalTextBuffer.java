@@ -496,4 +496,8 @@ public class TerminalTextBuffer {
   LinesBuffer getScreenBufferOrBackup() {
     return myUsingAlternateBuffer ? myScreenBufferBackup : myScreenBuffer;
   }
+
+  public int findScreenLineIndex(@NotNull TerminalLine line) {
+    return myScreenBuffer.findLineIndex(line);
+  }
 }

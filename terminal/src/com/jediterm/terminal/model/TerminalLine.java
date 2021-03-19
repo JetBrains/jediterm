@@ -324,7 +324,7 @@ public class TerminalLine {
   }
 
   public synchronized @NotNull TerminalLineIntervalHighlighting addCustomHighlighting(int startOffset, int length, @NotNull TextStyle textStyle) {
-    TerminalLineIntervalHighlighting highlighting = new TerminalLineIntervalHighlighting(startOffset, length, textStyle) {
+    TerminalLineIntervalHighlighting highlighting = new TerminalLineIntervalHighlighting(this, startOffset, length, textStyle) {
       @Override
       protected void doDispose() {
         synchronized (TerminalLine.this) {

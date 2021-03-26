@@ -60,9 +60,9 @@ public abstract class TerminalLineIntervalHighlighting {
     if (foreground == null) {
       foreground = style.getForeground();
     }
-    TerminalColor background = myStyle.getForeground();
+    TerminalColor background = myStyle.getBackground();
     if (background == null) {
-      background = myStyle.getBackground();
+      background = style.getBackground();
     }
     return new TextStyle(foreground, background);
   }

@@ -60,7 +60,9 @@ public class DefaultTerminalCopyPasteHandler implements TerminalCopyPasteHandler
   private String getClipboardContents(@Nullable Clipboard clipboard) {
     if (clipboard != null) {
       try {
-        return (String) clipboard.getData(DataFlavor.stringFlavor);
+        if (clipboard.isDataFlavorAvailable(DataFlavor.stringFlavor)) {
+          return (String) clipboard.getData(DataFlavor.stringFlavor);
+        }
       }
       catch (Exception e) {
         logException("Cannot get clipboard contents", e);

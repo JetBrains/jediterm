@@ -150,7 +150,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     myNormalFont = createFont();
     myBoldFont = myNormalFont.deriveFont(Font.BOLD);
     myItalicFont = myNormalFont.deriveFont(Font.ITALIC);
-    myBoldItalicFont = myBoldFont.deriveFont(Font.ITALIC);
+    myBoldItalicFont = myNormalFont.deriveFont(Font.BOLD | Font.ITALIC);
 
     establishFontMetrics();
   }
@@ -1146,7 +1146,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
     drawChars(x, y, buf, style, gfx);
 
-    gfx.setColor(getPalette().getForeground(myStyleState.getForeground(style.getForegroundForRun())));
+    gfx.setColor(getStyleForeground(style));
 
 
     if (style.hasOption(TextStyle.Option.UNDERLINED)) {
@@ -1210,7 +1210,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
               getWidth() - xCoord,
               getHeight() - yCoord);
 
-      gfx.setColor(getPalette().getForeground(myStyleState.getForeground(style.getForegroundForRun())));
+      gfx.setColor(getStyleForeground(style));
 
       gfx.drawChars(renderingBuffer.getBuf(), buf.getStart() + offset, blockLen, xCoord, baseLine);
 
@@ -1219,6 +1219,18 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       blockLen = 1;
     }
     gfx.setClip(null);
+  }
+
+  private @NotNull Color getStyleForeground(@NotNull TextStyle style) {
+    Color foreground = getPalette().getForeground(myStyleState.getForeground(style.getForegroundForRun()));
+    if (style.hasOption(Option.DIM)) {
+      Color background = getPalette().getBackground(myStyleState.getBackground(style.getBackgroundForRun()));
+      foreground = new Color((foreground.getRed() + background.getRed()) / 2,
+                             (foreground.getGreen() + background.getGreen()) / 2,
+                             (foreground.getBlue() + background.getBlue()) / 2,
+                             foreground.getAlpha());
+    }
+    return foreground;
   }
 
   protected Font getFontToDisplay(char c, TextStyle style) {

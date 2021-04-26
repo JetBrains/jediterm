@@ -229,9 +229,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       @Override
       public void mouseClicked(final MouseEvent e) {
         requestFocusInWindow();
-        Runnable hyperlink = findHyperlink(e.getPoint());
-        if (hyperlink != null && (myCursorType == Cursor.HAND_CURSOR)) {
-          hyperlink.run();
+        HyperlinkStyle hyperlink = isFollowLinkEvent(e) ? findHyperlink(e.getPoint()) : null;
+        if (hyperlink != null) {
+          hyperlink.getLinkInfo().navigate();
         } else if (e.getButton() == MouseEvent.BUTTON1 && isLocalMouseAction(e)) {
           int count = e.getClickCount();
           if (count == 1) {
@@ -270,7 +270,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
         } else if (e.getButton() == MouseEvent.BUTTON2 && mySettingsProvider.pasteOnMiddleMouseClick() && isLocalMouseAction(e)) {
           handlePasteSelection();
         } else if (e.getButton() == MouseEvent.BUTTON3) {
-          JPopupMenu popup = createPopupMenu();
+          HyperlinkStyle contextHyperlink = findHyperlink(e.getPoint());
+          JPopupMenu popup = createPopupMenu(contextHyperlink != null ? contextHyperlink.getLinkInfo() : null, e);
           popup.show(e.getComponent(), e.getX(), e.getY());
         }
         repaint();
@@ -308,6 +309,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
                                                   });
 
     createRepaintTimer();
+  }
+
+  private boolean isFollowLinkEvent(@NotNull MouseEvent e) {
+    return myCursorType == Cursor.HAND_CURSOR && e.getButton() == MouseEvent.BUTTON1;
   }
 
   protected void handleMouseWheelEvent(@NotNull MouseWheelEvent e, @NotNull JScrollBar scrollBar) {
@@ -1348,10 +1353,29 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     myCursor.setShouldDrawCursor(shouldDrawCursor);
   }
 
-  protected JPopupMenu createPopupMenu() {
+  protected @NotNull JPopupMenu createPopupMenu(@Nullable LinkInfo linkInfo, @NotNull MouseEvent e) {
     JPopupMenu popup = new JPopupMenu();
+    LinkInfo.PopupMenuGroupProvider popupMenuGroupProvider = linkInfo.getPopupMenuGroupProvider();
+    if (popupMenuGroupProvider != null) {
+      TerminalAction.addToMenu(popup, new TerminalActionProvider() {
+        @Override
+        public List<TerminalAction> getActions() {
+          return popupMenuGroupProvider.getPopupMenuGroup(e);
+        }
 
-    TerminalAction.addToMenu(popup, this);
+        @Override
+        public TerminalActionProvider getNextProvider() {
+          return TerminalPanel.this;
+        }
+
+        @Override
+        public void setNextProvider(TerminalActionProvider provider) {
+        }
+      });
+    }
+    else {
+      TerminalAction.addToMenu(popup, this);
+    }
 
     return popup;
   }

@@ -98,6 +98,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
   private int myCursorType = Cursor.DEFAULT_CURSOR;
   private final TerminalKeyHandler myTerminalKeyHandler = new TerminalKeyHandler();
+  private LinkInfo.HoverConsumer myLinkHoverConsumer;
 
   public TerminalPanel(@NotNull SettingsProvider settingsProvider, @NotNull TerminalTextBuffer terminalTextBuffer, @NotNull StyleState styleState) {
     mySettingsProvider = settingsProvider;
@@ -209,6 +210,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     });
 
     addMouseListener(new MouseAdapter() {
+      @Override
+      public void mouseExited(MouseEvent e) {
+        if (myLinkHoverConsumer != null) {
+          myLinkHoverConsumer.onMouseExited();
+          myLinkHoverConsumer = null;
+        }
+      }
+
       @Override
       public void mousePressed(final MouseEvent e) {
         if (e.getButton() == MouseEvent.BUTTON1) {
@@ -323,13 +332,24 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     e.consume();
   }
 
-  private void handleHyperlinks(Point p, boolean isControlDown) {
-    HyperlinkStyle hyperlinkStyle = findHyperlink(p);
-    if (hyperlinkStyle != null) {
-      if (hyperlinkStyle.getHighlightMode() == HyperlinkStyle.HighlightMode.ALWAYS || (hyperlinkStyle.getHighlightMode() == HyperlinkStyle.HighlightMode.HOVER && isControlDown)) {
+  private void handleHyperlinks(@NotNull Point panelPoint, boolean isControlDown) {
+    Cell cell = panelPointToCell(panelPoint);
+    HyperlinkStyle linkStyle = findHyperlink(cell);
+    LinkInfo.HoverConsumer linkHoverConsumer = linkStyle != null ? linkStyle.getLinkInfo().getHoverConsumer() : null;
+    if (linkHoverConsumer != myLinkHoverConsumer) {
+      if (myLinkHoverConsumer != null) {
+        myLinkHoverConsumer.onMouseExited();
+      }
+      if (linkHoverConsumer != null) {
+        LineCellInterval lineCellInterval = findIntervalWithStyle(cell, linkStyle);
+        linkHoverConsumer.onMouseEntered(this, getBounds(lineCellInterval));
+      }
+    }
+    myLinkHoverConsumer = linkHoverConsumer;
+    if (linkStyle != null) {
+      if (linkStyle.getHighlightMode() == HyperlinkStyle.HighlightMode.ALWAYS || (linkStyle.getHighlightMode() == HyperlinkStyle.HighlightMode.HOVER && isControlDown)) {
         updateCursor(Cursor.HAND_CURSOR);
-
-        myHoveredHyperlink = hyperlinkStyle.getLinkInfo();
+        myHoveredHyperlink = linkStyle.getLinkInfo();
         return;
       }
     }
@@ -341,6 +361,18 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     }
   }
 
+  private @NotNull LineCellInterval findIntervalWithStyle(@NotNull Cell initialCell, @NotNull HyperlinkStyle style) {
+    int startColumn = initialCell.getColumn();
+    while (startColumn > 0 && style == myTerminalTextBuffer.getStyleAt(startColumn - 1, initialCell.getLine())) {
+      startColumn--;
+    }
+    int endColumn = initialCell.getColumn();
+    while (endColumn < myTerminalTextBuffer.getWidth() - 1 && style == myTerminalTextBuffer.getStyleAt(endColumn + 1, initialCell.getLine())) {
+      endColumn++;
+    }
+    return new LineCellInterval(initialCell.getLine(), startColumn, endColumn);
+  }
+
   private void handleHyperlinks(Component component, boolean controlDown) {
     PointerInfo a = MouseInfo.getPointerInfo();
     if (a != null) {
@@ -350,12 +382,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     }
   }
 
-  @Nullable
-  private HyperlinkStyle findHyperlink(Point p) {
-    p = panelToCharCoords(p);
-    if (p.x >= 0 && p.x < myTerminalTextBuffer.getWidth() &&
-        p.y >= -myTerminalTextBuffer.getHistoryLinesCount() && p.y <= myTerminalTextBuffer.getHeight()) {
-      TextStyle style = myTerminalTextBuffer.getStyleAt(p.x, p.y);
+  private @Nullable HyperlinkStyle findHyperlink(@NotNull Point p) {
+    return findHyperlink(panelPointToCell(p));
+  }
+
+  private @Nullable HyperlinkStyle findHyperlink(@Nullable Cell cell) {
+    if (cell != null && cell.getColumn() >= 0 && cell.getColumn() < myTerminalTextBuffer.getWidth() &&
+      cell.getLine() >= -myTerminalTextBuffer.getHistoryLinesCount() && cell.getLine() <= myTerminalTextBuffer.getHeight()) {
+      TextStyle style = myTerminalTextBuffer.getStyleAt(cell.getColumn(), cell.getLine());
       if (style instanceof HyperlinkStyle) {
         return (HyperlinkStyle) style;
       }
@@ -500,15 +534,16 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     return mySettingsProvider.getTerminalFont();
   }
 
-  protected Point panelToCharCoords(final Point p) {
+  private @NotNull Point panelToCharCoords(final Point p) {
+    Cell cell = panelPointToCell(p);
+    return new Point(cell.getColumn(), cell.getLine());
+  }
+
+  private @NotNull Cell panelPointToCell(@NotNull Point p) {
     int x = Math.min((p.x - getInsetX()) / myCharSize.width, getColumnCount() - 1);
     x = Math.max(0, x);
     int y = Math.min(p.y / myCharSize.height, getRowCount() - 1) + myClientScrollOrigin;
-    return new Point(x, y);
-  }
-
-  protected Point charToPanelCoords(final Point p) {
-    return new Point(p.x * myCharSize.width + getInsetX(), (p.y - myClientScrollOrigin) * myCharSize.height);
+    return new Cell(y, x);
   }
 
   private void copySelection(@Nullable Point selectionStart,
@@ -1321,10 +1356,15 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     TerminalLine line = highlighting.getLine();
     int index = myTerminalTextBuffer.findScreenLineIndex(line);
     if (index >= 0 && !highlighting.isDisposed()) {
-      Point topLeft = new Point(highlighting.getStartOffset() * myCharSize.width + getInsetX(), index * myCharSize.height);
-      return new Rectangle(topLeft, new Dimension(myCharSize.width * highlighting.getLength(), myCharSize.height));
+      return getBounds(new LineCellInterval(index, highlighting.getStartOffset(), highlighting.getEndOffset() + 1));
     }
     return null;
+  }
+
+  private @NotNull Rectangle getBounds(@NotNull LineCellInterval cellInterval) {
+    Point topLeft = new Point(cellInterval.getStartColumn() * myCharSize.width + getInsetX(),
+      cellInterval.getLine() * myCharSize.height);
+    return new Rectangle(topLeft, new Dimension(myCharSize.width * cellInterval.getCellCount(), myCharSize.height));
   }
 
   public BoundedRangeModel getBoundedRangeModel() {
@@ -1355,7 +1395,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
   protected @NotNull JPopupMenu createPopupMenu(@Nullable LinkInfo linkInfo, @NotNull MouseEvent e) {
     JPopupMenu popup = new JPopupMenu();
-    LinkInfo.PopupMenuGroupProvider popupMenuGroupProvider = linkInfo.getPopupMenuGroupProvider();
+    LinkInfo.PopupMenuGroupProvider popupMenuGroupProvider = linkInfo != null ? linkInfo.getPopupMenuGroupProvider() : null;
     if (popupMenuGroupProvider != null) {
       TerminalAction.addToMenu(popup, new TerminalActionProvider() {
         @Override

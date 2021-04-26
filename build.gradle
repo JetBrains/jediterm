@@ -13,7 +13,7 @@ def projectVersion = new File(rootProject.projectDir, 'VERSION').text
 
 ext.projectVersion = projectVersion
 
-if (System.getenv('BINTRAY_USER') == null) {
+if (System.getenv('INTELLIJ_DEPENDENCIES_BOT') == null) {
     ext.projectVersion = ext.projectVersion + '-SNAPSHOT'
 }
 

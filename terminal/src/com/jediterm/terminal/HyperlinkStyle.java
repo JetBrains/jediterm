@@ -7,7 +7,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * @author traff
  */
-public class HyperlinkStyle extends TextStyle implements Runnable {
+public class HyperlinkStyle extends TextStyle {
   @NotNull
   private final LinkInfo myLinkInfo;
 
@@ -52,11 +52,6 @@ public class HyperlinkStyle extends TextStyle implements Runnable {
   @Nullable
   public TextStyle getPrevTextStyle() {
     return myPrevTextStyle;
-  }
-
-  @Override
-  public void run() {
-    myLinkInfo.navigate();
   }
 
   @NotNull

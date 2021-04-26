@@ -1,7 +1,6 @@
 apply plugin: 'java'
 apply plugin: 'application'
 apply plugin: 'maven-publish'
-apply plugin: 'com.jfrog.bintray'
 
 
 sourceSets.main.java.srcDirs = ['src']
@@ -68,59 +67,43 @@ artifacts {
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            groupId group
-            artifactId archivesBaseName
+            groupId = group
+            artifactId = archivesBaseName
             artifact mainJar
             artifact sourcesJar
-            pom.withXml {
-                asNode().children().last() + {
-                    resolveStrategy = DELEGATE_FIRST
-                    name 'JediTerm'
-                    description 'Pure Java Terminal Emulator. Works with SSH and PTY.'
-                    url 'https://github.com/JetBrains/jediterm'
-                    scm {
-                        connection 'scm:git:git://github.com/JetBrains/jediterm.git'
-                        developerConnection 'scm:git:ssh:github.com/JetBrains/jediterm.git'
-                        url 'https://github.com/JetBrains/jediterm'
+            pom {
+                name = 'JediTerm'
+                description 'Pure Java Terminal Emulator. Works with SSH and PTY.'
+                url = 'https://github.com/JetBrains/jediterm'
+                licenses {
+                    license {
+                        name = 'LGPL 3.0'
+                        url = 'https://www.gnu.org/licenses/lgpl.txt'
                     }
-                    licenses {
-                        license {
-                            name 'LGPL 3.0'
-                            url 'https://www.gnu.org/licenses/lgpl.txt'
-                        }
+                }
+                developers {
+                    developer {
+                        id = 'JetBrains'
+                        name = 'JetBrains Team'
+                        organization = 'JetBrains'
+                        organizationUrl = 'https://www.jetbrains.com'
+                        email = 'sergey.simonchik@jetbrains.com'
                     }
-                    developers {
-                        developer {
-                            id 'JetBrains'
-                            name 'JetBrains Team'
-                            organization 'JetBrains'
-                            organizationUrl 'https://www.jetbrains.com'
-                            email 'dmitry.trofimov@jetbrains.com'
-                        }
-                    }
+                }
+                scm {
+                    connection = 'scm:git:git://github.com/JetBrains/jediterm.git'
+                    developerConnection = 'scm:git:ssh:github.com/JetBrains/jediterm.git'
+                    url = 'https://github.com/JetBrains/jediterm'
                 }
             }
         }
     }
-}
-
-if (System.getenv('BINTRAY_USER') != null) {
-    bintray {
-        user = System.getenv('BINTRAY_USER')
-        key = System.getenv('BINTRAY_KEY')
-        publish = true
-        publications = ['mavenJava']
-
-
-        pkg {
-            repo = 'jediterm'
-            name = 'org.jetbrains.jediterm:jediterm-pty'
-            userOrg = 'jetbrains'
-            licenses = ['LGPL-3.0']
-            vcsUrl = 'https://github.com/JetBrains/jediterm.git'
-
-            version {
-                name = rootProject.ext.projectVersion
+    repositories {
+        maven {
+            url "https://packages.jetbrains.team/maven/p/ij/intellij-dependencies"
+            credentials {
+                username = System.getenv('INTELLIJ_DEPENDENCIES_BOT')
+                password = System.getenv('INTELLIJ_DEPENDENCIES_TOKEN')
             }
         }
     }

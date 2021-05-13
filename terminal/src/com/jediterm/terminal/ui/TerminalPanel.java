@@ -1633,22 +1633,28 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   }
 
   private void processCharacter(@NotNull KeyEvent e) {
-    char keychar = e.getKeyChar();
+    char keyChar = e.getKeyChar();
     int modifiers = e.getModifiers();
     final char[] obuffer;
     if ((modifiers & InputEvent.ALT_MASK) != 0 && mySettingsProvider.altSendsEscape()) {
-      // Cannot use e.getKeyChar():
-      // Option+f produces e.getKeyChar()='ƒ' (402) when 'f' (102) is needed.
-      // Option+b produces e.getKeyChar()='∫' (8747) when 'b' (98) is needed.
-      char newKeyChar = (char)e.getKeyCode();
-      newKeyChar = (modifiers & InputEvent.SHIFT_MASK) != 0 ? Character.toUpperCase(newKeyChar)
-                                                            : Character.toLowerCase(newKeyChar);
+      int keyCode = e.getKeyCode();
+      final char newKeyChar;
+      if (keyCode != 0) {
+        // Cannot use e.getKeyChar() on macOS:
+        //  Option+f produces e.getKeyChar()='ƒ' (402) when 'f' (102) is needed.
+        //  Option+b produces e.getKeyChar()='∫' (8747) when 'b' (98) is needed.
+        newKeyChar = (modifiers & InputEvent.SHIFT_MASK) != 0 ? Character.toUpperCase((char)keyCode)
+                                                              : Character.toLowerCase((char)keyCode);
+      }
+      else {
+        newKeyChar = keyChar;
+      }
       obuffer = new char[]{Ascii.ESC, newKeyChar};
     } else {
-      obuffer = new char[]{keychar};
+      obuffer = new char[]{keyChar};
     }
 
-    if (keychar == '`' && (modifiers & InputEvent.META_MASK) != 0) {
+    if (keyChar == '`' && (modifiers & InputEvent.META_MASK) != 0) {
       // Command + backtick is a short-cut on Mac OSX, so we shouldn't type anything
       return;
     }

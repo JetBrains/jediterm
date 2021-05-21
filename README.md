@@ -98,6 +98,5 @@ Standalone distribution relies heavily on customized Swing UI widgets taken from
 
 Licenses
 -------
-All sources in the repository are licensed under LGPLv3, except the following roots, which are Apache 2.0 licensed:
-* JediTerm/*
-* terminal/src/com/jediterm/terminal/emulator/*
+JediTerm is dual-licensed under both the LGPLv3 (found in the LICENSE-LGPLv3.txt file in the root directory) and Apache 2.0 License (found in the LICENSE-APACHE-2.0.txt file in the root directory). 
+You may select, at your option, one of the above-listed licenses.

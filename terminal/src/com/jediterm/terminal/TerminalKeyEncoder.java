@@ -18,14 +18,14 @@ import static java.awt.event.KeyEvent.*;
 public class TerminalKeyEncoder {
   private static final int ESC = Ascii.ESC;
 
-  private final Map<KeyCodeAndModifier, byte[]> myKeyCodes = new HashMap<KeyCodeAndModifier, byte[]>();
+  private final Map<KeyCodeAndModifier, byte[]> myKeyCodes = new HashMap<>();
 
   private boolean myAltSendsEscape = true;
   private boolean myMetaSendsEscape = false;
 
   public TerminalKeyEncoder() {
     setAutoNewLine(false);
-    arrowKeysAnsiCursorSequences();
+    arrowKeysApplicationSequences();
     keypadAnsiSequences();
     putCode(VK_BACK_SPACE, Ascii.DEL);
     putCode(VK_F1, ESC, 'O', 'P');

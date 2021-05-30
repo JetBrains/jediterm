@@ -7,6 +7,7 @@ import junit.framework.TestCase;
 import org.junit.Assert;
 
 import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 
 /**
  * @author traff
@@ -20,7 +21,7 @@ public class TerminalKeyEncoderTest extends TestCase {
 
   public void testAltLeft() {
     TerminalKeyEncoder terminalKeyEncoder = new TerminalKeyEncoder();
-    byte[] expected = UIUtil.isMac ? new byte[]{Ascii.ESC, 'b'} : new byte[]{Ascii.ESC, Ascii.ESC, '[', 'D'};
-    Assert.assertArrayEquals(expected, terminalKeyEncoder.getCode(37, InputEvent.ALT_MASK));
+    byte[] expected = UIUtil.isMac ? new byte[]{Ascii.ESC, 'b'} : new byte[]{Ascii.ESC, '[', '1', ';', '3', 'D'};
+    Assert.assertArrayEquals(expected, terminalKeyEncoder.getCode(KeyEvent.VK_LEFT, InputEvent.ALT_MASK));
   }
 }

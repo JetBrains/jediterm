@@ -1610,7 +1610,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
         return;
       }
       // CTRL + Space is not handled in KeyEvent; handle it manually
-      else if (keychar == ' ' && (e.getModifiers() & InputEvent.CTRL_MASK) != 0) {
+      if (keychar == ' ' && (e.getModifiers() & InputEvent.CTRL_MASK) != 0) {
         myTerminalStarter.sendBytes(new byte[]{Ascii.NUL});
         e.consume();
         return;
@@ -1624,6 +1624,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
           scrollToBottom();
         }
       }
+      else if ((e.getModifiersEx() & InputEvent.ALT_DOWN_MASK) != 0 && Character.isDefined(keychar) &&
+          mySettingsProvider.altSendsEscape()) {
+        // Cannot use e.getKeyChar() on macOS:
+        //  Option+f produces e.getKeyChar()='ƒ' (402), but 'f' (102) is needed.
+        //  Option+b produces e.getKeyChar()='∫' (8747), but 'b' (98) is needed.
+        myTerminalStarter.sendString(new String(new char[]{Ascii.ESC, (char) e.getKeyCode()}));
+        e.consume();
+      }
       else if (Character.isISOControl(keychar)) { // keys filtered out here will be processed in processTerminalKeyTyped
         processCharacter(e);
       }
@@ -1633,26 +1641,13 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   }
 
   private void processCharacter(@NotNull KeyEvent e) {
+    if ((e.getModifiersEx() & InputEvent.ALT_DOWN_MASK) != 0 && mySettingsProvider.altSendsEscape()) {
+      return;
+    }
     char keyChar = e.getKeyChar();
     int modifiers = e.getModifiers();
     final char[] obuffer;
-    if ((modifiers & InputEvent.ALT_MASK) != 0 && mySettingsProvider.altSendsEscape()) {
-      int keyCode = e.getKeyCode();
-      final char newKeyChar;
-      if (keyCode != 0) {
-        // Cannot use e.getKeyChar() on macOS:
-        //  Option+f produces e.getKeyChar()='ƒ' (402) when 'f' (102) is needed.
-        //  Option+b produces e.getKeyChar()='∫' (8747) when 'b' (98) is needed.
-        newKeyChar = (modifiers & InputEvent.SHIFT_MASK) != 0 ? Character.toUpperCase((char)keyCode)
-                                                              : Character.toLowerCase((char)keyCode);
-      }
-      else {
-        newKeyChar = keyChar;
-      }
-      obuffer = new char[]{Ascii.ESC, newKeyChar};
-    } else {
-      obuffer = new char[]{keyChar};
-    }
+    obuffer = new char[]{keyChar};
 
     if (keyChar == '`' && (modifiers & InputEvent.META_MASK) != 0) {
       // Command + backtick is a short-cut on Mac OSX, so we shouldn't type anything

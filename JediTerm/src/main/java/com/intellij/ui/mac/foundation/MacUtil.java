@@ -150,36 +150,6 @@ public class MacUtil {
     Toolkit.getDefaultToolkit().addAWTEventListener(listener, AWTEvent.KEY_EVENT_MASK);
   }
 
-  @SuppressWarnings("deprecation")
-  public static ID findWindowFromJavaWindow(final Window w) {
-    ID windowId = null;
-    if (SystemInfo.isJavaVersionAtLeast("1.7") && Registry.is("skip.untitled.windows.for.mac.messages")) {
-      try {
-        //noinspection deprecation
-        Class <?> cWindowPeerClass  = w.getPeer().getClass();
-        Method getPlatformWindowMethod = cWindowPeerClass.getDeclaredMethod("getPlatformWindow");
-        Object cPlatformWindow = getPlatformWindowMethod.invoke(w.getPeer());
-        Class <?> cPlatformWindowClass = cPlatformWindow.getClass();
-        Method getNSWindowPtrMethod = cPlatformWindowClass.getDeclaredMethod("getNSWindowPtr");
-        windowId = new ID((Long)getNSWindowPtrMethod.invoke(cPlatformWindow));
-      }
-      catch (NoSuchMethodException e) {
-        LOG.debug(e);
-      }
-      catch (InvocationTargetException e) {
-        LOG.debug(e);
-      }
-      catch (IllegalAccessException e) {
-        LOG.debug(e);
-      }
-    }
-    else {
-      String foremostWindowTitle = getWindowTitle(w);
-      windowId = findWindowForTitle(foremostWindowTitle);
-    }
-    return windowId;
-  }
-
   @Nullable
   public static String getWindowTitle(Window documentRoot) {
     String windowTitle = null;

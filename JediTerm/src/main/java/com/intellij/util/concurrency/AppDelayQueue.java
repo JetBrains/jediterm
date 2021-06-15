@@ -16,14 +16,13 @@
 package com.intellij.util.concurrency;
 
 import com.intellij.openapi.diagnostic.Logger;
-import sun.awt.AWTAutoShutdown;
 
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * This class implements the global delayed queue which is used by
- * {@link AppScheduledExecutorService} and {@link BoundedScheduledExecutorService}.
+ * {@link AppScheduledExecutorService}.
  * It starts the background thread which polls the queue for tasks ready to run and sends them to the appropriate executor.
  * The {@link #shutdown()} must be called before disposal.
  */
@@ -56,7 +55,6 @@ class AppDelayQueue extends DelayQueue<SchedulingWrapper.MyScheduledFutureTask> 
             }
         }, "Periodic tasks thread");
         scheduledToPooledTransferer.start();
-        AWTAutoShutdown.getInstance().notifyThreadBusy(scheduledToPooledTransferer); // needed for EDT not to exit suddenly
     }
 
     void shutdown() {
@@ -70,6 +68,5 @@ class AppDelayQueue extends DelayQueue<SchedulingWrapper.MyScheduledFutureTask> 
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        AWTAutoShutdown.getInstance().notifyThreadFree(scheduledToPooledTransferer);
     }
 }

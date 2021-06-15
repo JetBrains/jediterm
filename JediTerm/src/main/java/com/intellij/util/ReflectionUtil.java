@@ -21,7 +21,6 @@ import com.intellij.openapi.util.Condition;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import sun.reflect.ConstructorAccessor;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
@@ -421,47 +420,6 @@ public class ReflectionUtil {
 
   private static final Method acquireConstructorAccessorMethod = getDeclaredMethod(Constructor.class, "acquireConstructorAccessor");
   private static final Method getConstructorAccessorMethod = getDeclaredMethod(Constructor.class, "getConstructorAccessor");
-
-  /** @deprecated private API (to be removed in IDEA 17) */
-  @SuppressWarnings("unused")
-  public static ConstructorAccessor getConstructorAccessor(@NotNull Constructor constructor) {
-    if (acquireConstructorAccessorMethod == null || getConstructorAccessorMethod == null) {
-      throw new IllegalStateException();
-    }
-
-    constructor.setAccessible(true);
-    try {
-      acquireConstructorAccessorMethod.invoke(constructor);
-      return (ConstructorAccessor)getConstructorAccessorMethod.invoke(constructor);
-    }
-    catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  /** @deprecated private API, use {@link #createInstance(Constructor, Object...)} instead (to be removed in IDEA 17) */
-  @SuppressWarnings("unused")
-  public static <T> T createInstanceViaConstructorAccessor(@NotNull ConstructorAccessor constructorAccessor, @NotNull Object... arguments) {
-    try {
-      @SuppressWarnings("unchecked") T t = (T)constructorAccessor.newInstance(arguments);
-      return t;
-    }
-    catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  /** @deprecated private API, use {@link #newInstance(Class)} instead (to be removed in IDEA 17) */
-  @SuppressWarnings("unused")
-  public static <T> T createInstanceViaConstructorAccessor(@NotNull ConstructorAccessor constructorAccessor) {
-    try {
-      @SuppressWarnings("unchecked") T t = (T)constructorAccessor.newInstance(new Object[0]);
-      return t;
-    }
-    catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
 
   /**
    * Like {@link Class#newInstance()} but also handles private classes

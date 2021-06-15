@@ -23,14 +23,12 @@ import com.intellij.openapi.ui.GraphicsConfig;
 import com.intellij.openapi.util.Ref;
 import com.intellij.openapi.util.SystemInfo;
 import com.intellij.openapi.util.registry.Registry;
-import com.intellij.ui.AntialiasingType;
 import com.intellij.util.Consumer;
 import com.intellij.util.JBHiDPIScaledImage;
 import com.intellij.util.ReflectionUtil;
 import com.intellij.util.RetinaImage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import sun.swing.SwingUtilities2;
 
 import javax.swing.*;
 import java.awt.*;
@@ -677,9 +675,5 @@ public class DrawUtil {
      */
     public static void setupComposite(@NotNull Graphics2D g) {
         g.setComposite(X_RENDER_ACTIVE.get() ? AlphaComposite.SrcOver : AlphaComposite.Src);
-    }
-
-    public static void setupComponentAntialiasing(JComponent component) {
-        component.putClientProperty(SwingUtilities2.AA_TEXT_PROPERTY_KEY, AntialiasingType.getAAHintForSwingComponent());
     }
 }

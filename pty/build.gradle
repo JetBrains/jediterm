@@ -6,9 +6,10 @@ apply plugin: 'maven-publish'
 sourceSets.main.java.srcDirs = ['src']
 
 repositories {
-    jcenter()
+    maven {
+        url "https://packages.jetbrains.team/maven/p/ij/intellij-dependencies"
+    }
 }
-
 
 dependencies {
     compile project(':terminal')

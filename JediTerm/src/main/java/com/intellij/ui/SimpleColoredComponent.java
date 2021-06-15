@@ -128,7 +128,6 @@ public class SimpleColoredComponent extends JComponent implements Accessible, Co
 
   @Override
   public void updateUI() {
-    DrawUtil.setupComponentAntialiasing(this);
   }
 
   @NotNull

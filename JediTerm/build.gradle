@@ -9,7 +9,7 @@ buildscript {
 }
 
 plugins {
-    id "edu.sc.seis.macAppBundle" version "2.2.1"
+    id "edu.sc.seis.macAppBundle" version "2.3.0"
     id 'edu.sc.seis.launch4j' version '2.4.4'
 }
 
@@ -21,7 +21,9 @@ apply plugin: 'kotlin'
 repositories {
     flatDir dirs: ['libs', '../pty/libs']
     mavenCentral()
-    jcenter()
+    maven {
+        url "https://packages.jetbrains.team/maven/p/ij/intellij-dependencies"
+    }
 }
 
 sourceSets {

@@ -1,12 +1,3 @@
-buildscript {
-    repositories {
-        jcenter()
-    }
-    dependencies {
-        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.4'
-    }
-}
-
 apply plugin: 'java'
 
 def projectVersion = new File(rootProject.projectDir, 'VERSION').text
@@ -33,5 +24,3 @@ subprojects {
         flatDir dirs: ['../lib', 'libs']
     }
 }
-
-

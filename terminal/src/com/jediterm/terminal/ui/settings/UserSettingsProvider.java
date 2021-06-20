@@ -68,4 +68,6 @@ public interface UserSettingsProvider {
   boolean altSendsEscape();
 
   boolean ambiguousCharsAreDoubleWidth();
+
+  boolean isTypeAheadEnabled();
 }

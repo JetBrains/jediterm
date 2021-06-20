@@ -48,6 +48,12 @@ public class TerminalStarter implements TerminalOutputStream {
     }
   }
 
+  private void execute(Runnable runnable, int delayMillis) {
+    if (!myEmulatorExecutor.isShutdown()) {
+      myEmulatorExecutor.schedule(runnable, delayMillis, TimeUnit.MILLISECONDS);
+    }
+  }
+
   public void start() {
     try {
       while (!Thread.currentThread().isInterrupted() && myEmulator.hasNext()) {
@@ -101,7 +107,7 @@ public class TerminalStarter implements TerminalOutputStream {
       catch (IOException e) {
         throw new RuntimeException(e);
       }
-    });
+    }, 1000);
   }
 
   @Override
@@ -113,7 +119,7 @@ public class TerminalStarter implements TerminalOutputStream {
       catch (IOException e) {
         throw new RuntimeException(e);
       }
-    });
+    }, 1000);
   }
 
   public void close() {

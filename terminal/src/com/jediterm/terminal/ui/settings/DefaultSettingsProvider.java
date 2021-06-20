@@ -222,4 +222,9 @@ public class DefaultSettingsProvider implements SettingsProvider {
   public boolean ambiguousCharsAreDoubleWidth() {
     return false;
   }
+
+  @Override
+  public boolean isTypeAheadEnabled() {
+    return true;
+  }
 }

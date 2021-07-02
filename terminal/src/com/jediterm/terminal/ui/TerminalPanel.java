@@ -904,8 +904,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
         int textLength=end-start;
         Graphics gfx = this.getGraphics();
         for (int i = 0; i < textLength; i++) {
-            Font font = getFontToDisplay(buf.charAt(i), TextStyle.EMPTY);
-            _width = _width + gfx.getFontMetrics(font).charWidth(buf.charAt(i));
+            char c = buf.charAt(i);
+            Font font = getFontToDisplay(c, TextStyle.EMPTY);
+            _width = _width + gfx.getFontMetrics(font).charWidth(c);
         }
         return _width;
     }

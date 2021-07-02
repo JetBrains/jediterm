@@ -894,7 +894,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
         for (int i = 0; i < coordX; i++) {
             char c = myTerminalTextBuffer.getBuffersCharAt(i,coordY);
             Font font = getFontToDisplay(c, TextStyle.EMPTY);
-            xCoord=xCoord + gfx.getFontMetrics(font).charWidth(c);
+            xCoord = xCoord + gfx.getFontMetrics(font).charWidth(c);
         }
         return xCoord;
     }
@@ -905,7 +905,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
         Graphics gfx = this.getGraphics();
         for (int i = 0; i < textLength; i++) {
             Font font = getFontToDisplay(buf.charAt(i), TextStyle.EMPTY);
-            _width=_width+gfx.getFontMetrics(font).charWidth(buf.charAt(i));
+            _width = _width + gfx.getFontMetrics(font).charWidth(buf.charAt(i));
         }
         return _width;
     }

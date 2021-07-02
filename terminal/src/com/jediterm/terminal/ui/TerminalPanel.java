@@ -905,12 +905,13 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   private int computexCoord(int coordX,int coordY){
     int xCoord = 0;
     Graphics gfx = this.getGraphics();
+    char[] chars=myTerminalTextBuffer.getLine(coordY).getText().toCharArray();
     for (int i = 0; i < coordX; i++) {
-        char c = myTerminalTextBuffer.getBuffersCharAt(i,coordY);
+        char c =  i < chars.length ? chars[i] : CharUtils.EMPTY_CHAR;
         Font font = getFontToDisplay(c, TextStyle.EMPTY);
         xCoord=xCoord + gfx.getFontMetrics(font).charWidth(c);
-      }
-      return xCoord;
+     }
+     return xCoord;
     }
 
   private int computexCoordByCharBuffer(int start, int end,CharBuffer buf){
@@ -918,8 +919,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     int textLength=end-start;
     Graphics gfx = this.getGraphics();
     for (int i = 0; i < textLength; i++) {
-      Font font = getFontToDisplay(buf.charAt(i), TextStyle.EMPTY);
-      _width=_width+gfx.getFontMetrics(font).charWidth(buf.charAt(i));
+      char c = buf.charAt(i);
+      Font font = getFontToDisplay(c, TextStyle.EMPTY);
+      _width=_width+gfx.getFontMetrics(font).charWidth(c);
     }
       return _width;
     }

@@ -905,7 +905,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   private int computexCoord(int coordX,int coordY){
     int xCoord = 0;
     Graphics gfx = this.getGraphics();
-    char[] chars=myTerminalTextBuffer.getLine(coordY).getText().toCharArray();
+    char[] chars=myTerminalTextBuffer.getLine(myClientScrollOrigin + coordY).getText().toCharArray();
     for (int i = 0; i < coordX; i++) {
         char c =  i < chars.length ? chars[i] : CharUtils.EMPTY_CHAR;
         Font font = getFontToDisplay(c, TextStyle.EMPTY);
@@ -1262,11 +1262,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     }
 
     while (offset + blockLen <= buf.length()) {
-      if (renderingBuffer.getBuf()[buf.getStart() + offset] == CharUtils.DWC) {
-        offset += blockLen;
-        drawCharsOffset += blockLen;
-        continue; // dont' draw second part(fake one) of double width character
-      }
 
       Font font = getFontToDisplay(buf.charAt(offset + blockLen - 1), style);
 //      while (myMonospaced && (offset + blockLen < buf.getLength()) && isWordCharacter(buf.charAt(offset + blockLen - 1))
@@ -1274,9 +1269,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 //        blockLen++;
 //      }
 
-      if (offset + 2 <= buf.length() && Character.isSurrogatePair(renderingBuffer.getBuf()[buf.getStart() + offset], renderingBuffer.getBuf()[buf.getStart() + offset + 1])) {
-        blockLen = 2;
-      }
 
 
       gfx.setFont(font);
@@ -1284,7 +1276,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       int descent = gfx.getFontMetrics(font).getDescent();
       int baseLine = (y + 1) * myCharSize.height - mySpaceBetweenLines / 2 - descent;
       int xCoord = computexCoord( (x + drawCharsOffset), y) + getInsetX();
-      int textLength = buf.length();
 
       int yCoord = y * myCharSize.height + mySpaceBetweenLines / 2;
 

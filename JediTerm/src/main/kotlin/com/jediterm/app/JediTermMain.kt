@@ -16,6 +16,7 @@ import com.jediterm.terminal.ui.UIUtil
 import com.jediterm.terminal.ui.settings.DefaultTabbedSettingsProvider
 import com.jediterm.terminal.ui.settings.TabbedSettingsProvider
 import com.pty4j.PtyProcess
+import com.pty4j.PtyProcessBuilder
 import org.apache.log4j.BasicConfigurator
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
@@ -95,8 +96,11 @@ class JediTerm : AbstractTerminalFrame(), Disposable {
                 envs.put("TERM", "xterm")
             }
 
-            val process = PtyProcess.exec(command, envs, null)
-
+            val process = PtyProcessBuilder()
+                .setCommand(command)
+                .setEnvironment(envs)
+                .setConsole(false)
+                .start();
 
             return LoggingPtyProcessTtyConnector(process, charset)
         } catch (e: Exception) {

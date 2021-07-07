@@ -1,6 +1,7 @@
 package com.jediterm.terminal;
 
 import com.jediterm.terminal.emulator.Emulator;
+import com.jediterm.terminal.model.TerminalTypeAheadManager;
 
 import java.io.IOException;
 
@@ -10,12 +11,14 @@ import java.io.IOException;
 public abstract class DataStreamIteratingEmulator implements Emulator {
   protected final TerminalDataStream myDataStream;
   protected final Terminal myTerminal;
+  protected final TerminalTypeAheadManager myTypeAheadManager;
 
   private boolean myEof = false;
 
-  public DataStreamIteratingEmulator(TerminalDataStream dataStream, Terminal terminal) {
+  public DataStreamIteratingEmulator(TerminalDataStream dataStream, Terminal terminal, TerminalTypeAheadManager typeAheadManager) {
     myDataStream = dataStream;
     myTerminal = terminal;
+    myTypeAheadManager = typeAheadManager;
   }
 
   @Override
@@ -31,9 +34,22 @@ public abstract class DataStreamIteratingEmulator implements Emulator {
   @Override
   public void next() throws IOException {
     try {
-      char b = myDataStream.getChar();
+      if (myDataStream instanceof ArrayTerminalDataStream) { // TODO: more permanent solution, probably change to the interface.
+        ArrayTerminalDataStream terminalDataStream = (ArrayTerminalDataStream) myDataStream;
 
-      processChar(b, myTerminal);
+        char b = myDataStream.getChar();
+
+        // getChar is blocking so we can calculate that only after .getChar()
+        int streamInitialOffset = terminalDataStream.myOffset - 1;
+
+        processChar(b, myTerminal);
+
+        int bytesRead = terminalDataStream.myOffset - streamInitialOffset;
+        myTypeAheadManager.onTerminalData(terminalDataStream.myBuf, streamInitialOffset, bytesRead);
+      } else {
+        char b = myDataStream.getChar();
+        processChar(b, myTerminal);
+      }
     }
     catch (TerminalDataStream.EOF e) {
       myEof = true;

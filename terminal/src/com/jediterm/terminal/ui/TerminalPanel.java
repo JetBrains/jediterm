@@ -1329,9 +1329,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   public void setCursor(final int x, final int y) {
     myCursor.setX(x);
     myCursor.setY(y);
-    if (myTypeAheadManager != null) {
-      myTypeAheadManager.cursorMoved();
-    }
   }
 
   @Override

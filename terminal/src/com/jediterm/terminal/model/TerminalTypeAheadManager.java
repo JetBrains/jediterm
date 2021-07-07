@@ -4,6 +4,7 @@ import com.google.common.base.Ascii;
 import com.jediterm.terminal.TerminalColor;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
+import com.jediterm.terminal.util.CharUtils;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -13,6 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class TerminalTypeAheadManager {
@@ -29,6 +32,7 @@ public class TerminalTypeAheadManager {
   private TextStyle myTypeAheadTextStyle;
   private boolean myOutOfSyncDetected;
   private long myLastTypedTime;
+  private TypeAheadPrediction myLastSuccessfulPrediction;
 
   public TerminalTypeAheadManager(@NotNull TerminalTextBuffer terminalTextBuffer,
                                   @NotNull JediTerminal terminal,
@@ -38,9 +42,32 @@ public class TerminalTypeAheadManager {
     mySettingsProvider = settingsProvider;
   }
 
-  public void cursorMoved() {
+  public void onTerminalData(char[] buffer, int offset, int count) {
+    System.out.print("OnBeforeProcessChar: ");
+    for (int i = offset; i < offset + count; ++i) {
+      if (buffer[i] >= 32 && buffer[i] < 127) {
+        System.out.print(buffer[i]);
+      } else if (buffer[i] == 27) {
+        System.out.print("<ESC>");
+      } else if (buffer[i] == 13) {
+        System.out.print("<CR>");
+      } else if (buffer[i] == 10) {
+        System.out.print("<LF>");
+      } else {
+        System.out.println("\nUnknown char! " + (int) buffer[i]);
+      }
+    }
+    System.out.println();
+
+    TypeaheadStringReader stringReader = new TypeaheadStringReader(new String(buffer, offset, count));
+
     synchronized (LOCK) {
       TypeAheadPrediction nextPrediction = getNextPrediction();
+
+      if (nextPrediction != null && nextPrediction.matches(stringReader) == MatchResult.Success) {
+        System.out.println("Successful match!");
+      }
+
       if (nextPrediction != null && nextPrediction.myTypedChars.startsWith("\b")) {
         myTerminalTextBuffer.addModelListener(new TerminalModelListener() {
           @Override
@@ -78,8 +105,9 @@ public class TerminalTypeAheadManager {
       TypeAheadPrediction nextPrediction = getNextPrediction();
       if (nextPrediction != null) {
         if (nextPrediction.myInitialLine == terminalLine && nextPrediction.myPredictedCursorX == cursorX &&
-          nextPrediction.myPredictedLine.getText().equals(terminalLine.getText())) {
+                nextPrediction.myPredictedLine.getText().equals(terminalLine.getText())) {
           // prediction matched
+          myLastSuccessfulPrediction = myPredictions.get(0);
           myPredictions.remove(0);
           nextPrediction.unregister();
           List<TypeAheadPrediction> newPredictions = createNewPredictions(terminalLine, cursorX, nextPrediction);
@@ -121,11 +149,11 @@ public class TerminalTypeAheadManager {
       if (e == lastPrediction) {
         return createPrediction(e.myInitialLine, cursorX, newTypedChars);
       }
-      return new TypeAheadPrediction(e.myInitialLine, newTypedChars, e.myPredictedLine, e.myPredictedCursorX);
+      return new CharacterPrediction(e.myInitialLine, newTypedChars, e.myPredictedLine, e.myPredictedCursorX, ((CharacterPrediction) e).myCharacter);
     }).collect(Collectors.toList());
   }
 
-  public void typed(char keyChar) {
+  public void typed(char keyChar) { // TODO: change to KeyEvent to process move by word?
     if (!mySettingsProvider.isTypeAheadEnabled()) {
       return;
     }
@@ -135,15 +163,19 @@ public class TerminalTypeAheadManager {
       clearPredictions();
       return;
     }
+
     myTerminalTextBuffer.lock();
     int cursorX, cursorY;
+    TerminalLine terminalLine;
+
     try {
       cursorX = myTerminal.getCursorX() - 1;
       cursorY = myTerminal.getCursorY() - 1;
+      terminalLine = myTerminalTextBuffer.getLine(cursorY);
     } finally {
       myTerminalTextBuffer.unlock();
     }
-    TerminalLine terminalLine = myTerminalTextBuffer.getLine(cursorY);
+
     synchronized (LOCK) {
       myOutOfSyncDetected = false;
       System.out.println("Typed " + keyChar);
@@ -178,10 +210,17 @@ public class TerminalTypeAheadManager {
                                                          @NotNull String typedChars) {
     TerminalLine predictedLine = initialLine.copy();
     int newCursorX = initialCursorX;
-    for (Character ch : typedChars.toCharArray()) {
+
+    for (int i = 0; i < typedChars.length(); ++i) {
+      char ch = typedChars.charAt(i);
+
       if (Character.isLetterOrDigit(ch)) {
         predictedLine.writeString(newCursorX, new CharBuffer(ch, 1), getTextStyle());
         newCursorX++;
+
+        if (i + 1 == typedChars.length()) {
+          return new CharacterPrediction(initialLine, typedChars, predictedLine, newCursorX, ch);
+        }
       } else if (ch == Ascii.BS) {
         if (newCursorX > 0) {
           newCursorX--;
@@ -201,7 +240,8 @@ public class TerminalTypeAheadManager {
         return null;
       }
     }
-    return new TypeAheadPrediction(initialLine, typedChars, predictedLine, newCursorX);
+
+    return new CharacterPrediction(initialLine, typedChars, predictedLine, newCursorX, 'c'); // TODO: delete
   }
 
   public void addModelListener(@NotNull TerminalModelListener listener) {
@@ -228,7 +268,7 @@ public class TerminalTypeAheadManager {
     return prediction == null ? myTerminal.getCursorX() : prediction.myPredictedCursorX + 1;
   }
 
-  private static class TypeAheadPrediction {
+  private abstract static class TypeAheadPrediction {
     private final TerminalLine myInitialLine;
     private final String myTypedChars;
     private final TerminalLine myPredictedLine;
@@ -251,5 +291,176 @@ public class TerminalTypeAheadManager {
     public void unregister() {
       myInitialLine.setTypeAheadLine(null);
     }
+
+    public abstract @NotNull MatchResult matches(TypeaheadStringReader stringReader);
   }
+
+  private enum MatchResult {
+    Success,
+    Failure,
+    Buffer,
+  }
+
+  private static class TypeaheadStringReader { // TODO: copied from vscode, needs polish/deleting
+    private final String myString;
+    private int myIndex = 0;
+
+    TypeaheadStringReader(String string) {
+      myString = string;
+    }
+
+    int remaining() {
+      return myString.length() - myIndex;
+    }
+
+    boolean eof() {
+      return myString.length() == myIndex;
+    }
+
+    String rest() {
+      return myString.substring(myIndex);
+    }
+
+    Character eatChar(char character) {
+      if (myString.charAt(myIndex) != character) {
+        return null;
+      }
+
+      myIndex++;
+      return character;
+    }
+
+    String eatStr(String substr) {
+      if (!myString.substring(myIndex, substr.length()).equals(substr)) {
+        return null;
+      }
+
+      myIndex += substr.length();
+      return substr;
+    }
+
+    MatchResult eatGradually(String substr) {
+      int prevIndex = myIndex;
+
+      for (int i = 0; i < substr.length(); ++i) {
+        if (i > 0 && eof()) {
+          return MatchResult.Buffer;
+        }
+
+        if (eatChar(substr.charAt(i)) == null) {
+          this.myIndex = prevIndex;
+          return MatchResult.Failure;
+        }
+      }
+
+      return MatchResult.Success;
+    }
+
+    String eatRe(Pattern pattern) {
+      // TODO: verify correctness
+      Matcher matcher = pattern.matcher(myString.substring(myIndex));
+      if (!matcher.matches()) {
+        return null;
+      }
+
+      java.util.regex.MatchResult match = matcher.toMatchResult();
+
+
+      myIndex += matcher.end();
+      return match.group();
+    }
+
+    Integer eatCharCode(int min) {
+      return eatCharCode(min, min + 1);
+    }
+
+    Integer eatCharCode(int min, int max) {
+      int code = myString.charAt(this.myIndex);
+      if (code < min || code >= max) {
+        return null;
+      }
+
+      this.myIndex++;
+      return code;
+    }
+  }
+
+  private class CharacterPrediction extends TypeAheadPrediction {
+    char myCharacter; // TODO: make private
+
+    private CharacterPrediction(@NotNull TerminalLine initialLine,
+                                @NotNull String typedChars,
+                                @NotNull TerminalLine predictedLine,
+                                int predictedCursorX,
+                                char character) {
+      super(initialLine, typedChars, predictedLine, predictedCursorX);
+      myCharacter = character;
+    }
+
+    @Override
+    public @NotNull MatchResult matches(TypeaheadStringReader stringReader) {
+      int startIndex = stringReader.myIndex;
+
+      // remove any styling CSI before checking the char
+      String eaten;
+      Pattern CSI_STYLE_RE = Pattern.compile("^\\x1b\\[[0-9;]*m"); // TODO: test regex
+      do {
+        eaten = stringReader.eatRe(CSI_STYLE_RE);
+      } while (eaten != null && !eaten.isEmpty());
+
+      if (stringReader.eof()) {
+        return MatchResult.Buffer;
+      }
+
+      if (stringReader.eatChar(myCharacter) != null) {
+        return MatchResult.Success;
+      }
+
+      if (myLastSuccessfulPrediction != null && myLastSuccessfulPrediction instanceof CharacterPrediction) {
+        // vscode #112842
+        String zshPrediction = "\b" + ((CharacterPrediction) myLastSuccessfulPrediction).myCharacter + myCharacter;
+        MatchResult zshMatchResult = stringReader.eatGradually(zshPrediction);
+        if (zshMatchResult != MatchResult.Failure) {
+          return zshMatchResult;
+        }
+      }
+
+      stringReader.myIndex = startIndex;
+      return MatchResult.Failure;
+    }
+  }
+
+  private static class BackspacePrediction extends TypeAheadPrediction {
+    boolean myIsLastChar;
+
+    private BackspacePrediction(@NotNull TerminalLine initialLine,
+                                @NotNull String typedChars,
+                                @NotNull TerminalLine predictedLine,
+                                int predictedCursorX,
+                                boolean isLastChar) {
+      super(initialLine, typedChars, predictedLine, predictedCursorX);
+      myIsLastChar = isLastChar;
+    }
+
+
+    final String CSI = CharUtils.ESC + "[";
+
+    @Override
+    public @NotNull MatchResult matches(TypeaheadStringReader stringReader) {
+      if (myIsLastChar) {
+        MatchResult r1 = stringReader.eatGradually("\b" + CSI + "K");
+        if (r1 != MatchResult.Failure) {
+          return r1;
+        }
+
+        MatchResult r2 = stringReader.eatGradually("\b \b");
+        if (r2 != MatchResult.Failure) {
+          return r2;
+        }
+      }
+
+      return MatchResult.Failure;
+    }
+  }
+
 }

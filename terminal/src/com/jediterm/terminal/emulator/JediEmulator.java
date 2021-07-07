@@ -4,6 +4,7 @@ import com.google.common.base.Ascii;
 import com.jediterm.terminal.*;
 import com.jediterm.terminal.emulator.mouse.MouseFormat;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
+import com.jediterm.terminal.model.TerminalTypeAheadManager;
 import com.jediterm.terminal.util.CharUtils;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -32,8 +33,8 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   private static int logThrottlerLimit = logThrottlerRatio;
   private final BlockingQueue<CompletableFuture<Void>> myResizeFutureQueue = new LinkedBlockingQueue<>();
 
-  public JediEmulator(TerminalDataStream dataStream, Terminal terminal) {
-    super(dataStream, terminal);
+  public JediEmulator(TerminalDataStream dataStream, Terminal terminal, TerminalTypeAheadManager typeAheadManager) {
+    super(dataStream, terminal, typeAheadManager);
   }
 
   @Override

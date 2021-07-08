@@ -33,6 +33,8 @@ public class TerminalTypeAheadManager {
   private long myLastTypedTime;
   private TypeAheadPrediction myLastSuccessfulPrediction;
   private String myTerminalDataBuffer = "";
+  private Integer myLeftMostCursorPosition = null;
+  private boolean myIsNotPasswordPrompt = false;
 
   public TerminalTypeAheadManager(@NotNull TerminalTextBuffer terminalTextBuffer,
                                   @NotNull JediTerminal terminal,
@@ -47,6 +49,8 @@ public class TerminalTypeAheadManager {
     for (int i = offset; i < offset + count; ++i) {
       if (buffer[i] >= 32 && buffer[i] < 127) {
         System.out.print(buffer[i]);
+      } else if (buffer[i] == 7) {
+        System.out.println("<BEL>");
       } else if (buffer[i] == 27) {
         System.out.print("^");
       } else if (buffer[i] == 13) {
@@ -54,13 +58,15 @@ public class TerminalTypeAheadManager {
       } else if (buffer[i] == 10) {
         System.out.print("\\n");
       } else {
-        System.out.println("\nUnknown char! " + (int) buffer[i]);
+        System.out.print("(unknown char: " + (int) buffer[i] + ")");
       }
     }
     System.out.println();
 
 
     String terminalData = myTerminalDataBuffer + new String(buffer, offset, count);
+    myTerminalDataBuffer = "";
+
     TypeaheadStringReader terminalDataReader = new TypeaheadStringReader(terminalData);
 
     synchronized (LOCK) {
@@ -78,6 +84,8 @@ public class TerminalTypeAheadManager {
           myTerminalTextBuffer.unlock();
         }
 
+        updateLeftMostCursorPosition(cursorX);
+
         TypeAheadPrediction nextPrediction = getNextPrediction();
         if (nextPrediction == null) {
           return;
@@ -87,6 +95,11 @@ public class TerminalTypeAheadManager {
         switch (nextPrediction.matches(terminalDataReader)) {
           case Success:
             System.out.println("Match: success");
+            if (nextPrediction instanceof TentativeBoundary
+                    && ((TentativeBoundary) nextPrediction).myInnerPrediction instanceof CharacterPrediction) {
+              myIsNotPasswordPrompt = true;
+            }
+
             myLastSuccessfulPrediction = myPredictions.get(0);
             myPredictions.remove(0);
             nextPrediction.myInitialLine.setTypeAheadLine(null);
@@ -97,10 +110,9 @@ public class TerminalTypeAheadManager {
             System.out.println("Match: buffer");
             myTerminalDataBuffer = terminalData.substring(readerIndexBeforeMatching);
             return;
-          case Failure:
+          case Failure: // TODO: onFailure needs rework
             System.out.println("Match: failure");
             myOutOfSyncDetected = true;
-            myTerminalDataBuffer = ""; // TODO: onFailure needs rework
             clearPredictions();
         }
 
@@ -190,6 +202,14 @@ public class TerminalTypeAheadManager {
     fireModelChanged();
   }
 
+  private void updateLeftMostCursorPosition(int cursorX) {
+    if (myLeftMostCursorPosition == null) {
+      myLeftMostCursorPosition = cursorX;
+    } else {
+      myLeftMostCursorPosition = Math.min(myLeftMostCursorPosition, cursorX);
+    }
+  }
+
   private void createAndSetTerminalLinePrediction(TerminalLine initialLine, int initialCursorX, String typedChars) {
     TerminalLine predictedLine = initialLine.copy();
     int newCursorX = initialCursorX;
@@ -244,9 +264,11 @@ public class TerminalTypeAheadManager {
       myTerminalTextBuffer.unlock();
     }
 
+    updateLeftMostCursorPosition(cursorX);
+
     synchronized (LOCK) {
       myOutOfSyncDetected = false;
-      System.out.println("Typed " + keyChar);
+      System.out.println("Typed " + keyChar + " (" + (int) keyChar + ")");
       if (terminalLine == null) {
         clearPredictions();
         return;
@@ -267,6 +289,9 @@ public class TerminalTypeAheadManager {
       prediction.myInitialLine.setTypeAheadLine(null);
     }
     myPredictions.clear();
+    myTerminalDataBuffer = "";
+    myLeftMostCursorPosition = null;
+    myIsNotPasswordPrompt = false;
     if (fireChange) {
       fireModelChanged();
     }
@@ -283,19 +308,33 @@ public class TerminalTypeAheadManager {
       if (Character.isLetterOrDigit(ch)) {
         newCursorX++;
 
-        TypeAheadPrediction charPrediction = new CharacterPrediction(initialLine, typedChars, newCursorX, ch);
         if (i + 1 == typedChars.length()) {
+          TypeAheadPrediction charPrediction = new CharacterPrediction(initialLine, typedChars, newCursorX, ch);
+
+          if (myIsNotPasswordPrompt) {
+            return charPrediction;
+          }
+
           for (TypeAheadPrediction prediction : myPredictions) {
             if (prediction instanceof CharacterPrediction
                     || (prediction instanceof TentativeBoundary && ((TentativeBoundary) prediction).myInnerPrediction instanceof CharacterPrediction)) {
               return charPrediction;
             }
           }
+
           return new TentativeBoundary(initialLine, typedChars, newCursorX, charPrediction);
         }
       } else if (ch == Ascii.BS) {
         if (newCursorX > 0) {
           newCursorX--;
+        }
+        if (i + 1 == typedChars.length()) {
+          TypeAheadPrediction backspacePrediction = new BackspacePrediction(initialLine, typedChars, newCursorX, true); // TODO: delete myIsLastChar or fill with correct data
+
+          if (myLeftMostCursorPosition != null && newCursorX >= myLeftMostCursorPosition) {
+            return backspacePrediction;
+          }
+          return new TentativeBoundary(initialLine, typedChars, newCursorX, backspacePrediction);
         }
       } else if (ch == Ascii.DEL) {
       } else if (ch == KeyEvent.VK_LEFT) {
@@ -551,7 +590,7 @@ public class TerminalTypeAheadManager {
       return true;
     }
 
-    final String CSI = CharUtils.ESC + "[";
+    final String CSI = (char) CharUtils.ESC + "[";
 
     @Override
     public @NotNull MatchResult matches(TypeaheadStringReader stringReader) {

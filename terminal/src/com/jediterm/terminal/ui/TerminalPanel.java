@@ -1642,7 +1642,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     }
     finally {
       if (e.isConsumed() && myTypeAheadManager != null) {
-        myTypeAheadManager.typed((char) e.getKeyCode());
+        myTypeAheadManager.onKeyEvent(e);
       }
     }
   }
@@ -1698,7 +1698,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       }
       finally {
         if (e.isConsumed() && myTypeAheadManager != null) {
-          myTypeAheadManager.typed(e.getKeyChar());
+          myTypeAheadManager.onKeyEvent(e);
         }
       }
     }

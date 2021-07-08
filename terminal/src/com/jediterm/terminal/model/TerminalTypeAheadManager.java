@@ -173,15 +173,19 @@ public class TerminalTypeAheadManager {
 
   private void adjustPredictions(@NotNull TerminalLine terminalLine,
                                  @NotNull TerminalTypeAheadManager.TypeAheadPrediction matchedPrediction) {
+    int matchedPredictionSize = matchedPrediction.myKeyEvents.size();
+
     for (TypeAheadPrediction prediction : myPredictions) {
       if (prediction.myInitialLine != terminalLine) {
         throw new IllegalStateException("Different terminal lines");
       }
-      if (!prediction.myTypedChars.startsWith(matchedPrediction.myTypedChars)) {
-        throw new IllegalStateException(prediction.myTypedChars + " is expected to start with " + prediction.myTypedChars);
+      /*
+      if (!prediction.myKeyEvents.startsWith(matchedPrediction.myKeyEvents)) {
+        throw new IllegalStateException(prediction.myKeyEvents + " is expected to start with " + prediction.myKeyEvents);
       }
+       */
 
-      prediction.removeFirstNCharacters(matchedPrediction.myTypedChars.length());
+      prediction.removeFirstNEvents(matchedPredictionSize);
     }
   }
 
@@ -196,7 +200,8 @@ public class TerminalTypeAheadManager {
 
     if (lastVisiblePredictionIndex >= 0) {
       TypeAheadPrediction oldPrediction = myPredictions.get(lastVisiblePredictionIndex);
-      createAndSetTerminalLinePrediction(terminalLine, cursorX, oldPrediction.myTypedChars);
+      TerminalLine predictedLine = createTerminalLinePrediction(terminalLine, cursorX, oldPrediction.myKeyEvents).myTerminalLine;
+      terminalLine.setTypeAheadLine(predictedLine);
     }
 
     fireModelChanged();
@@ -210,38 +215,52 @@ public class TerminalTypeAheadManager {
     }
   }
 
-  private void createAndSetTerminalLinePrediction(TerminalLine initialLine, int initialCursorX, String typedChars) {
+  private static class TerminalLineWithCursorX {
+    TerminalLine myTerminalLine;
+    int myCursorX;
+
+    TerminalLineWithCursorX(TerminalLine terminalLine, int cursorX) {
+      myTerminalLine = terminalLine;
+      myCursorX = cursorX;
+    }
+  }
+
+  private @NotNull TerminalLineWithCursorX createTerminalLinePrediction(TerminalLine initialLine, int initialCursorX, List<KeyEvent> keyEvents) {
     TerminalLine predictedLine = initialLine.copy();
     int newCursorX = initialCursorX;
 
-    for (char ch : typedChars.toCharArray()) {
-      if (Character.isLetterOrDigit(ch)) {
-        predictedLine.writeString(newCursorX, new CharBuffer(ch, 1), getTextStyle());
+    for (KeyEvent keyEvent : keyEvents) {
+      if (keyEvent.getKeyCode() == KeyEvent.VK_UNDEFINED) { // KEY_TYPED event
+        predictedLine.writeString(newCursorX, new CharBuffer(keyEvent.getKeyChar(), 1), getTextStyle());
         newCursorX++;
-      } else if (ch == Ascii.BS) {
-        if (newCursorX > 0) {
-          newCursorX--;
+      } else { // KEY_PRESSED or KEY_RELEASED
+        int eventKeyCode = keyEvent.getKeyCode();
+
+        if (eventKeyCode == KeyEvent.VK_BACK_SPACE) {
+          if (newCursorX > 0) {
+            newCursorX--;
+            predictedLine.deleteCharacters(newCursorX, 1, TextStyle.EMPTY);
+          }
+        } else if (eventKeyCode == KeyEvent.VK_LEFT) {
+          if (newCursorX > 0) {
+            newCursorX--;
+          }
+        } else if (eventKeyCode == KeyEvent.VK_RIGHT) {
+          if (newCursorX < myTerminal.getTerminalWidth() - 1) {
+            newCursorX++;
+          }
+        } else if (eventKeyCode == KeyEvent.VK_DELETE) {
           predictedLine.deleteCharacters(newCursorX, 1, TextStyle.EMPTY);
+        } else { // TODO: del, alt+>, alt+<, enter
+          throw new IllegalStateException("Events should be filtered but keyEvents contained key code " + eventKeyCode);
         }
-      } else if (ch == Ascii.DEL) {
-        predictedLine.deleteCharacters(newCursorX, 1, TextStyle.EMPTY);
-      } else if (ch == KeyEvent.VK_LEFT) {
-        if (newCursorX > 0) {
-          newCursorX--;
-        }
-      } else if (ch == KeyEvent.VK_RIGHT) {
-        if (newCursorX < myTerminal.getTerminalWidth() - 1) {
-          newCursorX++;
-        }
-      } else {
-        throw new IllegalStateException("Characters should be filtered but typedChar contained char code " + (int) ch);
       }
     }
 
-    initialLine.setTypeAheadLine(predictedLine);
+    return new TerminalLineWithCursorX(predictedLine, newCursorX);
   }
 
-  public void typed(char keyChar) { // TODO: change to KeyEvent to process move by word?
+  public void onKeyEvent(KeyEvent keyEvent) {
     if (!mySettingsProvider.isTypeAheadEnabled()) {
       return;
     }
@@ -268,17 +287,16 @@ public class TerminalTypeAheadManager {
 
     synchronized (LOCK) {
       myOutOfSyncDetected = false;
-      System.out.println("Typed " + keyChar + " (" + (int) keyChar + ")");
+      System.out.println("Typed " + (char) keyEvent.getKeyCode() + " (" + keyEvent.getKeyCode() + ")");
       if (terminalLine == null) {
         clearPredictions();
         return;
       }
       TypeAheadPrediction lastPrediction = getLastPrediction();
-      String prevTypedChars = lastPrediction != null ? lastPrediction.myTypedChars : "";
-      TypeAheadPrediction prediction = createPrediction(terminalLine, cursorX, prevTypedChars + keyChar);
-      if (prediction != null) {
-        myPredictions.add(prediction);
-      }
+      List<KeyEvent> keyEventList = lastPrediction != null ? new ArrayList<>(lastPrediction.myKeyEvents) : new ArrayList<>();
+      keyEventList.add(keyEvent);
+      TypeAheadPrediction prediction = createPrediction(terminalLine, cursorX, keyEventList);
+      myPredictions.add(prediction);
       redrawPredictions(terminalLine, cursorX);
     }
   }
@@ -297,60 +315,50 @@ public class TerminalTypeAheadManager {
     }
   }
 
-  private @Nullable TypeAheadPrediction createPrediction(@NotNull TerminalLine initialLine,
-                                                         int initialCursorX,
-                                                         @NotNull String typedChars) {
-    int newCursorX = initialCursorX;
+  private @NotNull TypeAheadPrediction createPrediction(@NotNull TerminalLine initialLine,
+                                                        int initialCursorX,
+                                                        @NotNull List<KeyEvent> keyEvents) {
+    int newCursorX = createTerminalLinePrediction(initialLine, initialCursorX, keyEvents).myCursorX;
 
-    for (int i = 0; i < typedChars.length(); ++i) {
-      char ch = typedChars.charAt(i);
+    KeyEvent lastKeyEvent = keyEvents.get(keyEvents.size() - 1);
+    if (lastKeyEvent.getKeyCode() == KeyEvent.VK_UNDEFINED) { // KEY_TYPED event
+      System.out.println("createPrediction: " + lastKeyEvent.getKeyChar() + " (" + (int) lastKeyEvent.getKeyChar() + ")");
 
-      if (Character.isLetterOrDigit(ch)) {
-        newCursorX++;
+      TypeAheadPrediction charPrediction = new CharacterPrediction(initialLine, keyEvents, newCursorX, lastKeyEvent.getKeyChar());
 
-        if (i + 1 == typedChars.length()) {
-          TypeAheadPrediction charPrediction = new CharacterPrediction(initialLine, typedChars, newCursorX, ch);
+      if (myIsNotPasswordPrompt) {
+        return charPrediction;
+      }
 
-          if (myIsNotPasswordPrompt) {
-            return charPrediction;
-          }
-
-          for (TypeAheadPrediction prediction : myPredictions) {
-            if (prediction instanceof CharacterPrediction
-                    || (prediction instanceof TentativeBoundary && ((TentativeBoundary) prediction).myInnerPrediction instanceof CharacterPrediction)) {
-              return charPrediction;
-            }
-          }
-
-          return new TentativeBoundary(initialLine, typedChars, newCursorX, charPrediction);
+      for (TypeAheadPrediction prediction : myPredictions) {
+        if (prediction instanceof CharacterPrediction
+                || (prediction instanceof TentativeBoundary && ((TentativeBoundary) prediction).myInnerPrediction instanceof CharacterPrediction)) {
+          return charPrediction;
         }
-      } else if (ch == Ascii.BS) {
-        if (newCursorX > 0) {
-          newCursorX--;
-        }
-        if (i + 1 == typedChars.length()) {
-          TypeAheadPrediction backspacePrediction = new BackspacePrediction(initialLine, typedChars, newCursorX, true); // TODO: delete myIsLastChar or fill with correct data
+      }
 
-          if (myLeftMostCursorPosition != null && newCursorX >= myLeftMostCursorPosition) {
-            return backspacePrediction;
-          }
-          return new TentativeBoundary(initialLine, typedChars, newCursorX, backspacePrediction);
+      return new TentativeBoundary(initialLine, keyEvents, newCursorX, charPrediction);
+    } else { // KEY_PRESSED or KEY_RELEASED
+      System.out.println("createPrediction: " + lastKeyEvent.getKeyCode());
+      int eventKeyCode = lastKeyEvent.getKeyCode();
+
+      if (eventKeyCode == KeyEvent.VK_BACK_SPACE) {
+        TypeAheadPrediction backspacePrediction = new BackspacePrediction(initialLine, keyEvents, newCursorX, true); // TODO: delete myIsLastChar or fill with correct data
+
+        if (myLeftMostCursorPosition != null && newCursorX >= myLeftMostCursorPosition) {
+          return backspacePrediction;
         }
-      } else if (ch == Ascii.DEL) {
-      } else if (ch == KeyEvent.VK_LEFT) {
-        if (newCursorX > 0) {
-          newCursorX--;
-        }
-      } else if (ch == KeyEvent.VK_RIGHT) {
-        if (newCursorX < myTerminal.getTerminalWidth() - 1) {
-          newCursorX++;
-        }
-      } else {
-        return null;
+        return new TentativeBoundary(initialLine, keyEvents, newCursorX, backspacePrediction);
+      } else if (eventKeyCode == KeyEvent.VK_LEFT) {
+        // TODO
+      } else if (eventKeyCode == KeyEvent.VK_RIGHT) {
+        // TODO
+      } else { // TODO: del, alt+>, alt+<, enter
+        return new HardBoundary(initialLine, keyEvents, newCursorX);
       }
     }
 
-    return new CharacterPrediction(initialLine, typedChars, newCursorX, 'c'); // TODO: delete
+    return new CharacterPrediction(initialLine, keyEvents, newCursorX, 'c'); // TODO: delete
   }
 
   public void addModelListener(@NotNull TerminalModelListener listener) {
@@ -470,18 +478,18 @@ public class TerminalTypeAheadManager {
   private abstract static class TypeAheadPrediction {
     private final TerminalLine myInitialLine;
     private final int myPredictedCursorX;
-    private String myTypedChars;
+    private List<KeyEvent> myKeyEvents;
 
     private TypeAheadPrediction(@NotNull TerminalLine initialLine,
-                                @NotNull String typedChars,
+                                @NotNull List<KeyEvent> keyEvents,
                                 int predictedCursorX) {
       myInitialLine = initialLine;
-      myTypedChars = typedChars;
+      myKeyEvents = keyEvents;
       myPredictedCursorX = predictedCursorX;
     }
 
-    public void removeFirstNCharacters(int n) {
-      myTypedChars = myTypedChars.substring(n);
+    public void removeFirstNEvents(int n) {
+      myKeyEvents = myKeyEvents.subList(n, myKeyEvents.size());
     }
 
     public abstract boolean getClearAfterTimeout();
@@ -490,8 +498,8 @@ public class TerminalTypeAheadManager {
   }
 
   private static class HardBoundary extends TypeAheadPrediction {
-    private HardBoundary(@NotNull TerminalLine initialLine, @NotNull String typedChars, int predictedCursorX) {
-      super(initialLine, typedChars, predictedCursorX);
+    private HardBoundary(@NotNull TerminalLine initialLine, @NotNull List<KeyEvent> keyEvents, int predictedCursorX) {
+      super(initialLine, keyEvents, predictedCursorX);
     }
 
     @Override
@@ -508,8 +516,8 @@ public class TerminalTypeAheadManager {
   private static class TentativeBoundary extends TypeAheadPrediction {
     final TypeAheadPrediction myInnerPrediction;
 
-    private TentativeBoundary(@NotNull TerminalLine initialLine, @NotNull String typedChars, int predictedCursorX, TypeAheadPrediction innerPrediction) {
-      super(initialLine, typedChars, predictedCursorX);
+    private TentativeBoundary(@NotNull TerminalLine initialLine, @NotNull List<KeyEvent> keyEvents, int predictedCursorX, TypeAheadPrediction innerPrediction) {
+      super(initialLine, keyEvents, predictedCursorX);
       myInnerPrediction = innerPrediction;
     }
 
@@ -528,10 +536,10 @@ public class TerminalTypeAheadManager {
     char myCharacter; // TODO: make private
 
     private CharacterPrediction(@NotNull TerminalLine initialLine,
-                                @NotNull String typedChars,
+                                @NotNull List<KeyEvent> keyEvents,
                                 int predictedCursorX,
                                 char character) {
-      super(initialLine, typedChars, predictedCursorX);
+      super(initialLine, keyEvents, predictedCursorX);
       myCharacter = character;
     }
 
@@ -578,10 +586,10 @@ public class TerminalTypeAheadManager {
     boolean myIsLastChar;
 
     private BackspacePrediction(@NotNull TerminalLine initialLine,
-                                @NotNull String typedChars,
+                                @NotNull List<KeyEvent> keyEvents,
                                 int predictedCursorX,
                                 boolean isLastChar) {
-      super(initialLine, typedChars, predictedCursorX);
+      super(initialLine, keyEvents, predictedCursorX);
       myIsLastChar = isLastChar;
     }
 

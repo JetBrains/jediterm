@@ -33,6 +33,7 @@ public class TerminalTypeAheadManager {
   private boolean myOutOfSyncDetected;
   private long myLastTypedTime;
   private TypeAheadPrediction myLastSuccessfulPrediction;
+  private String myTerminalDataBuffer = "";
 
   public TerminalTypeAheadManager(@NotNull TerminalTextBuffer terminalTextBuffer,
                                   @NotNull JediTerminal terminal,
@@ -48,82 +49,96 @@ public class TerminalTypeAheadManager {
       if (buffer[i] >= 32 && buffer[i] < 127) {
         System.out.print(buffer[i]);
       } else if (buffer[i] == 27) {
-        System.out.print("<ESC>");
+        System.out.print("^");
       } else if (buffer[i] == 13) {
-        System.out.print("<CR>");
+        System.out.print("\\r");
       } else if (buffer[i] == 10) {
-        System.out.print("<LF>");
+        System.out.print("\\n");
       } else {
         System.out.println("\nUnknown char! " + (int) buffer[i]);
       }
     }
     System.out.println();
 
-    TypeaheadStringReader stringReader = new TypeaheadStringReader(new String(buffer, offset, count));
+
+    String terminalData = myTerminalDataBuffer + new String(buffer, offset, count);
+    TypeaheadStringReader terminalDataReader = new TypeaheadStringReader(terminalData);
 
     synchronized (LOCK) {
-      TypeAheadPrediction nextPrediction = getNextPrediction();
+      while (!myPredictions.isEmpty() && terminalDataReader.remaining() > 0) {
+        // TODO: vscode omits some char sequences from sending to the prediction engine, maybe we should too.
 
-      if (nextPrediction != null && nextPrediction.matches(stringReader) == MatchResult.Success) {
-        System.out.println("Successful match!");
+        myTerminalTextBuffer.lock();
+        int cursorX, cursorY;
+        TerminalLine terminalLine;
+        try {
+          cursorX = myTerminal.getCursorX() - 1;
+          cursorY = myTerminal.getCursorY() - 1;
+          terminalLine = myTerminalTextBuffer.getLine(cursorY);
+        } finally {
+          myTerminalTextBuffer.unlock();
+        }
+
+        TypeAheadPrediction nextPrediction = getNextPrediction();
+        if (nextPrediction == null) {
+          return;
+        }
+
+        int readerIndexBeforeMatching = terminalDataReader.myIndex;
+        switch (nextPrediction.matches(terminalDataReader)) {
+          case Success:
+            System.out.println("Match: success");
+            myLastSuccessfulPrediction = myPredictions.get(0);
+            myPredictions.remove(0);
+            nextPrediction.unregister();
+            List<TypeAheadPrediction> newPredictions = createNewPredictions(terminalLine, cursorX, nextPrediction);
+            myPredictions.clear();
+            myPredictions.addAll(newPredictions);
+            TypeAheadPrediction resultPrediction = getLastPrediction();
+            if (resultPrediction != null) {
+              resultPrediction.register();
+            }
+            fireModelChanged();
+            break;
+          case Buffer:
+            System.out.println("Match: buffer");
+            myTerminalDataBuffer = terminalData.substring(readerIndexBeforeMatching);
+            return;
+          case Failure:
+            System.out.println("Match: failure");
+            myOutOfSyncDetected = true;
+            clearPredictions();
+        }
+
       }
+      /*
+      TypeAheadPrediction nextPrediction = getNextPrediction();
 
       if (nextPrediction != null && nextPrediction.myTypedChars.startsWith("\b")) {
         myTerminalTextBuffer.addModelListener(new TerminalModelListener() {
           @Override
           public void modelChanged() {
             myTerminalTextBuffer.removeModelListener(this);
-            checkNextPrediction();
+            checkNextPrediction(terminalDataReader);
           }
         });
         return;
       }
+
+    checkNextPrediction(terminalDataReader);
+     */
     }
-    checkNextPrediction();
   }
 
-  private void checkNextPrediction() {
+  private void checkNextPrediction(TypeaheadStringReader stringReader) {
     try {
-      doCheckNextPrediction();
+      doCheckNextPrediction(stringReader);
     } catch (Exception e) {
       LOG.error("Unhandled exception", e);
     }
   }
 
-  private void doCheckNextPrediction() {
-    myTerminalTextBuffer.lock();
-    int cursorX, cursorY;
-    TerminalLine terminalLine;
-    try {
-      cursorX = myTerminal.getCursorX() - 1;
-      cursorY = myTerminal.getCursorY() - 1;
-      terminalLine = myTerminalTextBuffer.getLine(cursorY);
-    } finally {
-      myTerminalTextBuffer.unlock();
-    }
-    synchronized (LOCK) {
-      TypeAheadPrediction nextPrediction = getNextPrediction();
-      if (nextPrediction != null) {
-        if (nextPrediction.myInitialLine == terminalLine && nextPrediction.myPredictedCursorX == cursorX &&
-                nextPrediction.myPredictedLine.getText().equals(terminalLine.getText())) {
-          // prediction matched
-          myLastSuccessfulPrediction = myPredictions.get(0);
-          myPredictions.remove(0);
-          nextPrediction.unregister();
-          List<TypeAheadPrediction> newPredictions = createNewPredictions(terminalLine, cursorX, nextPrediction);
-          myPredictions.clear();
-          myPredictions.addAll(newPredictions);
-          TypeAheadPrediction resultPrediction = getLastPrediction();
-          if (resultPrediction != null) {
-            resultPrediction.register();
-          }
-          fireModelChanged();
-        } else {
-          myOutOfSyncDetected = true;
-          clearPredictions();
-        }
-      }
-    }
+  private void doCheckNextPrediction(TypeaheadStringReader stringReader) {
   }
 
   private @Nullable TypeAheadPrediction getNextPrediction() {

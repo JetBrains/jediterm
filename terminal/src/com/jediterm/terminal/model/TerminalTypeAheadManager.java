@@ -16,7 +16,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class TerminalTypeAheadManager {
 
@@ -90,15 +89,9 @@ public class TerminalTypeAheadManager {
             System.out.println("Match: success");
             myLastSuccessfulPrediction = myPredictions.get(0);
             myPredictions.remove(0);
-            nextPrediction.unregister();
-            List<TypeAheadPrediction> newPredictions = createNewPredictions(terminalLine, cursorX, nextPrediction);
-            myPredictions.clear();
-            myPredictions.addAll(newPredictions);
-            TypeAheadPrediction resultPrediction = getLastPrediction();
-            if (resultPrediction != null) {
-              resultPrediction.register();
-            }
-            fireModelChanged();
+            nextPrediction.myInitialLine.setTypeAheadLine(null);
+            adjustPredictions(terminalLine, nextPrediction);
+            redrawPredictions(terminalLine, cursorX);
             break;
           case Buffer:
             System.out.println("Match: buffer");
@@ -107,6 +100,7 @@ public class TerminalTypeAheadManager {
           case Failure:
             System.out.println("Match: failure");
             myOutOfSyncDetected = true;
+            myTerminalDataBuffer = ""; // TODO: onFailure needs rework
             clearPredictions();
         }
 
@@ -149,23 +143,82 @@ public class TerminalTypeAheadManager {
     return myPredictions.isEmpty() ? null : myPredictions.get(myPredictions.size() - 1);
   }
 
-  private @NotNull List<TypeAheadPrediction> createNewPredictions(@NotNull TerminalLine terminalLine,
-                                                                  int cursorX,
-                                                                  @NotNull TerminalTypeAheadManager.TypeAheadPrediction matchedPrediction) {
-    TypeAheadPrediction lastPrediction = getLastPrediction();
-    return myPredictions.stream().map((e) -> {
-      if (e.myInitialLine != terminalLine) {
+  private @Nullable TypeAheadPrediction getLastVisiblePrediction() {
+    int lastVisiblePredictionIndex = 0;
+    while (lastVisiblePredictionIndex < myPredictions.size()
+            && !(myPredictions.get(lastVisiblePredictionIndex) instanceof TentativeBoundary)
+            && !(myPredictions.get(lastVisiblePredictionIndex) instanceof HardBoundary)) {
+      lastVisiblePredictionIndex++;
+    }
+    lastVisiblePredictionIndex--;
+
+    if (lastVisiblePredictionIndex >= 0) {
+      return myPredictions.get(lastVisiblePredictionIndex);
+    }
+
+    return null;
+  }
+
+  private void adjustPredictions(@NotNull TerminalLine terminalLine,
+                                 @NotNull TerminalTypeAheadManager.TypeAheadPrediction matchedPrediction) {
+    for (TypeAheadPrediction prediction : myPredictions) {
+      if (prediction.myInitialLine != terminalLine) {
         throw new IllegalStateException("Different terminal lines");
       }
-      if (!e.myTypedChars.startsWith(matchedPrediction.myTypedChars)) {
-        throw new IllegalStateException(e.myTypedChars + " is expected to start with " + e.myTypedChars);
+      if (!prediction.myTypedChars.startsWith(matchedPrediction.myTypedChars)) {
+        throw new IllegalStateException(prediction.myTypedChars + " is expected to start with " + prediction.myTypedChars);
       }
-      String newTypedChars = e.myTypedChars.substring(matchedPrediction.myTypedChars.length());
-      if (e == lastPrediction) {
-        return createPrediction(e.myInitialLine, cursorX, newTypedChars);
+
+      prediction.removeFirstNCharacters(matchedPrediction.myTypedChars.length());
+    }
+  }
+
+  private void redrawPredictions(TerminalLine terminalLine, int cursorX) {
+    int lastVisiblePredictionIndex = 0;
+    while (lastVisiblePredictionIndex < myPredictions.size()
+            && !(myPredictions.get(lastVisiblePredictionIndex) instanceof TentativeBoundary)
+            && !(myPredictions.get(lastVisiblePredictionIndex) instanceof HardBoundary)) {
+      lastVisiblePredictionIndex++;
+    }
+    lastVisiblePredictionIndex--;
+
+    if (lastVisiblePredictionIndex >= 0) {
+      TypeAheadPrediction oldPrediction = myPredictions.get(lastVisiblePredictionIndex);
+      createAndSetTerminalLinePrediction(terminalLine, cursorX, oldPrediction.myTypedChars);
+    }
+
+    fireModelChanged();
+  }
+
+  private void createAndSetTerminalLinePrediction(TerminalLine initialLine, int initialCursorX, String typedChars) {
+    TerminalLine predictedLine = initialLine.copy();
+    int newCursorX = initialCursorX;
+
+    for (char ch : typedChars.toCharArray()) {
+      if (Character.isLetterOrDigit(ch)) {
+        predictedLine.writeString(newCursorX, new CharBuffer(ch, 1), getTextStyle());
+        newCursorX++;
+      } else if (ch == Ascii.BS) {
+        if (newCursorX > 0) {
+          newCursorX--;
+          predictedLine.deleteCharacters(newCursorX, 1, TextStyle.EMPTY);
+        }
+      } else if (ch == Ascii.DEL) {
+        predictedLine.deleteCharacters(newCursorX, 1, TextStyle.EMPTY);
+      } else if (ch == KeyEvent.VK_LEFT) {
+        if (newCursorX > 0) {
+          newCursorX--;
+        }
+      } else if (ch == KeyEvent.VK_RIGHT) {
+        if (newCursorX < myTerminal.getTerminalWidth() - 1) {
+          newCursorX++;
+        }
+      } else {
+        throw new IllegalStateException("Characters should be filtered but typedChar contained char code " + (int) ch);
       }
-      return new CharacterPrediction(e.myInitialLine, newTypedChars, e.myPredictedLine, e.myPredictedCursorX, ((CharacterPrediction) e).myCharacter);
-    }).collect(Collectors.toList());
+    }
+
+    initialLine.setTypeAheadLine(predictedLine);
   }
 
   public void typed(char keyChar) { // TODO: change to KeyEvent to process move by word?
@@ -202,17 +255,16 @@ public class TerminalTypeAheadManager {
       String prevTypedChars = lastPrediction != null ? lastPrediction.myTypedChars : "";
       TypeAheadPrediction prediction = createPrediction(terminalLine, cursorX, prevTypedChars + keyChar);
       if (prediction != null) {
-        prediction.register();
         myPredictions.add(prediction);
-        fireModelChanged();
       }
+      redrawPredictions(terminalLine, cursorX);
     }
   }
 
   private void clearPredictions() {
     boolean fireChange = !myPredictions.isEmpty();
     for (TypeAheadPrediction prediction : myPredictions) {
-      prediction.unregister();
+      prediction.myInitialLine.setTypeAheadLine(null);
     }
     myPredictions.clear();
     if (fireChange) {
@@ -223,26 +275,29 @@ public class TerminalTypeAheadManager {
   private @Nullable TypeAheadPrediction createPrediction(@NotNull TerminalLine initialLine,
                                                          int initialCursorX,
                                                          @NotNull String typedChars) {
-    TerminalLine predictedLine = initialLine.copy();
     int newCursorX = initialCursorX;
 
     for (int i = 0; i < typedChars.length(); ++i) {
       char ch = typedChars.charAt(i);
 
       if (Character.isLetterOrDigit(ch)) {
-        predictedLine.writeString(newCursorX, new CharBuffer(ch, 1), getTextStyle());
         newCursorX++;
 
+        TypeAheadPrediction charPrediction = new CharacterPrediction(initialLine, typedChars, newCursorX, ch);
         if (i + 1 == typedChars.length()) {
-          return new CharacterPrediction(initialLine, typedChars, predictedLine, newCursorX, ch);
+          for (TypeAheadPrediction prediction : myPredictions) {
+            if (prediction instanceof CharacterPrediction
+                    || (prediction instanceof TentativeBoundary && ((TentativeBoundary) prediction).myInnerPrediction instanceof CharacterPrediction)) {
+              return charPrediction;
+            }
+          }
+          return new TentativeBoundary(initialLine, typedChars, newCursorX, charPrediction);
         }
       } else if (ch == Ascii.BS) {
         if (newCursorX > 0) {
           newCursorX--;
-          predictedLine.deleteCharacters(newCursorX, 1, TextStyle.EMPTY);
         }
       } else if (ch == Ascii.DEL) {
-        predictedLine.deleteCharacters(newCursorX, 1, TextStyle.EMPTY);
       } else if (ch == KeyEvent.VK_LEFT) {
         if (newCursorX > 0) {
           newCursorX--;
@@ -256,7 +311,7 @@ public class TerminalTypeAheadManager {
       }
     }
 
-    return new CharacterPrediction(initialLine, typedChars, predictedLine, newCursorX, 'c'); // TODO: delete
+    return new CharacterPrediction(initialLine, typedChars, newCursorX, 'c'); // TODO: delete
   }
 
   public void addModelListener(@NotNull TerminalModelListener listener) {
@@ -279,35 +334,8 @@ public class TerminalTypeAheadManager {
   }
 
   public int getCursorX() {
-    TypeAheadPrediction prediction = getLastPrediction();
+    TypeAheadPrediction prediction = getLastVisiblePrediction();
     return prediction == null ? myTerminal.getCursorX() : prediction.myPredictedCursorX + 1;
-  }
-
-  private abstract static class TypeAheadPrediction {
-    private final TerminalLine myInitialLine;
-    private final String myTypedChars;
-    private final TerminalLine myPredictedLine;
-    private final int myPredictedCursorX;
-
-    private TypeAheadPrediction(@NotNull TerminalLine initialLine,
-                                @NotNull String typedChars,
-                                @NotNull TerminalLine predictedLine,
-                                int predictedCursorX) {
-      myInitialLine = initialLine;
-      myTypedChars = typedChars;
-      myPredictedLine = predictedLine;
-      myPredictedCursorX = predictedCursorX;
-    }
-
-    public void register() {
-      myInitialLine.setTypeAheadLine(myPredictedLine);
-    }
-
-    public void unregister() {
-      myInitialLine.setTypeAheadLine(null);
-    }
-
-    public abstract @NotNull MatchResult matches(TypeaheadStringReader stringReader);
   }
 
   private enum MatchResult {
@@ -400,21 +428,83 @@ public class TerminalTypeAheadManager {
     }
   }
 
+  private abstract static class TypeAheadPrediction {
+    private final TerminalLine myInitialLine;
+    private final int myPredictedCursorX;
+    private String myTypedChars;
+
+    private TypeAheadPrediction(@NotNull TerminalLine initialLine,
+                                @NotNull String typedChars,
+                                int predictedCursorX) {
+      myInitialLine = initialLine;
+      myTypedChars = typedChars;
+      myPredictedCursorX = predictedCursorX;
+    }
+
+    public void removeFirstNCharacters(int n) {
+      myTypedChars = myTypedChars.substring(n);
+    }
+
+    public abstract boolean getClearAfterTimeout();
+
+    public abstract @NotNull MatchResult matches(TypeaheadStringReader stringReader);
+  }
+
+  private static class HardBoundary extends TypeAheadPrediction {
+    private HardBoundary(@NotNull TerminalLine initialLine, @NotNull String typedChars, int predictedCursorX) {
+      super(initialLine, typedChars, predictedCursorX);
+    }
+
+    @Override
+    public boolean getClearAfterTimeout() {
+      return false;
+    }
+
+    @Override
+    public @NotNull MatchResult matches(TypeaheadStringReader stringReader) {
+      return MatchResult.Failure;
+    }
+  }
+
+  private static class TentativeBoundary extends TypeAheadPrediction {
+    final TypeAheadPrediction myInnerPrediction;
+
+    private TentativeBoundary(@NotNull TerminalLine initialLine, @NotNull String typedChars, int predictedCursorX, TypeAheadPrediction innerPrediction) {
+      super(initialLine, typedChars, predictedCursorX);
+      myInnerPrediction = innerPrediction;
+    }
+
+    @Override
+    public boolean getClearAfterTimeout() {
+      return true;
+    }
+
+    @Override
+    public @NotNull MatchResult matches(TypeaheadStringReader stringReader) {
+      return myInnerPrediction.matches(stringReader);
+    }
+  }
+
   private class CharacterPrediction extends TypeAheadPrediction {
     char myCharacter; // TODO: make private
 
     private CharacterPrediction(@NotNull TerminalLine initialLine,
                                 @NotNull String typedChars,
-                                @NotNull TerminalLine predictedLine,
                                 int predictedCursorX,
                                 char character) {
-      super(initialLine, typedChars, predictedLine, predictedCursorX);
+      super(initialLine, typedChars, predictedCursorX);
       myCharacter = character;
+    }
+
+    @Override
+    public boolean getClearAfterTimeout() {
+      return true;
     }
 
     @Override
     public @NotNull MatchResult matches(TypeaheadStringReader stringReader) {
       int startIndex = stringReader.myIndex;
+
 
       // remove any styling CSI before checking the char
       String eaten;
@@ -450,13 +540,16 @@ public class TerminalTypeAheadManager {
 
     private BackspacePrediction(@NotNull TerminalLine initialLine,
                                 @NotNull String typedChars,
-                                @NotNull TerminalLine predictedLine,
                                 int predictedCursorX,
                                 boolean isLastChar) {
-      super(initialLine, typedChars, predictedLine, predictedCursorX);
+      super(initialLine, typedChars, predictedCursorX);
       myIsLastChar = isLastChar;
     }
 
+    @Override
+    public boolean getClearAfterTimeout() {
+      return true;
+    }
 
     final String CSI = CharUtils.ESC + "[";
 

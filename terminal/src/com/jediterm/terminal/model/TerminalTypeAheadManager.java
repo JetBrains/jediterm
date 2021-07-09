@@ -160,6 +160,10 @@ public class TerminalTypeAheadManager {
     }
   }
 
+  public void onResize() {
+    clearPredictions();
+  }
+
   public void addModelListener(@NotNull TerminalModelListener listener) {
     myListeners.add(listener);
   }

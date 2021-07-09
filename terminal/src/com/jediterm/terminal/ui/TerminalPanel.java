@@ -612,6 +612,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       if (newSize != null) {
         JediTerminal.ensureTermMinimumSize(newSize);
         if (!myTermSize.equals(newSize)) {
+          myTypeAheadManager.onResize();
           myTerminalStarter.postResize(newSize, RequestOrigin.User);
         }
       }

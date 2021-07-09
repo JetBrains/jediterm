@@ -1,6 +1,5 @@
 package com.jediterm.terminal.model;
 
-import com.google.common.base.Ascii;
 import com.jediterm.terminal.TerminalColor;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
@@ -117,22 +116,6 @@ public class TerminalTypeAheadManager {
         }
 
       }
-      /*
-      TypeAheadPrediction nextPrediction = getNextPrediction();
-
-      if (nextPrediction != null && nextPrediction.myTypedChars.startsWith("\b")) {
-        myTerminalTextBuffer.addModelListener(new TerminalModelListener() {
-          @Override
-          public void modelChanged() {
-            myTerminalTextBuffer.removeModelListener(this);
-            checkNextPrediction(terminalDataReader);
-          }
-        });
-        return;
-      }
-
-    checkNextPrediction(terminalDataReader);
-     */
     }
   }
 
@@ -200,7 +183,13 @@ public class TerminalTypeAheadManager {
 
     if (lastVisiblePredictionIndex >= 0) {
       TypeAheadPrediction oldPrediction = myPredictions.get(lastVisiblePredictionIndex);
-      TerminalLine predictedLine = createTerminalLinePrediction(terminalLine, cursorX, oldPrediction.myKeyEvents).myTerminalLine;
+
+      TerminalLineWithCursorX lineWCursor = createTerminalLinePrediction(terminalLine, cursorX, oldPrediction.myKeyEvents);
+      if (lineWCursor == null) {
+        throw new IllegalStateException("Old prediction contained invalid key events");
+      }
+      TerminalLine predictedLine = lineWCursor.myTerminalLine;
+
       terminalLine.setTypeAheadLine(predictedLine);
     }
 
@@ -225,7 +214,7 @@ public class TerminalTypeAheadManager {
     }
   }
 
-  private @NotNull TerminalLineWithCursorX createTerminalLinePrediction(TerminalLine initialLine, int initialCursorX, List<KeyEvent> keyEvents) {
+  private @Nullable TerminalLineWithCursorX createTerminalLinePrediction(TerminalLine initialLine, int initialCursorX, List<KeyEvent> keyEvents) {
     TerminalLine predictedLine = initialLine.copy();
     int newCursorX = initialCursorX;
 
@@ -252,7 +241,7 @@ public class TerminalTypeAheadManager {
         } else if (eventKeyCode == KeyEvent.VK_DELETE) {
           predictedLine.deleteCharacters(newCursorX, 1, TextStyle.EMPTY);
         } else { // TODO: del, alt+>, alt+<, enter
-          throw new IllegalStateException("Events should be filtered but keyEvents contained key code " + eventKeyCode);
+          return null;
         }
       }
     }
@@ -295,7 +284,7 @@ public class TerminalTypeAheadManager {
       TypeAheadPrediction lastPrediction = getLastPrediction();
       List<KeyEvent> keyEventList = lastPrediction != null ? new ArrayList<>(lastPrediction.myKeyEvents) : new ArrayList<>();
       keyEventList.add(keyEvent);
-      TypeAheadPrediction prediction = createPrediction(terminalLine, cursorX, keyEventList);
+      TypeAheadPrediction prediction = createPrediction(terminalLine, cursorX, cursorY, keyEventList);
       myPredictions.add(prediction);
       redrawPredictions(terminalLine, cursorX);
     }
@@ -317,8 +306,14 @@ public class TerminalTypeAheadManager {
 
   private @NotNull TypeAheadPrediction createPrediction(@NotNull TerminalLine initialLine,
                                                         int initialCursorX,
+                                                        int initialCursorY,
                                                         @NotNull List<KeyEvent> keyEvents) {
-    int newCursorX = createTerminalLinePrediction(initialLine, initialCursorX, keyEvents).myCursorX;
+    TerminalLineWithCursorX lineWCursor = createTerminalLinePrediction(initialLine, initialCursorX, keyEvents);
+    if (lineWCursor == null) {
+      return new HardBoundary(initialLine, keyEvents, -1);
+    }
+
+    int newCursorX = lineWCursor.myCursorX;
 
     KeyEvent lastKeyEvent = keyEvents.get(keyEvents.size() - 1);
     if (lastKeyEvent.getKeyCode() == KeyEvent.VK_UNDEFINED) { // KEY_TYPED event
@@ -345,20 +340,24 @@ public class TerminalTypeAheadManager {
       if (eventKeyCode == KeyEvent.VK_BACK_SPACE) {
         TypeAheadPrediction backspacePrediction = new BackspacePrediction(initialLine, keyEvents, newCursorX, true); // TODO: delete myIsLastChar or fill with correct data
 
-        if (myLeftMostCursorPosition != null && newCursorX >= myLeftMostCursorPosition) {
+        if (myLeftMostCursorPosition != null && myLeftMostCursorPosition <= newCursorX) {
           return backspacePrediction;
         }
         return new TentativeBoundary(initialLine, keyEvents, newCursorX, backspacePrediction);
-      } else if (eventKeyCode == KeyEvent.VK_LEFT) {
-        // TODO
-      } else if (eventKeyCode == KeyEvent.VK_RIGHT) {
-        // TODO
-      } else { // TODO: del, alt+>, alt+<, enter
+      } else if (eventKeyCode == KeyEvent.VK_LEFT || eventKeyCode == KeyEvent.VK_RIGHT) {
+        TypeAheadPrediction cursorMovePrediction = new CursorMovePrediction(
+                initialLine, keyEvents, newCursorX,
+                initialCursorY, 1, eventKeyCode == KeyEvent.VK_LEFT ? CursorMoveDirection.Back : CursorMoveDirection.Forward);
+
+        System.out.println("CursorX: " + newCursorX + ", terminal line length: " + lineWCursor.myTerminalLine.getText().length());
+        if (myLeftMostCursorPosition != null && myLeftMostCursorPosition <= newCursorX && newCursorX <= lineWCursor.myTerminalLine.getText().length()) {
+          return cursorMovePrediction;
+        }
+        return new TentativeBoundary(initialLine, keyEvents, newCursorX, cursorMovePrediction);
+      } else { // TODO: del, alt+>, alt+<.
         return new HardBoundary(initialLine, keyEvents, newCursorX);
       }
     }
-
-    return new CharacterPrediction(initialLine, keyEvents, newCursorX, 'c'); // TODO: delete
   }
 
   public void addModelListener(@NotNull TerminalModelListener listener) {
@@ -475,10 +474,12 @@ public class TerminalTypeAheadManager {
     }
   }
 
+  final String CSI = (char) CharUtils.ESC + "[";
+
   private abstract static class TypeAheadPrediction {
-    private final TerminalLine myInitialLine;
-    private final int myPredictedCursorX;
-    private List<KeyEvent> myKeyEvents;
+    protected final TerminalLine myInitialLine;
+    protected final int myPredictedCursorX;
+    protected List<KeyEvent> myKeyEvents;
 
     private TypeAheadPrediction(@NotNull TerminalLine initialLine,
                                 @NotNull List<KeyEvent> keyEvents,
@@ -582,7 +583,7 @@ public class TerminalTypeAheadManager {
     }
   }
 
-  private static class BackspacePrediction extends TypeAheadPrediction {
+  private class BackspacePrediction extends TypeAheadPrediction {
     boolean myIsLastChar;
 
     private BackspacePrediction(@NotNull TerminalLine initialLine,
@@ -597,8 +598,6 @@ public class TerminalTypeAheadManager {
     public boolean getClearAfterTimeout() {
       return true;
     }
-
-    final String CSI = (char) CharUtils.ESC + "[";
 
     @Override
     public @NotNull MatchResult matches(TypeaheadStringReader stringReader) {
@@ -618,4 +617,66 @@ public class TerminalTypeAheadManager {
     }
   }
 
+  private enum CursorMoveDirection {
+    Forward('C'),
+    Back('D');
+
+    CursorMoveDirection(char ch) {
+      myChar = ch;
+    }
+
+    char myChar;
+  }
+
+  private class CursorMovePrediction extends TypeAheadPrediction {
+
+    private int myAmount;
+    private CursorMoveDirection myDirection;
+    private int myCursorY;
+
+    private CursorMovePrediction(@NotNull TerminalLine initialLine,
+                                 @NotNull List<KeyEvent> keyEvents,
+                                 int predictedCursorX,
+                                 int cursorY,
+                                 int amount,
+                                 @NotNull CursorMoveDirection direction
+    ) {
+      super(initialLine, keyEvents, predictedCursorX);
+      myAmount = amount;
+      myDirection = direction;
+      myCursorY = cursorY;
+    }
+
+    @Override
+    public boolean getClearAfterTimeout() {
+      return true;
+    }
+
+    @Override
+    public @NotNull MatchResult matches(TypeaheadStringReader stringReader) {
+      MatchResult r1 = stringReader.eatGradually((CSI + myDirection.myChar).repeat(myAmount)); // FIXME: https://github.com/microsoft/vscode/commit/47bbc2f8e7da11305e7d2414b91f0ab8041bbc73
+      if (r1 != MatchResult.Failure) {
+        return r1;
+      }
+
+      if (myDirection == CursorMoveDirection.Back) {
+        MatchResult r2 = stringReader.eatGradually("\b".repeat(myAmount));
+        if (r2 != MatchResult.Failure) {
+          return r2;
+        }
+      }
+
+      MatchResult r3 = stringReader.eatGradually(CSI + myAmount + myDirection.myChar);
+      if (r3 != MatchResult.Failure) {
+        return r3;
+      }
+
+      MatchResult r4 = stringReader.eatGradually(CSI + (myCursorY + 1) + ";" + (myPredictedCursorX + 1) + "H"); // TODO: check if this works
+      if (r4 != MatchResult.Failure) {
+        return r4;
+      }
+
+      return MatchResult.Failure;
+    }
+  }
 }

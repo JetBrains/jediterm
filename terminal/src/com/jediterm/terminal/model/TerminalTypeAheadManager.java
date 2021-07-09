@@ -119,15 +119,54 @@ public class TerminalTypeAheadManager {
     }
   }
 
-  private void checkNextPrediction(TypeaheadStringReader stringReader) {
+  public void onKeyEvent(KeyEvent keyEvent) {
+    if (!mySettingsProvider.isTypeAheadEnabled()) {
+      return;
+    }
+    long prevTypedTime = myLastTypedTime;
+    myLastTypedTime = System.nanoTime();
+    if (myOutOfSyncDetected && TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - prevTypedTime) < AUTO_SYNC_DELAY) {
+      clearPredictions();
+      return;
+    }
+
+    myTerminalTextBuffer.lock();
+    int cursorX, cursorY;
+    TerminalLine terminalLine;
+
     try {
-      doCheckNextPrediction(stringReader);
-    } catch (Exception e) {
-      LOG.error("Unhandled exception", e);
+      cursorX = myTerminal.getCursorX() - 1;
+      cursorY = myTerminal.getCursorY() - 1;
+      terminalLine = myTerminalTextBuffer.getLine(cursorY);
+    } finally {
+      myTerminalTextBuffer.unlock();
+    }
+
+    updateLeftMostCursorPosition(cursorX);
+
+    synchronized (LOCK) {
+      myOutOfSyncDetected = false;
+      System.out.println("Typed " + (char) keyEvent.getKeyCode() + " (" + keyEvent.getKeyCode() + ")");
+      if (terminalLine == null) {
+        clearPredictions();
+        return;
+      }
+      TypeAheadPrediction lastPrediction = getLastPrediction();
+      List<KeyEvent> keyEventList = lastPrediction != null ? new ArrayList<>(lastPrediction.myKeyEvents) : new ArrayList<>();
+      keyEventList.add(keyEvent);
+      TypeAheadPrediction prediction = createPrediction(terminalLine, cursorX, cursorY, keyEventList);
+      myPredictions.add(prediction);
+      redrawPredictions(terminalLine, cursorX);
     }
   }
 
-  private void doCheckNextPrediction(TypeaheadStringReader stringReader) {
+  public void addModelListener(@NotNull TerminalModelListener listener) {
+    myListeners.add(listener);
+  }
+
+  public int getCursorX() {
+    TypeAheadPrediction prediction = getLastVisiblePrediction();
+    return prediction == null ? myTerminal.getCursorX() : prediction.myPredictedCursorX + 1;
   }
 
   private @Nullable TypeAheadPrediction getNextPrediction() {
@@ -249,47 +288,6 @@ public class TerminalTypeAheadManager {
     return new TerminalLineWithCursorX(predictedLine, newCursorX);
   }
 
-  public void onKeyEvent(KeyEvent keyEvent) {
-    if (!mySettingsProvider.isTypeAheadEnabled()) {
-      return;
-    }
-    long prevTypedTime = myLastTypedTime;
-    myLastTypedTime = System.nanoTime();
-    if (myOutOfSyncDetected && TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - prevTypedTime) < AUTO_SYNC_DELAY) {
-      clearPredictions();
-      return;
-    }
-
-    myTerminalTextBuffer.lock();
-    int cursorX, cursorY;
-    TerminalLine terminalLine;
-
-    try {
-      cursorX = myTerminal.getCursorX() - 1;
-      cursorY = myTerminal.getCursorY() - 1;
-      terminalLine = myTerminalTextBuffer.getLine(cursorY);
-    } finally {
-      myTerminalTextBuffer.unlock();
-    }
-
-    updateLeftMostCursorPosition(cursorX);
-
-    synchronized (LOCK) {
-      myOutOfSyncDetected = false;
-      System.out.println("Typed " + (char) keyEvent.getKeyCode() + " (" + keyEvent.getKeyCode() + ")");
-      if (terminalLine == null) {
-        clearPredictions();
-        return;
-      }
-      TypeAheadPrediction lastPrediction = getLastPrediction();
-      List<KeyEvent> keyEventList = lastPrediction != null ? new ArrayList<>(lastPrediction.myKeyEvents) : new ArrayList<>();
-      keyEventList.add(keyEvent);
-      TypeAheadPrediction prediction = createPrediction(terminalLine, cursorX, cursorY, keyEventList);
-      myPredictions.add(prediction);
-      redrawPredictions(terminalLine, cursorX);
-    }
-  }
-
   private void clearPredictions() {
     boolean fireChange = !myPredictions.isEmpty();
     for (TypeAheadPrediction prediction : myPredictions) {
@@ -360,10 +358,6 @@ public class TerminalTypeAheadManager {
     }
   }
 
-  public void addModelListener(@NotNull TerminalModelListener listener) {
-    myListeners.add(listener);
-  }
-
   private void fireModelChanged() {
     for (TerminalModelListener listener : myListeners) {
       listener.modelChanged();
@@ -377,11 +371,6 @@ public class TerminalTypeAheadManager {
       myTypeAheadTextStyle = textStyle;
     }
     return textStyle;
-  }
-
-  public int getCursorX() {
-    TypeAheadPrediction prediction = getLastVisiblePrediction();
-    return prediction == null ? myTerminal.getCursorX() : prediction.myPredictedCursorX + 1;
   }
 
   private enum MatchResult {
@@ -474,7 +463,7 @@ public class TerminalTypeAheadManager {
     }
   }
 
-  final String CSI = (char) CharUtils.ESC + "[";
+  private final String CSI = (char) CharUtils.ESC + "[";
 
   private abstract static class TypeAheadPrediction {
     protected final TerminalLine myInitialLine;

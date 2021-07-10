@@ -8,8 +8,10 @@ import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
@@ -70,6 +72,9 @@ public class TerminalTypeAheadManager {
 
     synchronized (LOCK) {
       TerminalLineWithCursor terminalLineWithCursor = getTerminalLineWithCursor();
+      if (!myPredictions.isEmpty()) {
+        updateLeftMostCursorPosition(terminalLineWithCursor.myCursorX);
+      }
 
       while (!myPredictions.isEmpty() && terminalDataReader.remaining() > 0) {
         // TODO: vscode omits some char sequences from sending to the prediction engine, maybe we should too.
@@ -91,6 +96,7 @@ public class TerminalTypeAheadManager {
     }
 
     TerminalLineWithCursor terminalLineWithCursor = getTerminalLineWithCursor();
+    updateLeftMostCursorPosition(terminalLineWithCursor.myCursorX);
 
     synchronized (LOCK) {
       myOutOfSyncDetected = false;
@@ -151,8 +157,7 @@ public class TerminalTypeAheadManager {
       cursorX = myTerminal.getCursorX() - 1;
       cursorY = myTerminal.getCursorY() - 1;
       terminalLine = myTerminalTextBuffer.getLine(cursorY);
-      
-      updateLeftMostCursorPosition(cursorX);
+
       return new TerminalLineWithCursor(terminalLine, cursorX, cursorY);
     } finally {
       myTerminalTextBuffer.unlock();
@@ -223,9 +228,6 @@ public class TerminalTypeAheadManager {
       TypeAheadPrediction oldPrediction = myPredictions.get(lastVisiblePredictionIndex);
 
       TerminalLineWithCursor lineWCursor = createTerminalLinePrediction(terminalLineWithCursor, oldPrediction.myKeyEvents);
-      if (lineWCursor == null) {
-        throw new IllegalStateException("Old prediction contained invalid key events");
-      }
       TerminalLine predictedLine = lineWCursor.myTerminalLine;
 
       terminalLineWithCursor.myTerminalLine.setTypeAheadLine(predictedLine);
@@ -254,34 +256,31 @@ public class TerminalTypeAheadManager {
     }
   }
 
-  private @Nullable TerminalLineWithCursor createTerminalLinePrediction(TerminalLineWithCursor initialLineWithCursor, List<KeyEvent> keyEvents) {
+  private @NotNull TerminalLineWithCursor createTerminalLinePrediction(TerminalLineWithCursor initialLineWithCursor, List<KeyEvent> keyEvents) {
     TerminalLine predictedLine = initialLineWithCursor.myTerminalLine.copy();
     int newCursorX = initialLineWithCursor.myCursorX;
 
     for (KeyEvent keyEvent : keyEvents) {
-      if (keyEvent.getKeyCode() == KeyEvent.VK_UNDEFINED) { // KEY_TYPED event
+      if (KeyEventHelper.isKeyTypedEvent(keyEvent)) {
         predictedLine.writeString(newCursorX, new CharBuffer(keyEvent.getKeyChar(), 1), getTextStyle());
         newCursorX++;
       } else { // KEY_PRESSED or KEY_RELEASED
         int eventKeyCode = keyEvent.getKeyCode();
 
-        if (eventKeyCode == KeyEvent.VK_BACK_SPACE) {
+        if (KeyEventHelper.isBackspace(keyEvent)) {
           if (newCursorX > 0) {
             newCursorX--;
             predictedLine.deleteCharacters(newCursorX, 1, TextStyle.EMPTY);
           }
-        } else if (eventKeyCode == KeyEvent.VK_LEFT) {
-          if (newCursorX > 0) {
-            newCursorX--;
-          }
-        } else if (eventKeyCode == KeyEvent.VK_RIGHT) {
-          if (newCursorX < myTerminal.getTerminalWidth() - 1) {
-            newCursorX++;
-          }
-        } else if (eventKeyCode == KeyEvent.VK_DELETE) {
+        } else if (KeyEventHelper.isArrowKey(keyEvent)) {
+          newCursorX += eventKeyCode == KeyEvent.VK_RIGHT ? 1 : -1;
+        } else if (KeyEventHelper.isAltArrowKey(keyEvent)) {
+          CursorMoveDirection direction = eventKeyCode == KeyEvent.VK_RIGHT ? CursorMoveDirection.Forward : CursorMoveDirection.Back;
+          newCursorX = moveToWordBoundary(predictedLine.getText(), newCursorX, direction);
+        } else if (false) { // TODO: delete or implement del
           predictedLine.deleteCharacters(newCursorX, 1, TextStyle.EMPTY);
         } else { // TODO: del, alt+>, alt+<, enter
-          return null;
+          throw new IllegalStateException("Characters should be filtered but typedChar contained key code " + eventKeyCode);
         }
       }
     }
@@ -306,19 +305,16 @@ public class TerminalTypeAheadManager {
   private @NotNull TypeAheadPrediction createPrediction(@NotNull TerminalLineWithCursor initialLineWithCursor,
                                                         @NotNull List<KeyEvent> keyEvents) {
     TerminalLine initialLine = initialLineWithCursor.myTerminalLine;
-    TerminalLineWithCursor newLineWCursor = createTerminalLinePrediction(initialLineWithCursor, keyEvents);
+    TerminalLineWithCursor newLineWCursor = createTerminalLinePrediction(initialLineWithCursor, keyEvents.subList(0, keyEvents.size() - 1));
 
-    if (newLineWCursor == null) {
+    if (getLastPrediction() instanceof HardBoundary) {
       return new HardBoundary(initialLine, keyEvents, -1);
     }
 
-    int newCursorX = newLineWCursor.myCursorX;
-
     KeyEvent lastKeyEvent = keyEvents.get(keyEvents.size() - 1);
-    if (lastKeyEvent.getKeyCode() == KeyEvent.VK_UNDEFINED) { // KEY_TYPED event
-      System.out.println("createPrediction: " + lastKeyEvent.getKeyChar() + " (" + (int) lastKeyEvent.getKeyChar() + ")");
-
-      TypeAheadPrediction charPrediction = new CharacterPrediction(initialLine, keyEvents, newCursorX, lastKeyEvent.getKeyChar());
+    if (KeyEventHelper.isKeyTypedEvent(lastKeyEvent)) {
+      newLineWCursor = createTerminalLinePrediction(newLineWCursor, Collections.singletonList(lastKeyEvent));
+      TypeAheadPrediction charPrediction = new CharacterPrediction(initialLine, keyEvents, newLineWCursor.myCursorX, lastKeyEvent.getKeyChar());
 
       if (myIsNotPasswordPrompt) {
         return charPrediction;
@@ -326,38 +322,85 @@ public class TerminalTypeAheadManager {
 
       for (TypeAheadPrediction prediction : myPredictions) {
         if (prediction instanceof CharacterPrediction
-                || (prediction instanceof TentativeBoundary && ((TentativeBoundary) prediction).myInnerPrediction instanceof CharacterPrediction)) {
+                || (prediction instanceof TentativeBoundary
+                && ((TentativeBoundary) prediction).myInnerPrediction instanceof CharacterPrediction)) {
           return charPrediction;
         }
       }
 
-      return new TentativeBoundary(initialLine, keyEvents, newCursorX, charPrediction);
-    } else { // KEY_PRESSED or KEY_RELEASED
-      System.out.println("createPrediction: " + lastKeyEvent.getKeyCode());
-      int eventKeyCode = lastKeyEvent.getKeyCode();
+      return new TentativeBoundary(charPrediction);
+    } else if (KeyEventHelper.isBackspace(lastKeyEvent)) {
+      newLineWCursor = createTerminalLinePrediction(newLineWCursor, Collections.singletonList(lastKeyEvent));
 
-      if (eventKeyCode == KeyEvent.VK_BACK_SPACE) {
-        TypeAheadPrediction backspacePrediction = new BackspacePrediction(initialLine, keyEvents, newCursorX, true); // TODO: delete myIsLastChar or fill with correct data
+      TypeAheadPrediction backspacePrediction = new BackspacePrediction(initialLine, keyEvents, newLineWCursor.myCursorX, true); // TODO: delete myIsLastChar or fill with correct data
 
-        if (myLeftMostCursorPosition != null && myLeftMostCursorPosition <= newCursorX) {
-          return backspacePrediction;
-        }
-        return new TentativeBoundary(initialLine, keyEvents, newCursorX, backspacePrediction);
-      } else if (eventKeyCode == KeyEvent.VK_LEFT || eventKeyCode == KeyEvent.VK_RIGHT) {
-        TypeAheadPrediction cursorMovePrediction = new CursorMovePrediction(
-                initialLine, keyEvents, newCursorX,
-                initialLineWithCursor.myCursorY, 1,
-                eventKeyCode == KeyEvent.VK_LEFT ? CursorMoveDirection.Back : CursorMoveDirection.Forward);
-
-        System.out.println("CursorX: " + newCursorX + ", terminal line length: " + newLineWCursor.myTerminalLine.getText().length());
-        if (myLeftMostCursorPosition != null && myLeftMostCursorPosition <= newCursorX && newCursorX <= newLineWCursor.myTerminalLine.getText().length()) {
-          return cursorMovePrediction;
-        }
-        return new TentativeBoundary(initialLine, keyEvents, newCursorX, cursorMovePrediction);
-      } else { // TODO: del, alt+>, alt+<.
-        return new HardBoundary(initialLine, keyEvents, newCursorX);
+      if (myLeftMostCursorPosition != null && myLeftMostCursorPosition <= newLineWCursor.myCursorX) {
+        return backspacePrediction;
       }
+      return new TentativeBoundary(backspacePrediction);
+    } else if (KeyEventHelper.isArrowKey(lastKeyEvent)) {
+      newLineWCursor = createTerminalLinePrediction(newLineWCursor, Collections.singletonList(lastKeyEvent));
+
+      TypeAheadPrediction cursorMovePrediction = new CursorMovePrediction(
+              initialLine, keyEvents, newLineWCursor.myCursorX,
+              initialLineWithCursor.myCursorY, 1,
+              lastKeyEvent.getKeyCode() == KeyEvent.VK_LEFT ? CursorMoveDirection.Back : CursorMoveDirection.Forward);
+
+      if (myLeftMostCursorPosition != null && myLeftMostCursorPosition <= newLineWCursor.myCursorX && newLineWCursor.myCursorX <= newLineWCursor.myTerminalLine.getText().length()) {
+        return cursorMovePrediction;
+      }
+      return new TentativeBoundary(cursorMovePrediction);
+    } else if (KeyEventHelper.isAltArrowKey(lastKeyEvent)) {
+      int oldCursorX = newLineWCursor.myCursorX;
+      newLineWCursor = createTerminalLinePrediction(newLineWCursor, Collections.singletonList(lastKeyEvent));
+
+      CursorMoveDirection direction = lastKeyEvent.getKeyCode() == KeyEvent.VK_RIGHT ? CursorMoveDirection.Forward : CursorMoveDirection.Back;
+      int amount = Math.abs(newLineWCursor.myCursorX - oldCursorX);
+
+      TypeAheadPrediction cursorMovePrediction = new CursorMovePrediction(
+              initialLine, keyEvents, newLineWCursor.myCursorX,
+              initialLineWithCursor.myCursorY, amount, direction);
+
+      if (myLeftMostCursorPosition != null && myLeftMostCursorPosition <= newLineWCursor.myCursorX
+              && newLineWCursor.myCursorX <= newLineWCursor.myTerminalLine.getText().length()) {
+        return cursorMovePrediction;
+      }
+      return new TentativeBoundary(cursorMovePrediction);
+    } else { // TODO: del, alt+>, alt+<.
+      return new HardBoundary(initialLine, keyEvents, -1);
     }
+  }
+
+  private int moveToWordBoundary(String text, int index, CursorMoveDirection direction) {
+    if (direction == CursorMoveDirection.Back) {
+      index -= 1;
+    }
+
+    boolean ateLeadingWhitespace = false;
+    while (index >= 0) {
+      if (index >= text.length()) {
+        return index;
+      }
+
+      char currentChar = text.charAt(index);
+      if ((currentChar >= 'a' && currentChar <= 'z')
+              || (currentChar >= 'A' && currentChar <= 'Z')
+              || (currentChar >= '0' && currentChar <= '9')) {
+        ateLeadingWhitespace = true;
+      } else {
+        if (ateLeadingWhitespace) {
+          break;
+        }
+      }
+
+      index += direction == CursorMoveDirection.Forward ? 1 : -1;
+    }
+
+    if (direction == CursorMoveDirection.Back) {
+      index += 1;
+    }
+
+    return index;
   }
 
   private void fireModelChanged() {
@@ -509,8 +552,8 @@ public class TerminalTypeAheadManager {
   private static class TentativeBoundary extends TypeAheadPrediction {
     final TypeAheadPrediction myInnerPrediction;
 
-    private TentativeBoundary(@NotNull TerminalLine initialLine, @NotNull List<KeyEvent> keyEvents, int predictedCursorX, TypeAheadPrediction innerPrediction) {
-      super(initialLine, keyEvents, predictedCursorX);
+    private TentativeBoundary(TypeAheadPrediction innerPrediction) {
+      super(innerPrediction.myInitialLine, innerPrediction.myKeyEvents, innerPrediction.myPredictedCursorX);
       myInnerPrediction = innerPrediction;
     }
 
@@ -666,6 +709,33 @@ public class TerminalTypeAheadManager {
       }
 
       return MatchResult.Failure;
+    }
+  }
+
+  private static class KeyEventHelper {
+    private final static int allModifiersMask = InputEvent.ALT_DOWN_MASK
+            | InputEvent.SHIFT_DOWN_MASK
+            | InputEvent.CTRL_DOWN_MASK
+            | InputEvent.META_DOWN_MASK
+            | InputEvent.ALT_GRAPH_DOWN_MASK;
+
+    static boolean isKeyTypedEvent(KeyEvent keyEvent) {
+      return keyEvent.getKeyCode() == KeyEvent.VK_UNDEFINED;
+    }
+
+    static boolean isBackspace(KeyEvent keyEvent) {
+      return keyEvent.getKeyCode() == KeyEvent.VK_BACK_SPACE
+              && (keyEvent.getModifiersEx() & allModifiersMask) == 0;
+    }
+
+    static boolean isArrowKey(KeyEvent keyEvent) {
+      return (keyEvent.getKeyCode() == KeyEvent.VK_LEFT || keyEvent.getKeyCode() == KeyEvent.VK_RIGHT)
+              && (keyEvent.getModifiersEx() & allModifiersMask) == 0;
+    }
+
+    static boolean isAltArrowKey(KeyEvent keyEvent) {
+      return (keyEvent.getKeyCode() == KeyEvent.VK_LEFT || keyEvent.getKeyCode() == KeyEvent.VK_RIGHT)
+              && (keyEvent.getModifiersEx() & allModifiersMask) == InputEvent.ALT_DOWN_MASK;
     }
   }
 }

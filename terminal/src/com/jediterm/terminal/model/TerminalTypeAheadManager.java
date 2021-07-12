@@ -170,8 +170,7 @@ public class TerminalTypeAheadManager {
     switch (nextPrediction.matches(terminalDataReader)) {
       case Success:
         System.out.println("Match: success");
-        if (nextPrediction instanceof TentativeBoundary
-                && ((TentativeBoundary) nextPrediction).myInnerPrediction instanceof CharacterPrediction) {
+        if (nextPrediction.getCharacterOrNull() != null) {
           myIsNotPasswordPrompt = true;
         }
 
@@ -289,9 +288,7 @@ public class TerminalTypeAheadManager {
       updateTerminalLinePrediction(newLineWCursor, keyEvent);
 
       boolean hasCharacterPredictions = myPredictions.stream().anyMatch((TypeAheadPrediction prediction) ->
-              prediction instanceof CharacterPrediction
-                      || (prediction instanceof TentativeBoundary
-                      && ((TentativeBoundary) prediction).myInnerPrediction instanceof CharacterPrediction));
+              prediction.getCharacterOrNull() != null);
 
       return constructPrediction(
               new CharacterPrediction(initialLine, keyEvent, newLineWCursor.myCursorX),
@@ -489,6 +486,24 @@ public class TerminalTypeAheadManager {
 
     public abstract boolean getClearAfterTimeout();
 
+    public @Nullable Character getCharacterOrNull() {
+      if (this instanceof CharacterPrediction) {
+        return ((CharacterPrediction) this).getCharacter();
+      }
+
+      if (!(this instanceof TentativeBoundary)) {
+        return null;
+      }
+
+      TentativeBoundary tentativeBoundary = (TentativeBoundary) this;
+
+      if (tentativeBoundary.myInnerPrediction instanceof CharacterPrediction) {
+        return ((CharacterPrediction) tentativeBoundary.myInnerPrediction).getCharacter();
+      }
+
+      return null;
+    }
+
     public abstract @NotNull MatchResult matches(TypeaheadStringReader stringReader);
   }
 
@@ -563,9 +578,9 @@ public class TerminalTypeAheadManager {
         return MatchResult.Success;
       }
 
-      if (myLastSuccessfulPrediction != null && myLastSuccessfulPrediction instanceof CharacterPrediction) {
+      if (myLastSuccessfulPrediction.getCharacterOrNull() != null) {
         // vscode #112842
-        String zshPrediction = "\b" + ((CharacterPrediction) myLastSuccessfulPrediction).getCharacter() + getCharacter();
+        String zshPrediction = "\b" + myLastSuccessfulPrediction.getCharacterOrNull() + getCharacter();
         MatchResult zshMatchResult = stringReader.eatGradually(zshPrediction);
         if (zshMatchResult != MatchResult.Failure) {
           return zshMatchResult;

@@ -348,9 +348,7 @@ public class TerminalTypeAheadManager {
       }
 
       char currentChar = text.charAt(index);
-      if ((currentChar >= 'a' && currentChar <= 'z')
-              || (currentChar >= 'A' && currentChar <= 'Z')
-              || (currentChar >= '0' && currentChar <= '9')) {
+      if (Character.isLetterOrDigit(currentChar)) {
         ateLeadingWhitespace = true;
       } else {
         if (ateLeadingWhitespace) {

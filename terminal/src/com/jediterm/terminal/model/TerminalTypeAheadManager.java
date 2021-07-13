@@ -12,14 +12,14 @@ import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class TerminalTypeAheadManager {
 
   private static final int AUTO_SYNC_DELAY = 2000;
+  private static final int AUTO_CLEAR_PREDICTIONS_DELAY = 1000;
   private static final Logger LOG = Logger.getLogger(TerminalTypeAheadManager.class);
 
   private final Object LOCK = new Object();
@@ -28,10 +28,12 @@ public class TerminalTypeAheadManager {
   private final List<TerminalModelListener> myListeners = new CopyOnWriteArrayList<>();
   private final List<TypeAheadPrediction> myPredictions = new ArrayList<>();
   private final JediTerminal myTerminal;
+  private final Debouncer myDeferClearingPredictions;
+
   private TextStyle myTypeAheadTextStyle;
   private boolean myOutOfSyncDetected;
   private long myLastTypedTime;
-  private TypeAheadPrediction myLastSuccessfulPrediction;
+  private TypeAheadPrediction myLastSuccessfulPrediction = null;
   private String myTerminalDataBuffer = "";
   private Integer myLeftMostCursorPosition = null;
   private boolean myIsNotPasswordPrompt = false;
@@ -42,6 +44,8 @@ public class TerminalTypeAheadManager {
     myTerminalTextBuffer = terminalTextBuffer;
     myTerminal = terminal;
     mySettingsProvider = settingsProvider;
+
+    myDeferClearingPredictions = new Debouncer(new TimeoutPredictionCleaner(), AUTO_CLEAR_PREDICTIONS_DELAY);
   }
 
   public void onTerminalData(char[] buffer, int offset, int count) {
@@ -69,10 +73,14 @@ public class TerminalTypeAheadManager {
 
     TypeaheadStringReader terminalDataReader = new TypeaheadStringReader(terminalData);
 
+    TerminalLineWithCursor terminalLineWithCursor = getTerminalLineWithCursor();
     synchronized (LOCK) {
-      TerminalLineWithCursor terminalLineWithCursor = getTerminalLineWithCursor();
       if (!myPredictions.isEmpty()) {
         updateLeftMostCursorPosition(terminalLineWithCursor.myCursorX);
+        myDeferClearingPredictions.call();
+      } else {
+        resetState();
+        return;
       }
 
       while (!myPredictions.isEmpty() && terminalDataReader.remaining() > 0) {
@@ -87,20 +95,25 @@ public class TerminalTypeAheadManager {
     if (!mySettingsProvider.isTypeAheadEnabled()) {
       return;
     }
-    long prevTypedTime = myLastTypedTime;
-    myLastTypedTime = System.nanoTime();
-    if (myOutOfSyncDetected && TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - prevTypedTime) < AUTO_SYNC_DELAY) {
-      clearPredictions();
-      return;
-    }
 
     TerminalLineWithCursor terminalLineWithCursor = getTerminalLineWithCursor();
-    updateLeftMostCursorPosition(terminalLineWithCursor.myCursorX);
 
     synchronized (LOCK) {
+      long prevTypedTime = myLastTypedTime;
+      myLastTypedTime = System.nanoTime();
+      if (myOutOfSyncDetected && TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - prevTypedTime) < AUTO_SYNC_DELAY) {
+        resetState();
+        return;
+      }
+
+      updateLeftMostCursorPosition(terminalLineWithCursor.myCursorX);
+
       myOutOfSyncDetected = false;
       System.out.println("Typed " + (char) keyEvent.getKeyCode() + " (" + keyEvent.getKeyCode() + ")");
 
+      if (myPredictions.isEmpty()) {
+        myDeferClearingPredictions.call(); // start a timer that will clear predictions
+      }
       TypeAheadPrediction prediction = createPrediction(terminalLineWithCursor, keyEvent);
       myPredictions.add(prediction);
       redrawPredictions(terminalLineWithCursor);
@@ -108,7 +121,7 @@ public class TerminalTypeAheadManager {
   }
 
   public void onResize() {
-    clearPredictions();
+    resetState();
   }
 
   public void addModelListener(@NotNull TerminalModelListener listener) {
@@ -116,8 +129,10 @@ public class TerminalTypeAheadManager {
   }
 
   public int getCursorX() {
-    TypeAheadPrediction prediction = getLastVisiblePrediction();
-    return prediction == null ? myTerminal.getCursorX() : prediction.myPredictedCursorX + 1;
+    synchronized (LOCK) {
+      TypeAheadPrediction prediction = getLastVisiblePrediction();
+      return prediction == null ? myTerminal.getCursorX() : prediction.myPredictedCursorX + 1;
+    }
   }
 
   private @Nullable TypeAheadPrediction getNextPrediction() {
@@ -167,7 +182,7 @@ public class TerminalTypeAheadManager {
     }
 
     int readerIndexBeforeMatching = terminalDataReader.myIndex;
-    switch (nextPrediction.matches(terminalDataReader)) {
+    switch (nextPrediction.matches(terminalDataReader, terminalLineWithCursor.myCursorX)) {
       case Success:
         System.out.println("Match: success");
         if (nextPrediction.getCharacterOrNull() != null) {
@@ -186,7 +201,7 @@ public class TerminalTypeAheadManager {
       case Failure: // TODO: onFailure needs rework
         System.out.println("Match: failure");
         myOutOfSyncDetected = true;
-        clearPredictions();
+        resetState();
     }
     return false;
   }
@@ -257,15 +272,22 @@ public class TerminalTypeAheadManager {
     terminalLineWithCursor.myCursorX = newCursorX;
   }
 
-  private void clearPredictions() {
+  private void resetState() {
     boolean fireChange = !myPredictions.isEmpty();
+
     for (TypeAheadPrediction prediction : myPredictions) {
       prediction.myInitialLine.setTypeAheadLine(null);
     }
+    if (myLastSuccessfulPrediction != null) {
+      myLastSuccessfulPrediction.myInitialLine.setTypeAheadLine(null);
+    }
+
     myPredictions.clear();
     myTerminalDataBuffer = "";
     myLeftMostCursorPosition = null;
     myIsNotPasswordPrompt = false;
+    myLastSuccessfulPrediction = null;
+    myDeferClearingPredictions.terminateCall();
     if (fireChange) {
       fireModelChanged();
     }
@@ -504,7 +526,7 @@ public class TerminalTypeAheadManager {
       return null;
     }
 
-    public abstract @NotNull MatchResult matches(TypeaheadStringReader stringReader);
+    public abstract @NotNull MatchResult matches(TypeaheadStringReader stringReader, int cursorX);
   }
 
   private static class HardBoundary extends TypeAheadPrediction {
@@ -518,7 +540,7 @@ public class TerminalTypeAheadManager {
     }
 
     @Override
-    public @NotNull MatchResult matches(TypeaheadStringReader stringReader) {
+    public @NotNull MatchResult matches(TypeaheadStringReader stringReader, int cursorX) {
       return MatchResult.Failure;
     }
   }
@@ -537,8 +559,8 @@ public class TerminalTypeAheadManager {
     }
 
     @Override
-    public @NotNull MatchResult matches(TypeaheadStringReader stringReader) {
-      return myInnerPrediction.matches(stringReader);
+    public @NotNull MatchResult matches(TypeaheadStringReader stringReader, int cursorX) {
+      return myInnerPrediction.matches(stringReader, cursorX);
     }
   }
 
@@ -559,10 +581,7 @@ public class TerminalTypeAheadManager {
     }
 
     @Override
-    public @NotNull MatchResult matches(TypeaheadStringReader stringReader) {
-      int startIndex = stringReader.myIndex;
-
-
+    public @NotNull MatchResult matches(TypeaheadStringReader stringReader, int cursorX) {
       // remove any styling CSI before checking the char
       String eaten;
       Pattern CSI_STYLE_RE = Pattern.compile("^\\x1b\\[[0-9;]*m"); // TODO: test regex
@@ -570,25 +589,22 @@ public class TerminalTypeAheadManager {
         eaten = stringReader.eatRe(CSI_STYLE_RE);
       } while (eaten != null && !eaten.isEmpty());
 
+      MatchResult result = MatchResult.Failure;
+
       if (stringReader.eof()) {
-        return MatchResult.Buffer;
-      }
-
-      if (stringReader.eatChar(getCharacter()) != null) {
-        return MatchResult.Success;
-      }
-
-      if (myLastSuccessfulPrediction.getCharacterOrNull() != null) {
+        result = MatchResult.Buffer;
+      } else if (stringReader.eatChar(getCharacter()) != null) {
+        result = MatchResult.Success;
+      } else if (myLastSuccessfulPrediction != null && myLastSuccessfulPrediction.getCharacterOrNull() != null) {
         // vscode #112842
         String zshPrediction = "\b" + myLastSuccessfulPrediction.getCharacterOrNull() + getCharacter();
-        MatchResult zshMatchResult = stringReader.eatGradually(zshPrediction);
-        if (zshMatchResult != MatchResult.Failure) {
-          return zshMatchResult;
-        }
+        result = stringReader.eatGradually(zshPrediction);
       }
 
-      stringReader.myIndex = startIndex;
-      return MatchResult.Failure;
+      if (result == MatchResult.Success && cursorX != myPredictedCursorX) {
+        result = MatchResult.Failure;
+      }
+      return result;
     }
   }
 
@@ -609,17 +625,22 @@ public class TerminalTypeAheadManager {
     }
 
     @Override
-    public @NotNull MatchResult matches(TypeaheadStringReader stringReader) {
+    public @NotNull MatchResult matches(TypeaheadStringReader stringReader, int cursorX) {
+      MatchResult result = MatchResult.Failure;
+
       if (myIsLastChar) {
         MatchResult r1 = stringReader.eatGradually("\b" + CSI + "K");
         if (r1 != MatchResult.Failure) {
-          return r1;
+          result = r1;
+        } else {
+          result = stringReader.eatGradually("\b \b");
         }
-
-        return stringReader.eatGradually("\b \b");
       }
 
-      return MatchResult.Failure;
+      if (result == MatchResult.Success && cursorX != myPredictedCursorX) {
+        result = MatchResult.Failure;
+      }
+      return result;
     }
   }
 
@@ -657,8 +678,7 @@ public class TerminalTypeAheadManager {
       return true;
     }
 
-    @Override
-    public @NotNull MatchResult matches(TypeaheadStringReader stringReader) {
+    private @NotNull MatchResult _matches(TypeaheadStringReader stringReader) {
       MatchResult r1 = stringReader.eatGradually((CSI + myDirection.myChar).repeat(myAmount)); // FIXME: https://github.com/microsoft/vscode/commit/47bbc2f8e7da11305e7d2414b91f0ab8041bbc73
       if (r1 != MatchResult.Failure) {
         return r1;
@@ -676,12 +696,18 @@ public class TerminalTypeAheadManager {
         return r3;
       }
 
-      MatchResult r4 = stringReader.eatGradually(CSI + (myCursorY + 1) + ";" + (myPredictedCursorX + 1) + "H"); // TODO: check if this works
-      if (r4 != MatchResult.Failure) {
-        return r4;
+      return stringReader.eatGradually(CSI + (myCursorY + 1) + ";" + (myPredictedCursorX + 1) + "H");
+    }
+
+    @Override
+    public @NotNull MatchResult matches(TypeaheadStringReader stringReader, int cursorX) {
+      MatchResult result = _matches(stringReader);
+
+      if (result == MatchResult.Success && cursorX != myPredictedCursorX) {
+        result = MatchResult.Failure;
       }
 
-      return MatchResult.Failure;
+      return result;
     }
   }
 
@@ -709,6 +735,98 @@ public class TerminalTypeAheadManager {
     static boolean isAltArrowKey(KeyEvent keyEvent) {
       return (keyEvent.getKeyCode() == KeyEvent.VK_LEFT || keyEvent.getKeyCode() == KeyEvent.VK_RIGHT)
               && (keyEvent.getModifiersEx() & allModifiersMask) == InputEvent.ALT_DOWN_MASK;
+    }
+  }
+
+  public interface Callback {
+    void call();
+  }
+
+  // inspired by https://stackoverflow.com/questions/4742210/implementing-debounce-in-java
+  public static class Debouncer {
+    private final ScheduledExecutorService myScheduler = Executors.newScheduledThreadPool(1);
+    private TimerTask myTimerTask = null;
+    private final Callback myCallback;
+    private final int myInterval;
+    private final Object myLock = new Object();
+
+    public Debouncer(Callback callback, int interval) {
+      this.myCallback = callback;
+      this.myInterval = interval;
+    }
+
+    public void call() {
+      synchronized (myLock) {
+        do {
+          if (myTimerTask == null) {
+            myTimerTask = new TimerTask();
+            myScheduler.schedule(myTimerTask, myInterval, TimeUnit.MILLISECONDS);
+          }
+        } while (myTimerTask == null || !myTimerTask.extend());
+      }
+    }
+
+    public void terminateCall() {
+      if (myTimerTask != null) {
+        myTimerTask.cancel();
+      }
+    }
+
+    // The task that wakes up when the wait time elapses
+    private class TimerTask implements Runnable {
+      private long myDueTime;
+      private boolean myCanceled;
+
+      public TimerTask() {
+        extend();
+      }
+
+      public boolean extend() {
+        if (myDueTime < 0) // Task has been shutdown
+          return false;
+        myDueTime = System.currentTimeMillis() + myInterval;
+        return true;
+      }
+
+      public void cancel() {
+        synchronized (myLock) {
+          myCanceled = true;
+          if (this == myTimerTask) {
+            myTimerTask = null;
+          }
+        }
+      }
+
+      public void run() {
+        synchronized (myLock) {
+          if (myCanceled) {
+            return;
+          }
+
+          long remaining = myDueTime - System.currentTimeMillis();
+          if (remaining > 0) { // Re-schedule task
+            myScheduler.schedule(this, remaining, TimeUnit.MILLISECONDS);
+          } else { // Mark as terminated and invoke callback
+            myDueTime = -1;
+            try {
+              myCallback.call();
+            } finally {
+              myTimerTask = null;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  public class TimeoutPredictionCleaner implements Callback {
+    @Override
+    public void call() {
+      synchronized (LOCK) {
+        if (!myPredictions.isEmpty()) {
+          resetState();
+        }
+      }
     }
   }
 }

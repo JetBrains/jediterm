@@ -48,33 +48,28 @@ public class TerminalTypeAheadManager {
     myDeferClearingPredictions = new Debouncer(new TimeoutPredictionCleaner(), AUTO_CLEAR_PREDICTIONS_DELAY);
   }
 
-  public void onTerminalData(char[] buffer, int offset, int count) {
+  public void onTerminalData(String data) {
     System.out.print("OnBeforeProcessChar: ");
-    for (int i = offset; i < offset + count; ++i) {
-      if (buffer[i] >= 32 && buffer[i] < 127) {
-        System.out.print(buffer[i]);
-      } else if (buffer[i] == 7) {
-        System.out.println("<BEL>");
-      } else if (buffer[i] == 27) {
-        System.out.print("^");
-      } else if (buffer[i] == 13) {
-        System.out.print("\\r");
-      } else if (buffer[i] == 10) {
-        System.out.print("\\n");
-      } else {
-        System.out.print("(unknown char: " + (int) buffer[i] + ")");
-      }
-    }
-    System.out.println();
+    System.out.println(data.replace("\u001b", "ESC")
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+            .replace("\u0007", "BEL")
+            .replace(" ", "<S>"));
 
 
-    String terminalData = myTerminalDataBuffer + new String(buffer, offset, count);
+    String terminalData = myTerminalDataBuffer + data;
     myTerminalDataBuffer = "";
 
     TypeaheadStringReader terminalDataReader = new TypeaheadStringReader(terminalData);
 
     TerminalLineWithCursor terminalLineWithCursor = getTerminalLineWithCursor();
+
     synchronized (LOCK) {
+      if (terminalLineWithCursor == null) {
+        resetState();
+        return;
+      }
+
       if (!myPredictions.isEmpty()) {
         updateLeftMostCursorPosition(terminalLineWithCursor.myCursorX);
         myDeferClearingPredictions.call();
@@ -99,6 +94,11 @@ public class TerminalTypeAheadManager {
     TerminalLineWithCursor terminalLineWithCursor = getTerminalLineWithCursor();
 
     synchronized (LOCK) {
+      if (terminalLineWithCursor == null) {
+        resetState();
+        return;
+      }
+
       long prevTypedTime = myLastTypedTime;
       myLastTypedTime = System.nanoTime();
       if (myOutOfSyncDetected && TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - prevTypedTime) < AUTO_SYNC_DELAY) {
@@ -121,7 +121,9 @@ public class TerminalTypeAheadManager {
   }
 
   public void onResize() {
-    resetState();
+    synchronized (LOCK) {
+      resetState();
+    }
   }
 
   public void addModelListener(@NotNull TerminalModelListener listener) {
@@ -130,6 +132,10 @@ public class TerminalTypeAheadManager {
 
   public int getCursorX() {
     synchronized (LOCK) {
+      if (myTerminalTextBuffer.isUsingAlternateBuffer() && !myPredictions.isEmpty()) {
+        resetState();
+      }
+
       TypeAheadPrediction prediction = getLastVisiblePrediction();
       return prediction == null ? myTerminal.getCursorX() : prediction.myPredictedCursorX + 1;
     }
@@ -159,12 +165,16 @@ public class TerminalTypeAheadManager {
     return null;
   }
 
-  private @NotNull TerminalLineWithCursor getTerminalLineWithCursor() {
+  private @Nullable TerminalLineWithCursor getTerminalLineWithCursor() {
     myTerminalTextBuffer.lock();
     int cursorX, cursorY;
     TerminalLine terminalLine;
 
     try {
+      if (myTerminalTextBuffer.isUsingAlternateBuffer()) {
+        return null;
+      }
+
       cursorX = myTerminal.getCursorX() - 1;
       cursorY = myTerminal.getCursorY() - 1;
       terminalLine = myTerminalTextBuffer.getLine(cursorY);
@@ -288,6 +298,7 @@ public class TerminalTypeAheadManager {
     myIsNotPasswordPrompt = false;
     myLastSuccessfulPrediction = null;
     myDeferClearingPredictions.terminateCall();
+
     if (fireChange) {
       fireModelChanged();
     }

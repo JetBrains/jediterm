@@ -14,6 +14,9 @@ public class ArrayTerminalDataStream implements TerminalDataStream {
   protected int myOffset;
   protected int myLength;
 
+  private final StringBuilder myRecordedCharacters = new StringBuilder();
+  private boolean myIsRecording;
+
   public ArrayTerminalDataStream(char[] buf, int offset, int length) {
     myBuf = buf;
     myOffset = offset;
@@ -31,7 +34,13 @@ public class ArrayTerminalDataStream implements TerminalDataStream {
 
     myLength--;
 
-    return myBuf[myOffset++];
+    char nextChar = myBuf[myOffset++];
+
+    if (myIsRecording) {
+      myRecordedCharacters.append(nextChar);
+    }
+
+    return nextChar;
   }
 
   public void pushChar(final char c) throws EOF {
@@ -51,7 +60,13 @@ public class ArrayTerminalDataStream implements TerminalDataStream {
     }
 
     myLength++;
-    myBuf[--myOffset] = c;
+    --myOffset;
+
+    if (myIsRecording && myBuf[myOffset] == c && myRecordedCharacters.length() != 0) {
+      myRecordedCharacters.deleteCharAt(myRecordedCharacters.length() - 1);
+    }
+
+    myBuf[myOffset] = c;
   }
 
   public String readNonControlCharacters(int maxChars) throws IOException {
@@ -60,6 +75,10 @@ public class ArrayTerminalDataStream implements TerminalDataStream {
     myOffset += nonControlCharacters.length();
     myLength -= nonControlCharacters.length();
 
+    if (myIsRecording) {
+      myRecordedCharacters.append(nonControlCharacters);
+    }
+
     return nonControlCharacters;
   }
 
@@ -67,6 +86,18 @@ public class ArrayTerminalDataStream implements TerminalDataStream {
     for (int i = length - 1; i >= 0; i--) {
       pushChar(bytes[i]);
     }
+  }
+
+  public void startRecording() {
+    myIsRecording = true;
+  }
+
+  public String stopRecording() {
+    myIsRecording = false;
+    String recordedCharacters = myRecordedCharacters.toString();
+    myRecordedCharacters.setLength(0);
+
+    return recordedCharacters;
   }
 
   @Override

@@ -37,15 +37,12 @@ public abstract class DataStreamIteratingEmulator implements Emulator {
       if (myDataStream instanceof ArrayTerminalDataStream) { // TODO: more permanent solution, probably change to the interface.
         ArrayTerminalDataStream terminalDataStream = (ArrayTerminalDataStream) myDataStream;
 
+        terminalDataStream.startRecording();
+
         char b = myDataStream.getChar();
-
-        // getChar is blocking so we can calculate that only after .getChar()
-        int streamInitialOffset = terminalDataStream.myOffset - 1;
-
         processChar(b, myTerminal);
 
-        int bytesRead = terminalDataStream.myOffset - streamInitialOffset;
-        myTypeAheadManager.onTerminalData(terminalDataStream.myBuf, streamInitialOffset, bytesRead);
+        myTypeAheadManager.onTerminalData(terminalDataStream.stopRecording());
       } else {
         char b = myDataStream.getChar();
         processChar(b, myTerminal);

@@ -54,7 +54,8 @@ public class TerminalTypeAheadManager {
             .replace("\n", "\\n")
             .replace("\r", "\\r")
             .replace("\u0007", "BEL")
-            .replace(" ", "<S>"));
+            .replace(" ", "<S>")
+            .replace("\b", "\\b"));
 
 
     String terminalData = myTerminalDataBuffer + data;
@@ -612,7 +613,7 @@ public class TerminalTypeAheadManager {
         result = stringReader.eatGradually(zshPrediction);
       }
 
-      if (result == MatchResult.Success && cursorX != myPredictedCursorX) {
+      if (result == MatchResult.Success && cursorX != myPredictedCursorX + stringReader.remaining()) {
         result = MatchResult.Failure;
       }
       return result;
@@ -835,6 +836,7 @@ public class TerminalTypeAheadManager {
     public void call() {
       synchronized (LOCK) {
         if (!myPredictions.isEmpty()) {
+          System.out.println("DEBOUNCE!");
           resetState();
         }
       }

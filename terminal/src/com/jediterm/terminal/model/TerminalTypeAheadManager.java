@@ -11,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.regex.Matcher;
@@ -19,7 +20,7 @@ import java.util.regex.Pattern;
 public class TerminalTypeAheadManager {
 
   private static final int AUTO_SYNC_DELAY = 2000;
-  private static final int AUTO_CLEAR_PREDICTIONS_DELAY = 1000;
+  private static final int AUTO_CLEAR_PREDICTIONS_DELAY = 2000;
   private static final Logger LOG = Logger.getLogger(TerminalTypeAheadManager.class);
 
   private final Object LOCK = new Object();
@@ -29,6 +30,8 @@ public class TerminalTypeAheadManager {
   private final List<TypeAheadPrediction> myPredictions = new ArrayList<>();
   private final JediTerminal myTerminal;
   private final Debouncer myDeferClearingPredictions;
+  private final LatencyCalculator myLatencyCalculator = new LatencyCalculator(
+          TimeUnit.SECONDS.toNanos(60), TimeUnit.SECONDS.toNanos(2));
 
   private TextStyle myTypeAheadTextStyle;
   private boolean myOutOfSyncDetected;
@@ -91,6 +94,8 @@ public class TerminalTypeAheadManager {
     if (!mySettingsProvider.isTypeAheadEnabled()) {
       return;
     }
+
+    System.out.println("LATENCY: " + myLatencyCalculator.getLatency() / 1_000_000_000.0);
 
     TerminalLineWithCursor terminalLineWithCursor = getTerminalLineWithCursor();
 
@@ -196,6 +201,9 @@ public class TerminalTypeAheadManager {
     switch (nextPrediction.matches(terminalDataReader, terminalLineWithCursor.myCursorX)) {
       case Success:
         System.out.println("Match: success");
+
+        myLatencyCalculator.adjustLatency(nextPrediction);
+
         if (nextPrediction.getCharacterOrNull() != null) {
           myIsNotPasswordPrompt = true;
         }
@@ -506,6 +514,8 @@ public class TerminalTypeAheadManager {
   private final String CSI = (char) CharUtils.ESC + "[";
 
   private abstract static class TypeAheadPrediction {
+    public final long myCreatedTime;
+
     protected final TerminalLine myInitialLine;
     protected final int myPredictedCursorX;
     protected KeyEvent myKeyEvent;
@@ -516,6 +526,8 @@ public class TerminalTypeAheadManager {
       myInitialLine = initialLine;
       myKeyEvent = keyEvent;
       myPredictedCursorX = predictedCursorX;
+
+      myCreatedTime = System.nanoTime();
     }
 
     public abstract boolean getClearAfterTimeout();
@@ -750,12 +762,12 @@ public class TerminalTypeAheadManager {
     }
   }
 
-  public interface Callback {
+  private interface Callback {
     void call();
   }
 
   // inspired by https://stackoverflow.com/questions/4742210/implementing-debounce-in-java
-  public static class Debouncer {
+  private static class Debouncer {
     private final ScheduledExecutorService myScheduler = Executors.newScheduledThreadPool(1);
     private TimerTask myTimerTask = null;
     private final Callback myCallback;
@@ -831,7 +843,7 @@ public class TerminalTypeAheadManager {
     }
   }
 
-  public class TimeoutPredictionCleaner implements Callback {
+  private class TimeoutPredictionCleaner implements Callback {
     @Override
     public void call() {
       synchronized (LOCK) {
@@ -839,6 +851,52 @@ public class TerminalTypeAheadManager {
           System.out.println("DEBOUNCE!");
           resetState();
         }
+      }
+    }
+  }
+
+  static class LatencyCalculator {
+    private final long myNanoSecondsUntilExpired;
+    private final long myDefaultValue;
+    private final LinkedList<Latency> latencies = new LinkedList<>();
+
+    LatencyCalculator(long nanoSecondsUntilExpired, long defaultValue) {
+      myNanoSecondsUntilExpired = nanoSecondsUntilExpired;
+      myDefaultValue = defaultValue;
+    }
+
+    public void adjustLatency(TypeAheadPrediction prediction) {
+      long timeNow = System.nanoTime();
+      Latency latency = new Latency(timeNow - prediction.myCreatedTime, timeNow);
+      latencies.add(latency);
+
+      filterLatencies();
+    }
+
+    public long getLatency() {
+      filterLatencies();
+
+      if (latencies.isEmpty()) {
+        return myDefaultValue;
+      }
+      return latencies.stream().mapToLong(latency -> latency.myLatency).sum() / latencies.size();
+    }
+
+    private void filterLatencies() {
+      long timeNow = System.nanoTime();
+
+      while (!latencies.isEmpty() && timeNow - latencies.getFirst().myTimeRecorded > myNanoSecondsUntilExpired) {
+        latencies.removeFirst();
+      }
+    }
+
+    private static class Latency {
+      long myLatency;
+      long myTimeRecorded;
+
+      Latency(long latency, long timeRecorded) {
+        myLatency = latency;
+        myTimeRecorded = timeRecorded;
       }
     }
   }

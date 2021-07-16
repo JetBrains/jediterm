@@ -2,6 +2,7 @@ package com.jediterm.terminal;
 
 import com.jediterm.terminal.emulator.Emulator;
 import com.jediterm.terminal.model.TerminalTypeAheadManager;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 
@@ -15,7 +16,7 @@ public abstract class DataStreamIteratingEmulator implements Emulator {
 
   private boolean myEof = false;
 
-  public DataStreamIteratingEmulator(TerminalDataStream dataStream, Terminal terminal, TerminalTypeAheadManager typeAheadManager) {
+  public DataStreamIteratingEmulator(TerminalDataStream dataStream, Terminal terminal, @Nullable TerminalTypeAheadManager typeAheadManager) {
     myDataStream = dataStream;
     myTerminal = terminal;
     myTypeAheadManager = typeAheadManager;
@@ -34,7 +35,7 @@ public abstract class DataStreamIteratingEmulator implements Emulator {
   @Override
   public void next() throws IOException {
     try {
-      if (myDataStream instanceof TypeAheadTerminalDataStream) {
+      if (myDataStream instanceof TypeAheadTerminalDataStream && myTypeAheadManager != null) {
         TypeAheadTerminalDataStream terminalDataStream = (TypeAheadTerminalDataStream) myDataStream;
         terminalDataStream.startRecordingReadChars();
 

@@ -108,7 +108,7 @@ public class StyledTextTest extends TestCase {
     StyleState state = new StyleState();
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(width, height, state);
     JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
-    Emulator emulator = new JediEmulator(new ArrayTerminalDataStream(content.toCharArray()), terminal);
+    Emulator emulator = new JediEmulator(new ArrayTerminalDataStream(content.toCharArray()), terminal, null);
     while (emulator.hasNext()) {
       emulator.next();
     }

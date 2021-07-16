@@ -8,6 +8,7 @@ import com.jediterm.terminal.model.TerminalTypeAheadManager;
 import com.jediterm.terminal.util.CharUtils;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.io.IOException;
@@ -33,7 +34,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   private static int logThrottlerLimit = logThrottlerRatio;
   private final BlockingQueue<CompletableFuture<Void>> myResizeFutureQueue = new LinkedBlockingQueue<>();
 
-  public JediEmulator(TerminalDataStream dataStream, Terminal terminal, TerminalTypeAheadManager typeAheadManager) {
+  public JediEmulator(TerminalDataStream dataStream, Terminal terminal, @Nullable TerminalTypeAheadManager typeAheadManager) {
     super(dataStream, terminal, typeAheadManager);
   }
 

@@ -839,13 +839,12 @@ public class TerminalTypeAheadManager {
         throw new IllegalStateException("Tried to calculate latency with sample size of 0");
       }
 
-      // TODO: O(n) median?
-      Collections.sort(latencies);
+      long[] sorted_latencies = latencies.stream().mapToLong(i -> i).sorted().toArray();
 
-      if (latencies.size() % 2 == 0) {
-        return (latencies.get(latencies.size() / 2 - 1) + latencies.get(latencies.size() / 2)) / 2;
+      if (sorted_latencies.length % 2 == 0) {
+        return (sorted_latencies[sorted_latencies.length / 2 - 1] + sorted_latencies[sorted_latencies.length / 2]) / 2;
       } else {
-        return latencies.get(latencies.size() / 2);
+        return sorted_latencies[sorted_latencies.length / 2];
       }
     }
 

@@ -17,8 +17,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class TerminalTypeAheadManager {
-
-  private static final long LATENCY_THRESHOLD = TimeUnit.MILLISECONDS.toNanos(100); // TODO: move to settings
   private static final long MIN_CLEAR_PREDICTIONS_DELAY = TimeUnit.MILLISECONDS.toNanos(500);
   private static final long MAX_TERMINAL_DELAY = TimeUnit.MILLISECONDS.toNanos(3000);
   private static final int LATENCY_MIN_SAMPLES_TO_TURN_ON = 5;
@@ -328,9 +326,11 @@ public class TerminalTypeAheadManager {
       myIsShowingPredictions = false;
     } else if (myLatencyStatistics.getSampleSize() >= LATENCY_MIN_SAMPLES_TO_TURN_ON) {
       long latency = myLatencyStatistics.getLatencyMedian();
-      if (latency >= LATENCY_THRESHOLD) {
+      long latencyThreshold = mySettingsProvider.getTypeaheadLatencyThreshold();
+
+      if (latency >= latencyThreshold) {
         myIsShowingPredictions = true;
-      } else if (latency < LATENCY_THRESHOLD * LATENCY_TOGGLE_OFF_THRESHOLD) {
+      } else if (latency < latencyThreshold * LATENCY_TOGGLE_OFF_THRESHOLD) {
         myIsShowingPredictions = false;
       }
     }
@@ -840,7 +840,7 @@ public class TerminalTypeAheadManager {
         throw new IllegalStateException("Tried to calculate latency with sample size of 0");
       }
 
-      long[] sorted_latencies = latencies.stream().mapToLong(i -> i).sorted().toArray();
+      Long[] sorted_latencies = latencies.stream().sorted().toArray(Long[]::new);
 
       if (sorted_latencies.length % 2 == 0) {
         return (sorted_latencies[sorted_latencies.length / 2 - 1] + sorted_latencies[sorted_latencies.length / 2]) / 2;

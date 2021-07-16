@@ -15,6 +15,7 @@ import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 
 public class DefaultSettingsProvider implements SettingsProvider {
   @Override
@@ -226,5 +227,10 @@ public class DefaultSettingsProvider implements SettingsProvider {
   @Override
   public boolean isTypeAheadEnabled() {
     return true;
+  }
+
+  @Override
+  public long getTypeaheadLatencyThreshold() {
+    return TimeUnit.MILLISECONDS.toNanos(100);
   }
 }

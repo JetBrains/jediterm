@@ -34,9 +34,8 @@ public abstract class DataStreamIteratingEmulator implements Emulator {
   @Override
   public void next() throws IOException {
     try {
-      if (myDataStream instanceof TypeAheadTerminalDataStream) { // TODO: more permanent solution, probably change to the interface.
+      if (myDataStream instanceof TypeAheadTerminalDataStream) {
         TypeAheadTerminalDataStream terminalDataStream = (TypeAheadTerminalDataStream) myDataStream;
-
         terminalDataStream.startRecordingReadChars();
 
         char b = myDataStream.getChar();

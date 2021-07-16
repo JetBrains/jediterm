@@ -70,4 +70,6 @@ public interface UserSettingsProvider {
   boolean ambiguousCharsAreDoubleWidth();
 
   boolean isTypeAheadEnabled();
+
+  long getTypeaheadLatencyThreshold();
 }

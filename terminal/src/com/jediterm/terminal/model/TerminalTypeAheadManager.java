@@ -2,6 +2,7 @@ package com.jediterm.terminal.model;
 
 import com.jediterm.terminal.TerminalColor;
 import com.jediterm.terminal.TextStyle;
+import com.jediterm.terminal.ui.UIUtil;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
 import com.jediterm.terminal.util.CharUtils;
 import org.apache.log4j.Logger;
@@ -323,7 +324,7 @@ public class TerminalTypeAheadManager {
   }
 
   private void reevaluatePredictorState() {
-    if (!mySettingsProvider.isTypeAheadEnabled()) {
+    if (!mySettingsProvider.isTypeAheadEnabled() || UIUtil.isWindows) {
       myIsShowingPredictions = false;
     } else if (myLatencyStatistics.getSampleSize() >= LATENCY_MIN_SAMPLES_TO_TURN_ON) {
       long latency = myLatencyStatistics.getLatencyMedian();

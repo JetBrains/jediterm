@@ -17,12 +17,11 @@ import java.util.regex.Pattern;
 
 public class TerminalTypeAheadManager {
 
-private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
   private static final long LATENCY_THRESHOLD = TimeUnit.MILLISECONDS.toNanos(100); // TODO: move to settings
   private static final long MIN_CLEAR_PREDICTIONS_DELAY = TimeUnit.MILLISECONDS.toNanos(500);
-  private static final long MAX_CLEAR_PREDICTIONS_DELAY = TimeUnit.MILLISECONDS.toNanos(3000);
+  private static final long MAX_TERMINAL_DELAY = TimeUnit.MILLISECONDS.toNanos(3000);
   private static final int LATENCY_MIN_SAMPLES_TO_TURN_ON = 5;
-  private static final int LATENCY_BUFFER_SIZE = 50;
+  private static final int LATENCY_BUFFER_SIZE = 30;
   private static final double LATENCY_TOGGLE_OFF_THRESHOLD = 0.5;
 
   private static final Logger LOG = Logger.getLogger(TerminalTypeAheadManager.class);
@@ -33,7 +32,7 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
   private final List<TerminalModelListener> myListeners = new CopyOnWriteArrayList<>();
   private final List<TypeAheadPrediction> myPredictions = new ArrayList<>();
   private final JediTerminal myTerminal;
-  private final Debouncer myDeferClearingPredictions;
+  private final Debouncer myDeferClearingPredictions = new Debouncer(new TimeoutPredictionCleaner());
   private final LatencyStatistics myLatencyStatistics = new LatencyStatistics(LATENCY_BUFFER_SIZE);
 
   private TextStyle myTypeAheadTextStyle;
@@ -51,23 +50,18 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
     myTerminalTextBuffer = terminalTextBuffer;
     myTerminal = terminal;
     mySettingsProvider = settingsProvider;
-
-    myDeferClearingPredictions = new Debouncer(new TimeoutPredictionCleaner());
   }
 
-  public void onTerminalData(String data) {
-    System.out.print("OnBeforeProcessChar: ");
-    System.out.println(data.replace("\u001b", "ESC")
+  public void onTerminalData(@NotNull String data) {
+    LOG.debug("onTerminalData: " + data.replace("\u001b", "ESC")
             .replace("\n", "\\n")
             .replace("\r", "\\r")
             .replace("\u0007", "BEL")
             .replace(" ", "<S>")
             .replace("\b", "\\b"));
 
-
     String terminalData = myTerminalDataBuffer + data;
     myTerminalDataBuffer = "";
-
     TypeaheadStringReader terminalDataReader = new TypeaheadStringReader(terminalData);
 
     TerminalLineWithCursor terminalLineWithCursor = getTerminalLineWithCursor();
@@ -86,15 +80,17 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
         return;
       }
 
-      while (!myPredictions.isEmpty() && terminalDataReader.remaining() > 0) {
+      while (!myPredictions.isEmpty() && terminalDataReader.remainingLength() > 0) {
         // TODO: vscode omits some char sequences from sending to the prediction engine, maybe we should too.
 
         if (checkNextPrediction(terminalDataReader, terminalLineWithCursor)) return;
       }
+
+      // TODO: resetState if not (isEmpty && remaining == 0)?
     }
   }
 
-  public void onKeyEvent(KeyEvent keyEvent) {
+  public void onKeyEvent(@NotNull KeyEvent keyEvent) {
     TerminalLineWithCursor terminalLineWithCursor = getTerminalLineWithCursor();
 
     synchronized (LOCK) {
@@ -105,7 +101,15 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
 
       long prevTypedTime = myLastTypedTime;
       myLastTypedTime = System.nanoTime();
-      if (System.nanoTime() - prevTypedTime < AUTO_SYNC_DELAY) {
+
+      long autoSyncDelay;
+      if (myLatencyStatistics.getSampleSize() >= LATENCY_MIN_SAMPLES_TO_TURN_ON) {
+        autoSyncDelay = Math.min(myLatencyStatistics.getMaxLatency(), MAX_TERMINAL_DELAY);
+      } else {
+        autoSyncDelay = MAX_TERMINAL_DELAY;
+      }
+
+      if (System.nanoTime() - prevTypedTime < autoSyncDelay) {
         if (myOutOfSyncDetected) {
           resetState();
           return;
@@ -117,7 +121,6 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
 
       updateLeftMostCursorPosition(terminalLineWithCursor.myCursorX);
 
-      System.out.println("Typed " + keyEvent.getKeyChar() + " (" + keyEvent.getKeyCode() + ")");
 
       if (myPredictions.isEmpty()) {
         myDeferClearingPredictions.call(); // start a timer that will clear predictions
@@ -125,6 +128,8 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
       TypeAheadPrediction prediction = createPrediction(terminalLineWithCursor, keyEvent);
       myPredictions.add(prediction);
       redrawPredictions(terminalLineWithCursor);
+
+      LOG.debug("Created prediction for \"" + keyEvent.getKeyChar() + "\" (" + keyEvent.getKeyCode() + ")");
     }
   }
 
@@ -141,6 +146,7 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
   public int getCursorX() {
     synchronized (LOCK) {
       if (myTerminalTextBuffer.isUsingAlternateBuffer() && !myPredictions.isEmpty()) {
+        // otherwise it will misreport cursor position
         resetState();
       }
 
@@ -166,26 +172,20 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
     }
     lastVisiblePredictionIndex--;
 
-    if (lastVisiblePredictionIndex >= 0) {
-      return myPredictions.get(lastVisiblePredictionIndex);
-    }
-
-    return null;
+    return lastVisiblePredictionIndex >= 0 ? myPredictions.get(lastVisiblePredictionIndex) : null;
   }
 
   private @Nullable TerminalLineWithCursor getTerminalLineWithCursor() {
     myTerminalTextBuffer.lock();
-    int cursorX, cursorY;
-    TerminalLine terminalLine;
 
     try {
       if (myTerminalTextBuffer.isUsingAlternateBuffer()) {
         return null;
       }
 
-      cursorX = myTerminal.getCursorX() - 1;
-      cursorY = myTerminal.getCursorY() - 1;
-      terminalLine = myTerminalTextBuffer.getLine(cursorY);
+      int cursorX = myTerminal.getCursorX() - 1;
+      int cursorY = myTerminal.getCursorY() - 1;
+      TerminalLine terminalLine = myTerminalTextBuffer.getLine(cursorY);
 
       return new TerminalLineWithCursor(terminalLine, cursorX, cursorY);
     } finally {
@@ -193,17 +193,19 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
     }
   }
 
-  private boolean checkNextPrediction(TypeaheadStringReader terminalDataReader, TerminalLineWithCursor terminalLineWithCursor) {
+  private boolean checkNextPrediction(@NotNull TypeaheadStringReader terminalDataReader,
+                                      @NotNull TerminalLineWithCursor terminalLineWithCursor) {
     TypeAheadPrediction nextPrediction = getNextPrediction();
     if (nextPrediction == null) {
       return true;
     }
 
     int readerIndexBeforeMatching = terminalDataReader.myIndex;
+
+    String debugString = "char \"" + nextPrediction.myKeyEvent.getKeyChar() + "\" " + nextPrediction.myKeyEvent.getKeyCode();
     switch (nextPrediction.matches(terminalDataReader, terminalLineWithCursor.myCursorX)) {
       case Success:
-        System.out.println("Match: success");
-
+        LOG.debug("Matched successfully: " + debugString);
         myLatencyStatistics.adjustLatency(nextPrediction);
 
         if (nextPrediction.getCharacterOrNull() != null) {
@@ -216,26 +218,29 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
         redrawPredictions(terminalLineWithCursor);
         break;
       case Buffer:
-        System.out.println("Match: buffer");
+        LOG.debug("Buffered: " + debugString);
         myTerminalDataBuffer = terminalDataReader.myString.substring(readerIndexBeforeMatching);
         return true;
-      case Failure: // TODO: onFailure needs rework
-        System.out.println("Match: failure");
-        myOutOfSyncDetected = true;
+      case Failure:
+        LOG.debug("Match failure: " + debugString);
+        myOutOfSyncDetected = true; // TODO: move to resetState()?
         resetState();
     }
     return false;
   }
 
-  private void redrawPredictions(TerminalLineWithCursor terminalLineWithCursor) {
+  private void redrawPredictions(@NotNull TerminalLineWithCursor terminalLineWithCursor) {
     TerminalLineWithCursor newTerminalLineWithCursor = terminalLineWithCursor.copy();
 
-    int lastVisiblePredictionIndex = 0;
-    while (lastVisiblePredictionIndex < myPredictions.size()
-            && !(myPredictions.get(lastVisiblePredictionIndex) instanceof TentativeBoundary)
-            && !(myPredictions.get(lastVisiblePredictionIndex) instanceof HardBoundary)) {
-      updateTerminalLinePrediction(newTerminalLineWithCursor, myPredictions.get(lastVisiblePredictionIndex).myKeyEvent);
-      lastVisiblePredictionIndex++;
+    TypeAheadPrediction lastVisiblePrediction = getLastVisiblePrediction();
+
+    if (lastVisiblePrediction != null) {
+      for (TypeAheadPrediction prediction : myPredictions) {
+        updateTerminalLinePrediction(newTerminalLineWithCursor, prediction.myKeyEvent);
+        if (lastVisiblePrediction == prediction) {
+          break;
+        }
+      }
     }
 
     TerminalLine predictedLine = newTerminalLineWithCursor.myTerminalLine;
@@ -262,12 +267,13 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
       myCursorY = cursorY;
     }
 
-    TerminalLineWithCursor copy() {
+    @NotNull TerminalLineWithCursor copy() {
       return new TerminalLineWithCursor(myTerminalLine.copy(), myCursorX, myCursorY);
     }
   }
 
-  private void updateTerminalLinePrediction(TerminalLineWithCursor terminalLineWithCursor, KeyEvent keyEvent) {
+  private void updateTerminalLinePrediction(@NotNull TerminalLineWithCursor terminalLineWithCursor,
+                                            @NotNull KeyEvent keyEvent) {
     TerminalLine terminalLine = terminalLineWithCursor.myTerminalLine;
     int newCursorX = terminalLineWithCursor.myCursorX;
 
@@ -280,13 +286,14 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
         terminalLine.deleteCharacters(newCursorX, 1, TextStyle.EMPTY);
       }
     } else if (KeyEventHelper.isArrowKey(keyEvent)) {
-      newCursorX += keyEvent.getKeyCode() == KeyEvent.VK_RIGHT ? 1 : -1;
+      int delta = keyEvent.getKeyCode() == KeyEvent.VK_RIGHT ? 1 : -1;
+      if (0 <= newCursorX + delta && newCursorX + delta < myTerminal.getTerminalWidth()) {
+        newCursorX += delta;
+      }
     } else if (KeyEventHelper.isAltArrowKey(keyEvent)) {
       CursorMoveDirection direction = keyEvent.getKeyCode() == KeyEvent.VK_RIGHT ? CursorMoveDirection.Forward : CursorMoveDirection.Back;
       newCursorX = moveToWordBoundary(terminalLine.getText(), newCursorX, direction);
-    } else if (false) { // TODO: delete or implement del
-      terminalLine.deleteCharacters(newCursorX, 1, TextStyle.EMPTY);
-    } else { // TODO: del, alt+>, alt+<, enter
+    } else {
       throw new IllegalStateException("Characters should be filtered but typedChar contained key code " + keyEvent.getKeyCode());
     }
 
@@ -318,7 +325,7 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
   private void reevaluatePredictorState() {
     if (!mySettingsProvider.isTypeAheadEnabled()) {
       myIsShowingPredictions = false;
-    } else if (myLatencyStatistics.getSampleSize() > LATENCY_MIN_SAMPLES_TO_TURN_ON) {
+    } else if (myLatencyStatistics.getSampleSize() >= LATENCY_MIN_SAMPLES_TO_TURN_ON) {
       long latency = myLatencyStatistics.getLatencyMedian();
       if (latency >= LATENCY_THRESHOLD) {
         myIsShowingPredictions = true;
@@ -344,8 +351,8 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
     if (KeyEventHelper.isKeyTypedEvent(keyEvent)) {
       updateTerminalLinePrediction(newLineWCursor, keyEvent);
 
-      boolean hasCharacterPredictions = myPredictions.stream().anyMatch((TypeAheadPrediction prediction) ->
-              prediction.getCharacterOrNull() != null);
+      boolean hasCharacterPredictions = myPredictions.stream().anyMatch(
+              (TypeAheadPrediction prediction) -> prediction.getCharacterOrNull() != null);
 
       return constructPrediction(
               new CharacterPrediction(initialLine, keyEvent, newLineWCursor.myCursorX),
@@ -355,7 +362,7 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
       updateTerminalLinePrediction(newLineWCursor, keyEvent);
 
       return constructPrediction(
-              new BackspacePrediction(initialLine, keyEvent, newLineWCursor.myCursorX, true), // TODO: delete myIsLastChar or fill with correct data
+              new BackspacePrediction(initialLine, keyEvent, newLineWCursor.myCursorX),
               myLeftMostCursorPosition != null && myLeftMostCursorPosition <= newLineWCursor.myCursorX
       );
     } else if (KeyEventHelper.isArrowKey(keyEvent)) {
@@ -377,12 +384,13 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
               myLeftMostCursorPosition != null && myLeftMostCursorPosition <= newLineWCursor.myCursorX
                       && newLineWCursor.myCursorX <= newLineWCursor.myTerminalLine.getText().length()
       );
-    } else { // TODO: del, alt+>, alt+<.
+    } else {
       return new HardBoundary(initialLine, keyEvent, -1);
     }
   }
 
-  private @NotNull TypeAheadPrediction constructPrediction(TypeAheadPrediction prediction, boolean isNotTentative) {
+  private @NotNull TypeAheadPrediction constructPrediction(@NotNull TypeAheadPrediction prediction,
+                                                           boolean isNotTentative) {
     if (myIsShowingPredictions && isNotTentative) {
       return prediction;
     }
@@ -390,7 +398,7 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
     return new TentativeBoundary(prediction);
   }
 
-  private int moveToWordBoundary(String text, int index, CursorMoveDirection direction) {
+  private int moveToWordBoundary(@NotNull String text, int index, @NotNull CursorMoveDirection direction) {
     if (direction == CursorMoveDirection.Back) {
       index -= 1;
     }
@@ -404,10 +412,8 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
       char currentChar = text.charAt(index);
       if (Character.isLetterOrDigit(currentChar)) {
         ateLeadingWhitespace = true;
-      } else {
-        if (ateLeadingWhitespace) {
-          break;
-        }
+      } else if (ateLeadingWhitespace) {
+        break;
       }
 
       index += direction == CursorMoveDirection.Forward ? 1 : -1;
@@ -441,28 +447,24 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
     Buffer,
   }
 
-  private static class TypeaheadStringReader { // TODO: copied from vscode, needs polish/deleting
-    private int myIndex = 0;
-
+  private static class TypeaheadStringReader {
     final String myString;
 
-    TypeaheadStringReader(String string) {
+    private int myIndex = 0;
+
+    TypeaheadStringReader(@NotNull String string) {
       myString = string;
     }
 
-    int remaining() {
+    int remainingLength() {
       return myString.length() - myIndex;
     }
 
-    boolean eof() {
+    boolean isEOF() {
       return myString.length() == myIndex;
     }
 
-    String rest() {
-      return myString.substring(myIndex);
-    }
-
-    Character eatChar(char character) {
+    @Nullable Character eatChar(char character) {
       if (myString.charAt(myIndex) != character) {
         return null;
       }
@@ -471,7 +473,8 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
       return character;
     }
 
-    String eatStr(String substr) {
+    @SuppressWarnings("unused") // TODO: needed to fix cursor move prediction
+    @Nullable String eatString(@NotNull String substr) {
       if (!myString.substring(myIndex, substr.length()).equals(substr)) {
         return null;
       }
@@ -480,11 +483,11 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
       return substr;
     }
 
-    MatchResult eatGradually(String substr) {
+    @NotNull MatchResult eatGradually(@NotNull String substr) {
       int prevIndex = myIndex;
 
       for (int i = 0; i < substr.length(); ++i) {
-        if (i > 0 && eof()) {
+        if (i > 0 && isEOF()) {
           return MatchResult.Buffer;
         }
 
@@ -497,7 +500,7 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
       return MatchResult.Success;
     }
 
-    String eatRe(Pattern pattern) {
+    @Nullable String eatRegex(@NotNull Pattern pattern) {
       // TODO: verify correctness
       Matcher matcher = pattern.matcher(myString.substring(myIndex));
       if (!matcher.matches()) {
@@ -505,24 +508,8 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
       }
 
       java.util.regex.MatchResult match = matcher.toMatchResult();
-
-
       myIndex += matcher.end();
       return match.group();
-    }
-
-    Integer eatCharCode(int min) {
-      return eatCharCode(min, min + 1);
-    }
-
-    Integer eatCharCode(int min, int max) {
-      int code = myString.charAt(this.myIndex);
-      if (code < min || code >= max) {
-        return null;
-      }
-
-      this.myIndex++;
-      return code;
     }
   }
 
@@ -545,8 +532,6 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
       myCreatedTime = System.nanoTime();
     }
 
-    public abstract boolean getClearAfterTimeout();
-
     public @Nullable Character getCharacterOrNull() {
       if (this instanceof CharacterPrediction) {
         return ((CharacterPrediction) this).getCharacter();
@@ -555,7 +540,6 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
       if (!(this instanceof TentativeBoundary)) {
         return null;
       }
-
       TentativeBoundary tentativeBoundary = (TentativeBoundary) this;
 
       if (tentativeBoundary.myInnerPrediction instanceof CharacterPrediction) {
@@ -565,7 +549,7 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
       return null;
     }
 
-    public abstract @NotNull MatchResult matches(TypeaheadStringReader stringReader, int cursorX);
+    public abstract @NotNull MatchResult matches(@NotNull TypeaheadStringReader stringReader, int cursorX);
   }
 
   private static class HardBoundary extends TypeAheadPrediction {
@@ -574,12 +558,7 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
     }
 
     @Override
-    public boolean getClearAfterTimeout() {
-      return false;
-    }
-
-    @Override
-    public @NotNull MatchResult matches(TypeaheadStringReader stringReader, int cursorX) {
+    public @NotNull MatchResult matches(@NotNull TypeaheadStringReader stringReader, int cursorX) {
       return MatchResult.Failure;
     }
   }
@@ -587,18 +566,13 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
   private static class TentativeBoundary extends TypeAheadPrediction {
     final TypeAheadPrediction myInnerPrediction;
 
-    private TentativeBoundary(TypeAheadPrediction innerPrediction) {
+    private TentativeBoundary(@NotNull TypeAheadPrediction innerPrediction) {
       super(innerPrediction.myInitialLine, innerPrediction.myKeyEvent, innerPrediction.myPredictedCursorX);
       myInnerPrediction = innerPrediction;
     }
 
     @Override
-    public boolean getClearAfterTimeout() {
-      return true;
-    }
-
-    @Override
-    public @NotNull MatchResult matches(TypeaheadStringReader stringReader, int cursorX) {
+    public @NotNull MatchResult matches(@NotNull TypeaheadStringReader stringReader, int cursorX) {
       return myInnerPrediction.matches(stringReader, cursorX);
     }
   }
@@ -615,22 +589,17 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
     }
 
     @Override
-    public boolean getClearAfterTimeout() {
-      return true;
-    }
-
-    @Override
-    public @NotNull MatchResult matches(TypeaheadStringReader stringReader, int cursorX) {
+    public @NotNull MatchResult matches(@NotNull TypeaheadStringReader stringReader, int cursorX) {
       // remove any styling CSI before checking the char
       String eaten;
       Pattern CSI_STYLE_RE = Pattern.compile("^\\x1b\\[[0-9;]*m"); // TODO: test regex
       do {
-        eaten = stringReader.eatRe(CSI_STYLE_RE);
+        eaten = stringReader.eatRegex(CSI_STYLE_RE);
       } while (eaten != null && !eaten.isEmpty());
 
       MatchResult result = MatchResult.Failure;
 
-      if (stringReader.eof()) {
+      if (stringReader.isEOF()) {
         result = MatchResult.Buffer;
       } else if (stringReader.eatChar(getCharacter()) != null) {
         result = MatchResult.Success;
@@ -640,7 +609,7 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
         result = stringReader.eatGradually(zshPrediction);
       }
 
-      if (result == MatchResult.Success && cursorX != myPredictedCursorX + stringReader.remaining()) {
+      if (result == MatchResult.Success && cursorX != myPredictedCursorX + stringReader.remainingLength()) {
         result = MatchResult.Failure;
       }
       return result;
@@ -648,32 +617,21 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
   }
 
   private class BackspacePrediction extends TypeAheadPrediction {
-    boolean myIsLastChar;
-
     private BackspacePrediction(@NotNull TerminalLine initialLine,
                                 @NotNull KeyEvent keyEvent,
-                                int predictedCursorX,
-                                boolean isLastChar) {
+                                int predictedCursorX) {
       super(initialLine, keyEvent, predictedCursorX);
-      myIsLastChar = isLastChar;
     }
 
     @Override
-    public boolean getClearAfterTimeout() {
-      return true;
-    }
+    public @NotNull MatchResult matches(@NotNull TypeaheadStringReader stringReader, int cursorX) {
+      MatchResult result;
 
-    @Override
-    public @NotNull MatchResult matches(TypeaheadStringReader stringReader, int cursorX) {
-      MatchResult result = MatchResult.Failure;
-
-      if (myIsLastChar) {
-        MatchResult r1 = stringReader.eatGradually("\b" + CSI + "K");
-        if (r1 != MatchResult.Failure) {
-          result = r1;
-        } else {
-          result = stringReader.eatGradually("\b \b");
-        }
+      MatchResult r1 = stringReader.eatGradually("\b" + CSI + "K");
+      if (r1 != MatchResult.Failure) {
+        result = r1;
+      } else {
+        result = stringReader.eatGradually("\b \b");
       }
 
       if (result == MatchResult.Success && cursorX != myPredictedCursorX) {
@@ -695,7 +653,6 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
   }
 
   private class CursorMovePrediction extends TypeAheadPrediction {
-
     private final int myAmount;
     private final CursorMoveDirection myDirection;
     private final int myCursorY;
@@ -704,17 +661,11 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
                                  @NotNull KeyEvent keyEvent,
                                  int predictedCursorX,
                                  int cursorY,
-                                 int amount
-    ) {
+                                 int amount) {
       super(initialLine, keyEvent, predictedCursorX);
       myAmount = amount;
       myDirection = keyEvent.getKeyCode() == KeyEvent.VK_LEFT ? CursorMoveDirection.Back : CursorMoveDirection.Forward;
       myCursorY = cursorY;
-    }
-
-    @Override
-    public boolean getClearAfterTimeout() {
-      return true;
     }
 
     private @NotNull MatchResult _matches(TypeaheadStringReader stringReader) {
@@ -739,7 +690,7 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
     }
 
     @Override
-    public @NotNull MatchResult matches(TypeaheadStringReader stringReader, int cursorX) {
+    public @NotNull MatchResult matches(@NotNull TypeaheadStringReader stringReader, int cursorX) {
       MatchResult result = _matches(stringReader);
 
       if (result == MatchResult.Success && cursorX != myPredictedCursorX) {
@@ -757,21 +708,21 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
             | InputEvent.META_DOWN_MASK
             | InputEvent.ALT_GRAPH_DOWN_MASK;
 
-    static boolean isKeyTypedEvent(KeyEvent keyEvent) {
+    static boolean isKeyTypedEvent(@NotNull KeyEvent keyEvent) {
       return keyEvent.getKeyCode() == KeyEvent.VK_UNDEFINED;
     }
 
-    static boolean isBackspace(KeyEvent keyEvent) {
+    static boolean isBackspace(@NotNull KeyEvent keyEvent) {
       return keyEvent.getKeyCode() == KeyEvent.VK_BACK_SPACE
               && (keyEvent.getModifiersEx() & allModifiersMask) == 0;
     }
 
-    static boolean isArrowKey(KeyEvent keyEvent) {
+    static boolean isArrowKey(@NotNull KeyEvent keyEvent) {
       return (keyEvent.getKeyCode() == KeyEvent.VK_LEFT || keyEvent.getKeyCode() == KeyEvent.VK_RIGHT)
               && (keyEvent.getModifiersEx() & allModifiersMask) == 0;
     }
 
-    static boolean isAltArrowKey(KeyEvent keyEvent) {
+    static boolean isAltArrowKey(@NotNull KeyEvent keyEvent) {
       return (keyEvent.getKeyCode() == KeyEvent.VK_LEFT || keyEvent.getKeyCode() == KeyEvent.VK_RIGHT)
               && (keyEvent.getModifiersEx() & allModifiersMask) == InputEvent.ALT_DOWN_MASK;
     }
@@ -787,16 +738,21 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
     private final Callback myCallback;
     private final Object myLock = new Object();
 
-    public Debouncer(Callback callback) {
+    public Debouncer(@NotNull Callback callback) {
       this.myCallback = callback;
     }
 
     public void call() {
       synchronized (myLock) {
-        long interval = Math.min(
-                Math.max(myLatencyStatistics.getMaxLatency() * 3 / 2, MIN_CLEAR_PREDICTIONS_DELAY),
-                MAX_CLEAR_PREDICTIONS_DELAY
-        );
+        long interval;
+        if (myLatencyStatistics.getSampleSize() >= LATENCY_MIN_SAMPLES_TO_TURN_ON) {
+          interval = Math.min(
+                  Math.max(myLatencyStatistics.getMaxLatency() * 3 / 2, MIN_CLEAR_PREDICTIONS_DELAY),
+                  MAX_TERMINAL_DELAY
+          );
+        } else {
+          interval = MAX_TERMINAL_DELAY;
+        }
 
         if (myTimerTask != null) {
           myTimerTask.cancel();
@@ -855,7 +811,7 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
     public void call() {
       synchronized (LOCK) {
         if (!myPredictions.isEmpty()) {
-          System.out.println("DEBOUNCE!");
+          LOG.debug("TimeoutPredictionCleaner called");
           resetState();
         }
       }
@@ -870,7 +826,7 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
       myBufferSize = bufferSize;
     }
 
-    public void adjustLatency(TypeAheadPrediction prediction) {
+    public void adjustLatency(@NotNull TypeAheadPrediction prediction) {
       latencies.add(System.nanoTime() - prediction.myCreatedTime);
 
       if (latencies.size() > myBufferSize) {
@@ -895,7 +851,7 @@ private static final long AUTO_SYNC_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
 
     public long getMaxLatency() {
       if (latencies.isEmpty()) {
-        return 0;
+        throw new IllegalStateException("Tried to get max latency with sample size of 0");
       }
 
       return Collections.max(latencies);

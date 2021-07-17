@@ -500,16 +500,18 @@ public class TerminalTypeAheadManager {
       return MatchResult.Success;
     }
 
-    @Nullable String eatRegex(@NotNull Pattern pattern) {
-      // TODO: verify correctness
-      Matcher matcher = pattern.matcher(myString.substring(myIndex));
-      if (!matcher.matches()) {
+    private final Pattern STYLE_REGEX = Pattern.compile("^(\\x1b\\[[0-9;]*m).*");
+
+    @Nullable String eatStyle() {
+      Matcher matcher = STYLE_REGEX.matcher(myString.substring(myIndex));
+
+      if (matcher.find()) {
+        String match = matcher.group(1);
+        myIndex += match.length();
+        return match;
+      } else {
         return null;
       }
-
-      java.util.regex.MatchResult match = matcher.toMatchResult();
-      myIndex += matcher.end();
-      return match.group();
     }
   }
 
@@ -592,9 +594,8 @@ public class TerminalTypeAheadManager {
     public @NotNull MatchResult matches(@NotNull TypeaheadStringReader stringReader, int cursorX) {
       // remove any styling CSI before checking the char
       String eaten;
-      Pattern CSI_STYLE_RE = Pattern.compile("^\\x1b\\[[0-9;]*m"); // TODO: test regex
       do {
-        eaten = stringReader.eatRegex(CSI_STYLE_RE);
+        eaten = stringReader.eatStyle();
       } while (eaten != null && !eaten.isEmpty());
 
       MatchResult result = MatchResult.Failure;

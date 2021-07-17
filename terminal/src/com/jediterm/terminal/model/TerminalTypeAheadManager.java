@@ -31,7 +31,7 @@ public class TerminalTypeAheadManager {
   private final List<TerminalModelListener> myListeners = new CopyOnWriteArrayList<>();
   private final List<TypeAheadPrediction> myPredictions = new ArrayList<>();
   private final JediTerminal myTerminal;
-  private final Debouncer myDeferClearingPredictions = new Debouncer(new TimeoutPredictionCleaner());
+  private final ClearPredictionsDebounce myClearPredictionsDebounce = new ClearPredictionsDebounce();
   private final LatencyStatistics myLatencyStatistics = new LatencyStatistics(LATENCY_BUFFER_SIZE);
 
   private TextStyle myTypeAheadTextStyle;
@@ -73,10 +73,7 @@ public class TerminalTypeAheadManager {
 
       if (!myPredictions.isEmpty()) {
         updateLeftMostCursorPosition(terminalLineWithCursor.myCursorX);
-        myDeferClearingPredictions.call();
-      } else {
-        resetState();
-        return;
+        myClearPredictionsDebounce.call();
       }
 
       while (!myPredictions.isEmpty() && terminalDataReader.remainingLength() > 0) {
@@ -85,7 +82,10 @@ public class TerminalTypeAheadManager {
         if (checkNextPrediction(terminalDataReader, terminalLineWithCursor)) return;
       }
 
-      // TODO: resetState if not (isEmpty && remaining == 0)?
+      if (myPredictions.isEmpty() && terminalDataReader.remainingLength() > 0) {
+        myOutOfSyncDetected = true;
+        resetState();
+      }
     }
   }
 
@@ -110,7 +110,6 @@ public class TerminalTypeAheadManager {
 
       if (System.nanoTime() - prevTypedTime < autoSyncDelay) {
         if (myOutOfSyncDetected) {
-          resetState();
           return;
         }
       } else {
@@ -122,7 +121,7 @@ public class TerminalTypeAheadManager {
 
 
       if (myPredictions.isEmpty()) {
-        myDeferClearingPredictions.call(); // start a timer that will clear predictions
+        myClearPredictionsDebounce.call(); // start a timer that will clear predictions
       }
       TypeAheadPrediction prediction = createPrediction(terminalLineWithCursor, keyEvent);
       myPredictions.add(prediction);
@@ -222,7 +221,7 @@ public class TerminalTypeAheadManager {
         return true;
       case Failure:
         LOG.debug("Match failure: " + debugString);
-        myOutOfSyncDetected = true; // TODO: move to resetState()?
+        myOutOfSyncDetected = true;
         resetState();
     }
     return false;
@@ -314,7 +313,7 @@ public class TerminalTypeAheadManager {
     myLeftMostCursorPosition = null;
     myIsNotPasswordPrompt = false;
     myLastSuccessfulPrediction = null;
-    myDeferClearingPredictions.terminateCall();
+    myClearPredictionsDebounce.terminateCall();
 
     if (fireChange) {
       fireModelChanged();
@@ -729,19 +728,10 @@ public class TerminalTypeAheadManager {
     }
   }
 
-  private interface Callback {
-    void call();
-  }
-
-  private class Debouncer {
+  private class ClearPredictionsDebounce {
     private final ScheduledExecutorService myScheduler = Executors.newScheduledThreadPool(1);
-    private TimerTask myTimerTask = null;
-    private final Callback myCallback;
+    private ClearPredictions myClearPredictions = null;
     private final Object myLock = new Object();
-
-    public Debouncer(@NotNull Callback callback) {
-      this.myCallback = callback;
-    }
 
     public void call() {
       synchronized (myLock) {
@@ -755,27 +745,26 @@ public class TerminalTypeAheadManager {
           interval = MAX_TERMINAL_DELAY;
         }
 
-        if (myTimerTask != null) {
-          myTimerTask.cancel();
+        if (myClearPredictions != null) {
+          myClearPredictions.cancel();
         }
 
-        myTimerTask = new TimerTask(interval);
-        myScheduler.schedule(myTimerTask, interval, TimeUnit.NANOSECONDS);
+        myClearPredictions = new ClearPredictions(interval);
+        myScheduler.schedule(myClearPredictions, interval, TimeUnit.NANOSECONDS);
       }
     }
 
     public void terminateCall() {
-      if (myTimerTask != null) {
-        myTimerTask.cancel();
+      if (myClearPredictions != null) {
+        myClearPredictions.cancel();
       }
     }
 
-    // The task that wakes up when the wait time elapses
-    private class TimerTask implements Runnable {
-      private long myDueTime;
+    private class ClearPredictions implements Runnable {
+      private final long myDueTime;
       private boolean myIsActive;
 
-      public TimerTask(long interval) {
+      public ClearPredictions(long interval) {
         myDueTime = System.nanoTime() + interval;
       }
 
@@ -795,25 +784,18 @@ public class TerminalTypeAheadManager {
           if (remaining > 0) { // Re-schedule task
             myScheduler.schedule(this, remaining, TimeUnit.NANOSECONDS);
           } else { // Mark as terminated and invoke callback
-            myDueTime = -1;
-            try {
-              myCallback.call();
-            } finally {
-              myIsActive = false;
-            }
+            myIsActive = false;
+            runNow();
           }
         }
       }
-    }
-  }
 
-  private class TimeoutPredictionCleaner implements Callback {
-    @Override
-    public void call() {
-      synchronized (LOCK) {
-        if (!myPredictions.isEmpty()) {
-          LOG.debug("TimeoutPredictionCleaner called");
-          resetState();
+      private void runNow() {
+        synchronized (LOCK) {
+          if (!myPredictions.isEmpty()) {
+            LOG.debug("TimeoutPredictionCleaner called");
+            resetState();
+          }
         }
       }
     }

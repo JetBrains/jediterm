@@ -77,8 +77,6 @@ public class TerminalTypeAheadManager {
       }
 
       while (!myPredictions.isEmpty() && terminalDataReader.remainingLength() > 0) {
-        // TODO: vscode omits some char sequences from sending to the prediction engine, maybe we should too.
-
         if (checkNextPrediction(terminalDataReader, terminalLineWithCursor)) return;
       }
 
@@ -473,16 +471,6 @@ public class TerminalTypeAheadManager {
       return character;
     }
 
-    @SuppressWarnings("unused") // TODO: needed to fix cursor move prediction
-    @Nullable String eatString(@NotNull String substr) {
-      if (!myString.substring(myIndex, substr.length()).equals(substr)) {
-        return null;
-      }
-
-      myIndex += substr.length();
-      return substr;
-    }
-
     @NotNull MatchResult eatGradually(@NotNull String substr) {
       int prevIndex = myIndex;
 
@@ -605,7 +593,6 @@ public class TerminalTypeAheadManager {
       } else if (stringReader.eatChar(getCharacter()) != null) {
         result = MatchResult.Success;
       } else if (myLastSuccessfulPrediction != null && myLastSuccessfulPrediction.getCharacterOrNull() != null) {
-        // vscode #112842
         String zshPrediction = "\b" + myLastSuccessfulPrediction.getCharacterOrNull() + getCharacter();
         result = stringReader.eatGradually(zshPrediction);
       }
@@ -670,7 +657,7 @@ public class TerminalTypeAheadManager {
     }
 
     private @NotNull MatchResult _matches(TypeaheadStringReader stringReader) {
-      MatchResult r1 = stringReader.eatGradually((CSI + myDirection.myChar).repeat(myAmount)); // FIXME: https://github.com/microsoft/vscode/commit/47bbc2f8e7da11305e7d2414b91f0ab8041bbc73
+      MatchResult r1 = stringReader.eatGradually((CSI + myDirection.myChar).repeat(myAmount));
       if (r1 != MatchResult.Failure) {
         return r1;
       }

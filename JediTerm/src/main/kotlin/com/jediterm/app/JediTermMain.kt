@@ -1,6 +1,5 @@
 package com.jediterm.app
 
-import com.google.common.collect.ForwardingMap
 import com.google.common.collect.Lists
 import com.google.common.collect.Maps
 import com.intellij.execution.filters.UrlFilter
@@ -20,10 +19,9 @@ import com.pty4j.PtyProcessBuilder
 import org.apache.log4j.BasicConfigurator
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
-import java.awt.KeyboardFocusManager
 import java.io.IOException
 import java.nio.charset.Charset
-import java.util.*
+import java.nio.charset.StandardCharsets
 import java.util.function.Function
 import javax.swing.SwingUtilities
 
@@ -46,32 +44,17 @@ object JediTermMain {
     }
 }
 
-fun initLoggingTracing() {
-    val mrfoField = KeyboardFocusManager::class.java!!.getDeclaredField("mostRecentFocusOwners")
-    mrfoField.setAccessible(true)
-
-    val delegate = mrfoField.get(null) as Map<Any, Any>
-
-    val mrfo = object : ForwardingMap<Any, Any>() {
-        override fun put(key: Any?, value: Any?): Any? {
-            Throwable().printStackTrace()
-            return super.put(key, value)
-        }
-
-        override fun delegate(): Map<Any, Any> {
-            return delegate
-        }
-    }
-    mrfoField.set(null, mrfo)
-}
-
 class JediTerm : AbstractTerminalFrame(), Disposable {
     override fun dispose() {
         // TODO
     }
 
     override fun createTabbedTerminalWidget(): JediTabbedTerminalWidget {
-        return object : JediTabbedTerminalWidget(DefaultTabbedSettingsProvider(), Function<Pair<TerminalWidget, String>, JediTerminalWidget> { pair -> openSession(pair?.first) as JediTerminalWidget }, this) {
+        return object : JediTabbedTerminalWidget(
+            DefaultTabbedSettingsProvider(),
+            Function<Pair<TerminalWidget, String>, JediTerminalWidget> { pair -> openSession(pair?.first) as JediTerminalWidget },
+            this
+        ) {
             override fun createInnerTerminalWidget(): JediTerminalWidget {
                 return createTerminalWidget(settingsProvider)
             }
@@ -80,27 +63,23 @@ class JediTerm : AbstractTerminalFrame(), Disposable {
 
     override fun createTtyConnector(): TtyConnector {
         try {
-
-            val charset = Charset.forName("UTF-8")
-
+            val charset = StandardCharsets.UTF_8
             val envs = Maps.newHashMap(System.getenv())
-
             EncodingEnvironmentUtil.setLocaleEnvironmentIfMac(envs, charset)
-
-            val command: Array<String>
-
-            if (UIUtil.isWindows) {
-                command = arrayOf("cmd.exe")
-            } else {
-                command = arrayOf("/bin/bash", "--login")
-                envs.put("TERM", "xterm")
+            val command: Array<String> = if (UIUtil.isWindows) {
+                arrayOf("powershell.exe")
+            }
+            else {
+                envs["TERM"] = "xterm-256color"
+                val shell = envs["SHELL"] ?: "/bin/bash"
+                if (UIUtil.isMac) arrayOf(shell, "--login") else arrayOf(shell)
             }
 
             val process = PtyProcessBuilder()
                 .setCommand(command)
                 .setEnvironment(envs)
                 .setConsole(false)
-                .start();
+                .start()
 
             return LoggingPtyProcessTtyConnector(process, charset)
         } catch (e: Exception) {
@@ -115,14 +94,15 @@ class JediTerm : AbstractTerminalFrame(), Disposable {
         return widget
     }
 
-    class LoggingPtyProcessTtyConnector(process: PtyProcess, charset: Charset) : PtyProcessTtyConnector(process, charset), LoggingTtyConnector {
+    class LoggingPtyProcessTtyConnector(process: PtyProcess, charset: Charset) :
+        PtyProcessTtyConnector(process, charset), LoggingTtyConnector {
         private val myDataChunks = Lists.newArrayList<CharArray>()
 
         @Throws(IOException::class)
         override fun read(buf: CharArray, offset: Int, length: Int): Int {
             val len = super.read(buf, offset, length)
             if (len > 0) {
-                val arr = Arrays.copyOfRange(buf, offset, len)
+                val arr = buf.copyOfRange(offset, len)
                 myDataChunks.add(arr)
             }
             return len
@@ -134,13 +114,13 @@ class JediTerm : AbstractTerminalFrame(), Disposable {
 
         @Throws(IOException::class)
         override fun write(string: String) {
-            AbstractTerminalFrame.LOG.debug("Writing in OutputStream : " + string)
+            LOG.debug("Writing in OutputStream : " + string)
             super.write(string)
         }
 
         @Throws(IOException::class)
         override fun write(bytes: ByteArray) {
-            AbstractTerminalFrame.LOG.debug("Writing in OutputStream : " + Arrays.toString(bytes) + " " + String(bytes))
+            LOG.debug("Writing in OutputStream : " + bytes.contentToString() + " " + String(bytes))
             super.write(bytes)
         }
     }

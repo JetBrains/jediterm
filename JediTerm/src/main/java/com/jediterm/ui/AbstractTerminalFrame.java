@@ -1,10 +1,11 @@
-package com.jediterm.terminal.ui;
+package com.jediterm.ui;
 
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TabbedTerminalWidget;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.debug.BufferPanel;
 import com.jediterm.terminal.model.SelectionUtil;
+import com.jediterm.terminal.ui.*;
 import com.jediterm.terminal.ui.settings.DefaultTabbedSettingsProvider;
 import com.jediterm.terminal.ui.settings.TabbedSettingsProvider;
 import com.jediterm.terminal.util.Pair;
@@ -181,7 +182,7 @@ public abstract class AbstractTerminalFrame {
   }
 
   @NotNull
-  protected AbstractTabbedTerminalWidget createTabbedTerminalWidget() {
+  protected AbstractTabbedTerminalWidget<? extends JediTermWidget> createTabbedTerminalWidget() {
     return new TabbedTerminalWidget(new DefaultTabbedSettingsProvider(), this::openSession) {
       @Override
       public JediTermWidget createInnerTerminalWidget() {
@@ -195,37 +196,32 @@ public abstract class AbstractTerminalFrame {
   }
 
   private void sizeFrameForTerm(final JFrame frame) {
-    SwingUtilities.invokeLater(new Runnable() {
-      @Override
-      public void run() {
-        Dimension d = myTerminal.getPreferredSize();
+    SwingUtilities.invokeLater(() -> {
+      Dimension d = myTerminal.getPreferredSize();
 
-        d.width += frame.getWidth() - frame.getContentPane().getWidth();
-        d.height += frame.getHeight() - frame.getContentPane().getHeight();
-        frame.setSize(d);
-      }
+      d.width += frame.getWidth() - frame.getContentPane().getWidth();
+      d.height += frame.getHeight() - frame.getContentPane().getHeight();
+      frame.setSize(d);
     });
   }
 
   private void showBuffers() {
-    SwingUtilities.invokeLater(new Runnable() {
-      public void run() {
-        myBufferFrame = new JFrame("buffers");
-        final JPanel panel = new BufferPanel(myTerminal.getCurrentSession());
+    SwingUtilities.invokeLater(() -> {
+      myBufferFrame = new JFrame("buffers");
+      final JPanel panel = new BufferPanel(myTerminal.getCurrentSession());
 
-        myBufferFrame.getContentPane().add(panel);
-        myBufferFrame.pack();
-        myBufferFrame.setLocationByPlatform(true);
-        myBufferFrame.setVisible(true);
-        myBufferFrame.setSize(800, 600);
+      myBufferFrame.getContentPane().add(panel);
+      myBufferFrame.pack();
+      myBufferFrame.setLocationByPlatform(true);
+      myBufferFrame.setVisible(true);
+      myBufferFrame.setSize(800, 600);
 
-        myBufferFrame.addWindowListener(new WindowAdapter() {
-          @Override
-          public void windowClosing(final WindowEvent e) {
-            myBufferFrame = null;
-          }
-        });
-      }
+      myBufferFrame.addWindowListener(new WindowAdapter() {
+        @Override
+        public void windowClosing(final WindowEvent e) {
+          myBufferFrame = null;
+        }
+      });
     });
   }
 

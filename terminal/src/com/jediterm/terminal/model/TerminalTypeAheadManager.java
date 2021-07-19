@@ -25,7 +25,6 @@ public class TerminalTypeAheadManager {
 
   private static final Logger LOG = Logger.getLogger(TerminalTypeAheadManager.class);
 
-  private final Object LOCK = new Object();
   private final SettingsProvider mySettingsProvider;
   private final TerminalTextBuffer myTerminalTextBuffer;
   private final List<TerminalModelListener> myListeners = new CopyOnWriteArrayList<>();
@@ -63,9 +62,10 @@ public class TerminalTypeAheadManager {
     myTerminalDataBuffer = "";
     TypeaheadStringReader terminalDataReader = new TypeaheadStringReader(terminalData);
 
-    TerminalLineWithCursor terminalLineWithCursor = getTerminalLineWithCursor();
+    myTerminalTextBuffer.lock();
+    try {
+      TerminalLineWithCursor terminalLineWithCursor = getTerminalLineWithCursor();
 
-    synchronized (LOCK) {
       if (terminalLineWithCursor == null) {
         resetState();
         return;
@@ -84,13 +84,16 @@ public class TerminalTypeAheadManager {
         myOutOfSyncDetected = true;
         resetState();
       }
+    } finally {
+      myTerminalTextBuffer.unlock();
     }
   }
 
   public void onKeyEvent(@NotNull KeyEvent keyEvent) {
-    TerminalLineWithCursor terminalLineWithCursor = getTerminalLineWithCursor();
+    myTerminalTextBuffer.lock();
+    try {
+      TerminalLineWithCursor terminalLineWithCursor = getTerminalLineWithCursor();
 
-    synchronized (LOCK) {
       if (terminalLineWithCursor == null) {
         resetState();
         return;
@@ -126,21 +129,32 @@ public class TerminalTypeAheadManager {
       redrawPredictions(terminalLineWithCursor);
 
       LOG.debug("Created prediction for \"" + keyEvent.getKeyChar() + "\" (" + keyEvent.getKeyCode() + ")");
+    } finally {
+      myTerminalTextBuffer.unlock();
     }
   }
 
   public void onResize() {
-    synchronized (LOCK) {
+    myTerminalTextBuffer.lock();
+    try {
       resetState();
+    } finally {
+      myTerminalTextBuffer.unlock();
     }
   }
 
   public void addModelListener(@NotNull TerminalModelListener listener) {
-    myListeners.add(listener);
+    myTerminalTextBuffer.lock();
+    try {
+      myListeners.add(listener);
+    } finally {
+      myTerminalTextBuffer.unlock();
+    }
   }
 
   public int getCursorX() {
-    synchronized (LOCK) {
+    myTerminalTextBuffer.lock();
+    try {
       if (myTerminalTextBuffer.isUsingAlternateBuffer() && !myPredictions.isEmpty()) {
         // otherwise it will misreport cursor position
         resetState();
@@ -148,6 +162,8 @@ public class TerminalTypeAheadManager {
 
       TypeAheadPrediction prediction = getLastVisiblePrediction();
       return prediction == null ? myTerminal.getCursorX() : prediction.myPredictedCursorX + 1;
+    } finally {
+      myTerminalTextBuffer.unlock();
     }
   }
 
@@ -172,21 +188,15 @@ public class TerminalTypeAheadManager {
   }
 
   private @Nullable TerminalLineWithCursor getTerminalLineWithCursor() {
-    myTerminalTextBuffer.lock();
-
-    try {
-      if (myTerminalTextBuffer.isUsingAlternateBuffer()) {
-        return null;
-      }
-
-      int cursorX = myTerminal.getCursorX() - 1;
-      int cursorY = myTerminal.getCursorY() - 1;
-      TerminalLine terminalLine = myTerminalTextBuffer.getLine(cursorY);
-
-      return new TerminalLineWithCursor(terminalLine, cursorX, cursorY);
-    } finally {
-      myTerminalTextBuffer.unlock();
+    if (myTerminalTextBuffer.isUsingAlternateBuffer()) {
+      return null;
     }
+
+    int cursorX = myTerminal.getCursorX() - 1;
+    int cursorY = myTerminal.getCursorY() - 1;
+    TerminalLine terminalLine = myTerminalTextBuffer.getLine(cursorY);
+
+    return new TerminalLineWithCursor(terminalLine, cursorX, cursorY);
   }
 
   private boolean checkNextPrediction(@NotNull TypeaheadStringReader terminalDataReader,
@@ -779,11 +789,14 @@ public class TerminalTypeAheadManager {
       }
 
       private void runNow() {
-        synchronized (LOCK) {
+        myTerminalTextBuffer.lock();
+        try {
           if (!myPredictions.isEmpty()) {
             LOG.debug("TimeoutPredictionCleaner called");
             resetState();
           }
+        } finally {
+          myTerminalTextBuffer.unlock();
         }
       }
     }

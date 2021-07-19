@@ -760,7 +760,7 @@ public class TerminalTypeAheadManager {
 
     private class ClearPredictions implements Runnable {
       private final long myDueTime;
-      private boolean myIsActive;
+      private boolean myIsActive = true;
 
       public ClearPredictions(long interval) {
         myDueTime = System.nanoTime() + interval;

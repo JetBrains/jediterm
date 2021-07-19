@@ -9,11 +9,11 @@ import com.intellij.util.EncodingEnvironmentUtil
 import com.jediterm.pty.PtyProcessTtyConnector
 import com.jediterm.terminal.LoggingTtyConnector
 import com.jediterm.terminal.TtyConnector
-import com.jediterm.terminal.ui.AbstractTerminalFrame
 import com.jediterm.terminal.ui.TerminalWidget
 import com.jediterm.terminal.ui.UIUtil
 import com.jediterm.terminal.ui.settings.DefaultTabbedSettingsProvider
 import com.jediterm.terminal.ui.settings.TabbedSettingsProvider
+import com.jediterm.ui.AbstractTerminalFrame
 import com.pty4j.PtyProcess
 import com.pty4j.PtyProcessBuilder
 import org.apache.log4j.BasicConfigurator
@@ -25,18 +25,11 @@ import java.nio.charset.StandardCharsets
 import java.util.function.Function
 import javax.swing.SwingUtilities
 
-/**
- * Created by traff on 22/08/16.
- */
-
-
 object JediTermMain {
     @JvmStatic
     fun main(arg: Array<String>) {
         BasicConfigurator.configure()
         Logger.getRootLogger().level = Level.INFO
-
-//        initLoggingTracing()
 
         SwingUtilities.invokeLater {
             JediTerm()

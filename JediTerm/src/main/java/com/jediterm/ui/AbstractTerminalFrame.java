@@ -1,7 +1,6 @@
 package com.jediterm.ui;
 
 import com.jediterm.terminal.RequestOrigin;
-import com.jediterm.terminal.TabbedTerminalWidget;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.debug.BufferPanel;
 import com.jediterm.terminal.model.SelectionUtil;

@@ -10,7 +10,7 @@ import com.intellij.ui.tabs.impl.JBEditorTabs;
 import com.intellij.ui.tabs.impl.JBTabsImpl;
 import com.intellij.ui.tabs.impl.TabLabel;
 import com.intellij.util.ui.UIUtil;
-import com.jediterm.terminal.ui.AbstractTabbedTerminalWidget;
+import com.jediterm.ui.AbstractTabbedTerminalWidget;
 import com.jediterm.terminal.ui.AbstractTabs;
 import com.jediterm.terminal.ui.TerminalAction;
 import com.jediterm.terminal.ui.TerminalWidget;

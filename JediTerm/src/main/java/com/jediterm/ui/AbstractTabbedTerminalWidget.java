@@ -1,4 +1,4 @@
-package com.jediterm.terminal.ui;
+package com.jediterm.ui;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
@@ -8,6 +8,7 @@ import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TerminalDisplay;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.TtyConnectorWaitFor;
+import com.jediterm.terminal.ui.*;
 import com.jediterm.terminal.ui.settings.TabbedSettingsProvider;
 import com.jediterm.terminal.util.JTextFieldLimit;
 import org.jetbrains.annotations.NotNull;

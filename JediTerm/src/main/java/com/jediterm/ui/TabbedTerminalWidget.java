@@ -1,4 +1,4 @@
-package com.jediterm.terminal;
+package com.jediterm.ui;
 
 import com.jediterm.terminal.ui.*;
 import com.jediterm.terminal.ui.settings.TabbedSettingsProvider;

@@ -500,4 +500,9 @@ public class TerminalTextBuffer {
   public int findScreenLineIndex(@NotNull TerminalLine line) {
     return myScreenBuffer.findLineIndex(line);
   }
+
+  public void clearTypeAheadPredictions() {
+    myScreenBuffer.clearTypeAheadPredictions();
+    myHistoryBuffer.clearTypeAheadPredictions();
+  }
 }

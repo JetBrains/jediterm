@@ -35,7 +35,6 @@ public class TerminalTypeAheadManager {
   // if true, new predictions will only be generated if the user isn't typing for a certain amount of time
   private boolean myOutOfSyncDetected = false;
   private long myLastTypedTime;
-  private TypeAheadPrediction myLastSuccessfulPrediction = null; // TODO: replace with proper way to clear all lines
   // if we need more chars to match a prediction, we buffer remaining chars and wait for new ones
   private String myTerminalDataBuffer = "";
   // guards the terminal prompt. All predictions that try to move the cursor beyond leftmost cursor position are tentative
@@ -209,9 +208,7 @@ public class TerminalTypeAheadManager {
           myIsNotPasswordPrompt = true;
         }
 
-        myLastSuccessfulPrediction = myPredictions.get(0);
         myPredictions.remove(0);
-        nextPrediction.myInitialLine.setTypeAheadLine(null);
         redrawPredictions(terminalLineWithCursor);
         break;
       case Buffer:
@@ -300,18 +297,11 @@ public class TerminalTypeAheadManager {
   private void resetState() {
     boolean fireChange = !myPredictions.isEmpty();
 
-    for (TypeAheadPrediction prediction : myPredictions) {
-      prediction.myInitialLine.setTypeAheadLine(null);
-    }
-    if (myLastSuccessfulPrediction != null) {
-      myLastSuccessfulPrediction.myInitialLine.setTypeAheadLine(null);
-    }
-
+    myTerminalTextBuffer.clearTypeAheadPredictions();
     myPredictions.clear();
     myTerminalDataBuffer = "";
     myLeftMostCursorPosition = null;
     myIsNotPasswordPrompt = false;
-    myLastSuccessfulPrediction = null;
     myClearPredictionsDebouncer.terminateCall();
 
     if (fireChange) {
@@ -336,10 +326,8 @@ public class TerminalTypeAheadManager {
 
   private @NotNull TypeAheadPrediction createPrediction(@NotNull TerminalLineWithCursor initialLineWithCursor,
                                                         @NotNull KeyEvent keyEvent) {
-    TerminalLine initialLine = initialLineWithCursor.myTerminalLine;
-
     if (getLastPrediction() instanceof HardBoundary) {
-      return new HardBoundary(initialLine, keyEvent, -1);
+      return new HardBoundary(keyEvent, -1);
     }
 
     TerminalLineWithCursor newLineWCursor = initialLineWithCursor.copy();
@@ -359,21 +347,21 @@ public class TerminalTypeAheadManager {
               (TypeAheadPrediction prediction) -> prediction.getCharacterOrNull() != null);
 
       return constructPrediction(
-              new CharacterPrediction(initialLine, keyEvent, newLineWCursor.myCursorX, previousChar),
+              new CharacterPrediction(keyEvent, newLineWCursor.myCursorX, previousChar),
               myIsNotPasswordPrompt || hasCharacterPredictions
       );
     } else if (KeyEventHelper.isBackspace(keyEvent)) {
       updateTerminalLinePrediction(newLineWCursor, keyEvent);
 
       return constructPrediction(
-              new BackspacePrediction(initialLine, keyEvent, newLineWCursor.myCursorX),
+              new BackspacePrediction(keyEvent, newLineWCursor.myCursorX),
               myLeftMostCursorPosition != null && myLeftMostCursorPosition <= newLineWCursor.myCursorX
       );
     } else if (KeyEventHelper.isArrowKey(keyEvent)) {
       updateTerminalLinePrediction(newLineWCursor, keyEvent);
 
       return constructPrediction(
-              new CursorMovePrediction(initialLine, keyEvent, newLineWCursor.myCursorX, initialLineWithCursor.myCursorY, 1),
+              new CursorMovePrediction(keyEvent, newLineWCursor.myCursorX, initialLineWithCursor.myCursorY, 1),
               myLeftMostCursorPosition != null && myLeftMostCursorPosition <= newLineWCursor.myCursorX
                       && newLineWCursor.myCursorX <= newLineWCursor.myTerminalLine.getText().length()
       );
@@ -384,12 +372,12 @@ public class TerminalTypeAheadManager {
       int amount = Math.abs(newLineWCursor.myCursorX - oldCursorX);
 
       return constructPrediction(
-              new CursorMovePrediction(initialLine, keyEvent, newLineWCursor.myCursorX, initialLineWithCursor.myCursorY, amount),
+              new CursorMovePrediction(keyEvent, newLineWCursor.myCursorX, initialLineWithCursor.myCursorY, amount),
               myLeftMostCursorPosition != null && myLeftMostCursorPosition <= newLineWCursor.myCursorX
                       && newLineWCursor.myCursorX <= newLineWCursor.myTerminalLine.getText().length()
       );
     } else {
-      return new HardBoundary(initialLine, keyEvent, -1);
+      return new HardBoundary(keyEvent, -1);
     }
   }
 
@@ -499,14 +487,11 @@ public class TerminalTypeAheadManager {
   private abstract static class TypeAheadPrediction {
     public final long myCreatedTime;
 
-    protected final TerminalLine myInitialLine;
     protected final int myPredictedCursorX;
     protected KeyEvent myKeyEvent;
 
-    private TypeAheadPrediction(@NotNull TerminalLine initialLine,
-                                @NotNull KeyEvent keyEvent,
+    private TypeAheadPrediction(@NotNull KeyEvent keyEvent,
                                 int predictedCursorX) {
-      myInitialLine = initialLine;
       myKeyEvent = keyEvent;
       myPredictedCursorX = predictedCursorX;
 
@@ -534,8 +519,8 @@ public class TerminalTypeAheadManager {
   }
 
   private static class HardBoundary extends TypeAheadPrediction {
-    private HardBoundary(@NotNull TerminalLine initialLine, @NotNull KeyEvent keyEvent, int predictedCursorX) {
-      super(initialLine, keyEvent, predictedCursorX);
+    private HardBoundary(@NotNull KeyEvent keyEvent, int predictedCursorX) {
+      super(keyEvent, predictedCursorX);
     }
 
     @Override
@@ -548,7 +533,7 @@ public class TerminalTypeAheadManager {
     final TypeAheadPrediction myInnerPrediction;
 
     private TentativeBoundary(@NotNull TypeAheadPrediction innerPrediction) {
-      super(innerPrediction.myInitialLine, innerPrediction.myKeyEvent, innerPrediction.myPredictedCursorX);
+      super(innerPrediction.myKeyEvent, innerPrediction.myPredictedCursorX);
       myInnerPrediction = innerPrediction;
     }
 
@@ -561,11 +546,10 @@ public class TerminalTypeAheadManager {
   private class CharacterPrediction extends TypeAheadPrediction {
     @Nullable Character myPreviousChar;
 
-    private CharacterPrediction(@NotNull TerminalLine initialLine,
-                                @NotNull KeyEvent keyEvent,
+    private CharacterPrediction(@NotNull KeyEvent keyEvent,
                                 int predictedCursorX,
                                 @Nullable Character previousChar) {
-      super(initialLine, keyEvent, predictedCursorX);
+      super(keyEvent, predictedCursorX);
       myPreviousChar = previousChar;
     }
 
@@ -600,10 +584,9 @@ public class TerminalTypeAheadManager {
   }
 
   private class BackspacePrediction extends TypeAheadPrediction {
-    private BackspacePrediction(@NotNull TerminalLine initialLine,
-                                @NotNull KeyEvent keyEvent,
+    private BackspacePrediction(@NotNull KeyEvent keyEvent,
                                 int predictedCursorX) {
-      super(initialLine, keyEvent, predictedCursorX);
+      super(keyEvent, predictedCursorX);
     }
 
     @Override
@@ -640,12 +623,11 @@ public class TerminalTypeAheadManager {
     private final CursorMoveDirection myDirection;
     private final int myCursorY;
 
-    private CursorMovePrediction(@NotNull TerminalLine initialLine,
-                                 @NotNull KeyEvent keyEvent,
+    private CursorMovePrediction(@NotNull KeyEvent keyEvent,
                                  int predictedCursorX,
                                  int cursorY,
                                  int amount) {
-      super(initialLine, keyEvent, predictedCursorX);
+      super(keyEvent, predictedCursorX);
       myAmount = amount;
       myDirection = keyEvent.getKeyCode() == KeyEvent.VK_LEFT ? CursorMoveDirection.Back : CursorMoveDirection.Forward;
       myCursorY = cursorY;

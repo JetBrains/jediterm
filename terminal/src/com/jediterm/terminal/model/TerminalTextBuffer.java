@@ -181,7 +181,7 @@ public class TerminalTextBuffer {
     myListeners.remove(listener);
   }
 
-  private void fireModelChangeEvent() {
+  void fireModelChangeEvent() {
     for (TerminalModelListener modelListener : myListeners) {
       modelListener.modelChanged();
     }

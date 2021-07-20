@@ -25,7 +25,6 @@ public class TerminalTypeAheadManager {
 
   private final SettingsProvider mySettingsProvider;
   private final TerminalTextBuffer myTerminalTextBuffer;
-  private final List<TerminalModelListener> myListeners = new CopyOnWriteArrayList<>();
   private final List<TypeAheadPrediction> myPredictions = new ArrayList<>();
   private final JediTerminal myTerminal;
   private final ClearPredictionsDebouncer myClearPredictionsDebouncer = new ClearPredictionsDebouncer();
@@ -144,15 +143,6 @@ public class TerminalTypeAheadManager {
     }
   }
 
-  public void addModelListener(@NotNull TerminalModelListener listener) {
-    myTerminalTextBuffer.lock();
-    try {
-      myListeners.add(listener);
-    } finally {
-      myTerminalTextBuffer.unlock();
-    }
-  }
-
   public int getCursorX() {
     myTerminalTextBuffer.lock();
     try {
@@ -252,7 +242,7 @@ public class TerminalTypeAheadManager {
 
     TerminalLine predictedLine = newTerminalLineWithCursor.myTerminalLine;
     terminalLineWithCursor.myTerminalLine.setTypeAheadLine(predictedLine);
-    fireModelChanged();
+    myTerminalTextBuffer.fireModelChangeEvent();
   }
 
   private void updateLeftMostCursorPosition(int cursorX) {
@@ -325,7 +315,7 @@ public class TerminalTypeAheadManager {
     myClearPredictionsDebouncer.terminateCall();
 
     if (fireChange) {
-      fireModelChanged();
+      myTerminalTextBuffer.fireModelChangeEvent();
     }
   }
 
@@ -438,12 +428,6 @@ public class TerminalTypeAheadManager {
     }
 
     return index;
-  }
-
-  private void fireModelChanged() {
-    for (TerminalModelListener listener : myListeners) {
-      listener.modelChanged();
-    }
   }
 
   private enum MatchResult {

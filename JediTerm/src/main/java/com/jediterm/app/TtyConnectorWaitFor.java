@@ -1,6 +1,7 @@
-package com.jediterm.terminal;
+package com.jediterm.app;
 
 import com.google.common.base.Predicate;
+import com.jediterm.terminal.TtyConnector;
 import org.apache.log4j.Logger;
 
 import java.util.concurrent.ArrayBlockingQueue;

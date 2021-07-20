@@ -11,7 +11,7 @@ import com.intellij.ui.tabs.impl.JBTabsImpl;
 import com.intellij.ui.tabs.impl.TabLabel;
 import com.intellij.util.ui.UIUtil;
 import com.jediterm.ui.AbstractTabbedTerminalWidget;
-import com.jediterm.terminal.ui.AbstractTabs;
+import com.jediterm.ui.AbstractTabs;
 import com.jediterm.terminal.ui.TerminalAction;
 import com.jediterm.terminal.ui.TerminalWidget;
 import com.jediterm.terminal.ui.settings.TabbedSettingsProvider;

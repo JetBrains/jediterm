@@ -72,4 +72,6 @@ public interface UserSettingsProvider {
   boolean isTypeAheadEnabled();
 
   long getTypeaheadLatencyThreshold();
+
+  TextStyle getTypeaheadTextStyle();
 }

@@ -233,4 +233,9 @@ public class DefaultSettingsProvider implements SettingsProvider {
   public long getTypeaheadLatencyThreshold() {
     return TimeUnit.MILLISECONDS.toNanos(100);
   }
+
+  @Override
+  public TextStyle getTypeaheadTextStyle() {
+    return new TextStyle(TerminalColor.rgb(150, 150, 150), null);
+  }
 }

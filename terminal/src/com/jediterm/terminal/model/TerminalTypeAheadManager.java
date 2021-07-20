@@ -1,6 +1,5 @@
 package com.jediterm.terminal.model;
 
-import com.jediterm.terminal.TerminalColor;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.ui.UIUtil;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
@@ -20,7 +19,6 @@ public class TerminalTypeAheadManager {
   private static final long MIN_CLEAR_PREDICTIONS_DELAY = TimeUnit.MILLISECONDS.toNanos(500);
   private static final long MAX_TERMINAL_DELAY = TimeUnit.MILLISECONDS.toNanos(3000);
   private static final int LATENCY_MIN_SAMPLES_TO_TURN_ON = 5;
-  private static final int LATENCY_BUFFER_SIZE = 30;
   private static final double LATENCY_TOGGLE_OFF_THRESHOLD = 0.5;
 
   private static final Logger LOG = Logger.getLogger(TerminalTypeAheadManager.class);
@@ -30,15 +28,18 @@ public class TerminalTypeAheadManager {
   private final List<TerminalModelListener> myListeners = new CopyOnWriteArrayList<>();
   private final List<TypeAheadPrediction> myPredictions = new ArrayList<>();
   private final JediTerminal myTerminal;
-  private final ClearPredictionsDebounce myClearPredictionsDebounce = new ClearPredictionsDebounce();
-  private final LatencyStatistics myLatencyStatistics = new LatencyStatistics(LATENCY_BUFFER_SIZE);
+  private final ClearPredictionsDebouncer myClearPredictionsDebouncer = new ClearPredictionsDebouncer();
+  private final LatencyStatistics myLatencyStatistics = new LatencyStatistics();
 
-  private TextStyle myTypeAheadTextStyle;
+  // if false, predictions will still be generated for latency statistics but won't be displayed
   private boolean myIsShowingPredictions = false;
-  private boolean myOutOfSyncDetected;
+  // if true, new predictions will only be generated if the user isn't typing for a certain amount of time
+  private boolean myOutOfSyncDetected = false;
   private long myLastTypedTime;
-  private TypeAheadPrediction myLastSuccessfulPrediction = null;
+  private TypeAheadPrediction myLastSuccessfulPrediction = null; // TODO: replace with proper way to clear all lines
+  // if we need more chars to match a prediction, we buffer remaining chars and wait for new ones
   private String myTerminalDataBuffer = "";
+  // guards the terminal prompt. All predictions that try to move the cursor beyond leftmost cursor position are tentative
   private Integer myLeftMostCursorPosition = null;
   private boolean myIsNotPasswordPrompt = false;
 
@@ -73,7 +74,7 @@ public class TerminalTypeAheadManager {
 
       if (!myPredictions.isEmpty()) {
         updateLeftMostCursorPosition(terminalLineWithCursor.myCursorX);
-        myClearPredictionsDebounce.call();
+        myClearPredictionsDebouncer.call();
       }
 
       while (!myPredictions.isEmpty() && terminalDataReader.remainingLength() > 0) {
@@ -122,7 +123,7 @@ public class TerminalTypeAheadManager {
 
 
       if (myPredictions.isEmpty()) {
-        myClearPredictionsDebounce.call(); // start a timer that will clear predictions
+        myClearPredictionsDebouncer.call(); // start a timer that will clear predictions
       }
       TypeAheadPrediction prediction = createPrediction(terminalLineWithCursor, keyEvent);
       myPredictions.add(prediction);
@@ -284,7 +285,7 @@ public class TerminalTypeAheadManager {
     int newCursorX = terminalLineWithCursor.myCursorX;
 
     if (KeyEventHelper.isKeyTypedEvent(keyEvent)) {
-      terminalLine.writeString(newCursorX, new CharBuffer(keyEvent.getKeyChar(), 1), getTextStyle());
+      terminalLine.writeString(newCursorX, new CharBuffer(keyEvent.getKeyChar(), 1), mySettingsProvider.getTypeaheadTextStyle());
       newCursorX++;
     } else if (KeyEventHelper.isBackspace(keyEvent)) {
       if (newCursorX > 0) {
@@ -321,7 +322,7 @@ public class TerminalTypeAheadManager {
     myLeftMostCursorPosition = null;
     myIsNotPasswordPrompt = false;
     myLastSuccessfulPrediction = null;
-    myClearPredictionsDebounce.terminateCall();
+    myClearPredictionsDebouncer.terminateCall();
 
     if (fireChange) {
       fireModelChanged();
@@ -357,13 +358,18 @@ public class TerminalTypeAheadManager {
     }
 
     if (KeyEventHelper.isKeyTypedEvent(keyEvent)) {
+      Character previousChar = null;
+      if (newLineWCursor.myCursorX - 1 >= 0) {
+        previousChar = newLineWCursor.myTerminalLine.charAt(newLineWCursor.myCursorX - 1);
+      }
+
       updateTerminalLinePrediction(newLineWCursor, keyEvent);
 
       boolean hasCharacterPredictions = myPredictions.stream().anyMatch(
               (TypeAheadPrediction prediction) -> prediction.getCharacterOrNull() != null);
 
       return constructPrediction(
-              new CharacterPrediction(initialLine, keyEvent, newLineWCursor.myCursorX),
+              new CharacterPrediction(initialLine, keyEvent, newLineWCursor.myCursorX, previousChar),
               myIsNotPasswordPrompt || hasCharacterPredictions
       );
     } else if (KeyEventHelper.isBackspace(keyEvent)) {
@@ -438,15 +444,6 @@ public class TerminalTypeAheadManager {
     for (TerminalModelListener listener : myListeners) {
       listener.modelChanged();
     }
-  }
-
-  private @NotNull TextStyle getTextStyle() {
-    TextStyle textStyle = myTypeAheadTextStyle;
-    if (textStyle == null) {
-      textStyle = new TextStyle(null, TerminalColor.rgb(200, 200, 200));
-      myTypeAheadTextStyle = textStyle;
-    }
-    return textStyle;
   }
 
   private enum MatchResult {
@@ -578,10 +575,14 @@ public class TerminalTypeAheadManager {
   }
 
   private class CharacterPrediction extends TypeAheadPrediction {
+    @Nullable Character myPreviousChar;
+
     private CharacterPrediction(@NotNull TerminalLine initialLine,
                                 @NotNull KeyEvent keyEvent,
-                                int predictedCursorX) {
+                                int predictedCursorX,
+                                @Nullable Character previousChar) {
       super(initialLine, keyEvent, predictedCursorX);
+      myPreviousChar = previousChar;
     }
 
     char getCharacter() {
@@ -602,8 +603,8 @@ public class TerminalTypeAheadManager {
         result = MatchResult.Buffer;
       } else if (stringReader.eatChar(getCharacter()) != null) {
         result = MatchResult.Success;
-      } else if (myLastSuccessfulPrediction != null && myLastSuccessfulPrediction.getCharacterOrNull() != null) {
-        String zshPrediction = "\b" + myLastSuccessfulPrediction.getCharacterOrNull() + getCharacter();
+      } else if (myPreviousChar != null) {
+        String zshPrediction = "\b" + myPreviousChar + getCharacter();
         result = stringReader.eatGradually(zshPrediction);
       }
 
@@ -726,7 +727,7 @@ public class TerminalTypeAheadManager {
     }
   }
 
-  private class ClearPredictionsDebounce {
+  private class ClearPredictionsDebouncer {
     private final ScheduledExecutorService myScheduler = Executors.newScheduledThreadPool(1);
     private ClearPredictions myClearPredictions = null;
     private final Object myLock = new Object();
@@ -803,17 +804,13 @@ public class TerminalTypeAheadManager {
   }
 
   static class LatencyStatistics {
+    private static final int LATENCY_BUFFER_SIZE = 30;
     private final LinkedList<Long> latencies = new LinkedList<>();
-    private final int myBufferSize;
-
-    LatencyStatistics(int bufferSize) {
-      myBufferSize = bufferSize;
-    }
 
     public void adjustLatency(@NotNull TypeAheadPrediction prediction) {
       latencies.add(System.nanoTime() - prediction.myCreatedTime);
 
-      if (latencies.size() > myBufferSize) {
+      if (latencies.size() > LATENCY_BUFFER_SIZE) {
         latencies.removeFirst();
       }
     }
@@ -823,12 +820,12 @@ public class TerminalTypeAheadManager {
         throw new IllegalStateException("Tried to calculate latency with sample size of 0");
       }
 
-      Long[] sorted_latencies = latencies.stream().sorted().toArray(Long[]::new);
+      Long[] sortedLatencies = latencies.stream().sorted().toArray(Long[]::new);
 
-      if (sorted_latencies.length % 2 == 0) {
-        return (sorted_latencies[sorted_latencies.length / 2 - 1] + sorted_latencies[sorted_latencies.length / 2]) / 2;
+      if (sortedLatencies.length % 2 == 0) {
+        return (sortedLatencies[sortedLatencies.length / 2 - 1] + sortedLatencies[sortedLatencies.length / 2]) / 2;
       } else {
-        return sorted_latencies[sorted_latencies.length / 2];
+        return sortedLatencies[sortedLatencies.length / 2];
       }
     }
 

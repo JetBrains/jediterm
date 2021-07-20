@@ -25,7 +25,7 @@ public abstract class AbstractTerminalFrame {
 
   private JFrame myBufferFrame;
 
-  private TerminalWidget myTerminal;
+  private final TerminalWidget myTerminal;
   
   private AbstractAction myOpenAction = new AbstractAction("New Session") {
     public void actionPerformed(final ActionEvent e) {
@@ -136,7 +136,14 @@ public abstract class AbstractTerminalFrame {
   public abstract TtyConnector createTtyConnector();
 
   protected AbstractTerminalFrame() {
-    myTerminal = createTabbedTerminalWidget();
+    AbstractTabbedTerminalWidget<? extends JediTermWidget> tabbedTerminalWidget = createTabbedTerminalWidget();
+    tabbedTerminalWidget.addTabListener(terminal -> {
+      AbstractTabs<?> tabs = tabbedTerminalWidget.getTerminalTabs();
+      if (tabs == null || tabs.getTabCount() == 0) {
+        System.exit(0);
+      }
+    });
+    myTerminal = tabbedTerminalWidget;
 
     final JFrame frame = new JFrame("JediTerm");
 

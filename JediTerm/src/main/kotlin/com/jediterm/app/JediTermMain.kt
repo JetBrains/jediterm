@@ -68,6 +68,7 @@ class JediTerm : AbstractTerminalFrame(), Disposable {
                 if (UIUtil.isMac) arrayOf(shell, "--login") else arrayOf(shell)
             }
 
+            LOG.info("Starting ${command.joinToString()}")
             val process = PtyProcessBuilder()
                 .setCommand(command)
                 .setEnvironment(envs)

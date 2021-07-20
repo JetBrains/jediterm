@@ -114,11 +114,6 @@ public abstract class AbstractTabbedTerminalWidget<T extends JediTermWidget> ext
     new TtyConnectorWaitFor(ttyConnector, Executors.newSingleThreadExecutor()).setTerminationCallback(integer -> {
       if (mySettingsProvider.shouldCloseTabOnLogout(ttyConnector)) {
         closeTab(widget);
-        if (myTabs.getTabCount() == 0) {
-          for (TerminalWidgetListener widgetListener : myWidgetListeners) {
-            widgetListener.allSessionsClosed(widget);
-          }
-        }
       }
       return true;
     });
@@ -214,12 +209,7 @@ public abstract class AbstractTabbedTerminalWidget<T extends JediTermWidget> ext
   public void closeTab(final T terminal) {
     if (terminal != null) {
       if (myTabs != null && myTabs.indexOfComponent(terminal) != -1) {
-          SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-              removeTab(terminal);
-            }
-          });
+        SwingUtilities.invokeLater(() -> removeTab(terminal));
         fireTabClosed(terminal);
       } else if (myTermWidget == terminal) {
         myTermWidget = null;

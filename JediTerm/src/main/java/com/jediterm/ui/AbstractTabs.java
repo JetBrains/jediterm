@@ -1,4 +1,4 @@
-package com.jediterm.terminal.ui;
+package com.jediterm.ui;
 
 import javax.swing.*;
 import java.awt.*;

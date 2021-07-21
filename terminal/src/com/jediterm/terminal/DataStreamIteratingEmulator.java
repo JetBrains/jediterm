@@ -31,9 +31,19 @@ public abstract class DataStreamIteratingEmulator implements Emulator {
   @Override
   public void next() throws IOException {
     try {
-      char b = myDataStream.getChar();
+      TypeAheadTerminalDataStream terminalDataStream = null;
+      if (myDataStream instanceof TypeAheadTerminalDataStream) {
+        terminalDataStream = (TypeAheadTerminalDataStream) myDataStream;
+        terminalDataStream.startRecordingReadChars();
+      }
 
+      char b = myDataStream.getChar();
       processChar(b, myTerminal);
+
+      if (terminalDataStream != null) {
+        String readChars = terminalDataStream.stopRecodingReadCharsAndGet();
+        terminalDataStream.getTypeAheadManager().onTerminalData(readChars);
+      }
     }
     catch (TerminalDataStream.EOF e) {
       myEof = true;

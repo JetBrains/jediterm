@@ -266,4 +266,10 @@ public class LinesBuffer {
   synchronized int findLineIndex(@NotNull TerminalLine line) {
     return myLines.indexOf(line);
   }
+
+  public synchronized void clearTypeAheadPredictions() {
+    for (TerminalLine line : myLines) {
+      line.setTypeAheadLine(null);
+    }
+  }
 }

@@ -6,6 +6,7 @@ import com.jediterm.terminal.*;
 import com.jediterm.terminal.SubstringFinder.FindResult.FindItem;
 import com.jediterm.terminal.TextStyle.Option;
 import com.jediterm.terminal.emulator.ColorPalette;
+import com.jediterm.terminal.model.TerminalTypeAheadManager;
 import com.jediterm.terminal.emulator.charset.CharacterSets;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
 import com.jediterm.terminal.emulator.mouse.TerminalMouseListener;
@@ -99,6 +100,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   private int myCursorType = Cursor.DEFAULT_CURSOR;
   private final TerminalKeyHandler myTerminalKeyHandler = new TerminalKeyHandler();
   private LinkInfo.HoverConsumer myLinkHoverConsumer;
+  private TerminalTypeAheadManager myTypeAheadManager;
 
   public TerminalPanel(@NotNull SettingsProvider settingsProvider, @NotNull TerminalTextBuffer terminalTextBuffer, @NotNull StyleState styleState) {
     mySettingsProvider = settingsProvider;
@@ -114,12 +116,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     enableEvents(AWTEvent.KEY_EVENT_MASK | AWTEvent.INPUT_METHOD_EVENT_MASK);
     enableInputMethods(true);
 
-    terminalTextBuffer.addModelListener(new TerminalModelListener() {
-      @Override
-      public void modelChanged() {
-        repaint();
-      }
-    });
+    terminalTextBuffer.addModelListener(this::repaint);
+  }
+
+  void setTypeAheadManager(@NotNull TerminalTypeAheadManager typeAheadManager) {
+    myTypeAheadManager = typeAheadManager;
   }
 
   @NotNull
@@ -610,6 +611,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       if (newSize != null) {
         JediTerminal.ensureTermMinimumSize(newSize);
         if (!myTermSize.equals(newSize)) {
+          myTypeAheadManager.onResize();
           myTerminalStarter.postResize(newSize, RequestOrigin.User);
         }
       }
@@ -940,14 +942,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       }
     });
 
-    addMouseWheelListener(new MouseWheelListener() {
-      @Override
-      public void mouseWheelMoved(MouseWheelEvent e) {
-        if (mySettingsProvider.enableMouseReporting() && isRemoteMouseAction(e)) {
-          mySelection = null;
-          Point p = panelToCharCoords(e.getPoint());
-          listener.mouseWheelMoved(p.x, p.y, e);
-        }
+    addMouseWheelListener(e -> {
+      if (mySettingsProvider.enableMouseReporting() && isRemoteMouseAction(e)) {
+        mySelection = null;
+        Point p = panelToCharCoords(e.getPoint());
+        listener.mouseWheelMoved(p.x, p.y, e);
       }
     });
 
@@ -1004,6 +1003,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     }
 
     public int getCoordX() {
+      if (myTypeAheadManager != null) {
+        return myTypeAheadManager.getCursorX() - 1;
+      }
       return myCursorCoordinates.x;
     }
 
@@ -1638,6 +1640,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     } catch (final Exception ex) {
       LOG.error("Error sending pressed key to emulator", ex);
     }
+    finally {
+      if (e.isConsumed() && myTypeAheadManager != null) {
+        myTypeAheadManager.onKeyEvent(e);
+      }
+    }
   }
 
   private void processCharacter(@NotNull KeyEvent e) {
@@ -1688,6 +1695,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
         processCharacter(e);
       } catch (final Exception ex) {
         LOG.error("Error sending typed key to emulator", ex);
+      }
+      finally {
+        if (e.isConsumed() && myTypeAheadManager != null) {
+          myTypeAheadManager.onKeyEvent(e);
+        }
       }
     }
   }

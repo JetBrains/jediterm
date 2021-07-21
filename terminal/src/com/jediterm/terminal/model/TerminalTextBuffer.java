@@ -181,7 +181,7 @@ public class TerminalTextBuffer {
     myListeners.remove(listener);
   }
 
-  private void fireModelChangeEvent() {
+  void fireModelChangeEvent() {
     for (TerminalModelListener modelListener : myListeners) {
       modelListener.modelChanged();
     }
@@ -499,5 +499,10 @@ public class TerminalTextBuffer {
 
   public int findScreenLineIndex(@NotNull TerminalLine line) {
     return myScreenBuffer.findLineIndex(line);
+  }
+
+  public void clearTypeAheadPredictions() {
+    myScreenBuffer.clearTypeAheadPredictions();
+    myHistoryBuffer.clearTypeAheadPredictions();
   }
 }

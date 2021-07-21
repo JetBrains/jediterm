@@ -9,6 +9,7 @@ import com.jediterm.terminal.debug.DebugBufferType;
 import com.jediterm.terminal.model.JediTerminal;
 import com.jediterm.terminal.model.StyleState;
 import com.jediterm.terminal.model.TerminalTextBuffer;
+import com.jediterm.terminal.model.TerminalTypeAheadManager;
 import com.jediterm.terminal.model.hyperlinks.HyperlinkFilter;
 import com.jediterm.terminal.model.hyperlinks.TextProcessing;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
@@ -38,6 +39,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   protected final JScrollBar myScrollBar;
   protected final JediTerminal myTerminal;
   protected final AtomicBoolean mySessionRunning = new AtomicBoolean();
+  private final TerminalTypeAheadManager myTypeAheadManager;
   private SearchComponent myFindComponent;
   private final PreConnectHandler myPreConnectHandler;
   private TtyConnector myTtyConnector;
@@ -72,6 +74,8 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
     myTerminalPanel = createTerminalPanel(mySettingsProvider, styleState, terminalTextBuffer);
     myTerminal = new JediTerminal(myTerminalPanel, terminalTextBuffer, styleState);
+    myTypeAheadManager = new TerminalTypeAheadManager(terminalTextBuffer, myTerminal, settingsProvider);
+    myTerminalPanel.setTypeAheadManager(myTypeAheadManager);
 
     myTerminal.setModeEnabled(TerminalMode.AltSendsEscape, mySettingsProvider.altSendsEscape());
 
@@ -136,8 +140,10 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     myTerminalPanel.setTerminalStarter(myTerminalStarter);
   }
 
-  protected TerminalStarter createTerminalStarter(JediTerminal terminal, TtyConnector connector) {
-    return new TerminalStarter(terminal, connector, new TtyBasedArrayDataStream(connector));
+  protected TerminalStarter createTerminalStarter(@NotNull JediTerminal terminal, @NotNull TtyConnector connector) {
+    return new TerminalStarter(terminal, connector, new TypeAheadTerminalDataStream(
+      new TtyBasedArrayDataStream(connector), myTypeAheadManager
+    ));
   }
 
   @Override

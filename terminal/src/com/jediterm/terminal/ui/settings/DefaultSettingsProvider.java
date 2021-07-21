@@ -6,6 +6,7 @@ import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.emulator.ColorPalette;
 import com.jediterm.terminal.emulator.ColorPaletteImpl;
 import com.jediterm.terminal.model.LinesBuffer;
+import com.jediterm.terminal.model.TerminalTypeAheadSettings;
 import com.jediterm.terminal.ui.TerminalActionPresentation;
 import com.jediterm.terminal.ui.UIUtil;
 import org.jetbrains.annotations.NotNull;
@@ -221,5 +222,10 @@ public class DefaultSettingsProvider implements SettingsProvider {
   @Override
   public boolean ambiguousCharsAreDoubleWidth() {
     return false;
+  }
+
+  @Override
+  public @NotNull TerminalTypeAheadSettings getTypeAheadSettings() {
+    return TerminalTypeAheadSettings.DEFAULT;
   }
 }

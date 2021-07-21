@@ -46,7 +46,7 @@ public abstract class EmulatorTestAbstract extends TestCase {
     String crlfText = new String(chars).replaceAll("\r?\n", "\r\n");
     ArrayTerminalDataStream fileStream = new ArrayTerminalDataStream(crlfText.toCharArray());
 
-    Emulator emulator = new JediEmulator(fileStream, terminal, null);
+    Emulator emulator = new JediEmulator(fileStream, terminal);
 
     while (emulator.hasNext()) {
       emulator.next();

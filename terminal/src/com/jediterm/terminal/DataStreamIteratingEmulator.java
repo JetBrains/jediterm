@@ -1,8 +1,6 @@
 package com.jediterm.terminal;
 
 import com.jediterm.terminal.emulator.Emulator;
-import com.jediterm.terminal.model.TerminalTypeAheadManager;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 
@@ -12,14 +10,12 @@ import java.io.IOException;
 public abstract class DataStreamIteratingEmulator implements Emulator {
   protected final TerminalDataStream myDataStream;
   protected final Terminal myTerminal;
-  protected final TerminalTypeAheadManager myTypeAheadManager;
 
   private boolean myEof = false;
 
-  public DataStreamIteratingEmulator(TerminalDataStream dataStream, Terminal terminal, @Nullable TerminalTypeAheadManager typeAheadManager) {
+  public DataStreamIteratingEmulator(TerminalDataStream dataStream, Terminal terminal) {
     myDataStream = dataStream;
     myTerminal = terminal;
-    myTypeAheadManager = typeAheadManager;
   }
 
   @Override
@@ -35,18 +31,18 @@ public abstract class DataStreamIteratingEmulator implements Emulator {
   @Override
   public void next() throws IOException {
     try {
-      if (myDataStream instanceof TypeAheadTerminalDataStream && myTypeAheadManager != null) {
-        TypeAheadTerminalDataStream terminalDataStream = (TypeAheadTerminalDataStream) myDataStream;
+      TypeAheadTerminalDataStream terminalDataStream = null;
+      if (myDataStream instanceof TypeAheadTerminalDataStream) {
+        terminalDataStream = (TypeAheadTerminalDataStream) myDataStream;
         terminalDataStream.startRecordingReadChars();
+      }
 
-        char b = myDataStream.getChar();
-        processChar(b, myTerminal);
+      char b = myDataStream.getChar();
+      processChar(b, myTerminal);
 
+      if (terminalDataStream != null) {
         String readChars = terminalDataStream.stopRecodingReadCharsAndGet();
-        myTypeAheadManager.onTerminalData(readChars);
-      } else {
-        char b = myDataStream.getChar();
-        processChar(b, myTerminal);
+        terminalDataStream.getTypeAheadManager().onTerminalData(readChars);
       }
     }
     catch (TerminalDataStream.EOF e) {

@@ -34,8 +34,8 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   private static int logThrottlerLimit = logThrottlerRatio;
   private final BlockingQueue<CompletableFuture<Void>> myResizeFutureQueue = new LinkedBlockingQueue<>();
 
-  public JediEmulator(TerminalDataStream dataStream, Terminal terminal, @Nullable TerminalTypeAheadManager typeAheadManager) {
-    super(dataStream, terminal, typeAheadManager);
+  public JediEmulator(TerminalDataStream dataStream, Terminal terminal) {
+    super(dataStream, terminal);
   }
 
   @Override

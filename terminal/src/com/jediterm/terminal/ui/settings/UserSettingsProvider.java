@@ -3,6 +3,7 @@ package com.jediterm.terminal.ui.settings;
 import com.jediterm.terminal.HyperlinkStyle;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.emulator.ColorPalette;
+import com.jediterm.terminal.model.TerminalTypeAheadSettings;
 
 import java.awt.*;
 
@@ -69,9 +70,5 @@ public interface UserSettingsProvider {
 
   boolean ambiguousCharsAreDoubleWidth();
 
-  boolean isTypeAheadEnabled();
-
-  long getTypeaheadLatencyThreshold();
-
-  TextStyle getTypeaheadTextStyle();
+  TerminalTypeAheadSettings getTypeAheadSettings();
 }

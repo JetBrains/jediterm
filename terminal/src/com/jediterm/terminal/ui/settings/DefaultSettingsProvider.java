@@ -6,6 +6,7 @@ import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.emulator.ColorPalette;
 import com.jediterm.terminal.emulator.ColorPaletteImpl;
 import com.jediterm.terminal.model.LinesBuffer;
+import com.jediterm.terminal.model.TerminalTypeAheadSettings;
 import com.jediterm.terminal.ui.TerminalActionPresentation;
 import com.jediterm.terminal.ui.UIUtil;
 import org.jetbrains.annotations.NotNull;
@@ -225,17 +226,11 @@ public class DefaultSettingsProvider implements SettingsProvider {
   }
 
   @Override
-  public boolean isTypeAheadEnabled() {
-    return true;
-  }
-
-  @Override
-  public long getTypeaheadLatencyThreshold() {
-    return TimeUnit.MILLISECONDS.toNanos(100);
-  }
-
-  @Override
-  public TextStyle getTypeaheadTextStyle() {
-    return new TextStyle(TerminalColor.rgb(150, 150, 150), null);
+  public TerminalTypeAheadSettings getTypeAheadSettings() {
+    return new TerminalTypeAheadSettings(
+            true,
+            TimeUnit.MILLISECONDS.toNanos(100),
+            new TextStyle(TerminalColor.rgb(150, 150, 150), null)
+    );
   }
 }

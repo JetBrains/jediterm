@@ -272,7 +272,8 @@ public class TerminalTypeAheadManager {
     int newCursorX = terminalLineWithCursor.myCursorX;
 
     if (KeyEventHelper.isKeyTypedEvent(keyEvent)) {
-      terminalLine.writeString(newCursorX, new CharBuffer(keyEvent.getKeyChar(), 1), mySettingsProvider.getTypeaheadTextStyle());
+      TextStyle typeAheadTextStyle = mySettingsProvider.getTypeAheadSettings().myTypeAheadTextStyle;
+      terminalLine.writeString(newCursorX, new CharBuffer(keyEvent.getKeyChar(), 1), typeAheadTextStyle);
       newCursorX++;
     } else if (KeyEventHelper.isBackspace(keyEvent)) {
       if (newCursorX > 0) {
@@ -310,15 +311,16 @@ public class TerminalTypeAheadManager {
   }
 
   private void reevaluatePredictorState() {
-    if (!mySettingsProvider.isTypeAheadEnabled() || UIUtil.isWindows) {
+    TerminalTypeAheadSettings settings = mySettingsProvider.getTypeAheadSettings();
+
+    if (!settings.myIsTypeAheadEnabled || UIUtil.isWindows) {
       myIsShowingPredictions = false;
     } else if (myLatencyStatistics.getSampleSize() >= LATENCY_MIN_SAMPLES_TO_TURN_ON) {
       long latency = myLatencyStatistics.getLatencyMedian();
-      long latencyThreshold = mySettingsProvider.getTypeaheadLatencyThreshold();
 
-      if (latency >= latencyThreshold) {
+      if (latency >= settings.myTypeAheadLatencyThreshold) {
         myIsShowingPredictions = true;
-      } else if (latency < latencyThreshold * LATENCY_TOGGLE_OFF_THRESHOLD) {
+      } else if (latency < settings.myTypeAheadLatencyThreshold * LATENCY_TOGGLE_OFF_THRESHOLD) {
         myIsShowingPredictions = false;
       }
     }

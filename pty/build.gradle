@@ -1,5 +1,6 @@
+import java.text.SimpleDateFormat
+
 apply plugin: 'java'
-apply plugin: 'application'
 apply plugin: 'maven-publish'
 
 
@@ -25,37 +26,26 @@ dependencies {
 
 archivesBaseName = "jediterm-pty"
 
-mainClassName = 'com.jediterm.pty.PtyMain'
-
-
 group 'org.jetbrains.jediterm'
 version rootProject.ext.projectVersion
 
-
 task mainJar(type: Jar) {
-    baseName = "jediterm-pty"
-
-    manifest {
-        attributes 'Main-Class': mainClassName
-    }
+    evaluationDependsOn(':terminal')
     from sourceSets.main.output
-
-    from fileTree(dir: '../.gradleBuild/terminal/classes/java/main') // find a better way to include classes into jar
-}
-
-jar {
-    baseName = "jediterm-pty"
-
+    from project(':terminal').sourceSets.main.output
     manifest {
-        attributes 'Main-Class': mainClassName
+        attributes(
+                'Build-Timestamp': new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(new Date()),
+                'Created-By': "Gradle ${gradle.gradleVersion}",
+                'Build-Jdk': "${System.properties['java.runtime.version']}",
+                'Build-OS': "${System.properties['os.name']} ${System.properties['os.arch']} ${System.properties['os.version']}"
+        )
     }
-    from sourceSets.main.output
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {
     evaluationDependsOn(':terminal')
-    baseName "jediterm-pty"
-    classifier "sources"
+    archiveClassifier = 'sources'
     from sourceSets.main.allSource
     from project(':terminal').sourceSets.main.allSource
 }

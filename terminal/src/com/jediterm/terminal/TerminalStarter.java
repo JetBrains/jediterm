@@ -36,11 +36,11 @@ public class TerminalStarter implements TerminalOutputStream {
     myTtyConnector = ttyConnector;
     myTerminal = terminal;
     myTerminal.setTerminalOutput(this);
-    myEmulator = createEmulator(dataStream, terminal, typeAheadManager);
+    myEmulator = createEmulator(dataStream, terminal);
   }
 
-  protected JediEmulator createEmulator(TerminalDataStream dataStream, Terminal terminal, TerminalTypeAheadManager typeAheadManager) {
-    return new JediEmulator(dataStream, terminal, typeAheadManager);
+  protected JediEmulator createEmulator(TerminalDataStream dataStream, Terminal terminal) {
+    return new JediEmulator(dataStream, terminal);
   }
 
   private void execute(Runnable runnable) {

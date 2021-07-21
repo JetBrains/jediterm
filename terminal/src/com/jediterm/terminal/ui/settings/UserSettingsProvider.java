@@ -4,6 +4,7 @@ import com.jediterm.terminal.HyperlinkStyle;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.emulator.ColorPalette;
 import com.jediterm.terminal.model.TerminalTypeAheadSettings;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 
@@ -70,5 +71,5 @@ public interface UserSettingsProvider {
 
   boolean ambiguousCharsAreDoubleWidth();
 
-  TerminalTypeAheadSettings getTypeAheadSettings();
+  @NotNull TerminalTypeAheadSettings getTypeAheadSettings();
 }

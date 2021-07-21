@@ -16,7 +16,6 @@ import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.util.Collections;
-import java.util.concurrent.TimeUnit;
 
 public class DefaultSettingsProvider implements SettingsProvider {
   @Override
@@ -226,11 +225,7 @@ public class DefaultSettingsProvider implements SettingsProvider {
   }
 
   @Override
-  public TerminalTypeAheadSettings getTypeAheadSettings() {
-    return new TerminalTypeAheadSettings(
-            true,
-            TimeUnit.MILLISECONDS.toNanos(100),
-            new TextStyle(TerminalColor.rgb(150, 150, 150), null)
-    );
+  public @NotNull TerminalTypeAheadSettings getTypeAheadSettings() {
+    return TerminalTypeAheadSettings.DEFAULT;
   }
 }

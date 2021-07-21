@@ -15,12 +15,12 @@ dependencies {
     compile project(':terminal')
 
     compile 'log4j:log4j:1.2.17'
-    compile 'org.jetbrains:annotations:13.0'
-    compile 'com.google.guava:guava:25.1-jre'
+    compile 'org.jetbrains:annotations:20.1.0'
+    compile 'com.google.guava:guava:30.1.1-jre'
 
     compile 'org.jetbrains.pty4j:pty4j:0.11.3'
 
-    testCompile 'junit:junit:4.12'
+    testCompile 'junit:junit:4.13.2'
 }
 
 archivesBaseName = "jediterm-pty"

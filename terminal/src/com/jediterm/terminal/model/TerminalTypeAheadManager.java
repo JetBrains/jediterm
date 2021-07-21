@@ -50,6 +50,7 @@ public class TerminalTypeAheadManager {
   }
 
   public void onTerminalData(@NotNull String data) {
+    if (!mySettingsProvider.getTypeAheadSettings().isEnabled()) return;
     LOG.debug("onTerminalData: " + data.replace("\u001b", "ESC")
             .replace("\n", "\\n")
             .replace("\r", "\\r")
@@ -89,6 +90,7 @@ public class TerminalTypeAheadManager {
   }
 
   public void onKeyEvent(@NotNull KeyEvent keyEvent) {
+    if (!mySettingsProvider.getTypeAheadSettings().isEnabled()) return;
     myTerminalTextBuffer.lock();
     try {
       TerminalLineWithCursor terminalLineWithCursor = getTerminalLineWithCursor();
@@ -272,7 +274,7 @@ public class TerminalTypeAheadManager {
     int newCursorX = terminalLineWithCursor.myCursorX;
 
     if (KeyEventHelper.isKeyTypedEvent(keyEvent)) {
-      TextStyle typeAheadTextStyle = mySettingsProvider.getTypeAheadSettings().myTypeAheadTextStyle;
+      TextStyle typeAheadTextStyle = mySettingsProvider.getTypeAheadSettings().getTextStyle();
       terminalLine.writeString(newCursorX, new CharBuffer(keyEvent.getKeyChar(), 1), typeAheadTextStyle);
       newCursorX++;
     } else if (KeyEventHelper.isBackspace(keyEvent)) {
@@ -313,14 +315,14 @@ public class TerminalTypeAheadManager {
   private void reevaluatePredictorState() {
     TerminalTypeAheadSettings settings = mySettingsProvider.getTypeAheadSettings();
 
-    if (!settings.myIsTypeAheadEnabled || UIUtil.isWindows) {
+    if (!settings.isEnabled() || UIUtil.isWindows) {
       myIsShowingPredictions = false;
     } else if (myLatencyStatistics.getSampleSize() >= LATENCY_MIN_SAMPLES_TO_TURN_ON) {
       long latency = myLatencyStatistics.getLatencyMedian();
 
-      if (latency >= settings.myTypeAheadLatencyThreshold) {
+      if (latency >= settings.getLatencyThreshold()) {
         myIsShowingPredictions = true;
-      } else if (latency < settings.myTypeAheadLatencyThreshold * LATENCY_TOGGLE_OFF_THRESHOLD) {
+      } else if (latency < settings.getLatencyThreshold() * LATENCY_TOGGLE_OFF_THRESHOLD) {
         myIsShowingPredictions = false;
       }
     }

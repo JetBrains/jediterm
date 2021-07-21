@@ -119,7 +119,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     terminalTextBuffer.addModelListener(this::repaint);
   }
 
-  public void setTypeAheadManager(@NotNull TerminalTypeAheadManager typeAheadManager) {
+  void setTypeAheadManager(@NotNull TerminalTypeAheadManager typeAheadManager) {
     myTypeAheadManager = typeAheadManager;
   }
 

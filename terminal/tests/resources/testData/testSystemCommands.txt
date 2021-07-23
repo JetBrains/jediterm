@@ -1,1 +1,2 @@
-]8;;http://example.org\Test link]8;;\ Test test
+]8;;http://example.org\Test link]8;;\ Some regular text
+]1;New Title\Done

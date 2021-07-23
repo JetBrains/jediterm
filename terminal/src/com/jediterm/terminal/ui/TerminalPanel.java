@@ -577,7 +577,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       }
       text = text.replace('\n', '\r');
 
-      myTerminalStarter.sendString(text);
+      myTerminalStarter.sendString(text, true);
     } catch (RuntimeException e) {
       LOG.info(e);
     }
@@ -1607,20 +1607,20 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       // numLock does not change the code sent by keypad VK_DELETE
       // although it send the char '.'
       if (keycode == KeyEvent.VK_DELETE && keychar == '.') {
-        myTerminalStarter.sendBytes(new byte[]{'.'});
+        myTerminalStarter.sendBytes(new byte[]{'.'}, true);
         e.consume();
         return;
       }
       // CTRL + Space is not handled in KeyEvent; handle it manually
       if (keychar == ' ' && (e.getModifiers() & InputEvent.CTRL_MASK) != 0) {
-        myTerminalStarter.sendBytes(new byte[]{Ascii.NUL});
+        myTerminalStarter.sendBytes(new byte[]{Ascii.NUL}, true);
         e.consume();
         return;
       }
 
       final byte[] code = myTerminalStarter.getCode(keycode, e.getModifiers());
       if (code != null) {
-        myTerminalStarter.sendBytes(code);
+        myTerminalStarter.sendBytes(code, true);
         e.consume();
         if (mySettingsProvider.scrollToBottomOnTyping() && isCodeThatScrolls(keycode)) {
           scrollToBottom();
@@ -1631,7 +1631,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
         // Cannot use e.getKeyChar() on macOS:
         //  Option+f produces e.getKeyChar()='ƒ' (402), but 'f' (102) is needed.
         //  Option+b produces e.getKeyChar()='∫' (8747), but 'b' (98) is needed.
-        myTerminalStarter.sendString(new String(new char[]{Ascii.ESC, (char) e.getKeyCode()}));
+        myTerminalStarter.sendString(new String(new char[]{Ascii.ESC, (char) e.getKeyCode()}), true);
         e.consume();
       }
       else if (Character.isISOControl(keychar)) { // keys filtered out here will be processed in processTerminalKeyTyped
@@ -1639,11 +1639,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       }
     } catch (final Exception ex) {
       LOG.error("Error sending pressed key to emulator", ex);
-    }
-    finally {
-      if (e.isConsumed() && myTypeAheadManager != null) {
-        myTypeAheadManager.onKeyEvent(e);
-      }
     }
   }
 
@@ -1661,7 +1656,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       return;
     }
 
-    myTerminalStarter.sendString(new String(obuffer));
+    myTerminalStarter.sendString(new String(obuffer), true);
     e.consume();
 
     if (mySettingsProvider.scrollToBottomOnTyping()) {
@@ -1695,11 +1690,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
         processCharacter(e);
       } catch (final Exception ex) {
         LOG.error("Error sending typed key to emulator", ex);
-      }
-      finally {
-        if (e.isConsumed() && myTypeAheadManager != null) {
-          myTypeAheadManager.onKeyEvent(e);
-        }
       }
     }
   }
@@ -1777,7 +1767,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
         }
 
         if (sb.length() > 0) {
-          myTerminalStarter.sendString(sb.toString());
+          myTerminalStarter.sendString(sb.toString(), true);
         }
       }
     } else {

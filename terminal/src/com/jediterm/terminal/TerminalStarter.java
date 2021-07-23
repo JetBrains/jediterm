@@ -2,8 +2,10 @@ package com.jediterm.terminal;
 
 import com.jediterm.terminal.emulator.Emulator;
 import com.jediterm.terminal.emulator.JediEmulator;
+import com.jediterm.terminal.model.TerminalTypeAheadManager;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.io.IOException;
@@ -29,6 +31,8 @@ public class TerminalStarter implements TerminalOutputStream {
 
   private final TtyConnector myTtyConnector;
 
+  private final @Nullable TerminalTypeAheadManager myTypeAheadManager;
+
   private final ScheduledExecutorService myEmulatorExecutor = Executors.newSingleThreadScheduledExecutor();
 
   public TerminalStarter(final Terminal terminal, final TtyConnector ttyConnector, TerminalDataStream dataStream) {
@@ -36,6 +40,11 @@ public class TerminalStarter implements TerminalOutputStream {
     myTerminal = terminal;
     myTerminal.setTerminalOutput(this);
     myEmulator = createEmulator(dataStream, terminal);
+    if (dataStream instanceof TypeAheadTerminalDataStream) {
+      myTypeAheadManager = ((TypeAheadTerminalDataStream) dataStream).getTypeAheadManager();
+    } else {
+      myTypeAheadManager = null;
+    }
   }
 
   protected JediEmulator createEmulator(TerminalDataStream dataStream, Terminal terminal) {
@@ -94,8 +103,16 @@ public class TerminalStarter implements TerminalOutputStream {
 
   @Override
   public void sendBytes(final byte[] bytes) {
+    sendBytes(bytes, false);
+  }
+
+  @Override
+  public void sendBytes(final byte[] bytes, boolean userInput) {
     execute(() -> {
       try {
+        if (userInput && myTypeAheadManager != null) {
+          myTypeAheadManager.onKeyEvent(TerminalTypeAheadManager.TypeAheadKeyboardEvent.fromByteArray(bytes));
+        }
         myTtyConnector.write(bytes);
       }
       catch (IOException e) {
@@ -106,8 +123,17 @@ public class TerminalStarter implements TerminalOutputStream {
 
   @Override
   public void sendString(final String string) {
+    sendString(string, false);
+  }
+
+  @Override
+  public void sendString(final String string, boolean userInput) {
     execute(() -> {
       try {
+        if (userInput && myTypeAheadManager != null) {
+          TerminalTypeAheadManager.TypeAheadKeyboardEvent.fromString(string).forEach(myTypeAheadManager::onKeyEvent);
+        }
+
         myTtyConnector.write(string);
       }
       catch (IOException e) {

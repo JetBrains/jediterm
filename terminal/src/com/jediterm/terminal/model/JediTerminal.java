@@ -874,7 +874,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
         cb = applyModifierKeys(event, cb);
 
         if (myTerminalOutput != null) {
-          myTerminalOutput.sendBytes(mouseReport(cb, x + 1, y + 1));
+          myTerminalOutput.sendBytes(mouseReport(cb, x + 1, y + 1), true);
         }
       }
     }
@@ -898,7 +898,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
         cb = applyModifierKeys(event, cb);
 
         if (myTerminalOutput != null) {
-          myTerminalOutput.sendBytes(mouseReport(cb, x + 1, y + 1));
+          myTerminalOutput.sendBytes(mouseReport(cb, x + 1, y + 1), true);
         }
       }
     }
@@ -911,7 +911,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     }
     if (shouldSendMouseData(MouseMode.MOUSE_REPORTING_ALL_MOTION)) {
       if (myTerminalOutput != null) {
-        myTerminalOutput.sendBytes(mouseReport(MouseButtonCodes.RELEASE, x + 1, y + 1));
+        myTerminalOutput.sendBytes(mouseReport(MouseButtonCodes.RELEASE, x + 1, y + 1), true);
       }
     }
     myLastMotionReport = new Point(x, y);
@@ -930,7 +930,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
         cb |= MouseButtonModifierFlags.MOUSE_BUTTON_MOTION_FLAG;
         cb = applyModifierKeys(event, cb);
         if (myTerminalOutput != null) {
-          myTerminalOutput.sendBytes(mouseReport(cb, x + 1, y + 1));
+          myTerminalOutput.sendBytes(mouseReport(cb, x + 1, y + 1), true);
         }
       }
     }
@@ -974,14 +974,14 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   @Override
   public void deviceStatusReport(String str) {
     if (myTerminalOutput != null) {
-      myTerminalOutput.sendString(str);
+      myTerminalOutput.sendString(str, false);
     }
   }
 
   @Override
   public void deviceAttributes(byte[] response) {
     if (myTerminalOutput != null) {
-      myTerminalOutput.sendBytes(response);
+      myTerminalOutput.sendBytes(response, false);
     }
   }
 

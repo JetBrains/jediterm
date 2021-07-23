@@ -2,6 +2,8 @@ package com.jediterm;
 
 import com.jediterm.terminal.model.TerminalTextBuffer;
 import com.jediterm.terminal.emulator.ColorPalette;
+import com.jediterm.util.TestSession;
+import org.junit.Assert;
 
 import java.io.IOException;
 
@@ -37,7 +39,18 @@ public class EmulatorTest extends EmulatorTestAbstract {
   }
 
   public void testSystemCommands() throws IOException {
-    doTest(30, 2);
+    doTest(30, 3);
+  }
+
+  public void testOscSetTitle() throws IOException {
+    TestSession session = new TestSession(30, 3);
+    session.process("\u001B]0;Title A\u001B\\Done1 ");
+    Assert.assertEquals("Title A", session.getDisplay().getWindowTitle());
+    session.process("\u001B]1;Title B\u001B\\Done2 ");
+    Assert.assertEquals("Title B", session.getDisplay().getWindowTitle());
+    session.process("\u001B]2;Title C\u001B\\Done3");
+    Assert.assertEquals("Title C", session.getDisplay().getWindowTitle());
+    Assert.assertEquals("Done1 Done2 Done3", session.getTerminal().getTextBuffer().getScreenLines().trim());
   }
 
   @Override

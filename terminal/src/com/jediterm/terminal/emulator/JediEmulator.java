@@ -204,8 +204,9 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     int ps = args.getIntAt(0, -1);
 
     switch (ps) {
-      case 0: // Icon name/title
-      case 2: // Title
+      case 0: // Icon name / Window Title
+      case 1: // Icon name
+      case 2: // Window Title
         // https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
         String name = args.getStringAt(1);
         if (name != null) {

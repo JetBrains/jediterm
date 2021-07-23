@@ -32,8 +32,6 @@ public interface TerminalDisplay {
 
   void setWindowTitle(String name);
 
-  void setCurrentPath(String path);
-
   void terminalMouseModeSet(MouseMode mode);
 
   TerminalSelection getSelection();

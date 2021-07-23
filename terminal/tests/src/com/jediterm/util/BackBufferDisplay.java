@@ -69,10 +69,6 @@ public class BackBufferDisplay implements TerminalDisplay {
   public void setWindowTitle(String name) {
   }
 
-  @Override
-  public void setCurrentPath(String path) {
-  }
-
   public TerminalSelection getSelection() {
     return mySelection;
   }

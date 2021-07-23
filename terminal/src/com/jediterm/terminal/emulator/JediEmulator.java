@@ -213,13 +213,6 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           return true;
         }
         break;
-      case 7: //Path
-        String path = args.getStringAt(1);
-        if (path != null) {
-          myTerminal.setCurrentPath(path);
-          return true;
-        }
-        break;
       case 8: // Hyperlink https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
         String uri = args.getStringAt(2);
         if (uri != null) {

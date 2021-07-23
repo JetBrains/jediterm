@@ -92,7 +92,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   private int myBlinkingPeriod = 500;
   private TerminalCoordinates myCoordsAccessor;
 
-  private String myCurrentPath; //TODO: handle current path if available
   private SubstringFinder.FindResult myFindResult;
 
   private LinkInfo myHoveredHyperlink = null;
@@ -1447,11 +1446,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     if (myTerminalPanelListener != null) {
       myTerminalPanelListener.onTitleChanged(myWindowTitle);
     }
-  }
-
-  @Override
-  public void setCurrentPath(String path) {
-    myCurrentPath = path;
   }
 
   @Override

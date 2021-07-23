@@ -23,11 +23,10 @@ public class ControlSequenceVisualizer {
     }
   }
 
-  public String getVisualizedString(List<char[]> chunks) {
+  @NotNull String getVisualizedString(@NotNull List<char[]> chunks) {
     try {
       writeChunksToFile(chunks);
-
-      return readOutput("teseq " + myTempFile.getAbsolutePath());
+      return readOutput(List.of("teseq", myTempFile.getAbsolutePath()));
     }
     catch (IOException e) {
       return
@@ -36,27 +35,24 @@ public class ControlSequenceVisualizer {
     }
   }
 
-  private static String joinChunks(List<char[]> chunks) {
+  private static @NotNull String joinChunks(@NotNull List<char[]> chunks) {
     StringBuilder sb = new StringBuilder();
-
     for (char[] ch : chunks) {
       sb.append(ch);
     }
-
     return sb.toString();
   }
 
   private void writeChunksToFile(@NotNull List<char[]> chunks) throws IOException {
     try (OutputStreamWriter stream = new OutputStreamWriter(new FileOutputStream(myTempFile, false))) {
       for (char[] data : chunks) {
-        stream.write(data, 0, data.length);
+        stream.write(data);
       }
     }
   }
 
-  public String readOutput(String command) throws IOException {
-    String line;
-    Process process = Runtime.getRuntime().exec(command);
+  private @NotNull String readOutput(@NotNull List<String> command) throws IOException {
+    Process process = new ProcessBuilder(command).start();
 
     Reader inStreamReader = new InputStreamReader(process.getInputStream());
     BufferedReader in = new BufferedReader(inStreamReader);
@@ -64,6 +60,7 @@ public class ControlSequenceVisualizer {
     StringBuilder sb = new StringBuilder();
     int i = 0;
     String lastNum = null;
+    String line;
     while ((line = in.readLine()) != null) {
       if (!line.startsWith("&") && !line.startsWith("\"")) {
         lastNum = String.format("%3d ", i++);

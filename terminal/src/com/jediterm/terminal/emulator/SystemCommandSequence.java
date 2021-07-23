@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * @author traff
  */
-public class SystemCommandSequence {
+final class SystemCommandSequence {
   private final List<Object> myArgs = Lists.newArrayList();
 
   private final StringBuilder mySequenceString = new StringBuilder();
@@ -77,12 +77,14 @@ public class SystemCommandSequence {
     return val instanceof String ? (String)val : null;
   }
 
-  public Integer getIntAt(int i) {
-    if (i>=myArgs.size()) {
-      return null;
+  public int getIntAt(int position, int defaultValue) {
+    if (position < myArgs.size()) {
+      Object val = myArgs.get(position);
+      if (val instanceof Integer) {
+        return (Integer) val;
+      }
     }
-    Object val = myArgs.get(i);
-    return val instanceof Integer? (Integer)val : null;
+    return defaultValue;
   }
 
   public String getSequenceString() {

@@ -1,20 +1,16 @@
 package com.jediterm;
 
-import com.jediterm.terminal.ArrayTerminalDataStream;
-import com.jediterm.terminal.Terminal;
 import com.jediterm.terminal.TerminalColor;
 import com.jediterm.terminal.TextStyle;
-import com.jediterm.terminal.emulator.Emulator;
-import com.jediterm.terminal.emulator.JediEmulator;
-import com.jediterm.terminal.model.StyleState;
 import com.jediterm.terminal.model.TerminalTextBuffer;
-import com.jediterm.util.BackBufferTerminal;
-import com.jediterm.util.FileUtil;
+import com.jediterm.util.TestSession;
 import junit.framework.TestCase;
 import org.junit.Ignore;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /**
  * @author traff
@@ -31,29 +27,19 @@ public abstract class EmulatorTestAbstract extends TestCase {
   }
 
   protected TerminalTextBuffer doTest(int width, int height) throws IOException {
-    return doTest(width, height, FileUtil.loadFileLines(new File(getPathToTest() + ".after.txt")));
+    String content = Files.readString(Path.of(getPathToTest() + ".after.txt"), StandardCharsets.UTF_8);
+    // CRLF in test data files should be handled as LF
+    return doTest(width, height, content.replaceAll("\r\n", "\n").replaceAll("\r", "\n"));
   }
 
   protected TerminalTextBuffer doTest(int width, int height, String expected) throws IOException {
-    StyleState state = new StyleState();
-
-    TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(width, height, state);
-
-    Terminal terminal = new BackBufferTerminal(terminalTextBuffer, state);
-
-    char[] chars = FileUtil.loadFileText(new File(getPathToTest() + ".txt"), "UTF-8");
+    TestSession testSession = new TestSession(width, height);
+    String text = Files.readString(Path.of(getPathToTest() + ".txt"), StandardCharsets.UTF_8);
     // LF in test data files should be handled as CRLF to emulate a tty stream
-    String crlfText = new String(chars).replaceAll("\r?\n", "\r\n");
-    ArrayTerminalDataStream fileStream = new ArrayTerminalDataStream(crlfText.toCharArray());
-
-    Emulator emulator = new JediEmulator(fileStream, terminal);
-
-    while (emulator.hasNext()) {
-      emulator.next();
-    }
-
+    String crlfText = text.replaceAll("\r?\n", "\r\n");
+    testSession.process(crlfText);
+    TerminalTextBuffer terminalTextBuffer = testSession.getTerminal().getTextBuffer();
     assertEquals(expected, terminalTextBuffer.getScreenLines());
-
     return terminalTextBuffer;
   }
 

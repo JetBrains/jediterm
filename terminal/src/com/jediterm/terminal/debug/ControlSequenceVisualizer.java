@@ -1,16 +1,14 @@
 package com.jediterm.terminal.debug;
 
-import org.apache.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
-import java.nio.CharBuffer;
 import java.util.List;
 
 /**
  * @author traff
  */
 public class ControlSequenceVisualizer {
-  private static final Logger LOG = Logger.getLogger(ControlSequenceVisualizer.class);
 
   private File myTempFile;
 
@@ -48,15 +46,11 @@ public class ControlSequenceVisualizer {
     return sb.toString();
   }
 
-  private void writeChunksToFile(List<char[]> chunks) throws IOException {
-    OutputStreamWriter stream = new OutputStreamWriter(new FileOutputStream(myTempFile, false));
-    try {
+  private void writeChunksToFile(@NotNull List<char[]> chunks) throws IOException {
+    try (OutputStreamWriter stream = new OutputStreamWriter(new FileOutputStream(myTempFile, false))) {
       for (char[] data : chunks) {
         stream.write(data, 0, data.length);
       }
-    }
-    finally {
-      stream.close();
     }
   }
 
@@ -76,7 +70,7 @@ public class ControlSequenceVisualizer {
         sb.append(lastNum);
       } else {
         if (lastNum != null) {
-          sb.append(CharBuffer.allocate(lastNum.length()).toString().replace('\0', ' '));
+          sb.append(" ".repeat(lastNum.length()));
         }
       }
       sb.append(line);

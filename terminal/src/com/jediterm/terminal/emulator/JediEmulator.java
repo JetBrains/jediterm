@@ -201,40 +201,38 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   }
 
   private boolean operatingSystemCommand(SystemCommandSequence args) {
-    Integer i = args.getIntAt(0);
+    int ps = args.getIntAt(0, -1);
 
-    if (i != null) {
-      switch (i) {
-        case 0: //Icon name/title
-        case 2: //Title
-          String name = args.getStringAt(1);
-          if (name != null) {
-            myTerminal.setWindowTitle(name);
-            return true;
+    switch (ps) {
+      case 0: // Icon name/title
+      case 2: // Title
+        // https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
+        String name = args.getStringAt(1);
+        if (name != null) {
+          myTerminal.setWindowTitle(name);
+          return true;
+        }
+        break;
+      case 7: //Path
+        String path = args.getStringAt(1);
+        if (path != null) {
+          myTerminal.setCurrentPath(path);
+          return true;
+        }
+        break;
+      case 8: // Hyperlink https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
+        String uri = args.getStringAt(2);
+        if (uri != null) {
+          if (!uri.isEmpty()) {
+            myTerminal.setLinkUriStarted(uri);
           }
-          break;
-        case 7: //Path
-          String path = args.getStringAt(1);
-          if (path != null) {
-            myTerminal.setCurrentPath(path);
-            return true;
+          else {
+            myTerminal.setLinkUriFinished();
           }
-          break;
-        case 8: // Hyperlink
-          String uri = args.getStringAt(2);
-          if (uri != null) {
-            if (!uri.isEmpty()) {
-              myTerminal.setLinkUriStarted(uri);
-            }
-            else {
-              myTerminal.setLinkUriFinished();
-            }
-            return true;
-          }
-          break;
-      }
+          return true;
+        }
+        break;
     }
-
     return false;
   }
 

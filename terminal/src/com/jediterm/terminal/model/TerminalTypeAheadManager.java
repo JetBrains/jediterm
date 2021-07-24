@@ -90,7 +90,7 @@ public class TerminalTypeAheadManager {
     }
   }
 
-  public void onKeyEvent(@NotNull TypeAheadKeyboardEvent keyEvent) {
+  public void onKeyEvent(@NotNull TerminalTypeAheadManager.TypeAheadEvent keyEvent) {
     if (!mySettingsProvider.getTypeAheadSettings().isEnabled()) return;
     myTerminalTextBuffer.lock();
     try {
@@ -160,7 +160,7 @@ public class TerminalTypeAheadManager {
     }
   }
 
-  public static class TypeAheadKeyboardEvent {
+  public static class TypeAheadEvent {
     public enum EventType {
       Character,
       Backspace,
@@ -175,60 +175,66 @@ public class TerminalTypeAheadManager {
     // if event is Character it will hold character
     private @Nullable Character myCharacter = null;
 
-    public TypeAheadKeyboardEvent(EventType eventType) {
+    public TypeAheadEvent(EventType eventType) {
       myEventType = eventType;
     }
 
-    public TypeAheadKeyboardEvent(EventType eventType, char ch) {
+    public TypeAheadEvent(EventType eventType, char ch) {
       myEventType = eventType;
       myCharacter = ch;
     }
 
-
     /**
      *  @see com.jediterm.terminal.TerminalKeyEncoder
      */
-    public static @NotNull TypeAheadKeyboardEvent fromByteArray(byte[] byteArray) {
+    public static @NotNull TerminalTypeAheadManager.TypeAheadEvent fromByteArray(byte[] byteArray) {
+      String stringRepresentation = new String(byteArray);
+      if (isPrintableUnicode(stringRepresentation.charAt(0))) {
+        fromString(stringRepresentation);
+      }
+
       if (compareByteArrays(byteArray, Ascii.DEL)) {
-        return new TypeAheadKeyboardEvent(EventType.Backspace);
+        return new TypeAheadEvent(EventType.Backspace);
       } else if (compareByteArrays(byteArray, Ascii.ESC, 'O', 'D')) {
-        return new TypeAheadKeyboardEvent(EventType.LeftArrow);
+        return new TypeAheadEvent(EventType.LeftArrow);
       } else if (compareByteArrays(byteArray, Ascii.ESC, '[', 'D')) {
-        return new TypeAheadKeyboardEvent(EventType.LeftArrow);
+        return new TypeAheadEvent(EventType.LeftArrow);
       } else if (compareByteArrays(byteArray, Ascii.ESC, 'O', 'C')) {
-        return new TypeAheadKeyboardEvent(EventType.RightArrow);
+        return new TypeAheadEvent(EventType.RightArrow);
       } else if (compareByteArrays(byteArray, Ascii.ESC, '[', 'C')) {
-        return new TypeAheadKeyboardEvent(EventType.RightArrow);
+        return new TypeAheadEvent(EventType.RightArrow);
       } else if (compareByteArrays(byteArray, Ascii.ESC, 'b')) {
-        return new TypeAheadKeyboardEvent(EventType.AltLeftArrow);
+        return new TypeAheadEvent(EventType.AltLeftArrow);
       } else if (compareByteArrays(byteArray, Ascii.ESC, '[',  '1', ';', '3', 'D')) {
-        return new TypeAheadKeyboardEvent(EventType.AltLeftArrow);
+        return new TypeAheadEvent(EventType.AltLeftArrow);
       } else if (compareByteArrays(byteArray, Ascii.ESC, 'f')) {
-        return new TypeAheadKeyboardEvent(EventType.AltRightArrow);
+        return new TypeAheadEvent(EventType.AltRightArrow);
       } else if (compareByteArrays(byteArray, Ascii.ESC, '[',  '1', ';', '3', 'C')) {
-        return new TypeAheadKeyboardEvent(EventType.AltRightArrow);
+        return new TypeAheadEvent(EventType.AltRightArrow);
       } else {
-       return new TypeAheadKeyboardEvent(EventType.Unknown);
+       return new TypeAheadEvent(EventType.Unknown);
       }
     }
 
-    public static @NotNull TypeAheadKeyboardEvent fromChar(char ch) {
-      return new TypeAheadKeyboardEvent(EventType.Character, ch);
+    public static @NotNull TerminalTypeAheadManager.TypeAheadEvent fromChar(char ch) {
+      if (isPrintableUnicode(ch)) {
+        return new TypeAheadEvent(EventType.Character, ch);
+      } else {
+        return new TypeAheadEvent(EventType.Unknown);
+      }
     }
 
-    public static @NotNull List<@NotNull TypeAheadKeyboardEvent> fromString(@NotNull String string) {
-      ArrayList<@NotNull TypeAheadKeyboardEvent> events = new ArrayList<>();
+    public static @NotNull List<@NotNull TypeAheadEvent> fromString(@NotNull String string) {
+      ArrayList<@NotNull TypeAheadEvent> events = new ArrayList<>();
 
       if (string.charAt(0) == Ascii.ESC) {
-        return Collections.singletonList(fromByteArray(string.getBytes(StandardCharsets.UTF_8)));
+        return Collections.singletonList(fromByteArray(string.getBytes()));
       }
 
       for (char ch : string.toCharArray()) {
-        if (!isPrintableUnicode(ch)) {
-          events.add(new TypeAheadKeyboardEvent(EventType.Unknown));
-          break;
-        }
-        events.add(fromChar(ch));
+        TypeAheadEvent event = fromChar(ch);
+        events.add(event);
+        if (event.myEventType == EventType.Unknown) break;
       }
 
       return events;
@@ -298,7 +304,7 @@ public class TerminalTypeAheadManager {
     int readerIndexBeforeMatching = terminalDataReader.myIndex;
 
     String debugString;
-    if (nextPrediction.myKeyEvent.myEventType == TypeAheadKeyboardEvent.EventType.Character) {
+    if (nextPrediction.myKeyEvent.myEventType == TypeAheadEvent.EventType.Character) {
       debugString = nextPrediction.myKeyEvent.myEventType + " char: " + nextPrediction.getCharacterOrNull();
     } else {
       debugString = nextPrediction.myKeyEvent.myEventType.toString();
@@ -371,7 +377,7 @@ public class TerminalTypeAheadManager {
   }
 
   private void updateTerminalLinePrediction(@NotNull TerminalLineWithCursor terminalLineWithCursor,
-                                            @NotNull TypeAheadKeyboardEvent keyEvent) {
+                                            @NotNull TerminalTypeAheadManager.TypeAheadEvent keyEvent) {
     TerminalLine terminalLine = terminalLineWithCursor.myTerminalLine;
     int newCursorX = terminalLineWithCursor.myCursorX;
 
@@ -393,14 +399,14 @@ public class TerminalTypeAheadManager {
         break;
       case LeftArrow:
       case RightArrow:
-        int delta = keyEvent.myEventType == TypeAheadKeyboardEvent.EventType.RightArrow ? 1 : -1;
+        int delta = keyEvent.myEventType == TypeAheadEvent.EventType.RightArrow ? 1 : -1;
         if (0 <= newCursorX + delta && newCursorX + delta < myTerminal.getTerminalWidth()) {
           newCursorX += delta;
         }
         break;
       case AltLeftArrow:
       case AltRightArrow:
-        CursorMoveDirection direction = keyEvent.myEventType == TypeAheadKeyboardEvent.EventType.AltRightArrow
+        CursorMoveDirection direction = keyEvent.myEventType == TypeAheadEvent.EventType.AltRightArrow
                 ? CursorMoveDirection.Forward : CursorMoveDirection.Back;
         newCursorX = moveToWordBoundary(terminalLine.getText(), newCursorX, direction);
         break;
@@ -443,7 +449,7 @@ public class TerminalTypeAheadManager {
   }
 
   private @NotNull TypeAheadPrediction createPrediction(@NotNull TerminalLineWithCursor initialLineWithCursor,
-                                                        @NotNull TypeAheadKeyboardEvent keyEvent) {
+                                                        @NotNull TerminalTypeAheadManager.TypeAheadEvent keyEvent) {
     if (getLastPrediction() instanceof HardBoundary) {
       return new HardBoundary(keyEvent, -1);
     }
@@ -611,9 +617,9 @@ public class TerminalTypeAheadManager {
     public final long myCreatedTime;
 
     protected final int myPredictedCursorX;
-    protected TypeAheadKeyboardEvent myKeyEvent;
+    protected TypeAheadEvent myKeyEvent;
 
-    private TypeAheadPrediction(@NotNull TypeAheadKeyboardEvent keyEvent,
+    private TypeAheadPrediction(@NotNull TerminalTypeAheadManager.TypeAheadEvent keyEvent,
                                 int predictedCursorX) {
       myKeyEvent = keyEvent;
       myPredictedCursorX = predictedCursorX;
@@ -642,7 +648,7 @@ public class TerminalTypeAheadManager {
   }
 
   private static class HardBoundary extends TypeAheadPrediction {
-    private HardBoundary(@NotNull TypeAheadKeyboardEvent keyEvent, int predictedCursorX) {
+    private HardBoundary(@NotNull TerminalTypeAheadManager.TypeAheadEvent keyEvent, int predictedCursorX) {
       super(keyEvent, predictedCursorX);
     }
 
@@ -669,7 +675,7 @@ public class TerminalTypeAheadManager {
   private class CharacterPrediction extends TypeAheadPrediction {
     @Nullable Character myPreviousChar;
 
-    private CharacterPrediction(@NotNull TypeAheadKeyboardEvent keyEvent,
+    private CharacterPrediction(@NotNull TerminalTypeAheadManager.TypeAheadEvent keyEvent,
                                 int predictedCursorX,
                                 @Nullable Character previousChar) {
       super(keyEvent, predictedCursorX);
@@ -711,7 +717,7 @@ public class TerminalTypeAheadManager {
   }
 
   private class BackspacePrediction extends TypeAheadPrediction {
-    private BackspacePrediction(@NotNull TypeAheadKeyboardEvent keyEvent,
+    private BackspacePrediction(@NotNull TerminalTypeAheadManager.TypeAheadEvent keyEvent,
                                 int predictedCursorX) {
       super(keyEvent, predictedCursorX);
     }
@@ -750,14 +756,14 @@ public class TerminalTypeAheadManager {
     private final CursorMoveDirection myDirection;
     private final int myCursorY;
 
-    private CursorMovePrediction(@NotNull TypeAheadKeyboardEvent keyEvent,
+    private CursorMovePrediction(@NotNull TerminalTypeAheadManager.TypeAheadEvent keyEvent,
                                  int predictedCursorX,
                                  int cursorY,
                                  int amount) {
       super(keyEvent, predictedCursorX);
       myAmount = amount;
-      if (keyEvent.myEventType == TypeAheadKeyboardEvent.EventType.LeftArrow ||
-              keyEvent.myEventType == TypeAheadKeyboardEvent.EventType.AltLeftArrow) {
+      if (keyEvent.myEventType == TypeAheadEvent.EventType.LeftArrow ||
+              keyEvent.myEventType == TypeAheadEvent.EventType.AltLeftArrow) {
         myDirection = CursorMoveDirection.Back;
       } else {
         myDirection = CursorMoveDirection.Forward;

@@ -1003,6 +1003,11 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   @Override
+  public void setBracketedPasteMode(boolean enabled) {
+    myDisplay.setBracketedPasteMode(enabled);
+  }
+
+  @Override
   public void setMouseFormat(MouseFormat mouseFormat) {
     myMouseFormat = mouseFormat;
   }

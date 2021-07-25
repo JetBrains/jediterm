@@ -6,7 +6,6 @@ import com.jediterm.terminal.*;
 import com.jediterm.terminal.SubstringFinder.FindResult.FindItem;
 import com.jediterm.terminal.TextStyle.Option;
 import com.jediterm.terminal.emulator.ColorPalette;
-import com.jediterm.terminal.model.TerminalTypeAheadManager;
 import com.jediterm.terminal.emulator.charset.CharacterSets;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
 import com.jediterm.terminal.emulator.mouse.TerminalMouseListener;
@@ -100,6 +99,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   private final TerminalKeyHandler myTerminalKeyHandler = new TerminalKeyHandler();
   private LinkInfo.HoverConsumer myLinkHoverConsumer;
   private TerminalTypeAheadManager myTypeAheadManager;
+  private volatile boolean myBracketedPasteMode;
 
   public TerminalPanel(@NotNull SettingsProvider settingsProvider, @NotNull TerminalTextBuffer terminalTextBuffer, @NotNull StyleState styleState) {
     mySettingsProvider = settingsProvider;
@@ -576,6 +576,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       }
       text = text.replace('\n', '\r');
 
+      if (myBracketedPasteMode) {
+        text = "\u001b[200~" + text + "\u001b[201~";
+      }
       myTerminalStarter.sendString(text);
     } catch (RuntimeException e) {
       LOG.info(e);
@@ -1383,6 +1386,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   @Override
   public boolean ambiguousCharsAreDoubleWidth() {
     return mySettingsProvider.ambiguousCharsAreDoubleWidth();
+  }
+
+  @Override
+  public void setBracketedPasteMode(boolean enabled) {
+    myBracketedPasteMode = enabled;
   }
 
   public LinesBuffer getScrollBuffer() {

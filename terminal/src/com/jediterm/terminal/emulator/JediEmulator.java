@@ -108,11 +108,12 @@ public class JediEmulator extends DataStreamIteratingEmulator {
 
           if (!result) {
             StringBuilder sb = new StringBuilder();
-            sb.append("Unhandled Control sequence\n");
+            sb.append("Unhandled Control Sequence\n");
             sb.append("parsed                        :");
             args.appendToBuffer(sb);
             sb.append('\n');
             sb.append("bytes read                    :ESC[");
+            sb.append(args.getSequenceString());
             LOG.error(sb.toString());
           }
         }
@@ -568,6 +569,9 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           return true;
         case 1039:
           setModeEnabled(TerminalMode.AltSendsEscape, enabled);
+          return true;
+        case 2004:
+          setModeEnabled(TerminalMode.BracketedPasteMode, enabled);
           return true;
         default:
           return false;

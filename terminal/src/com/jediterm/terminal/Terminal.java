@@ -155,4 +155,6 @@ public interface Terminal {
   void setLinkUriStarted(@NotNull String uri);
 
   void setLinkUriFinished();
+
+  void setBracketedPasteMode(boolean enabled);
 }

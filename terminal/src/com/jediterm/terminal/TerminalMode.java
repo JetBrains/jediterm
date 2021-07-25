@@ -90,7 +90,16 @@ public enum TerminalMode {
             public void setEnabled(Terminal terminal, boolean enabled) {
               terminal.setAltSendsEscape(enabled);
             }
-          }
+          },
+
+  // https://cirw.in/blog/bracketed-paste
+  // http://www.xfree86.org/current/ctlseqs.html#Bracketed%20Paste%20Mode
+  BracketedPasteMode {
+    @Override
+    public void setEnabled(Terminal terminal, boolean enabled) {
+      terminal.setBracketedPasteMode(enabled);
+    }
+  }
   ;
 
   private static final Logger LOG = Logger.getLogger(TerminalMode.class);

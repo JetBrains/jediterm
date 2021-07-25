@@ -1,8 +1,8 @@
 package com.jediterm.terminal;
 
+import com.jediterm.terminal.emulator.mouse.MouseMode;
 import com.jediterm.terminal.model.JediTerminal;
 import com.jediterm.terminal.model.TerminalSelection;
-import com.jediterm.terminal.emulator.mouse.MouseMode;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
@@ -37,4 +37,6 @@ public interface TerminalDisplay {
   TerminalSelection getSelection();
   
   boolean ambiguousCharsAreDoubleWidth();
+
+  default void setBracketedPasteMode(boolean enabled) {}
 }

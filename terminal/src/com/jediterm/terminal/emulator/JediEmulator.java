@@ -98,23 +98,14 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   private void processEscapeSequence(char ch, Terminal terminal) throws IOException {
     switch (ch) {
       case '[': // Control Sequence Introducer (CSI)
-        final ControlSequence args = new ControlSequence(myDataStream);
-
+        ControlSequence args = new ControlSequence(myDataStream);
         if (LOG.isDebugEnabled()) {
-          LOG.debug(args.appendTo("Control sequence\nparsed                        :"));
+          LOG.debug("Control Sequence (" + args.getDebugInfo() + ")");
         }
         if (!args.pushBackReordered(myDataStream)) {
           boolean result = processControlSequence(args);
-
           if (!result) {
-            StringBuilder sb = new StringBuilder();
-            sb.append("Unhandled Control Sequence\n");
-            sb.append("parsed                        :");
-            args.appendToBuffer(sb);
-            sb.append('\n');
-            sb.append("bytes read                    :ESC[");
-            sb.append(args.getSequenceString());
-            LOG.error(sb.toString());
+            LOG.error("Unhandled Control Sequence (" + args.getDebugInfo() + ")");
           }
         }
         break;

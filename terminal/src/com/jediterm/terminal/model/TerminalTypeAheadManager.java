@@ -1,6 +1,7 @@
 package com.jediterm.terminal.model;
 
 import com.google.common.base.Ascii;
+import com.jediterm.terminal.Terminal;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.ui.UIUtil;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
@@ -10,14 +11,13 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class TerminalTypeAheadManager {
-  private static final long MIN_CLEAR_PREDICTIONS_DELAY = TimeUnit.MILLISECONDS.toNanos(500);
+  private static final long MIN_CLEAR_PREDICTIONS_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
   private static final long MAX_TERMINAL_DELAY = TimeUnit.MILLISECONDS.toNanos(3000);
   private static final int LATENCY_MIN_SAMPLES_TO_TURN_ON = 5;
   private static final double LATENCY_TOGGLE_OFF_THRESHOLD = 0.5;
@@ -27,7 +27,7 @@ public class TerminalTypeAheadManager {
   private final SettingsProvider mySettingsProvider;
   private final TerminalTextBuffer myTerminalTextBuffer;
   private final List<TypeAheadPrediction> myPredictions = new ArrayList<>();
-  private final JediTerminal myTerminal;
+  private final Terminal myTerminal;
   private final ClearPredictionsDebouncer myClearPredictionsDebouncer = new ClearPredictionsDebouncer();
   private final LatencyStatistics myLatencyStatistics = new LatencyStatistics();
 
@@ -43,7 +43,7 @@ public class TerminalTypeAheadManager {
   private boolean myIsNotPasswordPrompt = false;
 
   public TerminalTypeAheadManager(@NotNull TerminalTextBuffer terminalTextBuffer,
-                                  @NotNull JediTerminal terminal,
+                                  @NotNull Terminal terminal,
                                   @NotNull SettingsProvider settingsProvider) {
     myTerminalTextBuffer = terminalTextBuffer;
     myTerminal = terminal;
@@ -187,36 +187,16 @@ public class TerminalTypeAheadManager {
     /**
      *  @see com.jediterm.terminal.TerminalKeyEncoder
      */
-    public static @NotNull TerminalTypeAheadManager.TypeAheadEvent fromByteArray(byte[] byteArray) {
+    public static @NotNull List<@NotNull TypeAheadEvent> fromByteArray(byte[] byteArray) {
       String stringRepresentation = new String(byteArray);
       if (isPrintableUnicode(stringRepresentation.charAt(0))) {
-        fromString(stringRepresentation);
+        return fromString(stringRepresentation);
       }
 
-      if (compareByteArrays(byteArray, Ascii.DEL)) {
-        return new TypeAheadEvent(EventType.Backspace);
-      } else if (compareByteArrays(byteArray, Ascii.ESC, 'O', 'D')) {
-        return new TypeAheadEvent(EventType.LeftArrow);
-      } else if (compareByteArrays(byteArray, Ascii.ESC, '[', 'D')) {
-        return new TypeAheadEvent(EventType.LeftArrow);
-      } else if (compareByteArrays(byteArray, Ascii.ESC, 'O', 'C')) {
-        return new TypeAheadEvent(EventType.RightArrow);
-      } else if (compareByteArrays(byteArray, Ascii.ESC, '[', 'C')) {
-        return new TypeAheadEvent(EventType.RightArrow);
-      } else if (compareByteArrays(byteArray, Ascii.ESC, 'b')) {
-        return new TypeAheadEvent(EventType.AltLeftArrow);
-      } else if (compareByteArrays(byteArray, Ascii.ESC, '[',  '1', ';', '3', 'D')) {
-        return new TypeAheadEvent(EventType.AltLeftArrow);
-      } else if (compareByteArrays(byteArray, Ascii.ESC, 'f')) {
-        return new TypeAheadEvent(EventType.AltRightArrow);
-      } else if (compareByteArrays(byteArray, Ascii.ESC, '[',  '1', ';', '3', 'C')) {
-        return new TypeAheadEvent(EventType.AltRightArrow);
-      } else {
-       return new TypeAheadEvent(EventType.Unknown);
-      }
+      return Collections.singletonList(fromSequence(byteArray));
     }
 
-    public static @NotNull TerminalTypeAheadManager.TypeAheadEvent fromChar(char ch) {
+    public static @NotNull TypeAheadEvent fromChar(char ch) {
       if (isPrintableUnicode(ch)) {
         return new TypeAheadEvent(EventType.Character, ch);
       } else {
@@ -228,7 +208,7 @@ public class TerminalTypeAheadManager {
       ArrayList<@NotNull TypeAheadEvent> events = new ArrayList<>();
 
       if (string.charAt(0) == Ascii.ESC) {
-        return Collections.singletonList(fromByteArray(string.getBytes()));
+        return Collections.singletonList(fromSequence(string.getBytes()));
       }
 
       for (char ch : string.toCharArray()) {
@@ -260,6 +240,29 @@ public class TerminalTypeAheadManager {
               t != Character.SURROGATE;
     }
 
+    private static @NotNull TypeAheadEvent fromSequence(byte[] byteArray) {
+      if (compareByteArrays(byteArray, Ascii.DEL)) {
+        return new TypeAheadEvent(EventType.Backspace);
+      } else if (compareByteArrays(byteArray, Ascii.ESC, 'O', 'D')) {
+        return new TypeAheadEvent(EventType.LeftArrow);
+      } else if (compareByteArrays(byteArray, Ascii.ESC, '[', 'D')) {
+        return new TypeAheadEvent(EventType.LeftArrow);
+      } else if (compareByteArrays(byteArray, Ascii.ESC, 'O', 'C')) {
+        return new TypeAheadEvent(EventType.RightArrow);
+      } else if (compareByteArrays(byteArray, Ascii.ESC, '[', 'C')) {
+        return new TypeAheadEvent(EventType.RightArrow);
+      } else if (compareByteArrays(byteArray, Ascii.ESC, 'b')) {
+        return new TypeAheadEvent(EventType.AltLeftArrow);
+      } else if (compareByteArrays(byteArray, Ascii.ESC, '[',  '1', ';', '3', 'D')) {
+        return new TypeAheadEvent(EventType.AltLeftArrow);
+      } else if (compareByteArrays(byteArray, Ascii.ESC, 'f')) {
+        return new TypeAheadEvent(EventType.AltRightArrow);
+      } else if (compareByteArrays(byteArray, Ascii.ESC, '[',  '1', ';', '3', 'C')) {
+        return new TypeAheadEvent(EventType.AltRightArrow);
+      } else {
+        return new TypeAheadEvent(EventType.Unknown);
+      }
+    }
   }
 
   private @Nullable TypeAheadPrediction getNextPrediction() {

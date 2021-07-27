@@ -111,7 +111,7 @@ public class TerminalStarter implements TerminalOutputStream {
     execute(() -> {
       try {
         if (userInput && myTypeAheadManager != null) {
-          myTypeAheadManager.onKeyEvent(TerminalTypeAheadManager.TypeAheadEvent.fromByteArray(bytes));
+          TerminalTypeAheadManager.TypeAheadEvent.fromByteArray(bytes).forEach(myTypeAheadManager::onKeyEvent);
         }
         myTtyConnector.write(bytes);
       }

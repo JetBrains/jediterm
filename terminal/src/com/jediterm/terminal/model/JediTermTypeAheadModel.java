@@ -11,24 +11,28 @@ import org.jetbrains.annotations.*;
 import static com.jediterm.terminal.model.TypeAheadTerminalModel.LineWithCursor.moveToWordBoundary;
 
 public class JediTermTypeAheadModel implements TypeAheadTerminalModel {
-  @NotNull Terminal myTerminal;
-  @NotNull TerminalTextBuffer myTerminalTextBuffer;
-  @NotNull SettingsProvider mySettingsProvider;
+  private final @NotNull Terminal myTerminal;
+  private final @NotNull TerminalTextBuffer myTerminalTextBuffer;
+  private final @NotNull SettingsProvider mySettingsProvider;
+  private final @NotNull PredictionMatcher myPredictionMatcher;
 
-  @Nullable List<TypeAheadPrediction> lastPredictions = null;
+  @Nullable List<@NotNull TypeAheadPrediction> lastPredictions = null;
 
   public JediTermTypeAheadModel(@NotNull Terminal terminal,
                                 @NotNull TerminalTextBuffer textBuffer,
-                                @NotNull SettingsProvider settingsProvider) {
+                                @NotNull SettingsProvider settingsProvider,
+                                @NotNull PredictionMatcher predictionMatcher) {
     myTerminal = terminal;
     myTerminalTextBuffer = textBuffer;
     mySettingsProvider = settingsProvider;
+    myPredictionMatcher = predictionMatcher;
   }
 
   @Override
-  public void applyPredictions(@NotNull List<@NotNull TypeAheadPrediction> predictions,
-                               @NotNull LineWithCursor lineWithCursor) {
+  public void applyPredictions(@NotNull List<@NotNull TypeAheadPrediction> predictions) {
     lastPredictions = predictions;
+    LineWithCursor lineWithCursor = getCurrentLineWithCursor();
+
     TerminalLine terminalLine = myTerminalTextBuffer.getLine(lineWithCursor.myCursorY);
     TerminalLine newTerminalLine = terminalLine.copy();
 
@@ -73,6 +77,11 @@ public class JediTermTypeAheadModel implements TypeAheadTerminalModel {
   @Override
   public long getLatencyThreshold() {
     return mySettingsProvider.getTypeAheadSettings().getLatencyThreshold();
+  }
+
+  @Override
+  public void matchPrediction(TypeAheadPrediction prediction) {
+    myPredictionMatcher.matchPrediction(prediction);
   }
 
   @Override

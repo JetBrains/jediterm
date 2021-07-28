@@ -6,8 +6,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 
 public interface TypeAheadTerminalModel {
-  void applyPredictions(@NotNull List<@NotNull TypeAheadPrediction> predictions,
-                        @NotNull LineWithCursor lineWithCursor);
+  void applyPredictions(@NotNull List<@NotNull TypeAheadPrediction> predictions);
 
   void clearPredictions();
 
@@ -24,6 +23,8 @@ public interface TypeAheadTerminalModel {
   boolean isTypeAheadEnabled();
 
   long getLatencyThreshold();
+
+  void matchPrediction(TypeAheadPrediction prediction);
 
   class LineWithCursor {
     final @NotNull StringBuffer myLineText;

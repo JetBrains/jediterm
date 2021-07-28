@@ -1,6 +1,6 @@
 package com.jediterm.terminal;
 
-import com.jediterm.terminal.model.TerminalTypeAheadManager;
+import com.jediterm.terminal.model.PredictionMatcher;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -8,17 +8,17 @@ import java.io.IOException;
 public class TypeAheadTerminalDataStream implements TerminalDataStream {
   private final TerminalDataStream myDelegate;
   private final StringBuilder myRecordedReadChars = new StringBuilder();
-  private final TerminalTypeAheadManager myTypeAheadManager;
+  private final PredictionMatcher myPredictionMatcher;
   private boolean myIsRecordingReadChars;
 
   public TypeAheadTerminalDataStream(@NotNull TerminalDataStream delegate,
-                                     @NotNull TerminalTypeAheadManager typeAheadManager) {
+                                     @NotNull PredictionMatcher predictionMatcher) {
     myDelegate = delegate;
-    myTypeAheadManager = typeAheadManager;
+    myPredictionMatcher = predictionMatcher;
   }
 
-  public @NotNull TerminalTypeAheadManager getTypeAheadManager() {
-    return myTypeAheadManager;
+  public @NotNull PredictionMatcher getPredictionMatcher() {
+    return myPredictionMatcher;
   }
 
   @Override

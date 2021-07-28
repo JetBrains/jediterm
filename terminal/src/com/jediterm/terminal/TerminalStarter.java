@@ -5,7 +5,6 @@ import com.jediterm.terminal.emulator.JediEmulator;
 import com.jediterm.terminal.model.TerminalTypeAheadManager;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.io.IOException;
@@ -31,20 +30,16 @@ public class TerminalStarter implements TerminalOutputStream {
 
   private final TtyConnector myTtyConnector;
 
-  private final @Nullable TerminalTypeAheadManager myTypeAheadManager;
+  private final TerminalTypeAheadManager myTypeAheadManager;
 
   private final ScheduledExecutorService myEmulatorExecutor = Executors.newSingleThreadScheduledExecutor();
 
-  public TerminalStarter(final Terminal terminal, final TtyConnector ttyConnector, TerminalDataStream dataStream) {
+  public TerminalStarter(final Terminal terminal, final TtyConnector ttyConnector, TerminalDataStream dataStream, TerminalTypeAheadManager typeAheadManager) {
     myTtyConnector = ttyConnector;
     myTerminal = terminal;
     myTerminal.setTerminalOutput(this);
     myEmulator = createEmulator(dataStream, terminal);
-    if (dataStream instanceof TypeAheadTerminalDataStream) {
-      myTypeAheadManager = ((TypeAheadTerminalDataStream) dataStream).getTypeAheadManager();
-    } else {
-      myTypeAheadManager = null;
-    }
+    myTypeAheadManager = typeAheadManager;
   }
 
   protected JediEmulator createEmulator(TerminalDataStream dataStream, Terminal terminal) {
@@ -110,7 +105,7 @@ public class TerminalStarter implements TerminalOutputStream {
   public void sendBytes(final byte[] bytes, boolean userInput) {
     execute(() -> {
       try {
-        if (userInput && myTypeAheadManager != null) {
+        if (userInput) {
           TerminalTypeAheadManager.TypeAheadEvent.fromByteArray(bytes).forEach(myTypeAheadManager::onKeyEvent);
         }
         myTtyConnector.write(bytes);
@@ -130,7 +125,7 @@ public class TerminalStarter implements TerminalOutputStream {
   public void sendString(final String string, boolean userInput) {
     execute(() -> {
       try {
-        if (userInput && myTypeAheadManager != null) {
+        if (userInput) {
           TerminalTypeAheadManager.TypeAheadEvent.fromString(string).forEach(myTypeAheadManager::onKeyEvent);
         }
 

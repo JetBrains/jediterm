@@ -37,6 +37,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   protected final JediTerminal myTerminal;
   protected final AtomicBoolean mySessionRunning = new AtomicBoolean();
   private final TerminalTypeAheadManager myTypeAheadManager;
+  private final PredictionMatcher myPredictionMatcher;
   private SearchComponent myFindComponent;
   private final PreConnectHandler myPreConnectHandler;
   private TtyConnector myTtyConnector;
@@ -72,8 +73,10 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     myTerminalPanel = createTerminalPanel(mySettingsProvider, styleState, terminalTextBuffer);
     myTerminal = new JediTerminal(myTerminalPanel, terminalTextBuffer, styleState);
 
-    TypeAheadTerminalModel typeAheadTerminalModel = new JediTermTypeAheadModel(myTerminal, terminalTextBuffer, settingsProvider);
+    myPredictionMatcher = new PredictionMatcher();
+    TypeAheadTerminalModel typeAheadTerminalModel = new JediTermTypeAheadModel(myTerminal, terminalTextBuffer, settingsProvider, myPredictionMatcher);
     myTypeAheadManager = new TerminalTypeAheadManager(typeAheadTerminalModel);
+    myPredictionMatcher.setCallback(myTypeAheadManager::onTerminalStateChanged);
     myTerminalPanel.setTypeAheadManager(myTypeAheadManager);
 
     myTerminal.setModeEnabled(TerminalMode.AltSendsEscape, mySettingsProvider.altSendsEscape());
@@ -141,8 +144,8 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   protected TerminalStarter createTerminalStarter(@NotNull JediTerminal terminal, @NotNull TtyConnector connector) {
     return new TerminalStarter(terminal, connector, new TypeAheadTerminalDataStream(
-      new TtyBasedArrayDataStream(connector), myTypeAheadManager
-    ));
+      new TtyBasedArrayDataStream(connector), myPredictionMatcher
+    ), myTypeAheadManager);
   }
 
   @Override

@@ -42,7 +42,7 @@ public abstract class DataStreamIteratingEmulator implements Emulator {
 
       if (terminalDataStream != null) {
         String readChars = terminalDataStream.stopRecodingReadCharsAndGet();
-        terminalDataStream.getTypeAheadManager().onTerminalData(readChars);
+        terminalDataStream.getPredictionMatcher().onTerminalData(readChars, myTerminal.getCursorX() - 1);
       }
     }
     catch (TerminalDataStream.EOF e) {

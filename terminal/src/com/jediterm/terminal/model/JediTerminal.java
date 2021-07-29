@@ -255,11 +255,6 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   @Override
-  public void setCurrentPath(String path) {
-    myDisplay.setCurrentPath(path);
-  }
-
-  @Override
   public void backspace() {
     myCursorX -= 1;
     if (myCursorX < 0) {
@@ -1005,6 +1000,11 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
         myStyleState.setCurrent(prevTextStyle);
       }
     }
+  }
+
+  @Override
+  public void setBracketedPasteMode(boolean enabled) {
+    myDisplay.setBracketedPasteMode(enabled);
   }
 
   @Override

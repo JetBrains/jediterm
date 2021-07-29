@@ -8,6 +8,7 @@ import com.jediterm.terminal.model.JediTerminal;
 import com.jediterm.terminal.model.TerminalSelection;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 
@@ -17,6 +18,7 @@ import java.awt.*;
 public class BackBufferDisplay implements TerminalDisplay {
   private final TerminalTextBuffer myTerminalTextBuffer;
   private TerminalSelection mySelection = null;
+  private String myWindowTitle;
 
   public BackBufferDisplay(TerminalTextBuffer terminalTextBuffer) {
     myTerminalTextBuffer = terminalTextBuffer;
@@ -66,11 +68,12 @@ public class BackBufferDisplay implements TerminalDisplay {
   }
 
   @Override
-  public void setWindowTitle(String name) {
+  public void setWindowTitle(String title) {
+    myWindowTitle = title;
   }
 
-  @Override
-  public void setCurrentPath(String path) {
+  public @Nullable String getWindowTitle() {
+    return myWindowTitle;
   }
 
   public TerminalSelection getSelection() {

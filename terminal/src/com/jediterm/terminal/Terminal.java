@@ -106,8 +106,6 @@ public interface Terminal {
 
   void setWindowTitle(String name);
 
-  void setCurrentPath(String path);
-
   void clearScreen();
 
   void setCursorVisible(boolean visible);
@@ -157,4 +155,6 @@ public interface Terminal {
   void setLinkUriStarted(@NotNull String uri);
 
   void setLinkUriFinished();
+
+  void setBracketedPasteMode(boolean enabled);
 }

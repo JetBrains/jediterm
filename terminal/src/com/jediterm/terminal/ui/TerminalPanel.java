@@ -92,7 +92,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   private int myBlinkingPeriod = 500;
   private TerminalCoordinates myCoordsAccessor;
 
-  private String myCurrentPath; //TODO: handle current path if available
   private SubstringFinder.FindResult myFindResult;
 
   private LinkInfo myHoveredHyperlink = null;
@@ -101,6 +100,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   private final TerminalKeyHandler myTerminalKeyHandler = new TerminalKeyHandler();
   private LinkInfo.HoverConsumer myLinkHoverConsumer;
   private TerminalTypeAheadManager myTypeAheadManager;
+  private volatile boolean myBracketedPasteMode;
 
   public TerminalPanel(@NotNull SettingsProvider settingsProvider, @NotNull TerminalTextBuffer terminalTextBuffer, @NotNull StyleState styleState) {
     mySettingsProvider = settingsProvider;
@@ -577,6 +577,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       }
       text = text.replace('\n', '\r');
 
+      if (myBracketedPasteMode) {
+        text = "\u001b[200~" + text + "\u001b[201~";
+      }
       myTerminalStarter.sendString(text, true);
     } catch (RuntimeException e) {
       LOG.info(e);
@@ -1386,6 +1389,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     return mySettingsProvider.ambiguousCharsAreDoubleWidth();
   }
 
+  @Override
+  public void setBracketedPasteMode(boolean enabled) {
+    myBracketedPasteMode = enabled;
+  }
+
   public LinesBuffer getScrollBuffer() {
     return myTerminalTextBuffer.getHistoryBuffer();
   }
@@ -1447,11 +1455,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     if (myTerminalPanelListener != null) {
       myTerminalPanelListener.onTitleChanged(myWindowTitle);
     }
-  }
-
-  @Override
-  public void setCurrentPath(String path) {
-    myCurrentPath = path;
   }
 
   @Override

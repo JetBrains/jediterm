@@ -41,37 +41,26 @@ public interface TypeAheadTerminalModel {
       return new LineWithCursor(new StringBuffer(myLineText), myCursorX, myCursorY);
     }
 
-    public void applyPrediction(@NotNull TerminalTypeAheadManager.TypeAheadEvent keyEvent, int terminalWidth) {
-      switch (keyEvent.myEventType) {
-        case Character:
-          Character ch = keyEvent.getCharacterOrNull();
-          if (ch == null) {
-            throw new IllegalStateException("TypeAheadKeyboardEvent.Character has myCharacter == null");
-          }
+    public void applyPrediction(TypeAheadPrediction prediction) {
+      if (prediction instanceof TentativeBoundary) {
+        prediction = ((TentativeBoundary) prediction).myInnerPrediction;
+      }
+
+      if (prediction instanceof CharacterPrediction) {
+        if (0 <= myCursorX || myCursorX <= myLineText.length()) {
+          char ch = ((CharacterPrediction) prediction).myCharacter;
           myLineText.insert(myCursorX, ch);
           myCursorX++;
-          break;
-        case Backspace:
-          if (myCursorX > 0) {
-            myCursorX--;
-            myLineText.deleteCharAt(myCursorX);
-          }
-          break;
-        case LeftArrow:
-        case RightArrow:
-          int delta = keyEvent.myEventType == TerminalTypeAheadManager.TypeAheadEvent.EventType.RightArrow ? 1 : -1;
-          if (0 <= myCursorX + delta && myCursorX + delta < terminalWidth) {
-            myCursorX += delta;
-          }
-          break;
-        case AltLeftArrow:
-        case AltRightArrow:
-          TerminalTypeAheadManager.CursorMoveDirection direction = keyEvent.myEventType == TerminalTypeAheadManager.TypeAheadEvent.EventType.AltRightArrow
-            ? TerminalTypeAheadManager.CursorMoveDirection.Forward : TerminalTypeAheadManager.CursorMoveDirection.Back;
-          myCursorX = moveToWordBoundary(myLineText.toString(), myCursorX, direction);
-          break;
-        default:
-          throw new IllegalStateException("Events should be filtered but keyEvent is " + keyEvent);
+        }
+      } else if (prediction instanceof BackspacePrediction) {
+        if (myCursorX > 0) {
+          myCursorX--;
+          myLineText.deleteCharAt(myCursorX);
+        }
+      } else if (prediction instanceof CursorMovePrediction) {
+        myCursorX = prediction.myPredictedCursorX;
+      } else {
+        throw new IllegalStateException("Predictions should be filtered but prediction type is" + prediction.getClass().getSimpleName());
       }
     }
 
@@ -93,7 +82,7 @@ public interface TypeAheadTerminalModel {
           break;
         }
 
-        index += direction == TerminalTypeAheadManager.CursorMoveDirection.Forward ? 1 : -1;
+        index += direction.myDelta;
       }
 
       if (direction == TerminalTypeAheadManager.CursorMoveDirection.Back) {

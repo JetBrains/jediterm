@@ -21,12 +21,13 @@ public class PredictionMatcher {
 
   public void matchPrediction(@NotNull TypeAheadPrediction prediction) {
     synchronized (LOCK) {
-      if (prediction instanceof ClearPredictions) {
-        myPredictions.clear();
+      if (prediction instanceof AcknowledgePrediction) {
+        isEnabled = true;
         return;
       }
-      if (prediction instanceof AcknowledgeClearPredictions) {
-        isEnabled = true;
+      if (!isEnabled) return;
+      if (prediction instanceof ClearPredictions) {
+        myPredictions.clear();
         return;
       }
       myPredictions.add(prediction);
@@ -42,6 +43,8 @@ public class PredictionMatcher {
       .replace("\b", "\\b"));
 
     synchronized (LOCK) {
+      if (!isEnabled) return;
+
       String terminalData = myTerminalDataBuffer + data;
       myTerminalDataBuffer = "";
       TypeaheadStringReader terminalDataReader = new TypeaheadStringReader(terminalData);
@@ -63,6 +66,7 @@ public class PredictionMatcher {
       }
       if (myPredictions.isEmpty() && terminalDataReader.remainingLength() > 0 && myCallback != null) {
         isEnabled = false;
+        myTerminalDataBuffer = "";
         myCallback.accept(0);
       }
     }
@@ -81,10 +85,10 @@ public class PredictionMatcher {
     int readerIndexBeforeMatching = terminalDataReader.getIndex();
 
     String debugString;
-    if (nextPrediction.myKeyEvent.myEventType == TypeAheadEvent.EventType.Character) {
-      debugString = nextPrediction.myKeyEvent.myEventType + " char: " + nextPrediction.getCharacterOrNull();
+    if (nextPrediction.getCharacterOrNull() != null) {
+      debugString = nextPrediction.getClass().getSimpleName() + " char: " + nextPrediction.getCharacterOrNull();
     } else {
-      debugString = nextPrediction.myKeyEvent.myEventType.toString();
+      debugString = nextPrediction.getClass().getSimpleName();
     }
     switch (nextPrediction.matches(terminalDataReader, cursorX)) {
       case Success:

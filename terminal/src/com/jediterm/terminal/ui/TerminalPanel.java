@@ -1004,7 +1004,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
     public int getCoordX() {
       if (myTypeAheadManager != null) {
-        return myTypeAheadManager.getCursorX() - 1;
+        return myTypeAheadManager.getCursorX();
       }
       return myCursorCoordinates.x;
     }

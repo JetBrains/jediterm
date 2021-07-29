@@ -8,8 +8,6 @@ import com.jediterm.terminal.model.TerminalTypeAheadManager.*;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
 import org.jetbrains.annotations.*;
 
-import static com.jediterm.terminal.model.TypeAheadTerminalModel.LineWithCursor.moveToWordBoundary;
-
 public class JediTermTypeAheadModel implements TypeAheadTerminalModel {
   private final @NotNull Terminal myTerminal;
   private final @NotNull TerminalTextBuffer myTerminalTextBuffer;
@@ -38,7 +36,7 @@ public class JediTermTypeAheadModel implements TypeAheadTerminalModel {
 
     int cursorX = lineWithCursor.myCursorX;
     for (TypeAheadPrediction prediction : predictions) {
-      cursorX = updateTerminalLinePrediction(newTerminalLine, cursorX, prediction.myKeyEvent);
+      cursorX = updateTerminalLinePrediction(newTerminalLine, cursorX, prediction);
     }
 
     terminalLine.setTypeAheadLine(newTerminalLine);
@@ -100,38 +98,27 @@ public class JediTermTypeAheadModel implements TypeAheadTerminalModel {
 
   private int updateTerminalLinePrediction(@NotNull TerminalLine terminalLine, // TODO: very similar to LineWithCursor#applyPrediction
                                             int cursorX,
-                                            @NotNull TerminalTypeAheadManager.TypeAheadEvent keyEvent) {
-    switch (keyEvent.myEventType) {
-      case Character:
-        Character ch = keyEvent.getCharacterOrNull();
-        if (ch == null) {
-          throw new IllegalStateException("TypeAheadKeyboardEvent.Character has myCharacter == null");
-        }
-        TextStyle typeAheadTextStyle = mySettingsProvider.getTypeAheadSettings().getTextStyle();
-        terminalLine.writeString(cursorX, new CharBuffer(ch, 1), typeAheadTextStyle);
-        cursorX++;
-        break;
-      case Backspace:
-        if (cursorX > 0) {
-          cursorX--;
-          terminalLine.deleteCharacters(cursorX, 1, TextStyle.EMPTY);
-        }
-        break;
-      case LeftArrow:
-      case RightArrow:
-        int delta = keyEvent.myEventType == TypeAheadEvent.EventType.RightArrow ? 1 : -1;
-        if (0 <= cursorX + delta && cursorX + delta < myTerminal.getTerminalWidth()) {
-          cursorX += delta;
-        }
-        break;
-      case AltLeftArrow:
-      case AltRightArrow:
-        CursorMoveDirection direction = keyEvent.myEventType == TypeAheadEvent.EventType.AltRightArrow
-          ? CursorMoveDirection.Forward : CursorMoveDirection.Back;
-        cursorX = moveToWordBoundary(terminalLine.getText(), cursorX, direction);
-        break;
-      default:
-        throw new IllegalStateException("Events should be filtered but keyEvent is " + keyEvent);
+                                            @NotNull TerminalTypeAheadManager.TypeAheadPrediction prediction) {
+    if (prediction instanceof TentativeBoundary) {
+      prediction = ((TentativeBoundary) prediction).myInnerPrediction;
+    }
+
+    if (prediction instanceof CharacterPrediction) {
+      char ch = ((CharacterPrediction) prediction).myCharacter;
+      TextStyle typeAheadTextStyle = mySettingsProvider.getTypeAheadSettings().getTextStyle();
+      terminalLine.writeString(cursorX, new CharBuffer(ch, 1), typeAheadTextStyle);
+      cursorX++;
+    } else if (prediction instanceof BackspacePrediction) {
+      if (cursorX > 0) {
+        cursorX--;
+        terminalLine.deleteCharacters(cursorX, 1, TextStyle.EMPTY);
+      }
+    } else if (prediction instanceof CursorMovePrediction) {
+      if (0 <= prediction.myPredictedCursorX && prediction.myPredictedCursorX < myTerminal.getTerminalWidth()) {
+        cursorX = prediction.myPredictedCursorX;
+      }
+    } else {
+      throw new IllegalStateException("Predictions should be filtered but prediction type is" + prediction.getClass().getSimpleName());
     }
 
     return cursorX;

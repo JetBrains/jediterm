@@ -78,12 +78,12 @@ public class JediTermTypeAheadModel implements TypeAheadTerminalModel {
   }
 
   @Override
-  public void matchPrediction(TypeAheadPrediction prediction) {
+  public void matchPrediction(@NotNull TypeAheadPrediction prediction) {
     myPredictionMatcher.matchPrediction(prediction);
   }
 
   @Override
-  public LineWithCursor getCurrentLineWithCursor() {
+  public @NotNull LineWithCursor getCurrentLineWithCursor() {
     int cursorX = myTerminal.getCursorX() - 1;
     int cursorY = myTerminal.getCursorY() - 1;
     TerminalLine terminalLine = myTerminalTextBuffer.getLine(cursorY);

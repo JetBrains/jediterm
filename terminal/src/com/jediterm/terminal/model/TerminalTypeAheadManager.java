@@ -8,6 +8,7 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.regex.Matcher;
@@ -284,15 +285,15 @@ public class TerminalTypeAheadManager {
     }
   }
 
-  public abstract static class TypeAheadPrediction {
-    public final long myCreatedTime;
+  public abstract static class TypeAheadPrediction implements Serializable {
+    public final transient long myCreatedTime;
     public final int myID;
 
     public final int myPredictedCursorX;
 
     private static int myNextID = 1;
 
-    private TypeAheadPrediction(int predictedCursorX) {
+    protected TypeAheadPrediction(int predictedCursorX) {
       myPredictedCursorX = predictedCursorX;
 
       myCreatedTime = System.nanoTime();

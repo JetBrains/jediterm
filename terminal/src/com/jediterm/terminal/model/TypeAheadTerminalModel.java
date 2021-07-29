@@ -16,7 +16,7 @@ public interface TypeAheadTerminalModel {
 
   boolean isUsingAlternateBuffer();
 
-  LineWithCursor getCurrentLineWithCursor();
+  @NotNull LineWithCursor getCurrentLineWithCursor();
 
   int getTerminalWidth();
 
@@ -24,14 +24,14 @@ public interface TypeAheadTerminalModel {
 
   long getLatencyThreshold();
 
-  void matchPrediction(TypeAheadPrediction prediction);
+  void matchPrediction(@NotNull TypeAheadPrediction prediction);
 
   class LineWithCursor {
     final @NotNull StringBuffer myLineText;
     int myCursorX;
     int myCursorY;
 
-    LineWithCursor(@NotNull StringBuffer terminalLine, int cursorX, int cursorY) {
+    public LineWithCursor(@NotNull StringBuffer terminalLine, int cursorX, int cursorY) {
       myLineText = terminalLine;
       myCursorX = cursorX;
       myCursorY = cursorY;

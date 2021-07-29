@@ -57,6 +57,7 @@ public class PredictionMatcher {
         } else if (matchResult == 0) {
           break;
         } else {
+          resetState(false);
           result = matchResult;
           break;
         }
@@ -65,8 +66,7 @@ public class PredictionMatcher {
         myCallback.accept(result);
       }
       if (myPredictions.isEmpty() && terminalDataReader.remainingLength() > 0 && myCallback != null) {
-        isEnabled = false;
-        myTerminalDataBuffer = "";
+        resetState(true);
         myCallback.accept(0);
       }
     }
@@ -107,4 +107,11 @@ public class PredictionMatcher {
     }
   }
 
+  private void resetState(boolean disable) {
+    myTerminalDataBuffer = "";
+    myPredictions.clear();
+    if (disable) {
+      isEnabled = false;
+    }
+  }
 }

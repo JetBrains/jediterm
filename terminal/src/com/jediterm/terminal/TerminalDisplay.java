@@ -39,4 +39,6 @@ public interface TerminalDisplay {
   boolean ambiguousCharsAreDoubleWidth();
 
   default void setBracketedPasteMode(boolean enabled) {}
+  
+  TerminalColor getWindowBackground();
 }

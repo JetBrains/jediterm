@@ -7,17 +7,31 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public class PredictionMatcher {
+  private static final long DEBOUNCE_BUFFERED_DELAY = TimeUnit.MILLISECONDS.toNanos(100);
+
+
   private static final Logger LOG = Logger.getLogger(PredictionMatcher.class);
 
   private final Object LOCK = new Object();
   private final @NotNull List<@NotNull TypeAheadPrediction> myPredictions = new ArrayList<>();
-  private @Nullable Consumer<@NotNull Integer> myCallback;
-  private boolean isEnabled = true;
+  private @Nullable Consumer<@Nullable Integer> myCallback;
+  private boolean isEnabled = false; // TerminalTypeAheadManager will send AcknowledgePrediction as a first prediction
   // if we need more chars to match a prediction, we buffer remaining chars and wait for new ones
   private String myTerminalDataBuffer = "";
+  private Integer lastBufferedPredictionID = null;
+  private final Debouncer myBufferedDebouncer = new Debouncer(() -> {
+    synchronized (LOCK) {
+      if (!myPredictions.isEmpty()) {
+        LOG.debug("myBufferedDebouncer called");
+        resetState(false);
+        myCallback.accept(-lastBufferedPredictionID);
+      }
+    }
+  }, DEBOUNCE_BUFFERED_DELAY);
 
   public void matchPrediction(@NotNull TypeAheadPrediction prediction) {
     synchronized (LOCK) {
@@ -27,7 +41,8 @@ public class PredictionMatcher {
       }
       if (!isEnabled) return;
       if (prediction instanceof ClearPredictions) {
-        myPredictions.clear();
+        myBufferedDebouncer.terminateCall();
+        resetState(false);
         return;
       }
       myPredictions.add(prediction);
@@ -43,7 +58,12 @@ public class PredictionMatcher {
       .replace("\b", "\\b"));
 
     synchronized (LOCK) {
-      if (!isEnabled) return;
+      if (!isEnabled) {
+        if (myCallback != null) {
+          myCallback.accept(null);
+        }
+        return;
+      }
 
       String terminalData = myTerminalDataBuffer + data;
       myTerminalDataBuffer = "";
@@ -53,26 +73,34 @@ public class PredictionMatcher {
       while (!myPredictions.isEmpty() && terminalDataReader.remainingLength() > 0) {
         int matchResult = checkNextPrediction(terminalDataReader, cursorX);
         if (matchResult > 0) {
+          myBufferedDebouncer.terminateCall();
           result = matchResult;
         } else if (matchResult == 0) {
-          break;
+          lastBufferedPredictionID = myPredictions.get(0).myID;
+          myBufferedDebouncer.call();
+          return;
         } else {
+          myBufferedDebouncer.terminateCall();
           resetState(false);
           result = matchResult;
           break;
         }
       }
-      if (result != 0 && myCallback != null) {
-        myCallback.accept(result);
+
+      if (myCallback == null) {
+        return;
       }
-      if (myPredictions.isEmpty() && terminalDataReader.remainingLength() > 0 && myCallback != null) {
+
+      if (myPredictions.isEmpty() && terminalDataReader.remainingLength() > 0) {
         resetState(true);
         myCallback.accept(0);
+      } else {
+        myCallback.accept(result);
       }
     }
   }
 
-  public void setCallback(@NotNull Consumer<@NotNull Integer> callback) {
+  public void setCallback(@NotNull Consumer<@Nullable Integer> callback) {
     myCallback = callback;
   }
 

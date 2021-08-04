@@ -99,10 +99,6 @@ public class JediTermTypeAheadModel implements TypeAheadTerminalModel {
   private int updateTerminalLinePrediction(@NotNull TerminalLine terminalLine, // TODO: very similar to LineWithCursor#applyPrediction
                                             int cursorX,
                                             @NotNull TerminalTypeAheadManager.TypeAheadPrediction prediction) {
-    if (prediction instanceof TentativeBoundary) {
-      prediction = ((TentativeBoundary) prediction).myInnerPrediction;
-    }
-
     if (prediction instanceof CharacterPrediction) {
       char ch = ((CharacterPrediction) prediction).myCharacter;
       TextStyle typeAheadTextStyle = mySettingsProvider.getTypeAheadSettings().getTextStyle();

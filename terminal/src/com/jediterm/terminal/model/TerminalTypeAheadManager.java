@@ -8,7 +8,6 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.regex.Matcher;
@@ -17,7 +16,6 @@ import java.util.regex.Pattern;
 import static com.jediterm.terminal.model.TypeAheadTerminalModel.LineWithCursor.moveToWordBoundary;
 
 public class TerminalTypeAheadManager {
-  private static final long MIN_CLEAR_PREDICTIONS_DELAY = TimeUnit.MILLISECONDS.toNanos(2000);
   private static final long MAX_TERMINAL_DELAY = TimeUnit.MILLISECONDS.toNanos(3000);
   private static final int LATENCY_MIN_SAMPLES_TO_TURN_ON = 5;
   private static final double LATENCY_TOGGLE_OFF_THRESHOLD = 0.5;
@@ -26,7 +24,20 @@ public class TerminalTypeAheadManager {
 
   private final TypeAheadTerminalModel myTerminalModel;
   private final List<TypeAheadPrediction> myPredictions = new ArrayList<>();
-  private final ClearPredictionsDebouncer myClearPredictionsDebouncer = new ClearPredictionsDebouncer();
+  private final Debouncer myClearPredictionsDebouncer = new Debouncer(new Runnable() {
+    @Override
+    public void run() {
+      myTerminalModel.lock();
+      try {
+        if (!myPredictions.isEmpty()) {
+          LOG.debug("TimeoutPredictionCleaner called");
+          resetState();
+        }
+      } finally {
+        myTerminalModel.unlock();
+      }
+    }
+  }, MAX_TERMINAL_DELAY);
   private final LatencyStatistics myLatencyStatistics = new LatencyStatistics();
 
   // if false, predictions will still be generated for latency statistics but won't be displayed
@@ -37,7 +48,7 @@ public class TerminalTypeAheadManager {
   // guards the terminal prompt. All predictions that try to move the cursor beyond leftmost cursor position are tentative
   private Integer myLeftMostCursorPosition = null;
   private boolean myIsNotPasswordPrompt = false;
-  private boolean isAcknowledgeNeeded = false;
+  private boolean isAcknowledgeNeeded = true; // PredictionMatcher default state is disabled so we need to enable it
 
   public TerminalTypeAheadManager(@NotNull TypeAheadTerminalModel terminalModel) {
     myTerminalModel = terminalModel;
@@ -48,10 +59,10 @@ public class TerminalTypeAheadManager {
    *                                If prediction match failed lastMatchedPredictionID should be -predictionID.
    *                                If terminal responded while there were no predictions lastMatchedPredictionID should be 0.
    */
-  public void onTerminalStateChanged(int lastMatchedPredictionID) {
+  public void onTerminalStateChanged(@Nullable Integer lastMatchedPredictionID) {
     myTerminalModel.lock();
     try {
-      if (lastMatchedPredictionID == 0) {
+      if (lastMatchedPredictionID != null && lastMatchedPredictionID == 0) {
         isAcknowledgeNeeded = true;
       }
       if (!myTerminalModel.isTypeAheadEnabled() || myOutOfSyncDetected) return;
@@ -59,6 +70,11 @@ public class TerminalTypeAheadManager {
       if (!myPredictions.isEmpty()) {
         updateLeftMostCursorPosition(myTerminalModel.getCurrentLineWithCursor().myCursorX);
         myClearPredictionsDebouncer.call();
+      }
+
+      if (lastMatchedPredictionID == null) {
+        myTerminalModel.applyPredictions(getVisiblePredictions());
+        return;
       }
 
       if (lastMatchedPredictionID == 0) {
@@ -285,35 +301,31 @@ public class TerminalTypeAheadManager {
     }
   }
 
-  public abstract static class TypeAheadPrediction implements Serializable {
-    public final transient long myCreatedTime;
+  public abstract static class TypeAheadPrediction {
+    public final long myCreatedTime;
     public final int myID;
+    public final boolean myIsNotTentative;
 
     public final int myPredictedCursorX;
 
     private static int myNextID = 1;
 
-    protected TypeAheadPrediction(int predictedCursorX) {
+    protected TypeAheadPrediction(int predictedCursorX, boolean isNotTentative) {
+      this(myNextID++, predictedCursorX, isNotTentative);
+    }
+
+    protected TypeAheadPrediction(int id, int predictedCursorX, boolean isNotTentative) {
       myPredictedCursorX = predictedCursorX;
+      myID = id;
+      myIsNotTentative = isNotTentative;
 
       myCreatedTime = System.nanoTime();
-      myID = myNextID++;
     }
 
     public @Nullable Character getCharacterOrNull() {
       if (this instanceof CharacterPrediction) {
         return ((CharacterPrediction) this).myCharacter;
       }
-
-      if (!(this instanceof TentativeBoundary)) {
-        return null;
-      }
-      TentativeBoundary tentativeBoundary = (TentativeBoundary) this;
-
-      if (tentativeBoundary.myInnerPrediction instanceof CharacterPrediction) {
-        return ((CharacterPrediction) tentativeBoundary.myInnerPrediction).myCharacter;
-      }
-
       return null;
     }
 
@@ -322,7 +334,11 @@ public class TerminalTypeAheadManager {
 
   public static class ClearPredictions extends TypeAheadPrediction {
     public ClearPredictions() {
-      super(-1);
+      super(-1, true);
+    }
+
+    public ClearPredictions(int id) {
+      super(id, -1, true);
     }
 
     @Override
@@ -333,7 +349,11 @@ public class TerminalTypeAheadManager {
 
   public static class AcknowledgePrediction extends TypeAheadPrediction {
     public AcknowledgePrediction() {
-      super(-1);
+      super(-1, true);
+    }
+
+    public AcknowledgePrediction(int id) {
+      super(id, -1, true);
     }
 
     @Override
@@ -343,8 +363,12 @@ public class TerminalTypeAheadManager {
   }
 
   public static class HardBoundary extends TypeAheadPrediction {
-    public HardBoundary(int predictedCursorX) {
-      super(predictedCursorX);
+    public HardBoundary() {
+      super(-1, false);
+    }
+
+    public HardBoundary(int id) {
+      super(id, -1, false);
     }
 
     @Override
@@ -353,29 +377,27 @@ public class TerminalTypeAheadManager {
     }
   }
 
-  public static class TentativeBoundary extends TypeAheadPrediction {
-    final TypeAheadPrediction myInnerPrediction;
-
-    public TentativeBoundary(@NotNull TypeAheadPrediction innerPrediction) {
-      super(innerPrediction.myPredictedCursorX);
-      myInnerPrediction = innerPrediction;
-    }
-
-    @Override
-    public @NotNull MatchResult matches(@NotNull TypeaheadStringReader stringReader, int cursorX) {
-      return myInnerPrediction.matches(stringReader, cursorX);
-    }
-  }
-
   public static class CharacterPrediction extends TypeAheadPrediction {
     public final char myCharacter;
+    public final @Nullable Character myPreviousCharacter;
 
-    private final @Nullable Character myPreviousCharacter;
-
-    public CharacterPrediction(int predictedCursorX, char character, @Nullable Character previousCharacer) {
-      super(predictedCursorX);
+    public CharacterPrediction(int predictedCursorX,
+                               char character,
+                               @Nullable Character previousCharacter,
+                               boolean isNotTentative) {
+      super(predictedCursorX, isNotTentative);
       myCharacter = character;
-      myPreviousCharacter = previousCharacer;
+      myPreviousCharacter = previousCharacter;
+    }
+
+    public CharacterPrediction(int id,
+                               int predictedCursorX,
+                               char character,
+                               @Nullable Character previousCharacter,
+                               boolean isNotTentative) {
+      super(id, predictedCursorX, isNotTentative);
+      myCharacter = character;
+      myPreviousCharacter = previousCharacter;
     }
 
     @Override
@@ -405,8 +427,12 @@ public class TerminalTypeAheadManager {
   }
 
   public static class BackspacePrediction extends TypeAheadPrediction {
-    public BackspacePrediction(int predictedCursorX) {
-      super(predictedCursorX);
+    public BackspacePrediction(int predictedCursorX, boolean isNotTentative) {
+      super(predictedCursorX, isNotTentative);
+    }
+
+    public BackspacePrediction(int id, int predictedCursorX, boolean isNotTentative) {
+      super(id, predictedCursorX, isNotTentative);
     }
 
     @Override
@@ -430,10 +456,26 @@ public class TerminalTypeAheadManager {
   public static class CursorMovePrediction extends TypeAheadPrediction {
     public final int myAmount;
     public final CursorMoveDirection myDirection;
-    private final int myCursorY;
+    public final int myCursorY;
 
-    public CursorMovePrediction(int predictedCursorX, int cursorY, int amount, CursorMoveDirection direction) {
-      super(predictedCursorX);
+    public CursorMovePrediction(int predictedCursorX,
+                                int cursorY,
+                                int amount,
+                                CursorMoveDirection direction,
+                                boolean isNotTentative) {
+      super(predictedCursorX, isNotTentative);
+      myAmount = amount;
+      myDirection = direction;
+      myCursorY = cursorY;
+    }
+
+    public CursorMovePrediction(int id,
+                                int predictedCursorX,
+                                int cursorY,
+                                int amount,
+                                CursorMoveDirection direction,
+                                boolean isNotTentative) {
+      super(id, predictedCursorX, isNotTentative);
       myAmount = amount;
       myDirection = direction;
       myCursorY = cursorY;
@@ -472,6 +514,19 @@ public class TerminalTypeAheadManager {
     }
   }
 
+  public enum CursorMoveDirection {
+    Forward('C', 1),
+    Back('D', -1);
+
+    CursorMoveDirection(char ch, int delta) {
+      myChar = ch;
+      myDelta = delta;
+    }
+
+    public final char myChar;
+    public final int myDelta;
+  }
+
   public enum MatchResult {
     Success,
     Failure,
@@ -485,8 +540,7 @@ public class TerminalTypeAheadManager {
   private @NotNull List<@NotNull TypeAheadPrediction> getVisiblePredictions() {
     int lastVisiblePredictionIndex = 0;
     while (lastVisiblePredictionIndex < myPredictions.size()
-      && !(myPredictions.get(lastVisiblePredictionIndex) instanceof TentativeBoundary)
-      && !(myPredictions.get(lastVisiblePredictionIndex) instanceof HardBoundary)) {
+      && myPredictions.get(lastVisiblePredictionIndex).myIsNotTentative) {
       lastVisiblePredictionIndex++;
     }
     lastVisiblePredictionIndex--;
@@ -528,7 +582,7 @@ public class TerminalTypeAheadManager {
   private @NotNull TypeAheadPrediction createPrediction(@NotNull TypeAheadTerminalModel.LineWithCursor initialLineWithCursor,
                                                         @NotNull TypeAheadEvent keyEvent) {
     if (getLastPrediction() instanceof HardBoundary) {
-      return new HardBoundary(-1);
+      return new HardBoundary();
     }
 
     TypeAheadTerminalModel.LineWithCursor newLineWCursor = initialLineWithCursor.copy();
@@ -550,25 +604,22 @@ public class TerminalTypeAheadManager {
         if (ch == null) {
           throw new IllegalStateException("KeyEvent type is Character but keyEvent.myCharacter == null");
         }
-        return constructPrediction(
-          new CharacterPrediction(newLineWCursor.myCursorX + 1, ch, previousChar),
-          myIsNotPasswordPrompt || hasCharacterPredictions);
+
+        return new CharacterPrediction(newLineWCursor.myCursorX + 1, ch, previousChar,
+          (myIsNotPasswordPrompt || hasCharacterPredictions) && myIsShowingPredictions);
       case Backspace:
-        return constructPrediction(
-          new BackspacePrediction(newLineWCursor.myCursorX - 1),
+        return new BackspacePrediction(newLineWCursor.myCursorX - 1,
           myLeftMostCursorPosition != null && myLeftMostCursorPosition <= newLineWCursor.myCursorX
-        );
+            && myIsShowingPredictions);
       case LeftArrow:
       case RightArrow:
         CursorMoveDirection direction = keyEvent.myEventType == TypeAheadEvent.EventType.RightArrow ?
           CursorMoveDirection.Forward : CursorMoveDirection.Back;
         newLineWCursor.myCursorX += direction.myDelta;
 
-        return constructPrediction(
-          new CursorMovePrediction(newLineWCursor.myCursorX, initialLineWithCursor.myCursorY, 1, direction),
+        return new CursorMovePrediction(newLineWCursor.myCursorX, initialLineWithCursor.myCursorY, 1, direction,
           myLeftMostCursorPosition != null && myLeftMostCursorPosition <= newLineWCursor.myCursorX
-            && newLineWCursor.myCursorX <= newLineWCursor.myLineText.length()
-        );
+            && newLineWCursor.myCursorX <= newLineWCursor.myLineText.length() && myIsShowingPredictions);
       case AltLeftArrow:
       case AltRightArrow:
         int oldCursorX = newLineWCursor.myCursorX;
@@ -578,25 +629,14 @@ public class TerminalTypeAheadManager {
 
         int amount = Math.abs(newLineWCursor.myCursorX - oldCursorX);
 
-        return constructPrediction(
-          new CursorMovePrediction(newLineWCursor.myCursorX, initialLineWithCursor.myCursorY, amount, direction),
+        return new CursorMovePrediction(newLineWCursor.myCursorX, initialLineWithCursor.myCursorY, amount, direction,
           myLeftMostCursorPosition != null && myLeftMostCursorPosition <= newLineWCursor.myCursorX
-            && newLineWCursor.myCursorX <= newLineWCursor.myLineText.length()
-        );
+            && newLineWCursor.myCursorX <= newLineWCursor.myLineText.length() && myIsShowingPredictions);
       case Unknown:
-        return new HardBoundary(-1);
+        return new HardBoundary();
       default:
         throw new IllegalStateException("Unprocessed TypeAheadKeyboardEvent type");
     }
-  }
-
-  private @NotNull TypeAheadPrediction constructPrediction(@NotNull TypeAheadPrediction prediction,
-                                                           boolean isNotTentative) {
-    if (myIsShowingPredictions && isNotTentative) {
-      return prediction;
-    }
-
-    return new TentativeBoundary(prediction);
   }
 
   static class TypeaheadStringReader {
@@ -662,95 +702,6 @@ public class TerminalTypeAheadManager {
   }
 
   private final static String CSI = (char) CharUtils.ESC + "[";
-
-  enum CursorMoveDirection {
-    Forward('C', 1),
-    Back('D', -1);
-
-    CursorMoveDirection(char ch, int delta) {
-      myChar = ch;
-      myDelta = delta;
-    }
-
-    char myChar;
-    int myDelta;
-  }
-
-  private class ClearPredictionsDebouncer {
-    private final ScheduledExecutorService myScheduler = Executors.newScheduledThreadPool(1);
-    private ClearPredictions myClearPredictions = null;
-    private final Object myLock = new Object();
-
-    public void call() {
-      synchronized (myLock) {
-        long interval;
-        if (myLatencyStatistics.getSampleSize() >= LATENCY_MIN_SAMPLES_TO_TURN_ON) {
-          interval = Math.min(
-            Math.max(myLatencyStatistics.getMaxLatency() * 3 / 2, MIN_CLEAR_PREDICTIONS_DELAY),
-            MAX_TERMINAL_DELAY
-          );
-        } else {
-          interval = MAX_TERMINAL_DELAY;
-        }
-
-        if (myClearPredictions != null) {
-          myClearPredictions.cancel();
-        }
-
-        myClearPredictions = new ClearPredictions(interval);
-        myScheduler.schedule(myClearPredictions, interval, TimeUnit.NANOSECONDS);
-      }
-    }
-
-    public void terminateCall() {
-      if (myClearPredictions != null) {
-        myClearPredictions.cancel();
-      }
-    }
-
-    private class ClearPredictions implements Runnable {
-      private final long myDueTime;
-      private boolean myIsActive = true;
-
-      public ClearPredictions(long interval) {
-        myDueTime = System.nanoTime() + interval;
-      }
-
-      public void cancel() {
-        synchronized (myLock) {
-          myIsActive = false;
-        }
-      }
-
-      public void run() {
-        synchronized (myLock) {
-          if (!myIsActive) {
-            return;
-          }
-
-          long remaining = myDueTime - System.nanoTime();
-          if (remaining > 0) { // Re-schedule task
-            myScheduler.schedule(this, remaining, TimeUnit.NANOSECONDS);
-          } else { // Mark as terminated and invoke callback
-            myIsActive = false;
-            runNow();
-          }
-        }
-      }
-
-      private void runNow() {
-        myTerminalModel.lock();
-        try {
-          if (!myPredictions.isEmpty()) {
-            LOG.debug("TimeoutPredictionCleaner called");
-            resetState();
-          }
-        } finally {
-          myTerminalModel.unlock();
-        }
-      }
-    }
-  }
 
   private static class LatencyStatistics {
     private static final int LATENCY_BUFFER_SIZE = 30;

@@ -42,10 +42,6 @@ public interface TypeAheadTerminalModel {
     }
 
     public void applyPrediction(TypeAheadPrediction prediction) {
-      if (prediction instanceof TentativeBoundary) {
-        prediction = ((TentativeBoundary) prediction).myInnerPrediction;
-      }
-
       if (prediction instanceof CharacterPrediction) {
         if (0 <= myCursorX || myCursorX <= myLineText.length()) {
           char ch = ((CharacterPrediction) prediction).myCharacter;
@@ -53,7 +49,7 @@ public interface TypeAheadTerminalModel {
           myCursorX++;
         }
       } else if (prediction instanceof BackspacePrediction) {
-        if (myCursorX > 0) {
+        if (0 < myCursorX && myCursorX <= myLineText.length()) {
           myCursorX--;
           myLineText.deleteCharAt(myCursorX);
         }

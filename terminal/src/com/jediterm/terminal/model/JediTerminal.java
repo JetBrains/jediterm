@@ -255,6 +255,11 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   @Override
+  public TerminalColor getWindowBackground() {
+    return myDisplay.getWindowBackground();
+  }
+
+  @Override
   public void backspace() {
     myCursorX -= 1;
     if (myCursorX < 0) {

@@ -157,4 +157,6 @@ public interface Terminal {
   void setLinkUriFinished();
 
   void setBracketedPasteMode(boolean enabled);
+  
+  TerminalColor getWindowBackground();
 }

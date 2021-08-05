@@ -25,7 +25,7 @@ public class TerminalKeyEncoder {
 
   public TerminalKeyEncoder() {
     setAutoNewLine(false);
-    arrowKeysApplicationSequences();
+    arrowKeysAnsiCursorSequences();
     keypadAnsiSequences();
     putCode(VK_BACK_SPACE, Ascii.DEL);
     putCode(VK_F1, ESC, 'O', 'P');

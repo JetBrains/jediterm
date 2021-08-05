@@ -332,9 +332,6 @@ public class TerminalLine {
 
   @TestOnly
   public List<TextEntry> getEntries() {
-    if (myTypeAheadLine != null) {
-      return myTypeAheadLine.myTextEntries.entries();
-    }
     return myTextEntries.entries();
   }
 

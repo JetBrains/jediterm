@@ -96,7 +96,7 @@ public class JediTermTypeAheadModel implements TypeAheadTerminalModel {
     return myTerminal.getTerminalWidth();
   }
 
-  private int updateTerminalLinePrediction(@NotNull TerminalLine terminalLine, // TODO: very similar to LineWithCursor#applyPrediction
+  private int updateTerminalLinePrediction(@NotNull TerminalLine terminalLine,
                                             int cursorX,
                                             @NotNull TerminalTypeAheadManager.TypeAheadPrediction prediction) {
     if (prediction instanceof CharacterPrediction) {

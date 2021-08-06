@@ -1624,8 +1624,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
           scrollToBottom();
         }
       }
-      else if ((e.getModifiersEx() & InputEvent.ALT_DOWN_MASK) != 0 && Character.isDefined(keychar) &&
-          mySettingsProvider.altSendsEscape()) {
+      else if (isAltPressedOnly(e) && Character.isDefined(keychar) && mySettingsProvider.altSendsEscape()) {
         // Cannot use e.getKeyChar() on macOS:
         //  Option+f produces e.getKeyChar()='ƒ' (402), but 'f' (102) is needed.
         //  Option+b produces e.getKeyChar()='∫' (8747), but 'b' (98) is needed.
@@ -1640,8 +1639,16 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     }
   }
 
+  private static boolean isAltPressedOnly(@NotNull KeyEvent e) {
+    int modifiersEx = e.getModifiersEx();
+    return (modifiersEx & InputEvent.ALT_DOWN_MASK) != 0 &&
+            (modifiersEx & InputEvent.ALT_GRAPH_DOWN_MASK) == 0 &&
+            (modifiersEx & InputEvent.CTRL_DOWN_MASK) == 0 &&
+            (modifiersEx & InputEvent.SHIFT_DOWN_MASK) == 0;
+  }
+
   private void processCharacter(@NotNull KeyEvent e) {
-    if ((e.getModifiersEx() & InputEvent.ALT_DOWN_MASK) != 0 && mySettingsProvider.altSendsEscape()) {
+    if (isAltPressedOnly(e) && mySettingsProvider.altSendsEscape()) {
       return;
     }
     char keyChar = e.getKeyChar();

@@ -6,10 +6,7 @@ import com.jediterm.terminal.SubstringFinder.FindResult;
 import com.jediterm.terminal.SubstringFinder.FindResult.FindItem;
 import com.jediterm.terminal.*;
 import com.jediterm.terminal.debug.DebugBufferType;
-import com.jediterm.terminal.model.JediTerminal;
-import com.jediterm.terminal.model.StyleState;
-import com.jediterm.terminal.model.TerminalTextBuffer;
-import com.jediterm.terminal.model.TerminalTypeAheadManager;
+import com.jediterm.terminal.model.*;
 import com.jediterm.terminal.model.hyperlinks.HyperlinkFilter;
 import com.jediterm.terminal.model.hyperlinks.TextProcessing;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
@@ -74,7 +71,8 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
     myTerminalPanel = createTerminalPanel(mySettingsProvider, styleState, terminalTextBuffer);
     myTerminal = new JediTerminal(myTerminalPanel, terminalTextBuffer, styleState);
-    myTypeAheadManager = new TerminalTypeAheadManager(terminalTextBuffer, myTerminal, settingsProvider);
+    TypeAheadTerminalModel typeAheadTerminalModel = new JediTermTypeAheadModel(myTerminal, terminalTextBuffer, settingsProvider);
+    myTypeAheadManager = new TerminalTypeAheadManager(typeAheadTerminalModel);
     myTerminalPanel.setTypeAheadManager(myTypeAheadManager);
 
     myTerminal.setModeEnabled(TerminalMode.AltSendsEscape, mySettingsProvider.altSendsEscape());
@@ -141,9 +139,8 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   }
 
   protected TerminalStarter createTerminalStarter(@NotNull JediTerminal terminal, @NotNull TtyConnector connector) {
-    return new TerminalStarter(terminal, connector, new TypeAheadTerminalDataStream(
-      new TtyBasedArrayDataStream(connector), myTypeAheadManager
-    ));
+    return new TerminalStarter(terminal, connector,
+      new TtyBasedArrayDataStream(connector, myTypeAheadManager::onTerminalStateChanged), myTypeAheadManager);
   }
 
   @Override

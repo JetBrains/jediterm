@@ -89,6 +89,10 @@ public class TerminalLine {
     writeCharacters(x, style, str);
   }
 
+  public void insertString(int x, @NotNull CharBuffer str, @NotNull TextStyle style) {
+    insertCharacters(x, style, str);
+  }
+
   private synchronized void writeCharacters(int x, @NotNull TextStyle style, @NotNull CharBuffer characters) {
     int len = myTextEntries.length();
 
@@ -102,6 +106,23 @@ public class TerminalLine {
       len = Math.max(len, x + characters.length());
       myTextEntries = merge(x, characters, style, myTextEntries, len);
     }
+  }
+
+  private synchronized void insertCharacters(int x, @NotNull TextStyle style, @NotNull CharBuffer characters) {
+    int length = myTextEntries.length();
+    characters = characters.subBuffer(0, Math.max(Math.min(length - x, characters.length()), 0));
+
+    Pair<char[], TextStyle[]> pair = toBuf(myTextEntries, length);
+
+    for (int i = length - characters.length() - 1; i >= x; i--) {
+      pair.first[i + characters.length()] = pair.first[i];
+      pair.second[i + characters.length()] = pair.second[i];
+    }
+    for (int i = 0; i < characters.length(); i++) {
+      pair.first[i + x] = characters.charAt(i);
+      pair.second[i + x] = style;
+    }
+    myTextEntries = collectFromBuffer(pair.first, pair.second);
   }
 
   private static TextEntries merge(int x, @NotNull CharBuffer str, @NotNull TextStyle style, @NotNull TextEntries entries, int lineLength) {

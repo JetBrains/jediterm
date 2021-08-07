@@ -40,7 +40,7 @@ public class Debouncer {
 
   private class TimerTask implements Runnable {
     private final long myDueTime;
-    private boolean myIsActive = true;
+    private volatile boolean myIsActive = true;
 
     public TimerTask() {
       myDueTime = System.nanoTime() + myDelay;
@@ -51,18 +51,16 @@ public class Debouncer {
     }
 
     public void run() {
-      synchronized (myLock) {
-        if (!myIsActive) {
-          return;
-        }
+      if (!myIsActive) {
+        return;
+      }
 
-        long remaining = myDueTime - System.nanoTime();
-        if (remaining > 0) { // Re-schedule task
-          myScheduler.schedule(this, remaining, TimeUnit.NANOSECONDS);
-        } else { // Mark as terminated and invoke callback
-          myIsActive = false;
-          myRunnable.run();
-        }
+      long remaining = myDueTime - System.nanoTime();
+      if (remaining > 0) { // Re-schedule task
+        myScheduler.schedule(this, remaining, TimeUnit.NANOSECONDS);
+      } else { // Mark as terminated and invoke callback
+        myIsActive = false;
+        myRunnable.run();
       }
     }
   }

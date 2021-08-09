@@ -380,7 +380,7 @@ public class TerminalTypeAheadManager {
 
     switch (keyEvent.myEventType) {
       case Character:
-        if (newLineWCursorX.myCursorX + 1 >= myTerminalModel.getTerminalWidth()) {
+        if (newLineWCursorX.myCursorX >= Math.min(myTerminalModel.getTerminalWidth(), newLineWCursorX.myLineText.length() + 1)) {
           return new HardBoundary();
         }
 

@@ -169,6 +169,7 @@ public class TerminalTypeAheadManager {
     public enum EventType {
       Character,
       Backspace,
+      AltBackspace,
       LeftArrow,
       RightArrow,
       AltLeftArrow,
@@ -249,6 +250,8 @@ public class TerminalTypeAheadManager {
     private static @NotNull TypeAheadEvent fromSequence(byte[] byteArray) {
       if (compareByteArrays(byteArray, Ascii.DEL)) {
         return new TypeAheadEvent(EventType.Backspace);
+      } else if (compareByteArrays(byteArray, Ascii.ESC, Ascii.DEL)) {
+        return new TypeAheadEvent(EventType.AltBackspace);
       } else if (compareByteArrays(byteArray, Ascii.ESC, 'O', 'D')) {
         return new TypeAheadEvent(EventType.LeftArrow);
       } else if (compareByteArrays(byteArray, Ascii.ESC, '[', 'D')) {
@@ -328,11 +331,11 @@ public class TerminalTypeAheadManager {
         myTerminalModel.moveCursor(predictedCursorX);
       } else if (prediction instanceof BackspacePrediction) {
         myTerminalModel.moveCursor(predictedCursorX);
-        myTerminalModel.removeCharacter(predictedCursorX);
+        myTerminalModel.removeCharacters(predictedCursorX, ((BackspacePrediction) prediction).myAmount);
       } else if (prediction instanceof CursorMovePrediction) {
         myTerminalModel.moveCursor(predictedCursorX);
       } else if (prediction instanceof DeletePrediction) {
-        myTerminalModel.removeCharacter(predictedCursorX);
+        myTerminalModel.removeCharacters(predictedCursorX, 1);
       } else {
         throw new IllegalStateException("Unsupported prediction type");
       }
@@ -388,12 +391,28 @@ public class TerminalTypeAheadManager {
         if (newLineWCursorX.myCursorX < newLineWCursorX.myLineText.length()) {
           newLineWCursorX.myLineText.deleteCharAt(newLineWCursorX.myCursorX);
         }
-        return new BackspacePrediction(newLineWCursorX,
+        return new BackspacePrediction(newLineWCursorX, 1,
+          myLeftMostCursorPosition != null && myLeftMostCursorPosition <= newLineWCursorX.myCursorX
+            && myIsShowingPredictions);
+      case AltBackspace:
+        int oldCursorX = newLineWCursorX.myCursorX;
+        newLineWCursorX.myCursorX =
+          moveToWordBoundary(newLineWCursorX.myLineText.toString(), newLineWCursorX.myCursorX, false);
+
+        if (newLineWCursorX.myCursorX < 0) {
+          return new HardBoundary();
+        }
+        int amount = oldCursorX - newLineWCursorX.myCursorX;
+
+        if (newLineWCursorX.myCursorX < newLineWCursorX.myLineText.length()) {
+          newLineWCursorX.myLineText.delete(newLineWCursorX.myCursorX, Math.max(oldCursorX, newLineWCursorX.myLineText.length()));
+        }
+        return new BackspacePrediction(newLineWCursorX, amount,
           myLeftMostCursorPosition != null && myLeftMostCursorPosition <= newLineWCursorX.myCursorX
             && myIsShowingPredictions);
       case LeftArrow:
       case RightArrow:
-        int amount = keyEvent.myEventType == TypeAheadEvent.EventType.RightArrow ? 1 : -1;
+        amount = keyEvent.myEventType == TypeAheadEvent.EventType.RightArrow ? 1 : -1;
         newLineWCursorX.myCursorX += amount;
 
         if (newLineWCursorX.myCursorX < 0 || newLineWCursorX.myCursorX
@@ -406,7 +425,7 @@ public class TerminalTypeAheadManager {
             && newLineWCursorX.myCursorX <= newLineWCursorX.myLineText.length() && myIsShowingPredictions);
       case AltLeftArrow:
       case AltRightArrow:
-        int oldCursorX = newLineWCursorX.myCursorX;
+        oldCursorX = newLineWCursorX.myCursorX;
         newLineWCursorX.myCursorX = moveToWordBoundary(newLineWCursorX.myLineText.toString(), newLineWCursorX.myCursorX,
           keyEvent.myEventType == TypeAheadEvent.EventType.AltRightArrow);
 
@@ -463,8 +482,10 @@ public class TerminalTypeAheadManager {
   }
 
   private static class BackspacePrediction extends TypeAheadPrediction {
-    public BackspacePrediction(LineWithCursorX predictedLineWithCursorX, boolean isNotTentative) {
+    public final int myAmount;
+    public BackspacePrediction(LineWithCursorX predictedLineWithCursorX, int amount, boolean isNotTentative) {
       super(predictedLineWithCursorX, isNotTentative);
+      myAmount = amount;
     }
   }
 

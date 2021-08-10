@@ -32,11 +32,11 @@ public class JediTermTypeAheadModel implements TypeAheadTerminalModel {
   }
 
   @Override
-  public void removeCharacter(int index) {
+  public void removeCharacters(int from, int count) {
     isPredictionsApplied = true;
     TerminalLine typeAheadLine = getTypeAheadLine();
 
-    typeAheadLine.deleteCharacters(index, 1, TextStyle.EMPTY);
+    typeAheadLine.deleteCharacters(from, count, TextStyle.EMPTY);
 
     setTypeAheadLine(typeAheadLine);
   }

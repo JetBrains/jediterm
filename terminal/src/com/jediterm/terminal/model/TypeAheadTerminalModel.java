@@ -7,7 +7,7 @@ import java.util.Objects;
 public interface TypeAheadTerminalModel {
   void insertCharacter(char ch, int index);
 
-  void removeCharacter(int index);
+  void removeCharacters(int from, int count);
 
   void moveCursor(int index);
 

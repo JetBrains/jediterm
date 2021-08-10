@@ -110,11 +110,14 @@ public class TerminalLine {
 
   private synchronized void insertCharacters(int x, @NotNull TextStyle style, @NotNull CharBuffer characters) {
     int length = myTextEntries.length();
-    characters = characters.subBuffer(0, Math.max(Math.min(length - x, characters.length()), 0));
+    if (x > length) {
+      writeCharacters(x, style, characters);
+      return;
+    }
 
-    Pair<char[], TextStyle[]> pair = toBuf(myTextEntries, length);
+    Pair<char[], TextStyle[]> pair = toBuf(myTextEntries, length + characters.length());
 
-    for (int i = length - characters.length() - 1; i >= x; i--) {
+    for (int i = length - 1; i >= x; i--) {
       pair.first[i + characters.length()] = pair.first[i];
       pair.second[i + characters.length()] = pair.second[i];
     }

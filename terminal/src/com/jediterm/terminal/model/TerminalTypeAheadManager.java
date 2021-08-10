@@ -351,7 +351,7 @@ public class TerminalTypeAheadManager {
   }
 
   private void reevaluatePredictorState() {
-    if (!myTerminalModel.isTypeAheadEnabled() || UIUtil.isWindows) {
+    if (!myTerminalModel.isTypeAheadEnabled()) {
       myIsShowingPredictions = false;
     } else if (myLatencyStatistics.getSampleSize() >= LATENCY_MIN_SAMPLES_TO_TURN_ON) {
       long latency = myLatencyStatistics.getLatencyMedian();
@@ -380,7 +380,7 @@ public class TerminalTypeAheadManager {
 
     switch (keyEvent.myEventType) {
       case Character:
-        if (newLineWCursorX.myCursorX >= Math.min(myTerminalModel.getTerminalWidth(), newLineWCursorX.myLineText.length() + 1)) {
+        if (newLineWCursorX.myCursorX >= myTerminalModel.getTerminalWidth()) {
           return new HardBoundary();
         }
 
@@ -392,6 +392,9 @@ public class TerminalTypeAheadManager {
           throw new IllegalStateException("KeyEvent type is Character but keyEvent.myCharacter == null");
         }
 
+        if (newLineWCursorX.myLineText.length() < newLineWCursorX.myCursorX) {
+          newLineWCursorX.myLineText.append(" ".repeat(newLineWCursorX.myCursorX - newLineWCursorX.myLineText.length()));
+        }
         newLineWCursorX.myLineText.insert(newLineWCursorX.myCursorX, ch);
         newLineWCursorX.myCursorX++;
 

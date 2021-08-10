@@ -410,7 +410,9 @@ public class TerminalTypeAheadManager {
         }
 
         newLineWCursorX.myCursorX--;
-        newLineWCursorX.myLineText.deleteCharAt(newLineWCursorX.myCursorX);
+        if (newLineWCursorX.myCursorX < newLineWCursorX.myLineText.length()) {
+          newLineWCursorX.myLineText.deleteCharAt(newLineWCursorX.myCursorX);
+        }
         return new BackspacePrediction(newLineWCursorX,
           myLeftMostCursorPosition != null && myLeftMostCursorPosition <= newLineWCursorX.myCursorX
             && myIsShowingPredictions);

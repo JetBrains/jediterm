@@ -175,6 +175,8 @@ public class TerminalTypeAheadManager {
       AltLeftArrow,
       AltRightArrow,
       Delete,
+      Home,
+      End,
       Unknown,
     }
 
@@ -270,6 +272,10 @@ public class TerminalTypeAheadManager {
         return new TypeAheadEvent(EventType.AltRightArrow);
       } else if (compareByteArrays(byteArray, Ascii.ESC, '[', '3', '~')) {
         return new TypeAheadEvent(EventType.Delete);
+      } else if (compareByteArrays(byteArray, Ascii.ESC, '[', 'H')) {
+        return new TypeAheadEvent(EventType.Home);
+      } else if (compareByteArrays(byteArray, Ascii.ESC, '[', 'F')) {
+        return new TypeAheadEvent(EventType.End);
       } else {
         return new TypeAheadEvent(EventType.Unknown);
       }
@@ -443,6 +449,18 @@ public class TerminalTypeAheadManager {
           newLineWCursorX.myLineText.deleteCharAt(newLineWCursorX.myCursorX);
         }
         return new DeletePrediction(newLineWCursorX, myIsShowingPredictions);
+      case Home:
+        amount = myLeftMostCursorPosition - newLineWCursorX.myCursorX;
+        newLineWCursorX.myCursorX = myLeftMostCursorPosition;
+        return new CursorMovePrediction(newLineWCursorX, amount, myIsShowingPredictions);
+      case End:
+        int newCursorPosition = newLineWCursorX.myLineText.length();
+        if (newCursorPosition == myTerminalModel.getTerminalWidth()) {
+          newCursorPosition--;
+        }
+        amount = newCursorPosition - newLineWCursorX.myCursorX;
+        newLineWCursorX.myCursorX = newLineWCursorX.myLineText.length();
+        return new CursorMovePrediction(newLineWCursorX, amount, myIsShowingPredictions);
       case Unknown:
         return new HardBoundary();
       default:

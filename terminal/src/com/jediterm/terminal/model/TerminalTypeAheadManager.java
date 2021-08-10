@@ -173,6 +173,7 @@ public class TerminalTypeAheadManager {
       RightArrow,
       AltLeftArrow,
       AltRightArrow,
+      Delete,
       Unknown,
     }
 
@@ -264,6 +265,8 @@ public class TerminalTypeAheadManager {
         return new TypeAheadEvent(EventType.AltRightArrow);
       } else if (compareByteArrays(byteArray, Ascii.ESC, '[', '1', ';', '3', 'C')) {
         return new TypeAheadEvent(EventType.AltRightArrow);
+      } else if (compareByteArrays(byteArray, Ascii.ESC, '[', '3', '~')) {
+        return new TypeAheadEvent(EventType.Delete);
       } else {
         return new TypeAheadEvent(EventType.Unknown);
       }
@@ -328,6 +331,8 @@ public class TerminalTypeAheadManager {
         myTerminalModel.removeCharacter(predictedCursorX);
       } else if (prediction instanceof CursorMovePrediction) {
         myTerminalModel.moveCursor(predictedCursorX);
+      } else if (prediction instanceof DeletePrediction) {
+        myTerminalModel.removeCharacter(predictedCursorX);
       } else {
         throw new IllegalStateException("Unsupported prediction type");
       }
@@ -414,6 +419,11 @@ public class TerminalTypeAheadManager {
         return new CursorMovePrediction(newLineWCursorX, amount,
           myLeftMostCursorPosition != null && myLeftMostCursorPosition <= newLineWCursorX.myCursorX
             && newLineWCursorX.myCursorX <= newLineWCursorX.myLineText.length() && myIsShowingPredictions);
+      case Delete:
+        if (newLineWCursorX.myCursorX < newLineWCursorX.myLineText.length()) {
+          newLineWCursorX.myLineText.deleteCharAt(newLineWCursorX.myCursorX);
+        }
+        return new DeletePrediction(newLineWCursorX, myIsShowingPredictions);
       case Unknown:
         return new HardBoundary();
       default:
@@ -454,6 +464,12 @@ public class TerminalTypeAheadManager {
 
   private static class BackspacePrediction extends TypeAheadPrediction {
     public BackspacePrediction(LineWithCursorX predictedLineWithCursorX, boolean isNotTentative) {
+      super(predictedLineWithCursorX, isNotTentative);
+    }
+  }
+
+  private static class DeletePrediction extends TypeAheadPrediction {
+    public DeletePrediction(LineWithCursorX predictedLineWithCursorX, boolean isNotTentative) {
       super(predictedLineWithCursorX, isNotTentative);
     }
   }

@@ -19,13 +19,13 @@ import java.util.stream.Collectors;
  * @author traff
  */
 public class TerminalLine {
+  public TerminalLine myTypeAheadLine;
 
   private static final Logger LOG = Logger.getLogger(TerminalLine.class);
 
   private TextEntries myTextEntries = new TextEntries();
   private boolean myWrapped = false;
   private final List<TerminalLineIntervalHighlighting> myCustomHighlightings = new ArrayList<>();
-  private TerminalLine myTypeAheadLine;
 
   public TerminalLine() {
   }
@@ -384,10 +384,6 @@ public class TerminalLine {
         Joiner.on("|").join(myTextEntries.myTextEntries.stream().map(
             entry -> entry.getText().toString()).collect(Collectors.toList())
         );
-  }
-
-  void setTypeAheadLine(@Nullable TerminalLine typeAheadLine) {
-    myTypeAheadLine = typeAheadLine;
   }
 
   public static class TextEntry {

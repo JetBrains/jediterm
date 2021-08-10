@@ -1,13 +1,15 @@
 package com.jediterm.terminal.model;
 
-import com.jediterm.terminal.model.TerminalTypeAheadManager.*;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
 import java.util.Objects;
 
 public interface TypeAheadTerminalModel {
-  void applyPredictions(@NotNull List<@NotNull TypeAheadPrediction> predictions);
+  void insertCharacter(char ch, int index);
+
+  void removeCharacter(int index);
+
+  void moveCursor(int index);
 
   void clearPredictions();
 

@@ -1,7 +1,6 @@
 package com.jediterm.terminal.model;
 
 import com.google.common.base.Ascii;
-import com.jediterm.terminal.ui.UIUtil;
 import com.jediterm.terminal.util.CharUtils;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.Contract;
@@ -86,7 +85,7 @@ public class TerminalTypeAheadManager {
           }
 
         }
-        myTerminalModel.applyPredictions(getVisiblePredictions());
+        applyPredictions();
       }
     } finally {
       myTerminalModel.unlock();
@@ -130,7 +129,7 @@ public class TerminalTypeAheadManager {
       }
       TypeAheadPrediction prediction = createPrediction(lineWithCursorX, keyEvent);
       myPredictions.add(prediction);
-      myTerminalModel.applyPredictions(getVisiblePredictions());
+      applyPredictions();
 
       LOG.debug("Created " + keyEvent.myEventType + " prediction");
     } finally {
@@ -271,54 +270,6 @@ public class TerminalTypeAheadManager {
     }
   }
 
-  public abstract static class TypeAheadPrediction {
-    public final long myCreatedTime;
-    public final boolean myIsNotTentative;
-
-    public final LineWithCursorX myPredictedLineWithCursorX;
-
-    private TypeAheadPrediction(LineWithCursorX predictedLineWithCursorX, boolean isNotTentative) {
-      myPredictedLineWithCursorX = predictedLineWithCursorX;
-      myIsNotTentative = isNotTentative;
-
-      myCreatedTime = System.nanoTime();
-    }
-  }
-
-  public static class HardBoundary extends TypeAheadPrediction {
-    public HardBoundary() {
-      super(new LineWithCursorX(new StringBuffer(), -100), false); // will never match because cursorX can't be negative
-    }
-  }
-
-  public static class CharacterPrediction extends TypeAheadPrediction {
-    public final char myCharacter;
-
-    public CharacterPrediction(LineWithCursorX predictedLineWithCursorX,
-                               char character,
-                               boolean isNotTentative) {
-      super(predictedLineWithCursorX, isNotTentative);
-      myCharacter = character;
-    }
-  }
-
-  public static class BackspacePrediction extends TypeAheadPrediction {
-    public BackspacePrediction(LineWithCursorX predictedLineWithCursorX, boolean isNotTentative) {
-      super(predictedLineWithCursorX, isNotTentative);
-    }
-  }
-
-  public static class CursorMovePrediction extends TypeAheadPrediction {
-    public final int myAmount;
-
-    public CursorMovePrediction(LineWithCursorX predictedLineWithCursorX,
-                                int amount,
-                                boolean isNotTentative) {
-      super(predictedLineWithCursorX, isNotTentative);
-      myAmount = amount;
-    }
-  }
-
   private @Nullable TypeAheadPrediction getLastPrediction() {
     return myPredictions.isEmpty() ? null : myPredictions.get(myPredictions.size() - 1);
   }
@@ -360,6 +311,25 @@ public class TerminalTypeAheadManager {
         myIsShowingPredictions = true;
       } else if (latency < myTerminalModel.getLatencyThreshold() * LATENCY_TOGGLE_OFF_THRESHOLD) {
         myIsShowingPredictions = false;
+      }
+    }
+  }
+
+  private void applyPredictions() {
+    List<TypeAheadPrediction> predictions = getVisiblePredictions();
+    myTerminalModel.clearPredictions();
+    for (TypeAheadPrediction prediction : predictions) {
+      int predictedCursorX = prediction.myPredictedLineWithCursorX.myCursorX;
+      if (prediction instanceof CharacterPrediction) {
+        myTerminalModel.insertCharacter(((CharacterPrediction) prediction).myCharacter, predictedCursorX - 1);
+        myTerminalModel.moveCursor(predictedCursorX);
+      } else if (prediction instanceof BackspacePrediction) {
+        myTerminalModel.moveCursor(predictedCursorX);
+        myTerminalModel.removeCharacter(predictedCursorX);
+      } else if (prediction instanceof CursorMovePrediction) {
+        myTerminalModel.moveCursor(predictedCursorX);
+      } else {
+        throw new IllegalStateException("Unsupported prediction type");
       }
     }
   }
@@ -448,6 +418,54 @@ public class TerminalTypeAheadManager {
         return new HardBoundary();
       default:
         throw new IllegalStateException("Unprocessed TypeAheadKeyboardEvent type");
+    }
+  }
+
+  private abstract static class TypeAheadPrediction {
+    public final long myCreatedTime;
+    public final boolean myIsNotTentative;
+
+    public final LineWithCursorX myPredictedLineWithCursorX;
+
+    private TypeAheadPrediction(LineWithCursorX predictedLineWithCursorX, boolean isNotTentative) {
+      myPredictedLineWithCursorX = predictedLineWithCursorX;
+      myIsNotTentative = isNotTentative;
+
+      myCreatedTime = System.nanoTime();
+    }
+  }
+
+  private static class HardBoundary extends TypeAheadPrediction {
+    public HardBoundary() {
+      super(new LineWithCursorX(new StringBuffer(), -100), false); // will never match because cursorX can't be negative
+    }
+  }
+
+  private static class CharacterPrediction extends TypeAheadPrediction {
+    public final char myCharacter;
+
+    public CharacterPrediction(LineWithCursorX predictedLineWithCursorX,
+                               char character,
+                               boolean isNotTentative) {
+      super(predictedLineWithCursorX, isNotTentative);
+      myCharacter = character;
+    }
+  }
+
+  private static class BackspacePrediction extends TypeAheadPrediction {
+    public BackspacePrediction(LineWithCursorX predictedLineWithCursorX, boolean isNotTentative) {
+      super(predictedLineWithCursorX, isNotTentative);
+    }
+  }
+
+  private static class CursorMovePrediction extends TypeAheadPrediction {
+    public final int myAmount;
+
+    public CursorMovePrediction(LineWithCursorX predictedLineWithCursorX,
+                                int amount,
+                                boolean isNotTentative) {
+      super(predictedLineWithCursorX, isNotTentative);
+      myAmount = amount;
     }
   }
 

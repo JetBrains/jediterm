@@ -1,6 +1,7 @@
 package com.jediterm.terminal;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 
@@ -9,14 +10,20 @@ import java.io.IOException;
  */
 public class TtyBasedArrayDataStream extends ArrayTerminalDataStream {
   private final TtyConnector myTtyConnector;
+  private final @Nullable Runnable myOnBeforeBlockingWait;
 
-  public TtyBasedArrayDataStream(final TtyConnector ttyConnector) {
+  public TtyBasedArrayDataStream(final TtyConnector ttyConnector, final @Nullable Runnable onBeforeBlockingWait) {
     super(new char[1024], 0, 0);
     myTtyConnector = ttyConnector;
+    myOnBeforeBlockingWait = onBeforeBlockingWait;
   }
 
   private void fillBuf() throws IOException {
     myOffset = 0;
+
+    if (!myTtyConnector.ready() && myOnBeforeBlockingWait != null) {
+      myOnBeforeBlockingWait.run();
+    }
     myLength = myTtyConnector.read(myBuf, myOffset, myBuf.length);
 
     if (myLength <= 0) {

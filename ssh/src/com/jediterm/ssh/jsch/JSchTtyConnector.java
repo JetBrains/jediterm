@@ -218,4 +218,8 @@ public abstract class JSchTtyConnector<T extends Channel> implements TtyConnecto
     return channel != null && channel.getExitStatus() < 0 && channel.isConnected();
   }
 
+  @Override
+  public boolean ready() throws IOException {
+    return myInputStreamReader.ready();
+  }
 }

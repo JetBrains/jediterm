@@ -19,13 +19,13 @@ import java.util.stream.Collectors;
  * @author traff
  */
 public class TerminalLine {
+  public TerminalLine myTypeAheadLine;
 
   private static final Logger LOG = Logger.getLogger(TerminalLine.class);
 
   private TextEntries myTextEntries = new TextEntries();
   private boolean myWrapped = false;
   private final List<TerminalLineIntervalHighlighting> myCustomHighlightings = new ArrayList<>();
-  private TerminalLine myTypeAheadLine;
 
   public TerminalLine() {
   }
@@ -89,6 +89,10 @@ public class TerminalLine {
     writeCharacters(x, style, str);
   }
 
+  public void insertString(int x, @NotNull CharBuffer str, @NotNull TextStyle style) {
+    insertCharacters(x, style, str);
+  }
+
   private synchronized void writeCharacters(int x, @NotNull TextStyle style, @NotNull CharBuffer characters) {
     int len = myTextEntries.length();
 
@@ -102,6 +106,26 @@ public class TerminalLine {
       len = Math.max(len, x + characters.length());
       myTextEntries = merge(x, characters, style, myTextEntries, len);
     }
+  }
+
+  private synchronized void insertCharacters(int x, @NotNull TextStyle style, @NotNull CharBuffer characters) {
+    int length = myTextEntries.length();
+    if (x > length) {
+      writeCharacters(x, style, characters);
+      return;
+    }
+
+    Pair<char[], TextStyle[]> pair = toBuf(myTextEntries, length + characters.length());
+
+    for (int i = length - 1; i >= x; i--) {
+      pair.first[i + characters.length()] = pair.first[i];
+      pair.second[i + characters.length()] = pair.second[i];
+    }
+    for (int i = 0; i < characters.length(); i++) {
+      pair.first[i + x] = characters.charAt(i);
+      pair.second[i + x] = style;
+    }
+    myTextEntries = collectFromBuffer(pair.first, pair.second);
   }
 
   private static TextEntries merge(int x, @NotNull CharBuffer str, @NotNull TextStyle style, @NotNull TextEntries entries, int lineLength) {
@@ -360,10 +384,6 @@ public class TerminalLine {
         Joiner.on("|").join(myTextEntries.myTextEntries.stream().map(
             entry -> entry.getText().toString()).collect(Collectors.toList())
         );
-  }
-
-  void setTypeAheadLine(@Nullable TerminalLine typeAheadLine) {
-    myTypeAheadLine = typeAheadLine;
   }
 
   public static class TextEntry {

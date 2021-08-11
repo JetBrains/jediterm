@@ -233,10 +233,6 @@ public class TerminalTypeAheadManager {
       return myCharacter;
     }
 
-    private static boolean compareByteArrays(byte[] byteArray, final int... bytesAsInt) {
-      return Arrays.equals(byteArray, CharUtils.makeCode(bytesAsInt));
-    }
-
     /**
      * copied from com.intellij.openapi.util.text.StringUtil
      */
@@ -250,34 +246,53 @@ public class TerminalTypeAheadManager {
     }
 
     private static @NotNull TypeAheadEvent fromSequence(byte[] byteArray) {
-      if (compareByteArrays(byteArray, Ascii.DEL)) {
-        return new TypeAheadEvent(EventType.Backspace);
-      } else if (compareByteArrays(byteArray, Ascii.ESC, Ascii.DEL)) {
-        return new TypeAheadEvent(EventType.AltBackspace);
-      } else if (compareByteArrays(byteArray, Ascii.ESC, 'O', 'D')) {
-        return new TypeAheadEvent(EventType.LeftArrow);
-      } else if (compareByteArrays(byteArray, Ascii.ESC, '[', 'D')) {
-        return new TypeAheadEvent(EventType.LeftArrow);
-      } else if (compareByteArrays(byteArray, Ascii.ESC, 'O', 'C')) {
-        return new TypeAheadEvent(EventType.RightArrow);
-      } else if (compareByteArrays(byteArray, Ascii.ESC, '[', 'C')) {
-        return new TypeAheadEvent(EventType.RightArrow);
-      } else if (compareByteArrays(byteArray, Ascii.ESC, 'b')) {
-        return new TypeAheadEvent(EventType.AltLeftArrow);
-      } else if (compareByteArrays(byteArray, Ascii.ESC, '[', '1', ';', '3', 'D')) {
-        return new TypeAheadEvent(EventType.AltLeftArrow);
-      } else if (compareByteArrays(byteArray, Ascii.ESC, 'f')) {
-        return new TypeAheadEvent(EventType.AltRightArrow);
-      } else if (compareByteArrays(byteArray, Ascii.ESC, '[', '1', ';', '3', 'C')) {
-        return new TypeAheadEvent(EventType.AltRightArrow);
-      } else if (compareByteArrays(byteArray, Ascii.ESC, '[', '3', '~')) {
-        return new TypeAheadEvent(EventType.Delete);
-      } else if (compareByteArrays(byteArray, Ascii.ESC, '[', 'H')) {
-        return new TypeAheadEvent(EventType.Home);
-      } else if (compareByteArrays(byteArray, Ascii.ESC, '[', 'F')) {
-        return new TypeAheadEvent(EventType.End);
-      } else {
-        return new TypeAheadEvent(EventType.Unknown);
+      return new TypeAheadEvent(sequenceToEventType.getOrDefault(new Sequence(byteArray), EventType.Unknown));
+    }
+
+    private static final Map<Sequence, EventType> sequenceToEventType = Map.ofEntries(
+      Map.entry(new Sequence(Ascii.ESC, '[', '3', '~'), EventType.Delete),
+      Map.entry(new Sequence(Ascii.DEL), EventType.Backspace),
+      Map.entry(new Sequence(Ascii.ESC, Ascii.DEL), EventType.AltBackspace),
+      Map.entry(new Sequence(Ascii.ESC, 'O', 'D'), EventType.LeftArrow),
+      Map.entry(new Sequence(Ascii.ESC, '[', 'D'), EventType.LeftArrow),
+      Map.entry(new Sequence(Ascii.ESC, 'O', 'C'), EventType.RightArrow),
+      Map.entry(new Sequence(Ascii.ESC, '[', 'C'), EventType.RightArrow),
+      Map.entry(new Sequence(Ascii.ESC, 'b'), EventType.AltLeftArrow),
+      Map.entry(new Sequence(Ascii.ESC, '[', '1', ';', '3', 'D'), EventType.AltLeftArrow),
+      // It's ctrl+left arrow, but behaves just the same
+      Map.entry(new Sequence(Ascii.ESC, '[',  '1', ';', '5', 'D'), EventType.AltLeftArrow),
+      Map.entry(new Sequence(Ascii.ESC, 'f'), EventType.AltRightArrow),
+      Map.entry(new Sequence(Ascii.ESC, '[', '1', ';', '3', 'C'), EventType.AltRightArrow),
+      // It's ctrl+right arrow, but behaves just the same
+      Map.entry(new Sequence(Ascii.ESC, '[',  '1', ';', '5', 'C'), EventType.AltRightArrow),
+      Map.entry(new Sequence(Ascii.ESC, '[', 'H'), EventType.Home),
+      Map.entry(new Sequence(Ascii.ESC, 'O', 'H'), EventType.Home),
+      Map.entry(new Sequence(Ascii.ESC, '[', 'F'), EventType.End),
+      Map.entry(new Sequence(Ascii.ESC, 'O', 'F'), EventType.End)
+    );
+
+    private static class Sequence {
+      private final byte[] mySequence;
+
+      Sequence(final int... bytesAsInt) {
+        mySequence = CharUtils.makeCode(bytesAsInt);
+      }
+
+      Sequence(final byte[] sequence) {
+        mySequence = sequence;
+      }
+
+      @Override
+      public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Sequence)) return false;
+        Sequence sequence = (Sequence) o;
+        return Arrays.equals(mySequence, sequence.mySequence);
+      }
+
+      @Override
+      public int hashCode() {
+        return Arrays.hashCode(mySequence);
       }
     }
   }

@@ -98,5 +98,12 @@ public class BasicTerminalExample {
     public int waitFor() {
       return 0;
     }
+
+    @Override
+    public boolean ready() throws IOException {
+      return myReader.ready();
+    }
+
+
   }
 }

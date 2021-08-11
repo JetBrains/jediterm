@@ -269,7 +269,7 @@ public class LinesBuffer {
 
   public synchronized void clearTypeAheadPredictions() {
     for (TerminalLine line : myLines) {
-      line.setTypeAheadLine(null);
+      line.myTypeAheadLine = null;
     }
   }
 }

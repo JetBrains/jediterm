@@ -115,4 +115,9 @@ public abstract class ProcessTtyConnector implements TtyConnector {
   public int waitFor() throws InterruptedException {
     return myProcess.waitFor();
   }
+
+  @Override
+  public boolean ready() throws IOException {
+    return myReader.ready();
+  }
 }

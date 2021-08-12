@@ -361,6 +361,7 @@ public class TerminalTypeAheadManager {
         throw new IllegalStateException("Unsupported prediction type");
       }
     }
+    myTerminalModel.forceRedraw();
   }
 
   private @NotNull TypeAheadPrediction createPrediction(@NotNull TypeAheadTerminalModel.LineWithCursorX initialLineWithCursorX,

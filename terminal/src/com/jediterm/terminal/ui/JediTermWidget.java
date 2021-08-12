@@ -131,6 +131,10 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     return myTerminalPanel;
   }
 
+  public TerminalTypeAheadManager getTypeAheadManager() {
+    return myTypeAheadManager;
+  }
+
   public void setTtyConnector(@NotNull TtyConnector ttyConnector) {
     myTtyConnector = ttyConnector;
 

@@ -11,6 +11,8 @@ public interface TypeAheadTerminalModel {
 
   void moveCursor(int index);
 
+  void forceRedraw();
+
   void clearPredictions();
 
   void lock();

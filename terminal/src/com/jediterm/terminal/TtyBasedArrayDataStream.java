@@ -18,6 +18,12 @@ public class TtyBasedArrayDataStream extends ArrayTerminalDataStream {
     myOnBeforeBlockingWait = onBeforeBlockingWait;
   }
 
+  public TtyBasedArrayDataStream(final TtyConnector ttyConnector) {
+    super(new char[1024], 0, 0);
+    myTtyConnector = ttyConnector;
+    myOnBeforeBlockingWait = null;
+  }
+
   private void fillBuf() throws IOException {
     myOffset = 0;
 

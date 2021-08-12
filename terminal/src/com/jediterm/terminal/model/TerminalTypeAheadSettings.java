@@ -10,18 +10,15 @@ public final class TerminalTypeAheadSettings {
 
   public static final TerminalTypeAheadSettings DEFAULT = new TerminalTypeAheadSettings(
     true,
-    TimeUnit.MILLISECONDS.toNanos(100),
-    new TextStyle(TerminalColor.rgb(150, 150, 150), null)
+    TimeUnit.MILLISECONDS.toNanos(100)
   );
 
   private final boolean myEnabled;
   private final long myLatencyThreshold;
-  private final TextStyle myTextStyle;
 
-  public TerminalTypeAheadSettings(boolean enabled, long latencyThreshold, @NotNull TextStyle textStyle) {
+  public TerminalTypeAheadSettings(boolean enabled, long latencyThreshold) {
     myEnabled = enabled;
     myLatencyThreshold = latencyThreshold;
-    myTextStyle = textStyle;
   }
 
   public boolean isEnabled() {
@@ -32,7 +29,4 @@ public final class TerminalTypeAheadSettings {
     return myLatencyThreshold;
   }
 
-  public @NotNull TextStyle getTextStyle() {
-    return myTextStyle;
-  }
 }

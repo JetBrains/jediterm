@@ -1,6 +1,7 @@
 package com.jediterm.terminal.model;
 
 import com.jediterm.terminal.Terminal;
+import com.jediterm.terminal.TerminalColor;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
 import org.jetbrains.annotations.*;
@@ -25,7 +26,7 @@ public class JediTermTypeAheadModel implements TypeAheadTerminalModel {
     isPredictionsApplied = true;
     TerminalLine typeAheadLine = getTypeAheadLine();
 
-    TextStyle typeAheadTextStyle = mySettingsProvider.getTypeAheadSettings().getTextStyle();
+    TextStyle typeAheadTextStyle = new TextStyle(new TerminalColor(8), null);
     typeAheadLine.insertString(index, new CharBuffer(ch, 1), typeAheadTextStyle);
 
     setTypeAheadLine(typeAheadLine);
@@ -41,6 +42,10 @@ public class JediTermTypeAheadModel implements TypeAheadTerminalModel {
     setTypeAheadLine(typeAheadLine);
   }
 
+  public void forceRedraw() {
+    myTerminalTextBuffer.fireModelChangeEvent();
+  }
+
   @Override
   public void moveCursor(int index) {}
 
@@ -48,7 +53,6 @@ public class JediTermTypeAheadModel implements TypeAheadTerminalModel {
   public void clearPredictions() {
     if (isPredictionsApplied) {
       myTerminalTextBuffer.clearTypeAheadPredictions();
-      myTerminalTextBuffer.fireModelChangeEvent();
     }
     isPredictionsApplied = false;
   }

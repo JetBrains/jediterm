@@ -504,5 +504,6 @@ public class TerminalTextBuffer {
   public void clearTypeAheadPredictions() {
     myScreenBuffer.clearTypeAheadPredictions();
     myHistoryBuffer.clearTypeAheadPredictions();
+    fireModelChangeEvent();
   }
 }

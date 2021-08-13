@@ -15,7 +15,7 @@ import static com.jediterm.terminal.model.TypeAheadTerminalModel.LineWithCursorX
 
 public class TerminalTypeAheadManager {
   public static final long MAX_TERMINAL_DELAY = TimeUnit.MILLISECONDS.toNanos(3000);
-  private static final int LATENCY_MIN_SAMPLES_TO_TURN_ON = 5;
+  private static final int LATENCY_MIN_SAMPLES_TO_TURN_ON = 2;
   private static final double LATENCY_TOGGLE_OFF_THRESHOLD = 0.5;
 
   private static final Logger LOG = Logger.getLogger(TerminalTypeAheadManager.class);
@@ -108,14 +108,15 @@ public class TerminalTypeAheadManager {
         autoSyncDelay = MAX_TERMINAL_DELAY;
       }
 
-      if (System.nanoTime() - prevTypedTime < autoSyncDelay) {
+      boolean hasTypedRecently = System.nanoTime() - prevTypedTime < autoSyncDelay;
+      if (hasTypedRecently) {
         if (myOutOfSyncDetected) {
           return;
         }
       } else {
         myOutOfSyncDetected = false;
-        reevaluatePredictorState();
       }
+      reevaluatePredictorState(hasTypedRecently);
 
       updateLeftMostCursorPosition(lineWithCursorX.myCursorX);
 
@@ -344,7 +345,7 @@ public class TerminalTypeAheadManager {
     }
   }
 
-  private void reevaluatePredictorState() {
+  private void reevaluatePredictorState(boolean hasTypedRecently) {
     if (!myTerminalModel.isTypeAheadEnabled()) {
       myIsShowingPredictions = false;
     } else if (myLatencyStatistics.getSampleSize() >= LATENCY_MIN_SAMPLES_TO_TURN_ON) {
@@ -352,7 +353,7 @@ public class TerminalTypeAheadManager {
 
       if (latency >= myTerminalModel.getLatencyThreshold()) {
         myIsShowingPredictions = true;
-      } else if (latency < myTerminalModel.getLatencyThreshold() * LATENCY_TOGGLE_OFF_THRESHOLD) {
+      } else if (latency < myTerminalModel.getLatencyThreshold() * LATENCY_TOGGLE_OFF_THRESHOLD && !hasTypedRecently) {
         myIsShowingPredictions = false;
       }
     }

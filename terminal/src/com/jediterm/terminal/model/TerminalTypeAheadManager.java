@@ -14,28 +14,15 @@ import com.jediterm.terminal.model.TypeAheadTerminalModel.LineWithCursorX;
 import static com.jediterm.terminal.model.TypeAheadTerminalModel.LineWithCursorX.moveToWordBoundary;
 
 public class TerminalTypeAheadManager {
-  private static final long MAX_TERMINAL_DELAY = TimeUnit.MILLISECONDS.toNanos(3000);
+  public static final long MAX_TERMINAL_DELAY = TimeUnit.MILLISECONDS.toNanos(3000);
   private static final int LATENCY_MIN_SAMPLES_TO_TURN_ON = 5;
   private static final double LATENCY_TOGGLE_OFF_THRESHOLD = 0.5;
 
   private static final Logger LOG = Logger.getLogger(TerminalTypeAheadManager.class);
 
   private final TypeAheadTerminalModel myTerminalModel;
+  private @Nullable Debouncer myClearPredictionsDebouncer;
   private final List<TypeAheadPrediction> myPredictions = new ArrayList<>();
-  private final Debouncer myClearPredictionsDebouncer = new Debouncer(new Runnable() {
-    @Override
-    public void run() {
-      myTerminalModel.lock();
-      try {
-        if (!myPredictions.isEmpty()) {
-          LOG.debug("TimeoutPredictionCleaner called");
-          resetState();
-        }
-      } finally {
-        myTerminalModel.unlock();
-      }
-    }
-  }, MAX_TERMINAL_DELAY);
   private final LatencyStatistics myLatencyStatistics = new LatencyStatistics();
 
   // if false, predictions will still be generated for latency statistics but won't be displayed
@@ -64,7 +51,9 @@ public class TerminalTypeAheadManager {
 
       if (!myPredictions.isEmpty()) {
         updateLeftMostCursorPosition(lineWithCursorX.myCursorX);
-        myClearPredictionsDebouncer.call();
+        if (myClearPredictionsDebouncer != null) {
+          myClearPredictionsDebouncer.call();
+        }
       }
 
       ArrayList<TypeAheadPrediction> removedPredictions = new ArrayList<>();
@@ -124,7 +113,7 @@ public class TerminalTypeAheadManager {
 
       updateLeftMostCursorPosition(lineWithCursorX.myCursorX);
 
-      if (myPredictions.isEmpty()) {
+      if (myPredictions.isEmpty() && myClearPredictionsDebouncer != null) {
         myClearPredictionsDebouncer.call(); // start a timer that will clear predictions
       }
       TypeAheadPrediction prediction = createPrediction(lineWithCursorX, keyEvent);
@@ -163,6 +152,22 @@ public class TerminalTypeAheadManager {
     } finally {
       myTerminalModel.unlock();
     }
+  }
+
+  public void debounce() {
+    myTerminalModel.lock();
+    try {
+        if (!myPredictions.isEmpty()) {
+          LOG.debug("Debounce");
+          resetState();
+        }
+    } finally {
+      myTerminalModel.unlock();
+    }
+  }
+
+  public void setClearPredictionsDebouncer(@NotNull Debouncer clearPredictionsDebouncer) {
+    myClearPredictionsDebouncer = clearPredictionsDebouncer;
   }
 
   public static class TypeAheadEvent {
@@ -327,7 +332,9 @@ public class TerminalTypeAheadManager {
     myPredictions.clear();
     myLeftMostCursorPosition = null;
     myIsNotPasswordPrompt = false;
-    myClearPredictionsDebouncer.terminateCall();
+    if (myClearPredictionsDebouncer != null) {
+      myClearPredictionsDebouncer.terminateCall();
+    }
   }
 
   private void reevaluatePredictorState() {

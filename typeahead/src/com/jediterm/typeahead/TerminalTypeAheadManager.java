@@ -13,7 +13,7 @@ import com.jediterm.typeahead.TypeAheadTerminalModel.LineWithCursorX;
 import static com.jediterm.typeahead.TypeAheadTerminalModel.LineWithCursorX.moveToWordBoundary;
 
 public class TerminalTypeAheadManager {
-  public static final long MAX_TERMINAL_DELAY = TimeUnit.MILLISECONDS.toNanos(3000);
+  public static final long MAX_TERMINAL_DELAY = TimeUnit.MILLISECONDS.toNanos(1500);
   private static final int LATENCY_MIN_SAMPLES_TO_TURN_ON = 2;
   private static final double LATENCY_TOGGLE_OFF_THRESHOLD = 0.5;
 

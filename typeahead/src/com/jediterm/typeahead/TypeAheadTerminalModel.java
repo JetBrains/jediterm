@@ -1,4 +1,4 @@
-package com.jediterm.terminal.model;
+package com.jediterm.typeahead;
 
 import org.jetbrains.annotations.NotNull;
 

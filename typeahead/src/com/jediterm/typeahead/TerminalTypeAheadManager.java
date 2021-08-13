@@ -1,7 +1,6 @@
-package com.jediterm.terminal.model;
+package com.jediterm.typeahead;
 
 import com.google.common.base.Ascii;
-import com.jediterm.terminal.util.CharUtils;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -10,32 +9,19 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.concurrent.*;
 
-import com.jediterm.terminal.model.TypeAheadTerminalModel.LineWithCursorX;
-import static com.jediterm.terminal.model.TypeAheadTerminalModel.LineWithCursorX.moveToWordBoundary;
+import com.jediterm.typeahead.TypeAheadTerminalModel.LineWithCursorX;
+import static com.jediterm.typeahead.TypeAheadTerminalModel.LineWithCursorX.moveToWordBoundary;
 
 public class TerminalTypeAheadManager {
-  private static final long MAX_TERMINAL_DELAY = TimeUnit.MILLISECONDS.toNanos(3000);
-  private static final int LATENCY_MIN_SAMPLES_TO_TURN_ON = 5;
+  public static final long MAX_TERMINAL_DELAY = TimeUnit.MILLISECONDS.toNanos(1500);
+  private static final int LATENCY_MIN_SAMPLES_TO_TURN_ON = 2;
   private static final double LATENCY_TOGGLE_OFF_THRESHOLD = 0.5;
 
   private static final Logger LOG = Logger.getLogger(TerminalTypeAheadManager.class);
 
   private final TypeAheadTerminalModel myTerminalModel;
+  private @Nullable Debouncer myClearPredictionsDebouncer;
   private final List<TypeAheadPrediction> myPredictions = new ArrayList<>();
-  private final Debouncer myClearPredictionsDebouncer = new Debouncer(new Runnable() {
-    @Override
-    public void run() {
-      myTerminalModel.lock();
-      try {
-        if (!myPredictions.isEmpty()) {
-          LOG.debug("TimeoutPredictionCleaner called");
-          resetState();
-        }
-      } finally {
-        myTerminalModel.unlock();
-      }
-    }
-  }, MAX_TERMINAL_DELAY);
   private final LatencyStatistics myLatencyStatistics = new LatencyStatistics();
 
   // if false, predictions will still be generated for latency statistics but won't be displayed
@@ -46,6 +32,7 @@ public class TerminalTypeAheadManager {
   // guards the terminal prompt. All predictions that try to move the cursor beyond leftmost cursor position are tentative
   private Integer myLeftMostCursorPosition = null;
   private boolean myIsNotPasswordPrompt = false;
+  private @Nullable TypeAheadPrediction myLastSuccessfulPrediction = null;
 
   public TerminalTypeAheadManager(@NotNull TypeAheadTerminalModel terminalModel) {
     myTerminalModel = terminalModel;
@@ -64,7 +51,13 @@ public class TerminalTypeAheadManager {
 
       if (!myPredictions.isEmpty()) {
         updateLeftMostCursorPosition(lineWithCursorX.myCursorX);
-        myClearPredictionsDebouncer.call();
+        if (myClearPredictionsDebouncer != null) {
+          myClearPredictionsDebouncer.call();
+        }
+      }
+
+      if (myLastSuccessfulPrediction != null && lineWithCursorX.equals(myLastSuccessfulPrediction.myPredictedLineWithCursorX)) {
+        return;
       }
 
       ArrayList<TypeAheadPrediction> removedPredictions = new ArrayList<>();
@@ -76,7 +69,8 @@ public class TerminalTypeAheadManager {
         myOutOfSyncDetected = true;
         resetState();
       } else {
-        removedPredictions.add(myPredictions.remove(0));
+        myLastSuccessfulPrediction = myPredictions.remove(0);
+        removedPredictions.add(myLastSuccessfulPrediction);
         for (TypeAheadPrediction prediction : removedPredictions) {
           myLatencyStatistics.adjustLatency(prediction);
 
@@ -113,18 +107,19 @@ public class TerminalTypeAheadManager {
         autoSyncDelay = MAX_TERMINAL_DELAY;
       }
 
-      if (System.nanoTime() - prevTypedTime < autoSyncDelay) {
+      boolean hasTypedRecently = System.nanoTime() - prevTypedTime < autoSyncDelay;
+      if (hasTypedRecently) {
         if (myOutOfSyncDetected) {
           return;
         }
       } else {
         myOutOfSyncDetected = false;
-        reevaluatePredictorState();
       }
+      reevaluatePredictorState(hasTypedRecently);
 
       updateLeftMostCursorPosition(lineWithCursorX.myCursorX);
 
-      if (myPredictions.isEmpty()) {
+      if (myPredictions.isEmpty() && myClearPredictionsDebouncer != null) {
         myClearPredictionsDebouncer.call(); // start a timer that will clear predictions
       }
       TypeAheadPrediction prediction = createPrediction(lineWithCursorX, keyEvent);
@@ -165,6 +160,22 @@ public class TerminalTypeAheadManager {
     }
   }
 
+  public void debounce() {
+    myTerminalModel.lock();
+    try {
+        if (!myPredictions.isEmpty()) {
+          LOG.debug("Debounce");
+          resetState();
+        }
+    } finally {
+      myTerminalModel.unlock();
+    }
+  }
+
+  public void setClearPredictionsDebouncer(@NotNull Debouncer clearPredictionsDebouncer) {
+    myClearPredictionsDebouncer = clearPredictionsDebouncer;
+  }
+
   public static class TypeAheadEvent {
     public enum EventType {
       Character,
@@ -193,9 +204,7 @@ public class TerminalTypeAheadManager {
       myCharacter = ch;
     }
 
-    /**
-     * @see com.jediterm.terminal.TerminalKeyEncoder
-     */
+    // @see com.jediterm.terminal.TerminalKeyEncoder
     public static @NotNull List<@NotNull TypeAheadEvent> fromByteArray(byte[] byteArray) {
       String stringRepresentation = new String(byteArray);
       if (isPrintableUnicode(stringRepresentation.charAt(0))) {
@@ -216,7 +225,7 @@ public class TerminalTypeAheadManager {
     public static @NotNull List<@NotNull TypeAheadEvent> fromString(@NotNull String string) {
       ArrayList<@NotNull TypeAheadEvent> events = new ArrayList<>();
 
-      if (string.charAt(0) == Ascii.ESC) {
+      if (!isPrintableUnicode(string.charAt(0))) {
         return Collections.singletonList(fromSequence(string.getBytes()));
       }
 
@@ -267,15 +276,17 @@ public class TerminalTypeAheadManager {
       Map.entry(new Sequence(Ascii.ESC, '[',  '1', ';', '5', 'C'), EventType.AltRightArrow),
       Map.entry(new Sequence(Ascii.ESC, '[', 'H'), EventType.Home),
       Map.entry(new Sequence(Ascii.ESC, 'O', 'H'), EventType.Home),
+      Map.entry(new Sequence(1), EventType.Home), // ctrl + a
       Map.entry(new Sequence(Ascii.ESC, '[', 'F'), EventType.End),
-      Map.entry(new Sequence(Ascii.ESC, 'O', 'F'), EventType.End)
+      Map.entry(new Sequence(Ascii.ESC, 'O', 'F'), EventType.End),
+      Map.entry(new Sequence(5), EventType.End) // ctrl + e
     );
 
     private static class Sequence {
       private final byte[] mySequence;
 
       Sequence(final int... bytesAsInt) {
-        mySequence = CharUtils.makeCode(bytesAsInt);
+        mySequence = makeCode(bytesAsInt);
       }
 
       Sequence(final byte[] sequence) {
@@ -294,6 +305,18 @@ public class TerminalTypeAheadManager {
       public int hashCode() {
         return Arrays.hashCode(mySequence);
       }
+
+      // CharUtils.makeCode
+      private static byte[] makeCode(final int... bytesAsInt) {
+        final byte[] bytes = new byte[bytesAsInt.length];
+        int i = 0;
+        for (final int byteAsInt : bytesAsInt) {
+          bytes[i] = (byte) byteAsInt;
+          i++;
+        }
+        return bytes;
+      }
+
     }
   }
 
@@ -324,11 +347,14 @@ public class TerminalTypeAheadManager {
     myTerminalModel.clearPredictions();
     myPredictions.clear();
     myLeftMostCursorPosition = null;
+    myLastSuccessfulPrediction = null;
     myIsNotPasswordPrompt = false;
-    myClearPredictionsDebouncer.terminateCall();
+    if (myClearPredictionsDebouncer != null) {
+      myClearPredictionsDebouncer.terminateCall();
+    }
   }
 
-  private void reevaluatePredictorState() {
+  private void reevaluatePredictorState(boolean hasTypedRecently) {
     if (!myTerminalModel.isTypeAheadEnabled()) {
       myIsShowingPredictions = false;
     } else if (myLatencyStatistics.getSampleSize() >= LATENCY_MIN_SAMPLES_TO_TURN_ON) {
@@ -336,7 +362,7 @@ public class TerminalTypeAheadManager {
 
       if (latency >= myTerminalModel.getLatencyThreshold()) {
         myIsShowingPredictions = true;
-      } else if (latency < myTerminalModel.getLatencyThreshold() * LATENCY_TOGGLE_OFF_THRESHOLD) {
+      } else if (latency < myTerminalModel.getLatencyThreshold() * LATENCY_TOGGLE_OFF_THRESHOLD && !hasTypedRecently) {
         myIsShowingPredictions = false;
       }
     }

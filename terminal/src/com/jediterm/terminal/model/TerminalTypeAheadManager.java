@@ -33,6 +33,7 @@ public class TerminalTypeAheadManager {
   // guards the terminal prompt. All predictions that try to move the cursor beyond leftmost cursor position are tentative
   private Integer myLeftMostCursorPosition = null;
   private boolean myIsNotPasswordPrompt = false;
+  private @Nullable TypeAheadPrediction myLastSuccessfulPrediction = null;
 
   public TerminalTypeAheadManager(@NotNull TypeAheadTerminalModel terminalModel) {
     myTerminalModel = terminalModel;
@@ -56,6 +57,10 @@ public class TerminalTypeAheadManager {
         }
       }
 
+      if (myLastSuccessfulPrediction != null && lineWithCursorX.equals(myLastSuccessfulPrediction.myPredictedLineWithCursorX)) {
+        return;
+      }
+
       ArrayList<TypeAheadPrediction> removedPredictions = new ArrayList<>();
       while (!myPredictions.isEmpty() && !lineWithCursorX.equals(myPredictions.get(0).myPredictedLineWithCursorX)) {
         removedPredictions.add(myPredictions.remove(0));
@@ -65,7 +70,8 @@ public class TerminalTypeAheadManager {
         myOutOfSyncDetected = true;
         resetState();
       } else {
-        removedPredictions.add(myPredictions.remove(0));
+        myLastSuccessfulPrediction = myPredictions.remove(0);
+        removedPredictions.add(myLastSuccessfulPrediction);
         for (TypeAheadPrediction prediction : removedPredictions) {
           myLatencyStatistics.adjustLatency(prediction);
 
@@ -331,6 +337,7 @@ public class TerminalTypeAheadManager {
     myTerminalModel.clearPredictions();
     myPredictions.clear();
     myLeftMostCursorPosition = null;
+    myLastSuccessfulPrediction = null;
     myIsNotPasswordPrompt = false;
     if (myClearPredictionsDebouncer != null) {
       myClearPredictionsDebouncer.terminateCall();

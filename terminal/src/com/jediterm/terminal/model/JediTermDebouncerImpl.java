@@ -1,10 +1,12 @@
 package com.jediterm.terminal.model;
 
+import com.jediterm.typeahead.Debouncer;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class Debouncer {
+public class JediTermDebouncerImpl implements Debouncer {
   private static final ScheduledExecutorService myScheduler = Executors.newScheduledThreadPool(1);
   private final Object myLock = new Object();
 
@@ -13,11 +15,12 @@ public class Debouncer {
 
   private TimerTask myTimerTask = null;
 
-  public Debouncer(Runnable runnable, long delay) {
+  public JediTermDebouncerImpl(Runnable runnable, long delay) {
     myRunnable = runnable;
     myDelay = delay;
   }
 
+  @Override
   public void call() {
     synchronized (myLock) {
       if (myTimerTask != null) {
@@ -29,6 +32,7 @@ public class Debouncer {
     }
   }
 
+  @Override
   public void terminateCall() {
     synchronized (myLock) {
       if (myTimerTask != null) {

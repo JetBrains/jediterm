@@ -1,9 +1,9 @@
 package com.jediterm.terminal.model;
 
 import com.jediterm.terminal.Terminal;
-import com.jediterm.terminal.TerminalColor;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
+import com.jediterm.typeahead.TypeAheadTerminalModel;
 import org.jetbrains.annotations.*;
 
 public class JediTermTypeAheadModel implements TypeAheadTerminalModel {
@@ -26,8 +26,8 @@ public class JediTermTypeAheadModel implements TypeAheadTerminalModel {
     isPredictionsApplied = true;
     TerminalLine typeAheadLine = getTypeAheadLine();
 
-    TextStyle typeAheadTextStyle = new TextStyle(new TerminalColor(8), null);
-    typeAheadLine.insertString(index, new CharBuffer(ch, 1), typeAheadTextStyle);
+    TextStyle typeAheadStyle = mySettingsProvider.getTypeAheadSettings().getTypeAheadStyle();
+    typeAheadLine.insertString(index, new CharBuffer(ch, 1), typeAheadStyle);
 
     setTypeAheadLine(typeAheadLine);
   }

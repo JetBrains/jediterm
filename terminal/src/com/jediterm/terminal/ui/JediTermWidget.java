@@ -10,6 +10,8 @@ import com.jediterm.terminal.model.*;
 import com.jediterm.terminal.model.hyperlinks.HyperlinkFilter;
 import com.jediterm.terminal.model.hyperlinks.TextProcessing;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
+import com.jediterm.typeahead.TerminalTypeAheadManager;
+import com.jediterm.typeahead.TypeAheadTerminalModel;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
@@ -71,8 +73,12 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
     myTerminalPanel = createTerminalPanel(mySettingsProvider, styleState, terminalTextBuffer);
     myTerminal = new JediTerminal(myTerminalPanel, terminalTextBuffer, styleState);
+
     TypeAheadTerminalModel typeAheadTerminalModel = new JediTermTypeAheadModel(myTerminal, terminalTextBuffer, settingsProvider);
     myTypeAheadManager = new TerminalTypeAheadManager(typeAheadTerminalModel);
+    JediTermDebouncerImpl typeAheadDebouncer =
+      new JediTermDebouncerImpl(myTypeAheadManager::debounce, TerminalTypeAheadManager.MAX_TERMINAL_DELAY);
+    myTypeAheadManager.setClearPredictionsDebouncer(typeAheadDebouncer);
     myTerminalPanel.setTypeAheadManager(myTypeAheadManager);
 
     myTerminal.setModeEnabled(TerminalMode.AltSendsEscape, mySettingsProvider.altSendsEscape());

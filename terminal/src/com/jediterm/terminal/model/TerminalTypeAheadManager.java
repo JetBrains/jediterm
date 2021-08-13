@@ -216,7 +216,7 @@ public class TerminalTypeAheadManager {
     public static @NotNull List<@NotNull TypeAheadEvent> fromString(@NotNull String string) {
       ArrayList<@NotNull TypeAheadEvent> events = new ArrayList<>();
 
-      if (string.charAt(0) == Ascii.ESC) {
+      if (!isPrintableUnicode(string.charAt(0))) {
         return Collections.singletonList(fromSequence(string.getBytes()));
       }
 
@@ -267,8 +267,10 @@ public class TerminalTypeAheadManager {
       Map.entry(new Sequence(Ascii.ESC, '[',  '1', ';', '5', 'C'), EventType.AltRightArrow),
       Map.entry(new Sequence(Ascii.ESC, '[', 'H'), EventType.Home),
       Map.entry(new Sequence(Ascii.ESC, 'O', 'H'), EventType.Home),
+      Map.entry(new Sequence(1), EventType.Home), // ctrl + a
       Map.entry(new Sequence(Ascii.ESC, '[', 'F'), EventType.End),
-      Map.entry(new Sequence(Ascii.ESC, 'O', 'F'), EventType.End)
+      Map.entry(new Sequence(Ascii.ESC, 'O', 'F'), EventType.End),
+      Map.entry(new Sequence(5), EventType.End) // ctrl + e
     );
 
     private static class Sequence {

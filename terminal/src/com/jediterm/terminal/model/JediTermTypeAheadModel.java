@@ -3,6 +3,7 @@ package com.jediterm.terminal.model;
 import com.jediterm.terminal.Terminal;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
+import com.jediterm.typeahead.TypeAheadTerminalModel;
 import org.jetbrains.annotations.*;
 
 public class JediTermTypeAheadModel implements TypeAheadTerminalModel {

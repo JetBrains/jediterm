@@ -1,5 +1,7 @@
 package com.jediterm.terminal.model;
 
+import com.jediterm.typeahead.Debouncer;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;

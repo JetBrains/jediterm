@@ -10,6 +10,8 @@ import com.jediterm.terminal.model.*;
 import com.jediterm.terminal.model.hyperlinks.HyperlinkFilter;
 import com.jediterm.terminal.model.hyperlinks.TextProcessing;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
+import com.jediterm.typeahead.TerminalTypeAheadManager;
+import com.jediterm.typeahead.TypeAheadTerminalModel;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 

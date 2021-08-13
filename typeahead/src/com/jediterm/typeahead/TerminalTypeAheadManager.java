@@ -1,7 +1,6 @@
-package com.jediterm.terminal.model;
+package com.jediterm.typeahead;
 
 import com.google.common.base.Ascii;
-import com.jediterm.terminal.util.CharUtils;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -10,8 +9,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.concurrent.*;
 
-import com.jediterm.terminal.model.TypeAheadTerminalModel.LineWithCursorX;
-import static com.jediterm.terminal.model.TypeAheadTerminalModel.LineWithCursorX.moveToWordBoundary;
+import com.jediterm.typeahead.TypeAheadTerminalModel.LineWithCursorX;
+import static com.jediterm.typeahead.TypeAheadTerminalModel.LineWithCursorX.moveToWordBoundary;
 
 public class TerminalTypeAheadManager {
   public static final long MAX_TERMINAL_DELAY = TimeUnit.MILLISECONDS.toNanos(3000);
@@ -205,9 +204,7 @@ public class TerminalTypeAheadManager {
       myCharacter = ch;
     }
 
-    /**
-     * @see com.jediterm.terminal.TerminalKeyEncoder
-     */
+    // @see com.jediterm.terminal.TerminalKeyEncoder
     public static @NotNull List<@NotNull TypeAheadEvent> fromByteArray(byte[] byteArray) {
       String stringRepresentation = new String(byteArray);
       if (isPrintableUnicode(stringRepresentation.charAt(0))) {
@@ -289,7 +286,7 @@ public class TerminalTypeAheadManager {
       private final byte[] mySequence;
 
       Sequence(final int... bytesAsInt) {
-        mySequence = CharUtils.makeCode(bytesAsInt);
+        mySequence = makeCode(bytesAsInt);
       }
 
       Sequence(final byte[] sequence) {
@@ -308,6 +305,18 @@ public class TerminalTypeAheadManager {
       public int hashCode() {
         return Arrays.hashCode(mySequence);
       }
+
+      // CharUtils.makeCode
+      private static byte[] makeCode(final int... bytesAsInt) {
+        final byte[] bytes = new byte[bytesAsInt.length];
+        int i = 0;
+        for (final int byteAsInt : bytesAsInt) {
+          bytes[i] = (byte) byteAsInt;
+          i++;
+        }
+        return bytes;
+      }
+
     }
   }
 

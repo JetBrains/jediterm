@@ -2,7 +2,7 @@ package com.jediterm.terminal;
 
 import com.jediterm.terminal.emulator.Emulator;
 import com.jediterm.terminal.emulator.JediEmulator;
-import com.jediterm.terminal.model.TerminalTypeAheadManager;
+import com.jediterm.typeahead.TerminalTypeAheadManager;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 

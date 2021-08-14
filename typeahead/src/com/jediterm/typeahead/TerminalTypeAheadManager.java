@@ -453,7 +453,7 @@ public class TerminalTypeAheadManager {
         int amount = oldCursorX - newLineWCursorX.myCursorX;
 
         if (newLineWCursorX.myCursorX < newLineWCursorX.myLineText.length()) {
-          newLineWCursorX.myLineText.delete(newLineWCursorX.myCursorX, Math.max(oldCursorX, newLineWCursorX.myLineText.length()));
+          newLineWCursorX.myLineText.delete(newLineWCursorX.myCursorX, Math.min(oldCursorX, newLineWCursorX.myLineText.length()));
         }
         return new BackspacePrediction(newLineWCursorX, amount,
           myLeftMostCursorPosition != null && myLeftMostCursorPosition <= newLineWCursorX.myCursorX

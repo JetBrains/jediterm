@@ -133,6 +133,8 @@ public class TerminalTypeAheadManager {
   }
 
   public void onResize() {
+    if (!myTerminalModel.isTypeAheadEnabled()) return;
+
     myTerminalModel.lock();
     try {
       resetState();
@@ -317,6 +319,45 @@ public class TerminalTypeAheadManager {
         return bytes;
       }
 
+    }
+  }
+
+  static class LatencyStatistics {
+    private static final int LATENCY_BUFFER_SIZE = 30;
+    private final LinkedList<Long> myLatencies = new LinkedList<>();
+
+    public void adjustLatency(@NotNull TypeAheadPrediction prediction) {
+      myLatencies.add(System.nanoTime() - prediction.myCreatedTime);
+
+      if (myLatencies.size() > LATENCY_BUFFER_SIZE) {
+        myLatencies.removeFirst();
+      }
+    }
+
+    public long getLatencyMedian() {
+      if (myLatencies.isEmpty()) {
+        throw new IllegalStateException("Tried to calculate latency with sample size of 0");
+      }
+
+      Long[] sortedLatencies = myLatencies.stream().sorted().toArray(Long[]::new);
+
+      if (sortedLatencies.length % 2 == 0) {
+        return (sortedLatencies[sortedLatencies.length / 2 - 1] + sortedLatencies[sortedLatencies.length / 2]) / 2;
+      } else {
+        return sortedLatencies[sortedLatencies.length / 2];
+      }
+    }
+
+    public long getMaxLatency() {
+      if (myLatencies.isEmpty()) {
+        throw new IllegalStateException("Tried to get max latency with sample size of 0");
+      }
+
+      return Collections.max(myLatencies);
+    }
+
+    private int getSampleSize() {
+      return myLatencies.size();
     }
   }
 
@@ -563,45 +604,6 @@ public class TerminalTypeAheadManager {
                                 boolean isNotTentative) {
       super(predictedLineWithCursorX, isNotTentative);
       myAmount = amount;
-    }
-  }
-
-  private static class LatencyStatistics {
-    private static final int LATENCY_BUFFER_SIZE = 30;
-    private final LinkedList<Long> latencies = new LinkedList<>();
-
-    public void adjustLatency(@NotNull TypeAheadPrediction prediction) {
-      latencies.add(System.nanoTime() - prediction.myCreatedTime);
-
-      if (latencies.size() > LATENCY_BUFFER_SIZE) {
-        latencies.removeFirst();
-      }
-    }
-
-    public long getLatencyMedian() {
-      if (latencies.isEmpty()) {
-        throw new IllegalStateException("Tried to calculate latency with sample size of 0");
-      }
-
-      Long[] sortedLatencies = latencies.stream().sorted().toArray(Long[]::new);
-
-      if (sortedLatencies.length % 2 == 0) {
-        return (sortedLatencies[sortedLatencies.length / 2 - 1] + sortedLatencies[sortedLatencies.length / 2]) / 2;
-      } else {
-        return sortedLatencies[sortedLatencies.length / 2];
-      }
-    }
-
-    public long getMaxLatency() {
-      if (latencies.isEmpty()) {
-        throw new IllegalStateException("Tried to get max latency with sample size of 0");
-      }
-
-      return Collections.max(latencies);
-    }
-
-    private int getSampleSize() {
-      return latencies.size();
     }
   }
 }

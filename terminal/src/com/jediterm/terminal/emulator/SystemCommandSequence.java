@@ -3,6 +3,7 @@ package com.jediterm.terminal.emulator;
 import com.google.common.base.Ascii;
 import com.google.common.collect.Lists;
 import com.jediterm.terminal.TerminalDataStream;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.List;
@@ -12,6 +13,7 @@ import java.util.List;
  */
 final class SystemCommandSequence {
   private final List<Object> myArgs = Lists.newArrayList();
+  private @NotNull String myEnd = "";
 
   private final StringBuilder mySequenceString = new StringBuilder();
 
@@ -30,6 +32,7 @@ final class SystemCommandSequence {
 
       if (b == ';' || isEnd(b)) {
         if (isTwoBytesEnd(b)) {
+          myEnd = string.substring(string.length() - 1, string.length());
           string.delete(string.length() - 1, string.length());
         }
         if (isNumber) {
@@ -39,6 +42,7 @@ final class SystemCommandSequence {
           myArgs.add(string.toString());
         }
         if (isEnd(b)) {
+          myEnd += b;
           break;
         }
         isNumber = true;
@@ -89,5 +93,9 @@ final class SystemCommandSequence {
 
   public String getSequenceString() {
     return mySequenceString.toString();
+  }
+
+  public @NotNull String getEnd() {
+    return myEnd;
   }
 }

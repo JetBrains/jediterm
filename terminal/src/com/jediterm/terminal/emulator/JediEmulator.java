@@ -218,13 +218,25 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           return true;
         }
         break;
+      case 10:
+        if ("?".equals(args.getStringAt(1))) { // Query
+          TerminalColor foreground = myTerminal.getWindowForeground();
+          if (foreground != null) {
+            String str = "\033]10;rgb:" + foreground.toHexString16() + args.getEnd();
+            LOG.debug("Responding to OSC 10 query : " + str);
+            myTerminal.deviceStatusReport(str);
+            return true;
+          }
+        }
+        break;
       case 11: // Background http://www.xfree86.org/4.5.0/ctlseqs.html
         if ("?".equals(args.getStringAt(1))) { // Query
           TerminalColor background = myTerminal.getWindowBackground();
           if (background != null) {
-            String str = "\033]11;rgb:" + background.toHexString16() + "\007";
+            String str = "\033]11;rgb:" + background.toHexString16() + args.getEnd();
             LOG.debug("Responding to OSC 11 query : " + str);
             myTerminal.deviceStatusReport(str);
+            return true;
           }
         }
         break;

@@ -4,6 +4,7 @@ import com.jediterm.terminal.emulator.mouse.MouseMode;
 import com.jediterm.terminal.model.JediTerminal;
 import com.jediterm.terminal.model.TerminalSelection;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 
@@ -40,7 +41,11 @@ public interface TerminalDisplay {
 
   default void setBracketedPasteMode(boolean enabled) {}
 
-  default TerminalColor getWindowBackground() {
+  default @Nullable TerminalColor getWindowForeground() {
+    return null;
+  }
+
+  default @Nullable TerminalColor getWindowBackground() {
     return null;
   }
 }

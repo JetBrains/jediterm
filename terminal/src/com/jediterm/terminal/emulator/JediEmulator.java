@@ -127,12 +127,19 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       case 'O':
         terminal.singleShiftSelect(3); //Single Shift Select of G3 Character Set (SS3). This affects next character only.
         break;
+      case 'P': // Device Control String (DCS)
+        SystemCommandSequence command = new SystemCommandSequence(myDataStream);
+
+        if (!deviceControlString(command)) {
+          LOG.error("Error processing DCS: ESCP" + command.getSequenceString());
+        }
+        break;
       case ']': // Operating System Command (OSC)
         // xterm uses it to set parameters like windows title
-        final SystemCommandSequence command = new SystemCommandSequence(myDataStream);
+        command = new SystemCommandSequence(myDataStream);
 
         if (!operatingSystemCommand(command)) {
-          LOG.error("Error processing OSC " + command.getSequenceString());
+          LOG.error("Error processing OSC: ESC]" + command.getSequenceString());
         }
         break;
       case '6':
@@ -190,6 +197,10 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       default:
         unsupported(ch);
     }
+  }
+
+  private boolean deviceControlString(SystemCommandSequence args) {
+    return false;
   }
 
   private boolean operatingSystemCommand(SystemCommandSequence args) {

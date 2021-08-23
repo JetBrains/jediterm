@@ -446,6 +446,36 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         }
         myTerminal.resize(new Dimension(width, height), RequestOrigin.Remote);
         return true;
+      case 22:
+        return csi22(args);
+      case 23:
+        return csi23(args);
+      default:
+        return false;
+    }
+  }
+
+  private boolean csi22(ControlSequence args) { // TODO: support icon title
+    switch (args.getArg(1, -1)) {
+      case 0: // Save xterm icon and window title on stack.
+      case 2: // Save xterm window title on stack.
+        myTerminal.saveWindowTitleOnStack();
+        return true;
+      case 1: // Save xterm icon title on stack.
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  private boolean csi23(ControlSequence args) { // TODO: support icon title
+    switch (args.getArg(1, -1)) {
+      case 0: // Restore xterm icon and window title on stack.
+      case 2: // Restore xterm window title on stack.
+        myTerminal.restoreWindowTitleFromStack();
+        return true;
+      case 1: // Restore xterm icon title on stack.
+        return true;
       default:
         return false;
     }

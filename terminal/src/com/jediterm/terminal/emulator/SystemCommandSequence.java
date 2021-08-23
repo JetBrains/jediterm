@@ -91,7 +91,12 @@ final class SystemCommandSequence {
   }
 
   public String getSequenceString() {
-    return mySequenceString.toString();
+    return mySequenceString.toString().replace("\u001b", "ESC")
+      .replace("\n", "\\n")
+      .replace("\r", "\\r")
+      .replace("\u0007", "BEL")
+      .replace(" ", "<S>")
+      .replace("\b", "\\b");
   }
 
   public @NotNull String format(@NotNull String body) {

@@ -327,6 +327,7 @@ public class TerminalTypeAheadManagerTest extends TestCase {
     long latencyThreshold = 0;
     boolean typeAheadEnabled = true;
     boolean isUsingAlternateBuffer = false;
+    ShellType shellType = ShellType.Bash;
 
     private final List<Action> actions;
 
@@ -390,6 +391,11 @@ public class TerminalTypeAheadManagerTest extends TestCase {
     @Override
     public long getLatencyThreshold() {
       return latencyThreshold;
+    }
+
+    @Override
+    public ShellType getShellType() {
+      return shellType;
     }
 
     void insertString(String text) {

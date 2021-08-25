@@ -38,6 +38,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   protected final JScrollBar myScrollBar;
   protected final JediTerminal myTerminal;
   protected final AtomicBoolean mySessionRunning = new AtomicBoolean();
+  private final JediTermTypeAheadModel myTypeAheadTerminalModel;
   private final TerminalTypeAheadManager myTypeAheadManager;
   private SearchComponent myFindComponent;
   private final PreConnectHandler myPreConnectHandler;
@@ -74,8 +75,8 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     myTerminalPanel = createTerminalPanel(mySettingsProvider, styleState, terminalTextBuffer);
     myTerminal = new JediTerminal(myTerminalPanel, terminalTextBuffer, styleState);
 
-    TypeAheadTerminalModel typeAheadTerminalModel = new JediTermTypeAheadModel(myTerminal, terminalTextBuffer, settingsProvider);
-    myTypeAheadManager = new TerminalTypeAheadManager(typeAheadTerminalModel);
+    myTypeAheadTerminalModel = new JediTermTypeAheadModel(myTerminal, terminalTextBuffer, settingsProvider);
+    myTypeAheadManager = new TerminalTypeAheadManager(myTypeAheadTerminalModel);
     JediTermDebouncerImpl typeAheadDebouncer =
       new JediTermDebouncerImpl(myTypeAheadManager::debounce, TerminalTypeAheadManager.MAX_TERMINAL_DELAY);
     myTypeAheadManager.setClearPredictionsDebouncer(typeAheadDebouncer);
@@ -144,6 +145,14 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   public void setTtyConnector(@NotNull TtyConnector ttyConnector) {
     myTtyConnector = ttyConnector;
 
+    TypeAheadTerminalModel.ShellType shellType;
+    if (ttyConnector instanceof ProcessTtyConnector) {
+      List<String> commandLine = ((ProcessTtyConnector) myTtyConnector).getCommandLine();
+      shellType = TypeAheadTerminalModel.commandLineToShellType(commandLine);
+    } else {
+      shellType = TypeAheadTerminalModel.ShellType.Unknown;
+    }
+    myTypeAheadTerminalModel.setShellType(shellType);
     myTerminalStarter = createTerminalStarter(myTerminal, myTtyConnector);
     myTerminalPanel.setTerminalStarter(myTerminalStarter);
   }

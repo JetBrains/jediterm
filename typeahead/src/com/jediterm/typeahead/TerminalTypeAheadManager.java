@@ -10,7 +10,6 @@ import java.util.*;
 import java.util.concurrent.*;
 
 import com.jediterm.typeahead.TypeAheadTerminalModel.LineWithCursorX;
-import static com.jediterm.typeahead.TypeAheadTerminalModel.LineWithCursorX.moveToWordBoundary;
 
 public class TerminalTypeAheadManager {
   public static final long MAX_TERMINAL_DELAY = TimeUnit.MILLISECONDS.toNanos(1500);
@@ -485,8 +484,7 @@ public class TerminalTypeAheadManager {
             && myIsShowingPredictions);
       case AltBackspace:
         int oldCursorX = newLineWCursorX.myCursorX;
-        newLineWCursorX.myCursorX =
-          moveToWordBoundary(newLineWCursorX.myLineText.toString(), newLineWCursorX.myCursorX, false);
+        newLineWCursorX.moveToWordBoundary(false, myTerminalModel.getShellType());
 
         if (newLineWCursorX.myCursorX < 0) {
           return new HardBoundary();
@@ -515,8 +513,10 @@ public class TerminalTypeAheadManager {
       case AltLeftArrow:
       case AltRightArrow:
         oldCursorX = newLineWCursorX.myCursorX;
-        newLineWCursorX.myCursorX = moveToWordBoundary(newLineWCursorX.myLineText.toString(), newLineWCursorX.myCursorX,
-          keyEvent.myEventType == TypeAheadEvent.EventType.AltRightArrow);
+        newLineWCursorX.moveToWordBoundary(
+          keyEvent.myEventType == TypeAheadEvent.EventType.AltRightArrow,
+          myTerminalModel.getShellType()
+        );
 
         if (newLineWCursorX.myCursorX < 0 || newLineWCursorX.myCursorX
           >= Math.max(newLineWCursorX.myLineText.length() + 1, myTerminalModel.getTerminalWidth())) {

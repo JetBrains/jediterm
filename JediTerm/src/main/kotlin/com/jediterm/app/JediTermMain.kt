@@ -75,7 +75,7 @@ class JediTerm : AbstractTerminalFrame(), Disposable {
                 .setConsole(false)
                 .start()
 
-            return LoggingPtyProcessTtyConnector(process, charset)
+            return LoggingPtyProcessTtyConnector(process, charset, command.toList())
         } catch (e: Exception) {
             throw IllegalStateException(e)
         }
@@ -88,8 +88,8 @@ class JediTerm : AbstractTerminalFrame(), Disposable {
         return widget
     }
 
-    class LoggingPtyProcessTtyConnector(process: PtyProcess, charset: Charset) :
-        PtyProcessTtyConnector(process, charset), LoggingTtyConnector {
+    class LoggingPtyProcessTtyConnector(process: PtyProcess, charset: Charset, command: List<String>) :
+        PtyProcessTtyConnector(process, charset, command), LoggingTtyConnector {
         private val myDataChunks = Lists.newArrayList<CharArray>()
 
         @Throws(IOException::class)

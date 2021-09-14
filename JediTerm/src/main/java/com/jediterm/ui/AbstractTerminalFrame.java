@@ -4,7 +4,9 @@ import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.debug.BufferPanel;
 import com.jediterm.terminal.model.SelectionUtil;
-import com.jediterm.terminal.ui.*;
+import com.jediterm.terminal.ui.JediTermWidget;
+import com.jediterm.terminal.ui.TerminalPanelListener;
+import com.jediterm.terminal.ui.TerminalWidget;
 import com.jediterm.terminal.ui.settings.DefaultTabbedSettingsProvider;
 import com.jediterm.terminal.ui.settings.TabbedSettingsProvider;
 import com.jediterm.terminal.util.Pair;
@@ -137,12 +139,6 @@ public abstract class AbstractTerminalFrame {
 
   protected AbstractTerminalFrame() {
     AbstractTabbedTerminalWidget<? extends JediTermWidget> tabbedTerminalWidget = createTabbedTerminalWidget();
-    tabbedTerminalWidget.addTabListener(terminal -> {
-      AbstractTabs<?> tabs = tabbedTerminalWidget.getTerminalTabs();
-      if (tabs == null || tabs.getTabCount() == 0) {
-        System.exit(0);
-      }
-    });
     myTerminal = tabbedTerminalWidget;
 
     final JFrame frame = new JFrame("JediTerm");
@@ -165,17 +161,26 @@ public abstract class AbstractTerminalFrame {
 
     frame.setResizable(true);
 
+    tabbedTerminalWidget.addTabListener(new AbstractTabbedTerminalWidget.TabListener<>() {
+      @Override
+      public void tabClosed(JediTermWidget terminal) {
+        AbstractTabs<?> tabs = tabbedTerminalWidget.getTerminalTabs();
+        if (tabs == null || tabs.getTabCount() == 0) {
+          System.exit(0);
+        }
+      }
+
+      @Override
+      public void onSelectedTabChanged(@NotNull JediTermWidget terminal) {
+        frame.setTitle(terminal.getSessionName());
+      }
+    });
     myTerminal.setTerminalPanelListener(new TerminalPanelListener() {
       public void onPanelResize(@NotNull RequestOrigin origin) {
         if (origin == RequestOrigin.Remote) {
           sizeFrameForTerm(frame);
         }
         frame.pack();
-      }
-
-      @Override
-      public void onSessionChanged(final TerminalSession currentSession) {
-        frame.setTitle(currentSession.getSessionName());
       }
 
       @Override

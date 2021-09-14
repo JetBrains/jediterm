@@ -391,9 +391,6 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
         } catch (Exception e) {
         }
         mySessionRunning.set(false);
-        TerminalPanelListener terminalPanelListener = myTerminalPanel.getTerminalPanelListener();
-        if (terminalPanelListener != null)
-          terminalPanelListener.onSessionChanged(getCurrentSession());
         for (TerminalWidgetListener listener : myListeners) {
           listener.allSessionsClosed(JediTermWidget.this);
         }

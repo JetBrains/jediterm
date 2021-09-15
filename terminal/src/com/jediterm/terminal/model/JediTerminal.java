@@ -54,6 +54,8 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
   private final TerminalKeyEncoder myTerminalKeyEncoder = new TerminalKeyEncoder();
 
+  private final Stack<String> myWindowTitlesStack = new Stack<>();
+
   private final Tabulator myTabulator;
 
   private final GraphicSetState myGraphicSetState;
@@ -252,6 +254,20 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   @Override
   public void setWindowTitle(String name) {
     myDisplay.setWindowTitle(name);
+  }
+
+  @Override
+  public void saveWindowTitleOnStack() {
+    String title = myDisplay.getWindowTitle();
+    myWindowTitlesStack.push(title);
+  }
+
+  @Override
+  public void restoreWindowTitleFromStack() {
+    if (!myWindowTitlesStack.empty()) {
+      String title = myWindowTitlesStack.pop();
+      myDisplay.setWindowTitle(title);
+    }
   }
 
   @Override

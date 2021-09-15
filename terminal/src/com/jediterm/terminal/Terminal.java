@@ -106,6 +106,10 @@ public interface Terminal {
 
   void setWindowTitle(String name);
 
+  void saveWindowTitleOnStack();
+
+  void restoreWindowTitleFromStack();
+
   void clearScreen();
 
   void setCursorVisible(boolean visible);

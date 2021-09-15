@@ -31,6 +31,8 @@ public interface TerminalDisplay {
 
   void setBlinkingCursor(boolean enabled);
 
+  String getWindowTitle();
+
   void setWindowTitle(String name);
 
   void terminalMouseModeSet(MouseMode mode);

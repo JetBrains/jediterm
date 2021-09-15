@@ -37,7 +37,7 @@ public abstract class AbstractTabbedTerminalWidget<T extends JediTermWidget> ext
 
   private TabbedSettingsProvider mySettingsProvider;
 
-  private List<TabListener> myTabListeners = Lists.newArrayList();
+  private final List<TabListener<T>> myTabListeners = Lists.newArrayList();
   private List<TerminalWidgetListener> myWidgetListeners = new CopyOnWriteArrayList<>();
   private TerminalActionProvider myNextActionProvider;
 
@@ -193,8 +193,8 @@ public abstract class AbstractTabbedTerminalWidget<T extends JediTermWidget> ext
   private void onSessionChanged() {
     T session = getCurrentSession();
     if (session != null) {
-      if (myTerminalPanelListener != null) {
-        myTerminalPanelListener.onSessionChanged(session);
+      for (TabListener<T> tabListener : myTabListeners) {
+        tabListener.onSelectedTabChanged(session);
       }
       session.getTerminalPanel().requestFocusInWindow();
     }
@@ -596,6 +596,7 @@ public abstract class AbstractTabbedTerminalWidget<T extends JediTermWidget> ext
 
   public interface TabListener<T extends JediTermWidget> {
     void tabClosed(T terminal);
+    void onSelectedTabChanged(@NotNull T terminal);
   }
 
   @Override

@@ -10,6 +10,7 @@ public class JediTermTypeAheadModel implements TypeAheadTerminalModel {
   private final @NotNull Terminal myTerminal;
   private final @NotNull TerminalTextBuffer myTerminalTextBuffer;
   private final @NotNull SettingsProvider mySettingsProvider;
+  private @NotNull TypeAheadTerminalModel.ShellType myShellType = ShellType.Unknown;
 
   private boolean isPredictionsApplied = false;
 
@@ -80,6 +81,15 @@ public class JediTermTypeAheadModel implements TypeAheadTerminalModel {
   @Override
   public long getLatencyThreshold() {
     return mySettingsProvider.getTypeAheadSettings().getLatencyThreshold();
+  }
+
+  @Override
+  public @NotNull ShellType getShellType() {
+    return myShellType;
+  }
+
+  public void setShellType(ShellType shellType) {
+    myShellType = shellType;
   }
 
   @Override

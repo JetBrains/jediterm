@@ -1647,7 +1647,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
         // Cannot use e.getKeyChar() on macOS:
         //  Option+f produces e.getKeyChar()='ƒ' (402), but 'f' (102) is needed.
         //  Option+b produces e.getKeyChar()='∫' (8747), but 'b' (98) is needed.
-        myTerminalStarter.sendString(new String(new char[]{Ascii.ESC, (char) e.getKeyCode()}), true);
+        myTerminalStarter.sendString(new String(new char[]{Ascii.ESC, simpleMapKeyCodeToChar(e)}), true);
         e.consume();
       }
       else if (Character.isISOControl(keychar)) { // keys filtered out here will be processed in processTerminalKeyTyped
@@ -1656,6 +1656,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     } catch (final Exception ex) {
       LOG.error("Error sending pressed key to emulator", ex);
     }
+  }
+
+  private static char simpleMapKeyCodeToChar(@NotNull KeyEvent e) {
+    // zsh requires proper case of letter
+    if ((e.getModifiersEx() & InputEvent.SHIFT_DOWN_MASK) != 0) {
+      return Character.toUpperCase((char) e.getKeyCode());
+    }
+    return Character.toLowerCase((char) e.getKeyCode());
   }
 
   private static boolean isAltPressedOnly(@NotNull KeyEvent e) {

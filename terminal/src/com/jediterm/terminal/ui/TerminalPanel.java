@@ -924,8 +924,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
   @Override
   public @Nullable TerminalColor getWindowForeground() {
-    Color windowBackground = getForeground();
-    return new TerminalColor(windowBackground.getRed(), windowBackground.getGreen(), windowBackground.getBlue());
+    Color windowForeground = getForeground();
+    return new TerminalColor(windowForeground.getRed(), windowForeground.getGreen(), windowForeground.getBlue());
   }
 
   @Override

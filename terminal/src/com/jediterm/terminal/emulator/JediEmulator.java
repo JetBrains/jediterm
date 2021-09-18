@@ -222,7 +222,8 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         if ("?".equals(args.getStringAt(1))) { // Query
           TerminalColor foreground = myTerminal.getWindowForeground();
           if (foreground != null) {
-            String str = "\033]10;rgb:" + foreground.toHexString16() + args.getEnd();
+            String colorString = formatXParseColor(foreground);
+            String str = args.formatResponse(colorString);
             LOG.debug("Responding to OSC 10 query : " + str);
             myTerminal.deviceStatusReport(str);
             return true;
@@ -233,7 +234,8 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         if ("?".equals(args.getStringAt(1))) { // Query
           TerminalColor background = myTerminal.getWindowBackground();
           if (background != null) {
-            String str = "\033]11;rgb:" + background.toHexString16() + args.getEnd();
+            String colorString = formatXParseColor(background);
+            String str = args.formatResponse(colorString);
             LOG.debug("Responding to OSC 11 query : " + str);
             myTerminal.deviceStatusReport(str);
             return true;
@@ -242,6 +244,13 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         break;
     }
     return false;
+  }
+
+  /**
+   * Returns <a href="https://linux.die.net/man/3/xparsecolor">XParseColor</a> representation of TerminalColor
+   */
+  private static @NotNull String formatXParseColor(TerminalColor color) {
+    return "rgb:" + color.toHexString16();
   }
 
   private void processTwoCharSequence(char ch, Terminal terminal) throws IOException {

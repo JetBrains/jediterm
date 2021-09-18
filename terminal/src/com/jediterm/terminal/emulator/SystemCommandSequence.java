@@ -7,13 +7,13 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.IntStream;
 
 /**
  * @author traff
  */
 final class SystemCommandSequence {
   private final List<Object> myArgs = Lists.newArrayList();
-  private @NotNull String myEnd = "";
 
   private final StringBuilder mySequenceString = new StringBuilder();
 
@@ -32,7 +32,6 @@ final class SystemCommandSequence {
 
       if (b == ';' || isEnd(b)) {
         if (isTwoBytesEnd(b)) {
-          myEnd = string.substring(string.length() - 1, string.length());
           string.delete(string.length() - 1, string.length());
         }
         if (isNumber) {
@@ -42,7 +41,6 @@ final class SystemCommandSequence {
           myArgs.add(string.toString());
         }
         if (isEnd(b)) {
-          myEnd += b;
           break;
         }
         isNumber = true;
@@ -95,7 +93,26 @@ final class SystemCommandSequence {
     return mySequenceString.toString();
   }
 
-  public @NotNull String getEnd() {
-    return myEnd;
+  public @NotNull String formatResponse(@NotNull String response) {
+    int ps = getIntAt(0, -1);
+    return "\033]" + ps + ";" + response + getTerminator();
+  }
+
+  /**
+   * <a href="https://invisible-island.net/xterm/ctlseqs/ctlseqs.html">
+   * XTerm accepts either BEL or ST for terminating OSC
+   * sequences, and when returning information, uses the same
+   * terminator used in a query. </a>
+   */
+  private @NotNull String getTerminator() {
+    int endIndex = IntStream.range(0, mySequenceString.length())
+      .filter(i -> isEnd(mySequenceString.charAt(i)))
+      .findFirst().orElseThrow();
+
+    if (isTwoBytesEnd(mySequenceString.charAt(endIndex))) {
+      return mySequenceString.charAt(endIndex - 1) + "" + mySequenceString.charAt(endIndex);
+    } else {
+      return mySequenceString.charAt(endIndex) + "";
+    }
   }
 }

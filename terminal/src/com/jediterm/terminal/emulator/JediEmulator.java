@@ -219,31 +219,42 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         }
         break;
       case 10:
-        if ("?".equals(args.getStringAt(1))) { // Query
-          TerminalColor foreground = myTerminal.getWindowForeground();
-          if (foreground != null) {
-            String colorString = formatXParseColor(foreground);
-            String str = args.formatResponse(colorString);
-            LOG.debug("Responding to OSC 10 query : " + str);
-            myTerminal.deviceStatusReport(str);
-            return true;
-          }
-        }
-        break;
-      case 11: // Background http://www.xfree86.org/4.5.0/ctlseqs.html
-        if ("?".equals(args.getStringAt(1))) { // Query
-          TerminalColor background = myTerminal.getWindowBackground();
-          if (background != null) {
-            String colorString = formatXParseColor(background);
-            String str = args.formatResponse(colorString);
-            LOG.debug("Responding to OSC 11 query : " + str);
-            myTerminal.deviceStatusReport(str);
-            return true;
-          }
-        }
-        break;
+      case 11:
+        return processColorQuery(args);
     }
     return false;
+  }
+
+
+  /**
+   * <a href="http://www.xfree86.org/4.8.0/ctlseqs.html">
+   * If a "?" is given rather than a name or RGB specification, xterm replies with a control sequence of
+   * the same form which can be used to set the corresponding dynamic color.
+   * </a>
+   */
+  private boolean processColorQuery(@NotNull SystemCommandSequence args) {
+    if (!"?".equals(args.getStringAt(1))) {
+      return false;
+    }
+    int pt = args.getIntAt(0, -1);
+    TerminalColor color;
+    if (pt == 10) {
+      color = myTerminal.getWindowForeground();
+    }
+    else if (pt == 11) {
+      color = myTerminal.getWindowBackground();
+    }
+    else {
+      return false;
+    }
+    if (color != null) {
+      String str = args.format(pt + ";" + formatXParseColor(color));
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Responding to OSC " + pt + " query: " + str);
+      }
+      myTerminal.deviceStatusReport(str);
+    }
+    return true;
   }
 
   /**

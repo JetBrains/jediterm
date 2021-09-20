@@ -4,6 +4,7 @@ import com.google.common.base.Ascii;
 import com.google.common.collect.Lists;
 import com.jediterm.terminal.TerminalDataStream;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.List;
@@ -71,7 +72,7 @@ final class SystemCommandSequence {
     return len >= 2 && mySequenceString.charAt(len - 2) == Ascii.ESC && ch == '\\';
   }
 
-  public String getStringAt(int i) {
+  public @Nullable String getStringAt(int i) {
     if (i>=myArgs.size()) {
       return null;
     }
@@ -93,9 +94,8 @@ final class SystemCommandSequence {
     return mySequenceString.toString();
   }
 
-  public @NotNull String formatResponse(@NotNull String response) {
-    int ps = getIntAt(0, -1);
-    return "\033]" + ps + ";" + response + getTerminator();
+  public @NotNull String format(@NotNull String body) {
+    return (char)Ascii.ESC + "]" + body + getTerminator();
   }
 
   /**
@@ -105,14 +105,10 @@ final class SystemCommandSequence {
    * terminator used in a query. </a>
    */
   private @NotNull String getTerminator() {
-    int endIndex = IntStream.range(0, mySequenceString.length())
-      .filter(i -> isEnd(mySequenceString.charAt(i)))
-      .findFirst().orElseThrow();
-
-    if (isTwoBytesEnd(mySequenceString.charAt(endIndex))) {
-      return mySequenceString.charAt(endIndex - 1) + "" + mySequenceString.charAt(endIndex);
-    } else {
-      return mySequenceString.charAt(endIndex) + "";
+    int lastInd = mySequenceString.length() - 1;
+    if (isTwoBytesEnd(mySequenceString.charAt(lastInd))) {
+      return mySequenceString.substring(lastInd - 1);
     }
+    return mySequenceString.substring(lastInd);
   }
 }

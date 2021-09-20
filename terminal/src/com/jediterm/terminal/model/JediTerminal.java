@@ -271,7 +271,12 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   @Override
-  public TerminalColor getWindowBackground() {
+  public @Nullable TerminalColor getWindowForeground() {
+    return myDisplay.getWindowForeground();
+  }
+
+  @Override
+  public @Nullable TerminalColor getWindowBackground() {
     return myDisplay.getWindowBackground();
   }
 

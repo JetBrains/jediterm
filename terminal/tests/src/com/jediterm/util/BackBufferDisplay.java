@@ -2,6 +2,7 @@ package com.jediterm.util;
 
 import com.jediterm.terminal.CursorShape;
 import com.jediterm.terminal.RequestOrigin;
+import com.jediterm.terminal.TerminalColor;
 import com.jediterm.terminal.TerminalDisplay;
 import com.jediterm.terminal.model.TerminalTextBuffer;
 import com.jediterm.terminal.model.JediTerminal;
@@ -19,6 +20,8 @@ public class BackBufferDisplay implements TerminalDisplay {
   private final TerminalTextBuffer myTerminalTextBuffer;
   private TerminalSelection mySelection = null;
   private String myWindowTitle;
+  private @Nullable TerminalColor myForegroundColor;
+  private @Nullable TerminalColor myBackgroundColor;
 
   public BackBufferDisplay(TerminalTextBuffer terminalTextBuffer) {
     myTerminalTextBuffer = terminalTextBuffer;
@@ -91,5 +94,23 @@ public class BackBufferDisplay implements TerminalDisplay {
 
   @Override
   public void terminalMouseModeSet(MouseMode mode) {
+  }
+
+  @Override
+  public @Nullable TerminalColor getWindowForeground() {
+    return myForegroundColor;
+  }
+
+  public void setWindowForeground(@Nullable TerminalColor foregroundColor) {
+    myForegroundColor = foregroundColor;
+  }
+
+  @Override
+  public @Nullable TerminalColor getWindowBackground() {
+    return myBackgroundColor;
+  }
+
+  public void setWindowBackground(@Nullable TerminalColor backgroundColor) {
+    myBackgroundColor = backgroundColor;
   }
 }

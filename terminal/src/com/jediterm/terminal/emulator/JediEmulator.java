@@ -218,18 +218,50 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           return true;
         }
         break;
-      case 11: // Background http://www.xfree86.org/4.5.0/ctlseqs.html
-        if ("?".equals(args.getStringAt(1))) { // Query
-          TerminalColor background = myTerminal.getWindowBackground();
-          if (background != null) {
-            String str = "\033]11;rgb:" + background.toHexString16() + "\007";
-            LOG.debug("Responding to OSC 11 query : " + str);
-            myTerminal.deviceStatusReport(str);
-          }
-        }
-        break;
+      case 10:
+      case 11:
+        return processColorQuery(args);
     }
     return false;
+  }
+
+
+  /**
+   * <a href="http://www.xfree86.org/4.8.0/ctlseqs.html">
+   * If a "?" is given rather than a name or RGB specification, xterm replies with a control sequence of
+   * the same form which can be used to set the corresponding dynamic color.
+   * </a>
+   */
+  private boolean processColorQuery(@NotNull SystemCommandSequence args) {
+    if (!"?".equals(args.getStringAt(1))) {
+      return false;
+    }
+    int ps = args.getIntAt(0, -1);
+    TerminalColor color;
+    if (ps == 10) {
+      color = myTerminal.getWindowForeground();
+    }
+    else if (ps == 11) {
+      color = myTerminal.getWindowBackground();
+    }
+    else {
+      return false;
+    }
+    if (color != null) {
+      String str = args.format(ps + ";" + formatXParseColor(color));
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Responding to OSC " + ps + " query: " + str);
+      }
+      myTerminal.deviceStatusReport(str);
+    }
+    return true;
+  }
+
+  /**
+   * Returns <a href="https://linux.die.net/man/3/xparsecolor">XParseColor</a> representation of TerminalColor
+   */
+  private static @NotNull String formatXParseColor(TerminalColor color) {
+    return "rgb:" + color.toHexString16();
   }
 
   private void processTwoCharSequence(char ch, Terminal terminal) throws IOException {

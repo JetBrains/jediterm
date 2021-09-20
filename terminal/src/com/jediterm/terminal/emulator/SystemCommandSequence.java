@@ -3,9 +3,12 @@ package com.jediterm.terminal.emulator;
 import com.google.common.base.Ascii;
 import com.google.common.collect.Lists;
 import com.jediterm.terminal.TerminalDataStream;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.IntStream;
 
 /**
  * @author traff
@@ -69,7 +72,7 @@ final class SystemCommandSequence {
     return len >= 2 && mySequenceString.charAt(len - 2) == Ascii.ESC && ch == '\\';
   }
 
-  public String getStringAt(int i) {
+  public @Nullable String getStringAt(int i) {
     if (i>=myArgs.size()) {
       return null;
     }
@@ -89,5 +92,23 @@ final class SystemCommandSequence {
 
   public String getSequenceString() {
     return mySequenceString.toString();
+  }
+
+  public @NotNull String format(@NotNull String body) {
+    return (char)Ascii.ESC + "]" + body + getTerminator();
+  }
+
+  /**
+   * <a href="https://invisible-island.net/xterm/ctlseqs/ctlseqs.html">
+   * XTerm accepts either BEL or ST for terminating OSC
+   * sequences, and when returning information, uses the same
+   * terminator used in a query. </a>
+   */
+  private @NotNull String getTerminator() {
+    int lastInd = mySequenceString.length() - 1;
+    if (isTwoBytesEnd(mySequenceString.charAt(lastInd))) {
+      return mySequenceString.substring(lastInd - 1);
+    }
+    return mySequenceString.substring(lastInd);
   }
 }

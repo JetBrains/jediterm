@@ -236,21 +236,21 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     if (!"?".equals(args.getStringAt(1))) {
       return false;
     }
-    int pt = args.getIntAt(0, -1);
+    int ps = args.getIntAt(0, -1);
     TerminalColor color;
-    if (pt == 10) {
+    if (ps == 10) {
       color = myTerminal.getWindowForeground();
     }
-    else if (pt == 11) {
+    else if (ps == 11) {
       color = myTerminal.getWindowBackground();
     }
     else {
       return false;
     }
     if (color != null) {
-      String str = args.format(pt + ";" + formatXParseColor(color));
+      String str = args.format(ps + ";" + formatXParseColor(color));
       if (LOG.isDebugEnabled()) {
-        LOG.debug("Responding to OSC " + pt + " query: " + str);
+        LOG.debug("Responding to OSC " + ps + " query: " + str);
       }
       myTerminal.deviceStatusReport(str);
     }

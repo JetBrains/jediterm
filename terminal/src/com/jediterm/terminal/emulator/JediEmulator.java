@@ -131,7 +131,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         SystemCommandSequence command = new SystemCommandSequence(myDataStream);
 
         if (!deviceControlString(command)) {
-          LOG.error("Error processing DCS: ESCP" + command.getSequenceString());
+          LOG.error("Error processing DCS: ESCP" + command);
         }
         break;
       case ']': // Operating System Command (OSC)
@@ -139,7 +139,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         command = new SystemCommandSequence(myDataStream);
 
         if (!operatingSystemCommand(command)) {
-          LOG.error("Error processing OSC: ESC]" + command.getSequenceString());
+          LOG.error("Error processing OSC: ESC]" + command);
         }
         break;
       case '6':

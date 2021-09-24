@@ -1,8 +1,9 @@
 package com.jediterm.terminal.emulator;
 
+import com.google.common.base.Ascii;
 import com.google.common.collect.Lists;
-import com.jediterm.terminal.util.CharUtils;
 import com.jediterm.terminal.TerminalDataStream;
+import com.jediterm.terminal.util.CharUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -92,7 +93,7 @@ public class ControlSequence {
     for (final char b : myUnhandledChars) {
       bytes[i++] = b;
     }
-    bytes[i++] = (byte)CharUtils.ESC;
+    bytes[i++] = (byte)Ascii.ESC;
     bytes[i++] = (byte)'[';
 
     if (myStartsWithQuestionMark) {
@@ -149,7 +150,7 @@ public class ControlSequence {
       sb.append(" Unhandled:");
       CharUtils.CharacterType last = CharUtils.CharacterType.NONE;
       for (final char b : myUnhandledChars) {
-        last = CharUtils.appendChar(sb, last, (char)b);
+        last = CharUtils.appendChar(sb, last, b);
       }
     }
   }

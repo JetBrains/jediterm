@@ -44,7 +44,7 @@ public class JediTermTypeAheadModel implements TypeAheadTerminalModel {
   }
 
   public void forceRedraw() {
-    myTerminalTextBuffer.fireModelChangeEvent();
+    myTerminalTextBuffer.fireTypeAheadModelChangeEvent();
   }
 
   @Override

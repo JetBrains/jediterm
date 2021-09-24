@@ -54,6 +54,7 @@ public class TerminalTextBuffer {
   private boolean myUsingAlternateBuffer = false;
 
   private final List<TerminalModelListener> myListeners = new CopyOnWriteArrayList<>();
+  private final List<TerminalModelListener> myTypeAheadListeners = new CopyOnWriteArrayList<>();
 
   @Nullable
   private final TextProcessing myTextProcessing;
@@ -177,12 +178,26 @@ public class TerminalTextBuffer {
     myListeners.add(listener);
   }
 
+  public void addTypeAheadModelListener(TerminalModelListener listener) {
+    myTypeAheadListeners.add(listener);
+  }
+
   public void removeModelListener(TerminalModelListener listener) {
     myListeners.remove(listener);
   }
 
+  public void removeTypeAheadModelListener(TerminalModelListener listener) {
+    myTypeAheadListeners.remove(listener);
+  }
+
   void fireModelChangeEvent() {
     for (TerminalModelListener modelListener : myListeners) {
+      modelListener.modelChanged();
+    }
+  }
+
+  void fireTypeAheadModelChangeEvent() {
+    for (TerminalModelListener modelListener : myTypeAheadListeners) {
       modelListener.modelChanged();
     }
   }

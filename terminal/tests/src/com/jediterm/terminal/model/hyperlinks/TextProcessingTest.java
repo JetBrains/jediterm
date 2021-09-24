@@ -3,13 +3,17 @@ package com.jediterm.terminal.model.hyperlinks;
 import com.jediterm.terminal.HyperlinkStyle;
 import com.jediterm.terminal.TerminalColor;
 import com.jediterm.terminal.TextStyle;
-import com.jediterm.terminal.model.*;
+import com.jediterm.terminal.model.CharBuffer;
+import com.jediterm.terminal.model.JediTerminal;
+import com.jediterm.terminal.model.TerminalLine;
+import com.jediterm.terminal.model.TerminalTextBuffer;
 import com.jediterm.terminal.util.CharUtils;
-import com.jediterm.util.BackBufferDisplay;
+import com.jediterm.util.TestSession;
 import junit.framework.TestCase;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -17,57 +21,58 @@ import java.util.List;
 public class TextProcessingTest extends TestCase {
 
   private HyperlinkStyle myHyperlinkStyle;
-  private JediTerminal myTerminal;
-  private TerminalTextBuffer myTerminalTextBuffer;
-  private TextStyle myDefaultStyle;
+  private TestSession mySession;
 
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    StyleState state = new StyleState();
-    myDefaultStyle = state.getCurrent();
+    mySession = new TestSession(100, 5);
     TextStyle hyperlinkTextStyle = new TextStyle(TerminalColor.awt(Color.BLUE), TerminalColor.WHITE);
     myHyperlinkStyle = new HyperlinkStyle(hyperlinkTextStyle, new LinkInfo(() -> {}));
-    TextProcessing textProcessing = new TextProcessing(hyperlinkTextStyle, HyperlinkStyle.HighlightMode.ALWAYS);
-    textProcessing.addHyperlinkFilter(new TestFilter());
-    myTerminalTextBuffer = new TerminalTextBuffer(100, 5, state, textProcessing);
-    textProcessing.setTerminalTextBuffer(myTerminalTextBuffer);
-    myTerminal = new JediTerminal(new BackBufferDisplay(myTerminalTextBuffer), myTerminalTextBuffer, state);
+    mySession.getTextProcessing().addHyperlinkFilter(new TestFilter());
   }
 
-  public void testBasic() {
+  private @NotNull JediTerminal getTerminal() {
+    return mySession.getTerminal();
+  }
+
+  private @NotNull TerminalTextBuffer getTextBuffer() {
+    return mySession.getTerminalTextBuffer();
+  }
+
+  public void testBasic() throws IOException {
     String link = TestFilter.formatLink("hello");
-    myTerminal.writeString(link);
+    mySession.process(link);
     assertEquals(
         Collections.singletonList(new TerminalLine.TextEntry(myHyperlinkStyle, new CharBuffer(link))),
-        myTerminalTextBuffer.getLine(0).getEntries()
+        mySession.getTerminalTextBuffer().getLine(0).getEntries()
     );
   }
 
-  public void testErase() {
+  public void testErase() throws IOException {
     String str = "<[-------- PROGRESS 1ms";
-    myTerminal.writeString(str);
+    mySession.process(str);
     assertEquals(
-        Collections.singletonList(new TerminalLine.TextEntry(myDefaultStyle, new CharBuffer(str))),
-        myTerminalTextBuffer.getLine(0).getEntries()
+        Collections.singletonList(new TerminalLine.TextEntry(mySession.getDefaultStyle(), new CharBuffer(str))),
+        getTextBuffer().getLine(0).getEntries()
     );
-    myTerminal.cursorHorizontalAbsolute(0);
+    mySession.process("\u001b[1;1H"); // move cursor to the beginning of the line
     String link = TestFilter.formatLink("simple");
-    myTerminal.writeString(link);
+    getTerminal().writeString(link);
     assertEquals(
         Arrays.asList(
             new TerminalLine.TextEntry(myHyperlinkStyle, new CharBuffer(link + "GRESS")),
-            new TerminalLine.TextEntry(myDefaultStyle, new CharBuffer(" 1ms"))
+            new TerminalLine.TextEntry(mySession.getDefaultStyle(), new CharBuffer(" 1ms"))
         ),
-        myTerminalTextBuffer.getLine(0).getEntries()
+        getTextBuffer().getLine(0).getEntries()
     );
-    myTerminal.eraseInLine(0);
+    getTerminal().eraseInLine(0);
     assertEquals(
         Arrays.asList(
             new TerminalLine.TextEntry(myHyperlinkStyle, new CharBuffer(link)),
-            new TerminalLine.TextEntry(myDefaultStyle, new CharBuffer(CharUtils.NUL_CHAR, str.length() - link.length()))
+            new TerminalLine.TextEntry(mySession.getDefaultStyle(), new CharBuffer(CharUtils.NUL_CHAR, str.length() - link.length()))
         ),
-        myTerminalTextBuffer.getLine(0).getEntries()
+        getTextBuffer().getLine(0).getEntries()
     );
   }
 

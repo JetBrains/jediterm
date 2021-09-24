@@ -100,6 +100,11 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   @Override
+  public boolean isModeEnabled(TerminalMode mode) {
+    return myModes.contains(mode);
+  }
+
+  @Override
   public void disconnected() {
     myDisplay.setCursorVisible(false);
   }

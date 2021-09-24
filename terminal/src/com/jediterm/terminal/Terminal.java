@@ -96,6 +96,8 @@ public interface Terminal {
 
   void setModeEnabled(TerminalMode mode, boolean enabled);
 
+  boolean isModeEnabled(TerminalMode mode);
+
   void disconnected();
 
   int getCursorX();

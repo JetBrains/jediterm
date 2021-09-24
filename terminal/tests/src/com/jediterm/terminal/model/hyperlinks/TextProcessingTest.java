@@ -58,7 +58,7 @@ public class TextProcessingTest extends TestCase {
     );
     mySession.process("\u001b[1;1H"); // move cursor to the beginning of the line
     String link = TestFilter.formatLink("simple");
-    getTerminal().writeString(link);
+    mySession.process(link);
     assertEquals(
         Arrays.asList(
             new TerminalLine.TextEntry(myHyperlinkStyle, new CharBuffer(link + "GRESS")),
@@ -73,6 +73,26 @@ public class TextProcessingTest extends TestCase {
             new TerminalLine.TextEntry(mySession.getDefaultStyle(), new CharBuffer(CharUtils.NUL_CHAR, str.length() - link.length()))
         ),
         getTextBuffer().getLine(0).getEntries()
+    );
+  }
+
+  public void testOscLink() throws IOException {
+    mySession.process("\u001B]8;;http://foo.org\u001B\\Foo link\u001B]8;;\u001B\\ Some text 1");
+    assertEquals(
+      Arrays.asList(
+        new TerminalLine.TextEntry(myHyperlinkStyle, new CharBuffer("Foo link")),
+        new TerminalLine.TextEntry(mySession.getDefaultStyle(), new CharBuffer(" Some text 1"))
+      ),
+      getTextBuffer().getLine(0).getEntries()
+    );
+    mySession.process("\r\n");
+    mySession.process("\u001B]8;;http://bar.org\u0007Bar link\u001B]8;;\u0007 Some text 2");
+    assertEquals(
+      Arrays.asList(
+        new TerminalLine.TextEntry(myHyperlinkStyle, new CharBuffer("Bar link")),
+        new TerminalLine.TextEntry(mySession.getDefaultStyle(), new CharBuffer(" Some text 2"))
+      ),
+      getTextBuffer().getLine(1).getEntries()
     );
   }
 

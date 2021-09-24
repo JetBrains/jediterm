@@ -23,44 +23,45 @@ final class SystemCommandSequence {
   }
 
   private void readSystemCommandSequence(TerminalDataStream stream) throws IOException {
-    boolean isNumber = true;
-    int number = 0;
-    StringBuilder string = new StringBuilder();
-
-    while (true) {
-      final char b = stream.getChar();
-      mySequenceString.append(b);
-
-      if (b == ';' || isEnd(b)) {
-        if (isTwoBytesEnd(b)) {
-          string.delete(string.length() - 1, string.length());
+    StringBuilder argBuilder = new StringBuilder();
+    boolean end = false;
+    while (!end) {
+      final char ch = stream.getChar();
+      mySequenceString.append(ch);
+      end = isEnd(ch);
+      if (ch == ';' || end) {
+        if (end && isTwoBytesEnd(ch)) {
+          argBuilder.deleteCharAt(argBuilder.length() - 1);
         }
-        if (isNumber) {
-          myArgs.add(number);
-        }
-        else {
-          myArgs.add(string.toString());
-        }
-        if (isEnd(b)) {
-          break;
-        }
-        isNumber = true;
-        number = 0;
-        string = new StringBuilder();
-      }
-      else if (isNumber) {
-        if ('0' <= b && b <= '9') {
-          number = number * 10 + b - '0';
-        }
-        else {
-          isNumber = false;
-        }
-        string.append(b);
+        String arg = argBuilder.toString();
+        myArgs.add(parseArg(arg));
+        argBuilder.setLength(0);
       }
       else {
-        string.append(b);
+        argBuilder.append(ch);
       }
     }
+  }
+
+  private @NotNull Object parseArg(@NotNull String arg) {
+    if (isNumber(arg)) {
+      // use Integer.parseInt on numbers only to avoid excessive NumberFormatException
+      try {
+        return Integer.parseInt(arg);
+      }
+      catch (NumberFormatException ignored) {
+      }
+    }
+    return arg;
+  }
+
+  private static boolean isNumber(@NotNull String str) {
+    for (int i = 0; i < str.length(); i++) {
+      if (!Character.isDigit(str.charAt(i))) {
+        return false;
+      }
+    }
+    return !str.isEmpty();
   }
 
   private boolean isEnd(char b) {

@@ -3,6 +3,7 @@ package com.jediterm.terminal.util;
 import com.google.common.base.*;
 import com.jediterm.terminal.emulator.charset.*;
 import com.jediterm.terminal.model.*;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
@@ -10,8 +11,8 @@ import java.util.*;
  * @author traff
  */
 public class CharUtils {
-  public static final int ESC = Ascii.ESC;
-  public static final int DEL = Ascii.DEL;
+  private static final int ESC = Ascii.ESC;
+  private static final int DEL = Ascii.DEL;
 
   // NUL can only be at the end of the line
   public static final char NUL_CHAR = 0x0;
@@ -299,5 +300,14 @@ public class CharUtils {
                             (ucs >= 0xffe0 && ucs <= 0xffe6) ||
                             (ucs >= 0x20000 && ucs <= 0x2fffd) ||
                             (ucs >= 0x30000 && ucs <= 0x3fffd))) ? 1 : 0);
+  }
+
+  public static @NotNull String toHumanReadableText(@NotNull String escapeSequence) {
+    return escapeSequence.replace("\u001b", "ESC")
+                         .replace("\n", "\\n")
+                         .replace("\r", "\\r")
+                         .replace("\u0007", "BEL")
+                         .replace(" ", "<S>")
+                         .replace("\b", "\\b");
   }
 }

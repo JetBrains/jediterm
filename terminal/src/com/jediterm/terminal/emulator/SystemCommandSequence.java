@@ -3,12 +3,12 @@ package com.jediterm.terminal.emulator;
 import com.google.common.base.Ascii;
 import com.google.common.collect.Lists;
 import com.jediterm.terminal.TerminalDataStream;
+import com.jediterm.terminal.util.CharUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.stream.IntStream;
 
 /**
  * @author traff
@@ -90,17 +90,13 @@ final class SystemCommandSequence {
     return defaultValue;
   }
 
-  public String getSequenceString() {
-    return mySequenceString.toString().replace("\u001b", "ESC")
-      .replace("\n", "\\n")
-      .replace("\r", "\\r")
-      .replace("\u0007", "BEL")
-      .replace(" ", "<S>")
-      .replace("\b", "\\b");
-  }
-
   public @NotNull String format(@NotNull String body) {
     return (char)Ascii.ESC + "]" + body + getTerminator();
+  }
+
+  @Override
+  public String toString() {
+    return CharUtils.toHumanReadableText(mySequenceString.toString());
   }
 
   /**

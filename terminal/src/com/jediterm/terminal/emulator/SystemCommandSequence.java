@@ -14,27 +14,24 @@ import java.util.List;
  * @author traff
  */
 final class SystemCommandSequence {
+
+  private static final char ST = 0x9c;
+
   private final List<Object> myArgs = Lists.newArrayList();
+  private final StringBuilder mySequence = new StringBuilder();
 
-  private final StringBuilder mySequenceString = new StringBuilder();
-
-  public SystemCommandSequence(TerminalDataStream dataStream) throws IOException {
-    readSystemCommandSequence(dataStream);
-  }
-
-  private void readSystemCommandSequence(TerminalDataStream stream) throws IOException {
+  public SystemCommandSequence(@NotNull TerminalDataStream stream) throws IOException {
     StringBuilder argBuilder = new StringBuilder();
     boolean end = false;
     while (!end) {
-      final char ch = stream.getChar();
-      mySequenceString.append(ch);
-      end = isEnd(ch);
+      char ch = stream.getChar();
+      mySequence.append(ch);
+      end = isEnd();
       if (ch == ';' || end) {
-        if (end && isTwoBytesEnd(ch)) {
+        if (end && isTwoBytesEnd()) {
           argBuilder.deleteCharAt(argBuilder.length() - 1);
         }
-        String arg = argBuilder.toString();
-        myArgs.add(parseArg(arg));
+        myArgs.add(parseArg(argBuilder.toString()));
         argBuilder.setLength(0);
       }
       else {
@@ -44,8 +41,8 @@ final class SystemCommandSequence {
   }
 
   private @NotNull Object parseArg(@NotNull String arg) {
-    if (isNumber(arg)) {
-      // use Integer.parseInt on numbers only to avoid excessive NumberFormatException
+    if (arg.length() > 0 && Character.isDigit(arg.charAt(arg.length() - 1))) {
+      // check isDigit to reduce amount of expensive NumberFormatException
       try {
         return Integer.parseInt(arg);
       }
@@ -55,22 +52,18 @@ final class SystemCommandSequence {
     return arg;
   }
 
-  private static boolean isNumber(@NotNull String str) {
-    for (int i = 0; i < str.length(); i++) {
-      if (!Character.isDigit(str.charAt(i))) {
-        return false;
-      }
+  private boolean isEnd() {
+    int len = mySequence.length();
+    if (len > 0) {
+      char ch = mySequence.charAt(len - 1);
+      return ch == Ascii.BEL || ch == ST || isTwoBytesEnd();
     }
-    return !str.isEmpty();
+    return false;
   }
 
-  private boolean isEnd(char b) {
-    return b == Ascii.BEL || b == 0x9c || isTwoBytesEnd(b);
-  }
-
-  private boolean isTwoBytesEnd(char ch) {
-    int len = mySequenceString.length();
-    return len >= 2 && mySequenceString.charAt(len - 2) == Ascii.ESC && ch == '\\';
+  private boolean isTwoBytesEnd() {
+    int len = mySequence.length();
+    return len > 1 && mySequence.charAt(len - 2) == Ascii.ESC && mySequence.charAt(len - 1) == '\\';
   }
 
   public @Nullable String getStringAt(int i) {
@@ -97,7 +90,7 @@ final class SystemCommandSequence {
 
   @Override
   public String toString() {
-    return CharUtils.toHumanReadableText(mySequenceString.toString());
+    return CharUtils.toHumanReadableText(mySequence.toString());
   }
 
   /**
@@ -107,10 +100,10 @@ final class SystemCommandSequence {
    * terminator used in a query. </a>
    */
   private @NotNull String getTerminator() {
-    int lastInd = mySequenceString.length() - 1;
-    if (isTwoBytesEnd(mySequenceString.charAt(lastInd))) {
-      return mySequenceString.substring(lastInd - 1);
+    int len = mySequence.length();
+    if (isTwoBytesEnd()) {
+      return mySequence.substring(len - 2);
     }
-    return mySequenceString.substring(lastInd);
+    return mySequence.substring(len - 1);
   }
 }

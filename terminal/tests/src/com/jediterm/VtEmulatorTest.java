@@ -1,6 +1,9 @@
 package com.jediterm;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.IOException;
+import java.nio.file.Path;
 
 /**
  * @author traff
@@ -84,9 +87,9 @@ public class VtEmulatorTest extends EmulatorTestAbstract {
   }
 
   @Override
-  protected String getPathToTest() {
+  protected @NotNull Path getPathToTest() {
     String name = getName().substring(4);
     int ind = name.lastIndexOf("_");
-    return TestPathsManager.getTestDataPath() + "vttest/" + name.substring(0, ind) + "/" + name.substring(ind+1);
+    return TestPathsManager.getTestDataPath().resolve("vttest/" + name.substring(0, ind) + "/" + name.substring(ind + 1));
   }
 }

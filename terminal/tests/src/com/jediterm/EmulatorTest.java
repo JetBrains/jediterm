@@ -4,9 +4,11 @@ import com.jediterm.terminal.TerminalColor;
 import com.jediterm.terminal.emulator.ColorPalette;
 import com.jediterm.terminal.model.TerminalTextBuffer;
 import com.jediterm.util.TestSession;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 
 import java.io.IOException;
+import java.nio.file.Path;
 
 /**
  * @author traff
@@ -75,7 +77,7 @@ public class EmulatorTest extends EmulatorTestAbstract {
   }
 
   @Override
-  protected String getPathToTest() {
-    return TestPathsManager.getTestDataPath() + getName();
+  protected @NotNull Path getPathToTest() {
+    return TestPathsManager.getTestDataPath().resolve(getName());
   }
 }

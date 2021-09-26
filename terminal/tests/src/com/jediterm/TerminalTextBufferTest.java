@@ -1,9 +1,11 @@
 package com.jediterm;
 
-import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.StyledTextConsumerAdapter;
 import com.jediterm.terminal.TextStyle;
-import com.jediterm.terminal.model.*;
+import com.jediterm.terminal.model.CharBuffer;
+import com.jediterm.terminal.model.JediTerminal;
+import com.jediterm.terminal.model.StyleState;
+import com.jediterm.terminal.model.TerminalTextBuffer;
 import com.jediterm.util.BackBufferDisplay;
 import junit.framework.TestCase;
 import org.jetbrains.annotations.NotNull;

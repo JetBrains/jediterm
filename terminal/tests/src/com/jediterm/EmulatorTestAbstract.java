@@ -5,6 +5,7 @@ import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.model.TerminalTextBuffer;
 import com.jediterm.util.TestSession;
 import junit.framework.TestCase;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Ignore;
 
 import java.io.IOException;
@@ -44,5 +45,5 @@ public abstract class EmulatorTestAbstract extends TestCase {
   }
 
 
-  protected abstract String getPathToTest();
+  protected abstract @NotNull Path getPathToTest();
 }

@@ -1,7 +1,6 @@
 package com.jediterm.terminal.model;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
 import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.util.CharUtils;
@@ -18,14 +17,13 @@ import java.util.stream.Collectors;
 /**
  * @author traff
  */
-public class TerminalLine {
-  public TerminalLine myTypeAheadLine;
-
+public final class TerminalLine {
   private static final Logger LOG = Logger.getLogger(TerminalLine.class);
 
   private TextEntries myTextEntries = new TextEntries();
   private boolean myWrapped = false;
   private final List<TerminalLineIntervalHighlighting> myCustomHighlightings = new ArrayList<>();
+  TerminalLine myTypeAheadLine;
 
   public TerminalLine() {
   }
@@ -38,24 +36,21 @@ public class TerminalLine {
     return new TerminalLine();
   }
 
-  public synchronized String getText() {
-    final StringBuilder sb = new StringBuilder();
-
-    for (TerminalLine.TextEntry textEntry : Lists.newArrayList(myTextEntries)) {
+  public @NotNull String getText() {
+    StringBuilder result = new StringBuilder(myTextEntries.myLength);
+    for (TerminalLine.TextEntry textEntry : myTextEntries) {
       // NUL can only be at the end
       if (textEntry.getText().isNul()) {
         break;
-      } else {
-        sb.append(textEntry.getText());
       }
+      result.append(textEntry.getText());
     }
-
-    return sb.toString();
+    return result.toString();
   }
 
   public @NotNull TerminalLine copy() {
     TerminalLine result = new TerminalLine();
-    for (TextEntry entry : myTextEntries.entries()) {
+    for (TextEntry entry : myTextEntries) {
       result.myTextEntries.add(entry);
     }
     result.myWrapped = myWrapped;
@@ -341,7 +336,7 @@ public class TerminalLine {
   }
 
   public synchronized boolean isNul() {
-    for (TextEntry e : myTextEntries.entries()) {
+    for (TextEntry e : myTextEntries) {
       if (!e.isNul()) {
         return false;
       }
@@ -356,13 +351,14 @@ public class TerminalLine {
 
   @TestOnly
   public List<TextEntry> getEntries() {
-    return myTextEntries.entries();
+    return Collections.unmodifiableList(myTextEntries.entries());
   }
 
   void appendEntry(@NotNull TextEntry entry) {
     myTextEntries.add(entry);
   }
 
+  @SuppressWarnings("unused") // used by IntelliJ
   public synchronized @NotNull TerminalLineIntervalHighlighting addCustomHighlighting(int startOffset, int length, @NotNull TextStyle textStyle) {
     TerminalLineIntervalHighlighting highlighting = new TerminalLineIntervalHighlighting(this, startOffset, length, textStyle) {
       @Override
@@ -436,12 +432,12 @@ public class TerminalLine {
     }
 
     private List<TextEntry> entries() {
-      return Collections.unmodifiableList(myTextEntries);
+      return myTextEntries;
     }
 
     @NotNull
     public Iterator<TextEntry> iterator() {
-      return entries().iterator();
+      return myTextEntries.iterator();
     }
 
     public int length() {

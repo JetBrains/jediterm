@@ -1733,7 +1733,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     }
 
     public void keyPressed(final KeyEvent e) {
-      if (!TerminalAction.processEvent(TerminalPanel.this, e)) {
+      if (TerminalAction.processEvent(TerminalPanel.this, e)) {
+        e.consume();
+      }
+      else {
         processTerminalKeyPressed(e);
       }
     }

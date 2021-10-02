@@ -1630,7 +1630,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
         return;
       }
       // CTRL + Space is not handled in KeyEvent; handle it manually
-      if (keychar == ' ' && (e.getModifiers() & InputEvent.CTRL_MASK) != 0) {
+      if (keychar == ' ' && (e.getModifiersEx() & InputEvent.CTRL_DOWN_MASK) != 0) {
         myTerminalStarter.sendBytes(new byte[]{Ascii.NUL}, true);
         e.consume();
         return;
@@ -1680,11 +1680,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       return;
     }
     char keyChar = e.getKeyChar();
-    int modifiers = e.getModifiers();
     final char[] obuffer;
     obuffer = new char[]{keyChar};
 
-    if (keyChar == '`' && (modifiers & InputEvent.META_MASK) != 0) {
+    if (keyChar == '`' && (e.getModifiersEx() & InputEvent.META_DOWN_MASK) != 0) {
       // Command + backtick is a short-cut on Mac OSX, so we shouldn't type anything
       return;
     }

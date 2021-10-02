@@ -1613,9 +1613,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     myNextActionProvider = provider;
   }
 
-  private void processTerminalKeyPressed(KeyEvent e) {
+  private boolean processTerminalKeyPressed(KeyEvent e) {
     if (hasUncommittedChars()) {
-      return;
+      return false;
     }
 
     try {
@@ -1626,37 +1626,37 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       // although it send the char '.'
       if (keycode == KeyEvent.VK_DELETE && keychar == '.') {
         myTerminalStarter.sendBytes(new byte[]{'.'}, true);
-        e.consume();
-        return;
+        return true;
       }
       // CTRL + Space is not handled in KeyEvent; handle it manually
       if (keychar == ' ' && (e.getModifiersEx() & InputEvent.CTRL_DOWN_MASK) != 0) {
         myTerminalStarter.sendBytes(new byte[]{Ascii.NUL}, true);
-        e.consume();
-        return;
+        return true;
       }
 
       final byte[] code = myTerminalStarter.getCode(keycode, e.getModifiers());
       if (code != null) {
         myTerminalStarter.sendBytes(code, true);
-        e.consume();
         if (mySettingsProvider.scrollToBottomOnTyping() && isCodeThatScrolls(keycode)) {
           scrollToBottom();
         }
+        return true;
       }
-      else if (isAltPressedOnly(e) && Character.isDefined(keychar) && mySettingsProvider.altSendsEscape()) {
+      if (isAltPressedOnly(e) && Character.isDefined(keychar) && mySettingsProvider.altSendsEscape()) {
         // Cannot use e.getKeyChar() on macOS:
         //  Option+f produces e.getKeyChar()='ƒ' (402), but 'f' (102) is needed.
         //  Option+b produces e.getKeyChar()='∫' (8747), but 'b' (98) is needed.
         myTerminalStarter.sendString(new String(new char[]{Ascii.ESC, simpleMapKeyCodeToChar(e)}), true);
-        e.consume();
+        return true;
       }
-      else if (Character.isISOControl(keychar)) { // keys filtered out here will be processed in processTerminalKeyTyped
-        processCharacter(e);
+      if (Character.isISOControl(keychar)) { // keys filtered out here will be processed in processTerminalKeyTyped
+        return processCharacter(e);
       }
-    } catch (final Exception ex) {
+    }
+    catch (Exception ex) {
       LOG.error("Error sending pressed key to emulator", ex);
     }
+    return false;
   }
 
   private static char simpleMapKeyCodeToChar(@NotNull KeyEvent e) {
@@ -1675,9 +1675,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
             (modifiersEx & InputEvent.SHIFT_DOWN_MASK) == 0;
   }
 
-  private void processCharacter(@NotNull KeyEvent e) {
+  private boolean processCharacter(@NotNull KeyEvent e) {
     if (isAltPressedOnly(e) && mySettingsProvider.altSendsEscape()) {
-      return;
+      return false;
     }
     char keyChar = e.getKeyChar();
     final char[] obuffer;
@@ -1685,15 +1685,15 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
     if (keyChar == '`' && (e.getModifiersEx() & InputEvent.META_DOWN_MASK) != 0) {
       // Command + backtick is a short-cut on Mac OSX, so we shouldn't type anything
-      return;
+      return false;
     }
 
     myTerminalStarter.sendString(new String(obuffer), true);
-    e.consume();
 
     if (mySettingsProvider.scrollToBottomOnTyping()) {
       scrollToBottom();
     }
+    return true;
   }
 
   private static boolean isCodeThatScrolls(int keycode) {
@@ -1711,37 +1711,41 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
             || keycode == KeyEvent.VK_PAGE_DOWN;
   }
 
-  private void processTerminalKeyTyped(KeyEvent e) {
+  private boolean processTerminalKeyTyped(KeyEvent e) {
     if (hasUncommittedChars()) {
-      return;
+      return false;
     }
 
-    final char keychar = e.getKeyChar();
-    if (!Character.isISOControl(keychar)) { // keys filtered out here will be processed in processTerminalKeyPressed
+    if (!Character.isISOControl(e.getKeyChar())) { // keys filtered out here will be processed in processTerminalKeyPressed
       try {
-        processCharacter(e);
-      } catch (final Exception ex) {
+        return processCharacter(e);
+      }
+      catch (Exception ex) {
         LOG.error("Error sending typed key to emulator", ex);
       }
     }
+    return false;
   }
 
   private class TerminalKeyHandler extends KeyAdapter {
 
+    private boolean myIgnoreNextKeyTypedEvent;
+
     public TerminalKeyHandler() {
     }
 
-    public void keyPressed(final KeyEvent e) {
-      if (TerminalAction.processEvent(TerminalPanel.this, e)) {
+    public void keyPressed(KeyEvent e) {
+      myIgnoreNextKeyTypedEvent = false;
+      if (TerminalAction.processEvent(TerminalPanel.this, e) || processTerminalKeyPressed(e)) {
         e.consume();
-      }
-      else {
-        processTerminalKeyPressed(e);
+        myIgnoreNextKeyTypedEvent = true;
       }
     }
 
-    public void keyTyped(final KeyEvent e) {
-      processTerminalKeyTyped(e);
+    public void keyTyped(KeyEvent e) {
+      if (myIgnoreNextKeyTypedEvent || processTerminalKeyTyped(e)) {
+        e.consume();
+      }
     }
   }
 

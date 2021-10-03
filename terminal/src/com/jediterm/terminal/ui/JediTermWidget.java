@@ -200,8 +200,8 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     return mySessionRunning.get();
   }
 
-  public String getBufferText(DebugBufferType type) {
-    return type.getValue(this);
+  public String getBufferText(DebugBufferType type, int stateIndex) {
+    return type.getValue(this, stateIndex);
   }
 
   @Override

@@ -8,7 +8,9 @@ import com.intellij.openapi.util.Pair
 import com.intellij.util.EncodingEnvironmentUtil
 import com.jediterm.pty.PtyProcessTtyConnector
 import com.jediterm.terminal.LoggingTtyConnector
+import com.jediterm.terminal.LoggingTtyConnector.TerminalState
 import com.jediterm.terminal.TtyConnector
+import com.jediterm.terminal.ui.JediTermWidget
 import com.jediterm.terminal.ui.TerminalWidget
 import com.jediterm.terminal.ui.UIUtil
 import com.jediterm.terminal.ui.settings.DefaultTabbedSettingsProvider
@@ -88,9 +90,18 @@ class JediTerm : AbstractTerminalFrame(), Disposable {
         return widget
     }
 
-    class LoggingPtyProcessTtyConnector(process: PtyProcess, charset: Charset, command: List<String>) :
+    class LoggingPtyProcessTtyConnector(
+        process: PtyProcess,
+        charset: Charset,
+        command: List<String>
+    ) :
         PtyProcessTtyConnector(process, charset, command), LoggingTtyConnector {
-        private val myDataChunks = Lists.newArrayList<CharArray>()
+        private val MAX_LOG_SIZE = 200
+
+        private val myDataChunks = Lists.newLinkedList<CharArray>()
+        private val myStates = Lists.newLinkedList<TerminalState>()
+        private var myWidget: JediTermWidget? = null
+        private var logStart = 0
 
         @Throws(IOException::class)
         override fun read(buf: CharArray, offset: Int, length: Int): Int {
@@ -98,6 +109,20 @@ class JediTerm : AbstractTerminalFrame(), Disposable {
             if (len > 0) {
                 val arr = buf.copyOfRange(offset, len)
                 myDataChunks.add(arr)
+
+                val terminalTextBuffer = myWidget!!.terminalTextBuffer
+                val terminalState = TerminalState(
+                    terminalTextBuffer.screenLines,
+                    terminalTextBuffer.styleLines,
+                    terminalTextBuffer.historyBuffer.lines
+                )
+                myStates.add(terminalState)
+
+                if (myDataChunks.size > MAX_LOG_SIZE) {
+                    myDataChunks.removeFirst()
+                    myStates.removeFirst()
+                    logStart++
+                }
             }
             return len
         }
@@ -106,9 +131,15 @@ class JediTerm : AbstractTerminalFrame(), Disposable {
             return Lists.newArrayList(myDataChunks)
         }
 
+        override fun getStates(): List<TerminalState> {
+            return Lists.newArrayList(myStates)
+        }
+
+        override fun getLogStart() = logStart
+
         @Throws(IOException::class)
         override fun write(string: String) {
-            LOG.debug("Writing in OutputStream : " + string)
+            LOG.debug("Writing in OutputStream : $string")
             super.write(string)
         }
 
@@ -117,6 +148,9 @@ class JediTerm : AbstractTerminalFrame(), Disposable {
             LOG.debug("Writing in OutputStream : " + bytes.contentToString() + " " + String(bytes))
             super.write(bytes)
         }
-    }
 
+        fun setWidget(widget: JediTermWidget) {
+            myWidget = widget
+        }
+    }
 }

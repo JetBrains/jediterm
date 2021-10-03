@@ -1,5 +1,6 @@
 package com.jediterm.ui;
 
+import com.jediterm.app.JediTerm;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.debug.BufferPanel;
@@ -131,6 +132,9 @@ public abstract class AbstractTerminalFrame {
 
   public JediTermWidget openSession(TerminalWidget terminal, TtyConnector ttyConnector) {
     JediTermWidget session = terminal.createTerminalSession(ttyConnector);
+    if (ttyConnector instanceof JediTerm.LoggingPtyProcessTtyConnector) {
+      ((JediTerm.LoggingPtyProcessTtyConnector) ttyConnector).setWidget(session);
+    }
     session.start();
     return session;
   }

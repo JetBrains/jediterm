@@ -11,7 +11,7 @@ import com.jediterm.terminal.model.TerminalTextBuffer;
 public interface TerminalSession {
   void start();
 
-  String getBufferText(DebugBufferType type);
+  String getBufferText(DebugBufferType type, int stateIndex);
 
   TerminalTextBuffer getTerminalTextBuffer();
 

@@ -296,6 +296,17 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       }
     });
 
+    addHierarchyListener(new HierarchyListener() {
+      @Override
+      public void hierarchyChanged(HierarchyEvent e) {
+        // replace with com.intellij.util.ui.update.UiNotifyConnector#doWhenFirstShown when merged with intellij
+        if ((e.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0 && isShowing()) {
+          sizeTerminalFromComponent();
+          removeHierarchyListener(this);
+        }
+      }
+    });
+
     addFocusListener(new FocusAdapter() {
       @Override
       public void focusGained(FocusEvent e) {

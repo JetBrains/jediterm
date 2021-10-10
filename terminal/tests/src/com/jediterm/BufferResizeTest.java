@@ -384,4 +384,41 @@ public class BufferResizeTest extends TestCase {
         "      \n" +
         "$     \n", terminalTextBuffer.getScreenLines());
   }
+
+  public void testPointsTracking() {
+    StyleState state = new StyleState();
+
+
+    TerminalTextBuffer textBuffer = new TerminalTextBuffer(10, 4, state);
+
+    JediTerminal terminal = new BackBufferTerminal(textBuffer, state);
+
+
+    terminal.writeString("line1");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString("line2");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString("line3");
+    terminal.newLine();
+    terminal.carriageReturn();
+    terminal.writeString("line4");
+
+    terminal.resize(new Dimension(5, 4), RequestOrigin.User);
+
+
+    LinesBuffer historyBuffer = textBuffer.getHistoryBuffer();
+    assertEquals(1, historyBuffer.getLineCount());
+    assertEquals("line1", historyBuffer.getLine(0).getText());
+
+    assertEquals(
+      "line2\n" +
+      "line3\n" +
+      "line4\n" +
+      "     \n", textBuffer.getScreenLines());
+
+    assertEquals(1, terminal.getCursorX());
+    assertEquals(4, terminal.getCursorY());
+  }
 }

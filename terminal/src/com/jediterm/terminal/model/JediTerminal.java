@@ -331,7 +331,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
           }
           // Rest
           beginY = myCursorY;
-          endY = myTerminalHeight;
+          endY = myTerminalHeight - 1;
 
           break;
         case 1:

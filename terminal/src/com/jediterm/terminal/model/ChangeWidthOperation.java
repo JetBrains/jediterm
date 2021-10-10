@@ -14,7 +14,7 @@ class ChangeWidthOperation {
   private final TerminalTextBuffer myTextBuffer;
   private final int myNewWidth;
   private final int myNewHeight;
-  private final Map<Point, Point> myTrackingPoints = new HashMap<>();
+  private final Map<TrackingPoint, Point> myTrackingPoints = new HashMap<>();
   private final List<TerminalLine> myAllLines = new ArrayList<>();
   private TerminalLine myCurrentLine;
   private int myCurrentLineLength;
@@ -26,18 +26,26 @@ class ChangeWidthOperation {
     myNewHeight = newHeight;
   }
 
-  void addPointToTrack(@NotNull Point original) {
-    myTrackingPoints.put(new Point(original), null);
+  void addPointToTrack(@NotNull Point point) {
+    myTrackingPoints.put(new TrackingPoint(point, false), null);
+  }
+
+ void addPointToTrack(@NotNull Point point, boolean isForceVisible) {
+    myTrackingPoints.put(new TrackingPoint(point, isForceVisible), null);
   }
 
   @NotNull
   Point getTrackedPoint(@NotNull Point original) {
-    Point result = myTrackingPoints.get(new Point(original));
-    if (result == null) {
-      LOG.warn("Not tracked point: " + original);
-      return original;
+    Point result = myTrackingPoints.get(new TrackingPoint(original, false));
+    if (result != null) {
+      return result;
     }
-    return result;
+    result = myTrackingPoints.get(new TrackingPoint(original, true));
+    if (result != null) {
+      return result;
+    }
+    LOG.warn("Not tracked point: " + original);
+    return original;
   }
 
   void run() {
@@ -57,10 +65,10 @@ class ChangeWidthOperation {
     }
     int oldScreenLineCount = Math.min(screenBuffer.getLineCount(), myTextBuffer.getHeight());
     for (int i = 0; i < oldScreenLineCount; i++) {
-      List<Point> points = findPointsAtY(i);
-      for (Point point : points) {
-        int newX = (myCurrentLineLength + point.x) % myNewWidth;
-        int newY = myAllLines.size() + (myCurrentLineLength + point.x) / myNewWidth;
+      List<TrackingPoint> points = findPointsAtY(i);
+      for (TrackingPoint point : points) {
+        int newX = (myCurrentLineLength + point.getX()) % myNewWidth;
+        int newY = myAllLines.size() + (myCurrentLineLength + point.getX()) / myNewWidth;
         if (myCurrentLine != null) {
           newY--;
         }
@@ -69,27 +77,36 @@ class ChangeWidthOperation {
       addLine(screenBuffer.getLine(i));
     }
     for (int i = oldScreenLineCount; i < myTextBuffer.getHeight(); i++) {
-      List<Point> points = findPointsAtY(i);
-      for (Point point : points) {
-        int newX = point.x % myNewWidth;
-        int newY = (i - oldScreenLineCount) + myAllLines.size() + point.x / myNewWidth;
+      List<TrackingPoint> points = findPointsAtY(i);
+      for (TrackingPoint point : points) {
+        int newX = point.getX() % myNewWidth;
+        int newY = (i - oldScreenLineCount) + myAllLines.size() + point.getX() / myNewWidth;
         myTrackingPoints.put(point, new Point(newX, newY));
       }
     }
     
     int emptyBottomLineCount = getEmptyBottomLineCount();
+    int bottomMostPointY = 0;
+    for (Map.Entry<TrackingPoint, Point> entry : myTrackingPoints.entrySet()) {
+      if (entry.getKey().getForceVisible()) {
+        bottomMostPointY = Math.max(bottomMostPointY, entry.getValue().y);
+      }
+    }
+
     screenStartInd = Math.max(screenStartInd, myAllLines.size() - Math.min(myAllLines.size(), myNewHeight) - emptyBottomLineCount);
     screenStartInd = Math.min(screenStartInd, myAllLines.size() - Math.min(myAllLines.size(), myNewHeight));
+    screenStartInd = Math.max(screenStartInd, bottomMostPointY - myNewHeight + 1);
     historyBuffer.clearAll();
     historyBuffer.addLines(myAllLines.subList(0, screenStartInd));
     screenBuffer.clearAll();
     screenBuffer.addLines(myAllLines.subList(screenStartInd, Math.min(screenStartInd + myNewHeight, myAllLines.size())));
-    for (Map.Entry<Point, Point> entry : myTrackingPoints.entrySet()) {
+    for (Map.Entry<TrackingPoint, Point> entry : myTrackingPoints.entrySet()) {
       Point p = entry.getValue();
       if (p != null) {
         p.y -= screenStartInd;
       } else {
-        p = new Point(entry.getKey());
+        TrackingPoint key = entry.getKey();
+        p = new Point(key.getX(), key.getY());
         entry.setValue(p);
       }
       p.x = Math.min(myNewWidth, Math.max(0, p.x));
@@ -106,10 +123,10 @@ class ChangeWidthOperation {
   }
 
   @NotNull
-  private List<Point> findPointsAtY(int y) {
-    List<Point> result = Collections.emptyList();
-    for (Point key : myTrackingPoints.keySet()) {
-      if (key.y == y) {
+  private List<TrackingPoint> findPointsAtY(int y) {
+    List<TrackingPoint> result = Collections.emptyList();
+    for (TrackingPoint key : myTrackingPoints.keySet()) {
+      if (key.getY() == y) {
         if (result.isEmpty()) {
           result = new ArrayList<>();
         }
@@ -163,5 +180,46 @@ class ChangeWidthOperation {
       return entry;
     }
     return new TerminalLine.TextEntry(entry.getStyle(), entry.getText().subBuffer(startInd, count));
+  }
+
+  public static class TrackingPoint {
+    private final int myX;
+    private final int myY;
+    private final boolean myForceVisible;
+
+    public TrackingPoint(Point p, boolean forceVisible) {
+      this(p.x, p.y, forceVisible);
+    }
+
+    public TrackingPoint(int x, int y, boolean forceVisible) {
+      myX = x;
+      myY = y;
+      myForceVisible = forceVisible;
+    }
+
+    public int getX() {
+      return myX;
+    }
+
+    public int getY() {
+      return myY;
+    }
+
+    public boolean getForceVisible() {
+      return myForceVisible;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (!(o instanceof TrackingPoint)) return false;
+      TrackingPoint that = (TrackingPoint) o;
+      return myX == that.myX && myY == that.myY && myForceVisible == that.myForceVisible;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(myX, myY, myForceVisible);
+    }
   }
 }

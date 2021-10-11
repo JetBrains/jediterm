@@ -17,19 +17,37 @@ import java.awt.event.ItemListener;
 
 public class BufferPanel extends JPanel {
   public BufferPanel(final TerminalSession terminal) {
-    super(new BorderLayout());
-    final JTextArea area = new JTextArea();
-    area.setEditable(false);
+    super(new GridBagLayout());
 
-    add(area, BorderLayout.NORTH);
+
+    final JTextArea area = constructTextArea();
+    GridBagConstraints areaConstraints = new GridBagConstraints();
+    areaConstraints.fill = GridBagConstraints.BOTH;
+    areaConstraints.gridx = 0;
+    areaConstraints.gridy = 1;
+    areaConstraints.weightx = 0.5;
+    areaConstraints.weighty = 1;
+    JScrollPane areaScrollPane = new JScrollPane(area);
+    add(areaScrollPane, areaConstraints);
+
+    final JTextArea controlSequencesArea = constructTextArea();
+    GridBagConstraints controlSequenceConstraints = new GridBagConstraints();
+    controlSequenceConstraints.fill = GridBagConstraints.BOTH;
+    controlSequenceConstraints.gridx = 1;
+    controlSequenceConstraints.gridy = 1;
+    controlSequenceConstraints.weightx = 0.5;
+    controlSequenceConstraints.weighty = 1;
+    add(new JScrollPane(controlSequencesArea), controlSequenceConstraints);
 
     final DebugBufferType[] choices = DebugBufferType.values();
-
     final JComboBox chooser = new JComboBox(choices);
-    add(chooser, BorderLayout.NORTH);
-
-    area.setFont(Font.decode("Monospaced-14"));
-    add(new JScrollPane(area), BorderLayout.CENTER);
+    GridBagConstraints chooserConstraints = new GridBagConstraints();
+    chooserConstraints.fill = GridBagConstraints.HORIZONTAL;
+    chooserConstraints.gridx = 0;
+    chooserConstraints.gridy = 0;
+    chooserConstraints.weightx = 1;
+    chooserConstraints.gridwidth = 2;
+    add(chooser, chooserConstraints);
 
     JPanel stateIndexPanel = new JPanel(new GridBagLayout());
 
@@ -55,13 +73,19 @@ public class BufferPanel extends JPanel {
     spinnerConstraints.gridx = 1;
     spinnerConstraints.gridy = 0;
     spinnerConstraints.weightx = 0.1;
-    stateIndexPanel.setBorder(BorderFactory.createLineBorder(Color.black));
     stateIndexPanel.add(spinner, spinnerConstraints);
 
-    add(stateIndexPanel, BorderLayout.PAGE_END);
+    GridBagConstraints stateIndexPanelConstraints = new GridBagConstraints();
+    stateIndexPanelConstraints.fill = GridBagConstraints.HORIZONTAL;
+    stateIndexPanelConstraints.gridx = 0;
+    stateIndexPanelConstraints.gridy = 2;
+    stateIndexPanelConstraints.weightx = 1;
+    stateIndexPanelConstraints.gridwidth = 2;
+    add(stateIndexPanel, stateIndexPanelConstraints);
 
     class Updater implements ActionListener, ItemListener {
-      private String myLastUpdate = "";
+      private String myLastUpdateText = "";
+      private String myLastUpdateControlSequenceVisualization = "";
 
       public void update() {
         final DebugBufferType type = (DebugBufferType) chooser.getSelectedItem();
@@ -71,10 +95,16 @@ public class BufferPanel extends JPanel {
         slider.setMaximum(newMaxStateIndex);
         SpinnerModel spinnerModel = new SpinnerNumberModel(Math.max((int) spinner.getValue(), newMinStateIndex), newMinStateIndex, newMaxStateIndex, 1);
         spinner.setModel(spinnerModel);
-        final String text = terminal.getBufferText(type, slider.getValue() - slider.getMinimum());
-        if (!text.equals(myLastUpdate)) {
+        int stateIndex = slider.getValue() - slider.getMinimum();
+        final String text = terminal.getBufferText(type, stateIndex);
+        final String controlSequencesVisualization = getControlSequencesVisualization(terminal, stateIndex);
+        if (!text.equals(myLastUpdateText)) {
           area.setText(text);
-          myLastUpdate = text;
+          myLastUpdateText = text;
+        }
+        if (!controlSequencesVisualization.equals(myLastUpdateControlSequenceVisualization)) {
+          controlSequencesArea.setText(controlSequencesVisualization);
+          myLastUpdateControlSequenceVisualization = controlSequencesVisualization;
         }
       }
 
@@ -105,4 +135,23 @@ public class BufferPanel extends JPanel {
     timer.setRepeats(true);
     timer.start();
   }
+
+  private static JTextArea constructTextArea() {
+    JTextArea area = new JTextArea();
+    area.setEditable(false);
+    area.setFont(Font.decode("Monospaced-14"));
+    return area;
+  }
+
+  private final ControlSequenceVisualizer myVisualizer = new ControlSequenceVisualizer();
+
+  private String getControlSequencesVisualization(TerminalSession session, int stateIndex) {
+    if (session.getTtyConnector() instanceof LoggingTtyConnector) {
+      java.util.List<char[]> chunks = ((LoggingTtyConnector) session.getTtyConnector()).getChunks();
+      return myVisualizer.getVisualizedString(chunks.subList(0, stateIndex));
+    } else {
+      return "Control sequences aren't logged";
+    }
+  }
+
 }

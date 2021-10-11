@@ -39,21 +39,7 @@ public enum DebugBufferType {
         return states.get(stateIndex).myHistoryLines;
       }
     }
-  },
-
-  ControlSequences() {
-    private final ControlSequenceVisualizer myVisualizer = new ControlSequenceVisualizer();
-
-    public String getValue(TerminalSession session, int stateIndex) {
-      if (session.getTtyConnector() instanceof LoggingTtyConnector) {
-        List<char[]> chunks = ((LoggingTtyConnector) session.getTtyConnector()).getChunks();
-        return myVisualizer.getVisualizedString(chunks.subList(0, stateIndex));
-      } else {
-        return "Control sequences aren't logged";
-      }
-    }
   };
-
 
   public abstract String getValue(TerminalSession session, int stateIndex);
 }

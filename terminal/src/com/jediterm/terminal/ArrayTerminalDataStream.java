@@ -1,6 +1,7 @@
 package com.jediterm.terminal;
 
 import com.jediterm.terminal.util.CharUtils;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 
@@ -72,5 +73,10 @@ public class ArrayTerminalDataStream implements TerminalDataStream {
   @Override
   public boolean isEmpty() {
     return myLength == 0;
+  }
+
+  @Override
+  public void addOnBeforeBlockingWaitListener(@NotNull Runnable listener) {
+    // ArrayTerminalDataStream never blocks
   }
 }

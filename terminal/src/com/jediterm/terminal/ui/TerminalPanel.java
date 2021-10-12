@@ -658,7 +658,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       Dimension pixelDimension = new Dimension(getPixelWidth(), getPixelHeight());
       setPreferredSize(pixelDimension);
       if (myTerminalPanelListener != null) {
-        myTerminalPanelListener.onPanelResize(origin);
+        SwingUtilities.invokeLater(() -> myTerminalPanelListener.onPanelResize(origin));
       }
       SwingUtilities.invokeLater(() -> updateScrolling(true));
     }

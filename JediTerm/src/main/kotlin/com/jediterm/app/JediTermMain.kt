@@ -75,6 +75,7 @@ class JediTerm : AbstractTerminalFrame(), Disposable {
                 .setCommand(command)
                 .setEnvironment(envs)
                 .setConsole(false)
+                .setUseWinConPty(true)
                 .start()
 
             return LoggingPtyProcessTtyConnector(process, charset, command.toList())

@@ -664,6 +664,8 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 20:
           setModeEnabled(TerminalMode.AutoNewLine, enabled);
           return true;
+        case 25:
+          return true;
         default:
           return false;
       }

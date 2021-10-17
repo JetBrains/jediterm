@@ -53,6 +53,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   protected Dimension myCharSize = new Dimension();
   private boolean myMonospaced;
   protected Dimension myTermSize = new Dimension(80, 24);
+  private boolean myInitialSizeSyncDone = false;
 
   private TerminalStarter myTerminalStarter = null;
 
@@ -625,7 +626,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       Dimension newSize = getTerminalSizeFromComponent();
       if (newSize != null) {
         JediTerminal.ensureTermMinimumSize(newSize);
-        if (!myTermSize.equals(newSize)) {
+        if (!myTermSize.equals(newSize) || !myInitialSizeSyncDone) {
+          myInitialSizeSyncDone = true;
           myTypeAheadManager.onResize();
           myTerminalStarter.postResize(newSize, RequestOrigin.User);
         }

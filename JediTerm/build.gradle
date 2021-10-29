@@ -9,7 +9,6 @@ buildscript {
 }
 
 plugins {
-    id "edu.sc.seis.macAppBundle" version "2.3.0"
     id 'edu.sc.seis.launch4j' version '2.4.4'
 }
 
@@ -32,29 +31,23 @@ sourceSets {
 }
 
 dependencies {
-    compile project(':pty')
+    implementation project(':pty')
 
-    compile ":eawtstub:"
+    implementation ":eawtstub:"
 
-    testCompile 'junit:junit:4.12'
+    testImplementation 'junit:junit:4.12'
 
-    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    compile "org.jetbrains:annotations:13.0"
-    compile 'net.java.dev.jna:jna:4.5.0'
-    compile 'net.java.dev.jna:jna-platform:4.5.0'
-    compile ":trove4j:"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    implementation 'com.google.guava:guava:30.1.1-jre'
+    implementation 'log4j:log4j:1.2.17'
+    implementation "org.jetbrains:annotations:13.0"
+    implementation 'net.java.dev.jna:jna:4.5.0'
+    implementation 'net.java.dev.jna:jna-platform:4.5.0'
+    implementation ":trove4j:"
 }
 
 mainClassName = "com.jediterm.app.JediTermMain"
 
-
-macAppBundle {
-    mainClassName = "com.jediterm.app.JediTermMain"
-    icon = "img/JediTerm.icns"
-    bundleJRE = true
-    javaProperties.put("apple.laf.useScreenMenuBar", "true")
-    bundleExtras.put('NSHighResolutionCapable', true)
-}
 
 launch4j {
     mainClassName = "com.jediterm.app.JediTermMain"

@@ -32,17 +32,17 @@ sourceSets {
 }
 
 dependencies {
-    compile project(':pty')
+    implementation project(':pty')
 
-    compile ":eawtstub:"
+    implementation ":eawtstub:"
 
-    testCompile 'junit:junit:4.12'
+    testImplementation 'junit:junit:4.12'
 
-    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    compile "org.jetbrains:annotations:13.0"
-    compile 'net.java.dev.jna:jna:4.5.0'
-    compile 'net.java.dev.jna:jna-platform:4.5.0'
-    compile ":trove4j:"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    implementation "org.jetbrains:annotations:13.0"
+    implementation 'net.java.dev.jna:jna:4.5.0'
+    implementation 'net.java.dev.jna:jna-platform:4.5.0'
+    implementation ":trove4j:"
 }
 
 mainClassName = "com.jediterm.app.JediTermMain"

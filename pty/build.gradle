@@ -15,13 +15,13 @@ repositories {
 dependencies {
     compile project(':terminal')
 
-    compile 'log4j:log4j:1.2.17'
-    compile 'org.jetbrains:annotations:20.1.0'
-    compile 'com.google.guava:guava:30.1.1-jre'
+    implementation 'log4j:log4j:1.2.17'
+    implementation 'org.jetbrains:annotations:20.1.0'
+    implementation 'com.google.guava:guava:30.1.1-jre'
 
-    compile 'org.jetbrains.pty4j:pty4j:0.12.0'
+    implementation 'org.jetbrains.pty4j:pty4j:0.12.0'
 
-    testCompile 'junit:junit:4.13.2'
+    testImplementation 'junit:junit:4.13.2'
 }
 
 archivesBaseName = "jediterm-pty"

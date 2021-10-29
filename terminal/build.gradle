@@ -21,13 +21,13 @@ tasks.withType(JavaCompile) {
 }
 
 dependencies {
-    compile project(':typeahead')
+    implementation project(':typeahead')
 
-    compile 'log4j:log4j:1.2.17'
-    compile 'org.jetbrains:annotations:20.1.0'
-    compile 'com.google.guava:guava:30.1.1-jre'
+    implementation 'log4j:log4j:1.2.17'
+    implementation 'org.jetbrains:annotations:20.1.0'
+    implementation 'com.google.guava:guava:30.1.1-jre'
 
-    testCompile 'junit:junit:4.13.2'
+    testImplementation 'junit:junit:4.13.2'
 }
 
 compileJava {

@@ -20,8 +20,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.font.TextHitInfo;
@@ -322,14 +320,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       }
     });
 
-    myBoundedRangeModel.addChangeListener(new
-
-                                                  ChangeListener() {
-                                                    public void stateChanged(final ChangeEvent e) {
-                                                      myClientScrollOrigin = myBoundedRangeModel.getValue();
-                                                      repaint();
-                                                    }
-                                                  });
+    myBoundedRangeModel.addChangeListener(e -> {
+      myClientScrollOrigin = myBoundedRangeModel.getValue();
+      repaint();
+    });
 
     createRepaintTimer();
   }

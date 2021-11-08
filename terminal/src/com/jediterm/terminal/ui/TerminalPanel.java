@@ -520,8 +520,18 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     return myMouseMode != MouseMode.MOUSE_REPORTING_NONE;
   }
 
+  /**
+   * Scroll to bottom to ensure the cursor will be visible.
+   */
   private void scrollToBottom() {
-    myBoundedRangeModel.setValue(myTermSize.height);
+    // Scroll to bottom even if the cursor is on the last line, i.e. it's currently visible.
+    // This will address the cases when the scroll is fixed to show some history lines, Enter is hit and after
+    // Enter processing, the cursor will be pushed out of visible area unless scroll is reset to screen buffer.
+    int delta = 1;
+    int zeroBasedCursorY = myCursor.myCursorCoordinates.y - 1;
+    if (zeroBasedCursorY + delta >= myBoundedRangeModel.getValue() + myBoundedRangeModel.getExtent()) {
+      myBoundedRangeModel.setValue(0);
+    }
   }
 
   private void pageUp() {

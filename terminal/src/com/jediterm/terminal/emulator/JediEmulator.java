@@ -217,6 +217,10 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           return true;
         }
         break;
+      case 7:
+        // Support for OSC 7 is pending
+        // "return true" to avoid logging errors about unhandled sequences;
+        return true;
       case 8: // Hyperlink https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
         String uri = args.getStringAt(2);
         if (uri != null) {

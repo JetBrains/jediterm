@@ -2,9 +2,9 @@ package com.jediterm.terminal.ui;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
+import com.jediterm.terminal.*;
 import com.jediterm.terminal.SubstringFinder.FindResult;
 import com.jediterm.terminal.SubstringFinder.FindResult.FindItem;
-import com.jediterm.terminal.*;
 import com.jediterm.terminal.debug.DebugBufferType;
 import com.jediterm.terminal.model.*;
 import com.jediterm.terminal.model.hyperlinks.HyperlinkFilter;
@@ -102,7 +102,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
     add(myInnerPanel, BorderLayout.CENTER);
 
-    myScrollBar.setModel(myTerminalPanel.getBoundedRangeModel());
+    myScrollBar.setModel(myTerminalPanel.getVerticalScrollModel());
     mySessionRunning.set(false);
 
     myTerminalPanel.init(myScrollBar);

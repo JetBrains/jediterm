@@ -20,6 +20,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.font.TextHitInfo;
@@ -1337,6 +1339,47 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     mySelection = null;
   }
 
+  // should be called on EDT
+  public void scrollToShowAllOutput() {
+    myTerminalTextBuffer.lock();
+    try {
+      int historyLines = myTerminalTextBuffer.getHistoryLinesCount();
+      if (historyLines > 0) {
+        int termHeight = myTermSize.height;
+        myBoundedRangeModel.setRangeProperties(-historyLines, historyLines + termHeight, -historyLines,
+            termHeight, false);
+        TerminalModelListener modelListener = new TerminalModelListener() {
+          @Override
+          public void modelChanged() {
+            int zeroBasedCursorY = myCursor.myCursorCoordinates.y - 1;
+            if (zeroBasedCursorY + historyLines >= termHeight) {
+              myTerminalTextBuffer.removeModelListener(this);
+              SwingUtilities.invokeLater(() -> {
+                myTerminalTextBuffer.lock();
+                try {
+                  myBoundedRangeModel.setRangeProperties(0, myTermSize.height,
+                      -myTerminalTextBuffer.getHistoryLinesCount(), myTermSize.height, false);
+                } finally {
+                  myTerminalTextBuffer.unlock();
+                }
+              });
+            }
+          }
+        };
+        myTerminalTextBuffer.addModelListener(modelListener);
+        myBoundedRangeModel.addChangeListener(new ChangeListener() {
+          @Override
+          public void stateChanged(ChangeEvent e) {
+            myBoundedRangeModel.removeChangeListener(this);
+            myTerminalTextBuffer.removeModelListener(modelListener);
+          }
+        });
+      }
+    } finally {
+      myTerminalTextBuffer.unlock();
+    }
+  }
+
   private void updateScrolling(boolean forceUpdate) {
     int dy = scrollDy.getAndSet(0);
     if (dy == 0 && !forceUpdate) {
@@ -1404,7 +1447,15 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     return new Rectangle(topLeft, new Dimension(myCharSize.width * cellInterval.getCellCount(), myCharSize.height));
   }
 
+  /**
+   * @deprecated use {@link #getVerticalScrollModel()} instead
+   */
+  @Deprecated
   public BoundedRangeModel getBoundedRangeModel() {
+    return myBoundedRangeModel;
+  }
+
+  public @NotNull BoundedRangeModel getVerticalScrollModel() {
     return myBoundedRangeModel;
   }
 

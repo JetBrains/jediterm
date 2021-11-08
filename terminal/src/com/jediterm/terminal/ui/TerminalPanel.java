@@ -827,7 +827,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       });
 
       int cursorY = myCursor.getCoordY();
-      if ((myClientScrollOrigin + getRowCount() > cursorY) && !hasUncommittedChars()) {
+      if (cursorY < getRowCount() && !hasUncommittedChars()) {
         int cursorX = myCursor.getCoordX();
         Pair<Character, TextStyle> sc = myTerminalTextBuffer.getStyledCharAt(cursorX, cursorY);
         String cursorChar = "" + sc.first;

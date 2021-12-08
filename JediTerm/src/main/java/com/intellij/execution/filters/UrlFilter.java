@@ -16,10 +16,9 @@
 package com.intellij.execution.filters;
 
 import com.intellij.util.io.URLUtil;
-import com.jediterm.terminal.model.hyperlinks.HyperlinkFilter;
-import com.jediterm.terminal.model.hyperlinks.LinkInfo;
-import com.jediterm.terminal.model.hyperlinks.LinkResult;
-import com.jediterm.terminal.model.hyperlinks.LinkResultItem;
+import com.jediterm.core.model.hyperlinks.HyperlinkFilter;
+import com.jediterm.core.model.hyperlinks.LinkResult;
+import com.jediterm.core.model.hyperlinks.LinkResultItem;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;

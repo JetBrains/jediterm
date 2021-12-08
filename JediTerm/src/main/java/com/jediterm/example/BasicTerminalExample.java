@@ -1,7 +1,7 @@
 package com.jediterm.example;
 
-import com.jediterm.terminal.Questioner;
-import com.jediterm.terminal.TtyConnector;
+import com.jediterm.core.Questioner;
+import com.jediterm.core.TtyConnector;
 import com.jediterm.terminal.ui.JediTermWidget;
 import com.jediterm.terminal.ui.settings.DefaultSettingsProvider;
 import org.jetbrains.annotations.NotNull;

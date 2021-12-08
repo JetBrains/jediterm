@@ -1,6 +1,6 @@
 package com.jediterm.app;
 
-import com.jediterm.terminal.TtyConnector;
+import com.jediterm.core.TtyConnector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

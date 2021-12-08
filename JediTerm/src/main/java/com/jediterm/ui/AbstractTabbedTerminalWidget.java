@@ -1,9 +1,9 @@
 package com.jediterm.ui;
 
 import com.jediterm.app.TtyConnectorWaitFor;
-import com.jediterm.terminal.RequestOrigin;
-import com.jediterm.terminal.TerminalDisplay;
-import com.jediterm.terminal.TtyConnector;
+import com.jediterm.core.RequestOrigin;
+import com.jediterm.core.TerminalDisplay;
+import com.jediterm.core.TtyConnector;
 import com.jediterm.terminal.ui.*;
 import com.jediterm.terminal.ui.settings.TabbedSettingsProvider;
 import com.jediterm.terminal.util.JTextFieldLimit;

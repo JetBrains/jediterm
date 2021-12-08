@@ -1,17 +1,16 @@
 package com.jediterm.util;
 
-import com.jediterm.terminal.CursorShape;
-import com.jediterm.terminal.RequestOrigin;
-import com.jediterm.terminal.TerminalColor;
-import com.jediterm.terminal.TerminalDisplay;
-import com.jediterm.terminal.model.TerminalTextBuffer;
-import com.jediterm.terminal.model.JediTerminal;
-import com.jediterm.terminal.model.TerminalSelection;
-import com.jediterm.terminal.emulator.mouse.MouseMode;
+import com.jediterm.core.CursorShape;
+import com.jediterm.core.RequestOrigin;
+import com.jediterm.core.TerminalColor;
+import com.jediterm.core.awtCompat.Dimension;
+import com.jediterm.core.TerminalDisplay;
+import com.jediterm.core.model.TerminalTextBuffer;
+import com.jediterm.core.model.JediTerminal;
+import com.jediterm.core.model.TerminalSelection;
+import com.jediterm.core.emulator.mouse.MouseMode;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.awt.*;
 
 /**
  * @author traff

@@ -5,7 +5,7 @@ package com.jediterm.ssh.jsch;
 
 import com.jcraft.jsch.UIKeyboardInteractive;
 import com.jcraft.jsch.UserInfo;
-import com.jediterm.terminal.Questioner;
+import com.jediterm.core.Questioner;
 
 class QuestionerUserInfo implements UserInfo, UIKeyboardInteractive {
   private Questioner myQuestioner;

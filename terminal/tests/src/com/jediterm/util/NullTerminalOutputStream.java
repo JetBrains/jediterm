@@ -1,6 +1,6 @@
 package com.jediterm.util;
 
-import com.jediterm.terminal.TerminalOutputStream;
+import com.jediterm.core.TerminalOutputStream;
 
 /**
  * @author traff

@@ -5,9 +5,9 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Pair
 import com.intellij.util.EncodingEnvironmentUtil
 import com.jediterm.pty.PtyProcessTtyConnector
-import com.jediterm.terminal.LoggingTtyConnector
-import com.jediterm.terminal.LoggingTtyConnector.TerminalState
-import com.jediterm.terminal.TtyConnector
+import com.jediterm.core.LoggingTtyConnector
+import com.jediterm.core.LoggingTtyConnector.TerminalState
+import com.jediterm.core.TtyConnector
 import com.jediterm.terminal.ui.JediTermWidget
 import com.jediterm.terminal.ui.TerminalWidget
 import com.jediterm.terminal.ui.UIUtil

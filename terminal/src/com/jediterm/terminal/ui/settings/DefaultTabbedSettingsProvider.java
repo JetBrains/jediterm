@@ -1,6 +1,6 @@
 package com.jediterm.terminal.ui.settings;
 
-import com.jediterm.terminal.TtyConnector;
+import com.jediterm.core.TtyConnector;
 import com.jediterm.terminal.ui.TerminalActionPresentation;
 import com.jediterm.terminal.ui.UIUtil;
 import org.jetbrains.annotations.NotNull;

@@ -1,6 +1,7 @@
 package com.jediterm.terminal.ui;
 
-import com.jediterm.terminal.util.Util;
+import com.jediterm.core.OSEnum;
+import com.jediterm.core.util.Util;
 
 import java.awt.*;
 import java.lang.reflect.Field;
@@ -73,5 +74,13 @@ public class UIUtil {
     if (map != null) {
       g2d.addRenderingHints(map);
     }
+  }
+
+  public static OSEnum getOS() {
+    if (isWindows) return OSEnum.Windows;
+    if (isOS2) return OSEnum.OS2;
+    if (isMac) return OSEnum.Mac;
+    if (isLinux) return OSEnum.Linux;
+    return OSEnum.Other;
   }
 }

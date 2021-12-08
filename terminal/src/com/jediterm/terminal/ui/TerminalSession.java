@@ -1,9 +1,9 @@
 package com.jediterm.terminal.ui;
 
-import com.jediterm.terminal.Terminal;
-import com.jediterm.terminal.TtyConnector;
+import com.jediterm.core.Terminal;
+import com.jediterm.core.TtyConnector;
 import com.jediterm.terminal.debug.DebugBufferType;
-import com.jediterm.terminal.model.TerminalTextBuffer;
+import com.jediterm.core.model.TerminalTextBuffer;
 
 /**
  * @author traff

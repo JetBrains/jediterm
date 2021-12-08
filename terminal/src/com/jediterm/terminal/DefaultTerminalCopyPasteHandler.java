@@ -1,5 +1,6 @@
 package com.jediterm.terminal;
 
+import com.jediterm.core.TerminalCopyPasteHandler;
 import com.jediterm.terminal.ui.UIUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

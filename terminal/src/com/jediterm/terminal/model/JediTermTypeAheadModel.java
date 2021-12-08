@@ -1,9 +1,12 @@
 package com.jediterm.terminal.model;
 
-import com.jediterm.terminal.Terminal;
-import com.jediterm.terminal.TextStyle;
+import com.jediterm.core.Terminal;
+import com.jediterm.core.TextStyle;
+import com.jediterm.core.model.CharBuffer;
+import com.jediterm.core.model.TerminalLine;
+import com.jediterm.core.model.TerminalTextBuffer;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
-import com.jediterm.typeahead.TypeAheadTerminalModel;
+import com.jediterm.core.typeahead.TypeAheadTerminalModel;
 import org.jetbrains.annotations.*;
 
 public class JediTermTypeAheadModel implements TypeAheadTerminalModel {
@@ -105,14 +108,15 @@ public class JediTermTypeAheadModel implements TypeAheadTerminalModel {
 
   private @NotNull TerminalLine getTypeAheadLine() {
     TerminalLine terminalLine = myTerminalTextBuffer.getLine(myTerminal.getCursorY() - 1);
-    if (terminalLine.myTypeAheadLine != null) {
-      terminalLine = terminalLine.myTypeAheadLine;
+    TerminalLine typeAheadLine = terminalLine.getTypeAheadLine();
+    if (typeAheadLine != null) {
+      terminalLine = typeAheadLine;
     }
     return terminalLine.copy();
   }
 
   private void setTypeAheadLine(@NotNull TerminalLine typeAheadTerminalLine) {
     TerminalLine terminalLine = myTerminalTextBuffer.getLine(myTerminal.getCursorY() - 1);
-    terminalLine.myTypeAheadLine = typeAheadTerminalLine;
+    terminalLine.setTypeAheadLine(typeAheadTerminalLine);
   }
 }

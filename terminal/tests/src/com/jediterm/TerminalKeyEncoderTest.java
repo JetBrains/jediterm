@@ -1,6 +1,6 @@
 package com.jediterm;
 
-import com.jediterm.terminal.TerminalKeyEncoder;
+import com.jediterm.core.TerminalKeyEncoder;
 import com.jediterm.terminal.ui.UIUtil;
 import com.jediterm.typeahead.Ascii;
 import junit.framework.TestCase;

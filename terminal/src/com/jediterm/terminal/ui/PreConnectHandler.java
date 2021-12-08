@@ -1,7 +1,7 @@
 package com.jediterm.terminal.ui;
 
-import com.jediterm.terminal.Questioner;
-import com.jediterm.terminal.Terminal;
+import com.jediterm.core.Questioner;
+import com.jediterm.core.Terminal;
 
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;

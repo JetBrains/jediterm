@@ -1,18 +1,18 @@
 package com.jediterm.terminal.model.hyperlinks;
 
-import com.jediterm.terminal.HyperlinkStyle;
-import com.jediterm.terminal.TerminalColor;
-import com.jediterm.terminal.TextStyle;
-import com.jediterm.terminal.model.CharBuffer;
-import com.jediterm.terminal.model.JediTerminal;
-import com.jediterm.terminal.model.TerminalLine;
-import com.jediterm.terminal.model.TerminalTextBuffer;
-import com.jediterm.terminal.util.CharUtils;
+import com.jediterm.core.awtCompat.Color;
+import com.jediterm.core.HyperlinkStyle;
+import com.jediterm.core.TerminalColor;
+import com.jediterm.core.TextStyle;
+import com.jediterm.core.model.CharBuffer;
+import com.jediterm.core.model.JediTerminal;
+import com.jediterm.core.model.TerminalLine;
+import com.jediterm.core.model.TerminalTextBuffer;
+import com.jediterm.core.util.CharUtils;
 import com.jediterm.util.TestSession;
 import junit.framework.TestCase;
 import org.jetbrains.annotations.NotNull;
 
-import java.awt.*;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -27,8 +27,9 @@ public class TextProcessingTest extends TestCase {
   public void setUp() throws Exception {
     super.setUp();
     mySession = new TestSession(100, 5);
-    TextStyle hyperlinkTextStyle = new TextStyle(TerminalColor.awt(Color.BLUE), TerminalColor.WHITE);
-    myHyperlinkStyle = new HyperlinkStyle(hyperlinkTextStyle, new LinkInfo(() -> {}));
+    java.awt.Color blueColor = java.awt.Color.BLUE;
+    TextStyle hyperlinkTextStyle = new TextStyle(TerminalColor.fromColor(new Color(blueColor.getRGB())), TerminalColor.WHITE);
+    myHyperlinkStyle = new HyperlinkStyle(hyperlinkTextStyle, null);
     mySession.getTextProcessing().addHyperlinkFilter(new TestFilter());
   }
 

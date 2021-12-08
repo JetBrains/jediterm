@@ -1,16 +1,17 @@
 package com.jediterm.ui;
 
 import com.jediterm.app.JediTerm;
-import com.jediterm.terminal.RequestOrigin;
-import com.jediterm.terminal.TtyConnector;
+import com.jediterm.core.RequestOrigin;
+import com.jediterm.core.awtCompat.Point;
+import com.jediterm.core.TtyConnector;
 import com.jediterm.terminal.debug.BufferPanel;
-import com.jediterm.terminal.model.SelectionUtil;
+import com.jediterm.core.model.SelectionUtil;
 import com.jediterm.terminal.ui.JediTermWidget;
 import com.jediterm.terminal.ui.TerminalPanelListener;
 import com.jediterm.terminal.ui.TerminalWidget;
 import com.jediterm.terminal.ui.settings.DefaultTabbedSettingsProvider;
 import com.jediterm.terminal.ui.settings.TabbedSettingsProvider;
-import com.jediterm.terminal.util.Pair;
+import com.jediterm.core.util.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;

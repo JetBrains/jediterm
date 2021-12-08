@@ -1,15 +1,17 @@
 package com.jediterm.terminal.ui;
 
+import com.jediterm.core.*;
+import com.jediterm.core.model.*;
 import com.jediterm.terminal.*;
-import com.jediterm.terminal.SubstringFinder.FindResult;
-import com.jediterm.terminal.SubstringFinder.FindResult.FindItem;
+import com.jediterm.core.SubstringFinder.FindResult;
+import com.jediterm.core.SubstringFinder.FindResult.FindItem;
 import com.jediterm.terminal.debug.DebugBufferType;
-import com.jediterm.terminal.model.*;
-import com.jediterm.terminal.model.hyperlinks.HyperlinkFilter;
-import com.jediterm.terminal.model.hyperlinks.TextProcessing;
+import com.jediterm.core.model.hyperlinks.HyperlinkFilter;
+import com.jediterm.core.model.hyperlinks.TextProcessing;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
-import com.jediterm.typeahead.TerminalTypeAheadManager;
-import com.jediterm.typeahead.TypeAheadTerminalModel;
+import com.jediterm.terminal.model.JediTermTypeAheadModel;
+import com.jediterm.core.typeahead.TerminalTypeAheadManager;
+import com.jediterm.core.typeahead.TypeAheadTerminalModel;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,7 +74,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     myTextProcessing.setTerminalTextBuffer(terminalTextBuffer);
 
     myTerminalPanel = createTerminalPanel(mySettingsProvider, styleState, terminalTextBuffer);
-    myTerminal = new JediTerminal(myTerminalPanel, terminalTextBuffer, styleState);
+    myTerminal = new JediTerminal(myTerminalPanel, terminalTextBuffer, styleState, UIUtil.getOS());
 
     myTypeAheadTerminalModel = new JediTermTypeAheadModel(myTerminal, terminalTextBuffer, settingsProvider);
     myTypeAheadManager = new TerminalTypeAheadManager(myTypeAheadTerminalModel);
@@ -516,8 +518,9 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
         int modelHeight = scrollbar.getModel().getMaximum() - scrollbar.getModel().getMinimum();
         int anchorHeight = Math.max(2, trackBounds.height / modelHeight);
 
-        Color color = mySettingsProvider.getTerminalColorPalette()
+        com.jediterm.core.awtCompat.Color jeditermColor = mySettingsProvider.getTerminalColorPalette()
           .getBackground(Objects.requireNonNull(mySettingsProvider.getFoundPatternColor().getBackground()));
+        Color color = new Color(jeditermColor.getRGB());
         g.setColor(color);
         for (FindItem r : result.getItems()) {
           int where = trackBounds.height * r.getStart().y / modelHeight;

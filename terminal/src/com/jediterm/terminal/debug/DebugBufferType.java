@@ -1,7 +1,7 @@
 package com.jediterm.terminal.debug;
 
-import com.jediterm.terminal.LoggingTtyConnector;
-import com.jediterm.terminal.LoggingTtyConnector.TerminalState;
+import com.jediterm.core.LoggingTtyConnector;
+import com.jediterm.core.LoggingTtyConnector.TerminalState;
 import com.jediterm.terminal.ui.TerminalSession;
 
 import java.util.List;

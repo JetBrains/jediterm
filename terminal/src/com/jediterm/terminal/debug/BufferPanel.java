@@ -3,7 +3,8 @@
  */
 package com.jediterm.terminal.debug;
 
-import com.jediterm.terminal.LoggingTtyConnector;
+import com.jediterm.core.LoggingTtyConnector;
+import com.jediterm.core.debug.ControlSequenceVisualizer;
 import com.jediterm.terminal.ui.TerminalSession;
 
 import javax.swing.*;

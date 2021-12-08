@@ -1,12 +1,13 @@
 package com.jediterm.terminal.ui.settings;
 
-import com.jediterm.terminal.HyperlinkStyle;
-import com.jediterm.terminal.TerminalColor;
-import com.jediterm.terminal.TextStyle;
-import com.jediterm.terminal.emulator.ColorPalette;
-import com.jediterm.terminal.emulator.ColorPaletteImpl;
-import com.jediterm.terminal.model.LinesBuffer;
-import com.jediterm.terminal.model.TerminalTypeAheadSettings;
+import com.jediterm.core.HyperlinkStyle;
+import com.jediterm.core.TerminalColor;
+import com.jediterm.core.TextStyle;
+import com.jediterm.core.emulator.ColorPalette;
+import com.jediterm.core.awtCompat.Color;
+import com.jediterm.core.emulator.ColorPaletteImpl;
+import com.jediterm.core.model.LinesBuffer;
+import com.jediterm.core.model.TerminalTypeAheadSettings;
 import com.jediterm.terminal.ui.TerminalActionPresentation;
 import com.jediterm.terminal.ui.UIUtil;
 import org.jetbrains.annotations.NotNull;
@@ -141,7 +142,8 @@ public class DefaultSettingsProvider implements SettingsProvider {
 
   @Override
   public TextStyle getHyperlinkColor() {
-    return new TextStyle(TerminalColor.awt(Color.BLUE), TerminalColor.WHITE);
+    Color blue = new Color(java.awt.Color.BLUE.getRGB());
+    return new TextStyle(TerminalColor.fromColor(blue), TerminalColor.WHITE);
   }
 
   @Override

@@ -1,7 +1,7 @@
 package com.jediterm.terminal.ui;
 
-import com.jediterm.terminal.TerminalDisplay;
-import com.jediterm.terminal.TtyConnector;
+import com.jediterm.core.TerminalDisplay;
+import com.jediterm.core.TtyConnector;
 
 import javax.swing.*;
 import java.awt.*;

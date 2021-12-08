@@ -32,6 +32,7 @@ sourceSets {
 
 dependencies {
     implementation project(':pty')
+    implementation project(':core') // FIXME: temporary!
 
     implementation ":eawtstub:"
 

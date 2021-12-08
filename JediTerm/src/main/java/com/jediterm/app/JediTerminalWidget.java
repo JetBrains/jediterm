@@ -5,15 +5,15 @@ import com.intellij.openapi.util.Disposer;
 import com.intellij.ui.components.JBScrollBar;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.ui.RegionPainter;
-import com.jediterm.terminal.SubstringFinder;
-import com.jediterm.terminal.model.StyleState;
-import com.jediterm.terminal.model.TerminalTextBuffer;
+import com.jediterm.core.awtCompat.Color;
+import com.jediterm.core.SubstringFinder;
+import com.jediterm.core.model.StyleState;
+import com.jediterm.core.model.TerminalTextBuffer;
 import com.jediterm.terminal.ui.JediTermWidget;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import java.awt.*;
 import java.util.Objects;
 
 public class JediTerminalWidget extends JediTermWidget implements Disposable {
@@ -46,7 +46,7 @@ public class JediTerminalWidget extends JediTermWidget implements Disposable {
 
         Color color = mySettingsProvider.getTerminalColorPalette()
           .getBackground(Objects.requireNonNull(mySettingsProvider.getFoundPatternColor().getBackground()));
-        g.setColor(color);
+        g.setColor(new java.awt.Color(color.getRGB()));
         for (SubstringFinder.FindResult.FindItem r : result.getItems()) {
           int where = height * r.getStart().y / modelHeight;
           g.fillRect(x, y + where, width, anchorHeight);

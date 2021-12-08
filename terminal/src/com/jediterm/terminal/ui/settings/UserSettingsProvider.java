@@ -1,9 +1,9 @@
 package com.jediterm.terminal.ui.settings;
 
-import com.jediterm.terminal.HyperlinkStyle;
-import com.jediterm.terminal.TextStyle;
-import com.jediterm.terminal.emulator.ColorPalette;
-import com.jediterm.terminal.model.TerminalTypeAheadSettings;
+import com.jediterm.core.HyperlinkStyle;
+import com.jediterm.core.TextStyle;
+import com.jediterm.core.emulator.ColorPalette;
+import com.jediterm.core.model.TerminalTypeAheadSettings;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;

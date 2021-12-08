@@ -4,8 +4,8 @@ import com.intellij.openapi.Disposable
 import com.intellij.util.JBHiDPIScaledImage
 import com.intellij.util.RetinaImage
 import com.intellij.util.ui.DrawUtil
-import com.jediterm.terminal.model.StyleState
-import com.jediterm.terminal.model.TerminalTextBuffer
+import com.jediterm.core.model.StyleState
+import com.jediterm.core.model.TerminalTextBuffer
 import com.jediterm.terminal.ui.TerminalPanel
 import com.jediterm.terminal.ui.UIUtil
 import com.jediterm.terminal.ui.settings.SettingsProvider
@@ -18,7 +18,8 @@ import java.awt.image.ImageObserver
 
 class JediTerminalPanel(private val mySettingsProvider: SettingsProvider,
                         styleState: StyleState,
-                        backBuffer: TerminalTextBuffer) : TerminalPanel(mySettingsProvider, backBuffer, styleState), Disposable {
+                        backBuffer: TerminalTextBuffer
+) : TerminalPanel(mySettingsProvider, backBuffer, styleState), Disposable {
     override fun dispose() {
         //TODO
     }

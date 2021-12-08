@@ -1,9 +1,9 @@
 package com.jediterm.util;
 
-import com.jediterm.terminal.TerminalOutputStream;
-import com.jediterm.terminal.model.TerminalTextBuffer;
-import com.jediterm.terminal.model.JediTerminal;
-import com.jediterm.terminal.model.StyleState;
+import com.jediterm.core.TerminalOutputStream;
+import com.jediterm.core.model.TerminalTextBuffer;
+import com.jediterm.core.model.JediTerminal;
+import com.jediterm.core.model.StyleState;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.ByteArrayOutputStream;

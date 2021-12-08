@@ -1,8 +1,8 @@
 package com.jediterm;
 
-import com.jediterm.terminal.TerminalColor;
-import com.jediterm.terminal.emulator.ColorPalette;
-import com.jediterm.terminal.model.TerminalTextBuffer;
+import com.jediterm.core.TerminalColor;
+import com.jediterm.core.emulator.ColorPalette;
+import com.jediterm.core.model.TerminalTextBuffer;
 import com.jediterm.util.TestSession;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;

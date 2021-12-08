@@ -1,9 +1,9 @@
 package com.jediterm;
 
-import com.jediterm.terminal.TerminalMode;
-import com.jediterm.terminal.model.TerminalTextBuffer;
-import com.jediterm.terminal.model.JediTerminal;
-import com.jediterm.terminal.model.StyleState;
+import com.jediterm.core.TerminalMode;
+import com.jediterm.core.model.TerminalTextBuffer;
+import com.jediterm.core.model.JediTerminal;
+import com.jediterm.core.model.StyleState;
 import com.jediterm.util.BackBufferDisplay;
 import junit.framework.TestCase;
 

@@ -1,13 +1,13 @@
 package com.jediterm;
 
-import com.jediterm.terminal.RequestOrigin;
-import com.jediterm.terminal.model.*;
+import com.jediterm.core.awtCompat.Dimension;
+import com.jediterm.core.awtCompat.Point;
+import com.jediterm.core.model.*;
+import com.jediterm.core.RequestOrigin;
 import com.jediterm.util.BackBufferDisplay;
 import com.jediterm.util.BackBufferTerminal;
 import com.jediterm.util.CharBufferUtil;
 import junit.framework.TestCase;
-
-import java.awt.*;
 
 /**
  * @author traff

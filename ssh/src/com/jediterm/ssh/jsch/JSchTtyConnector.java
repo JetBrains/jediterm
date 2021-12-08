@@ -8,13 +8,13 @@ import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
-import com.jediterm.terminal.Questioner;
-import com.jediterm.terminal.TtyConnector;
+import com.jediterm.core.Questioner;
+import com.jediterm.core.TtyConnector;
+import com.jediterm.core.awtCompat.Dimension;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.awt.*;
 import java.io.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 

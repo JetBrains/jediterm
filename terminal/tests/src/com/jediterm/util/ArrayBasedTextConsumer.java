@@ -1,8 +1,8 @@
 package com.jediterm.util;
 
-import com.jediterm.terminal.StyledTextConsumerAdapter;
-import com.jediterm.terminal.TextStyle;
-import com.jediterm.terminal.model.CharBuffer;
+import com.jediterm.core.StyledTextConsumerAdapter;
+import com.jediterm.core.TextStyle;
+import com.jediterm.core.model.CharBuffer;
 
 import org.jetbrains.annotations.NotNull;
 

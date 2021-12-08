@@ -1,10 +1,9 @@
 package com.jediterm.util;
 
-import com.jediterm.terminal.model.TerminalSelection;
-import com.jediterm.terminal.util.Pair;
+import com.jediterm.core.awtCompat.Point;
+import com.jediterm.core.model.TerminalSelection;
+import com.jediterm.core.util.Pair;
 import junit.framework.TestCase;
-
-import java.awt.*;
 
 /**
  * @author traff

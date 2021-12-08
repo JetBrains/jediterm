@@ -1,6 +1,6 @@
 package com.jediterm.terminal.ui;
 
-import com.jediterm.terminal.RequestOrigin;
+import com.jediterm.core.RequestOrigin;
 import org.jetbrains.annotations.NotNull;
 
 

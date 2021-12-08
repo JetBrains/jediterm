@@ -1,7 +1,7 @@
 package com.jediterm.example;
 
 import com.jediterm.pty.PtyProcessTtyConnector;
-import com.jediterm.terminal.TtyConnector;
+import com.jediterm.core.TtyConnector;
 import com.jediterm.terminal.ui.JediTermWidget;
 import com.jediterm.terminal.ui.UIUtil;
 import com.jediterm.terminal.ui.settings.DefaultSettingsProvider;

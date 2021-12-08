@@ -1,18 +1,13 @@
 package com.jediterm;
 
-import com.jediterm.terminal.RequestOrigin;
-import com.jediterm.terminal.StyledTextConsumer;
-import com.jediterm.terminal.TextStyle;
-import com.jediterm.terminal.model.CharBuffer;
-import com.jediterm.terminal.model.TerminalTextBuffer;
-import com.jediterm.terminal.model.JediTerminal;
-import com.jediterm.terminal.model.StyleState;
+import com.jediterm.core.RequestOrigin;
+import com.jediterm.core.awtCompat.Dimension;
+import com.jediterm.core.model.TerminalTextBuffer;
+import com.jediterm.core.model.JediTerminal;
+import com.jediterm.core.model.StyleState;
 import com.jediterm.util.ArrayBasedTextConsumer;
 import com.jediterm.util.BackBufferDisplay;
 import junit.framework.TestCase;
-import org.jetbrains.annotations.NotNull;
-
-import java.awt.*;
 
 /**
  * @author traff

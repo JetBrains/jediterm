@@ -1,7 +1,6 @@
 package com.jediterm.typeahead;
 
 import com.google.common.base.Ascii;
-import org.apache.log4j.Logger;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -10,13 +9,15 @@ import java.util.*;
 import java.util.concurrent.*;
 
 import com.jediterm.typeahead.TypeAheadTerminalModel.LineWithCursorX;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TerminalTypeAheadManager {
   public static final long MAX_TERMINAL_DELAY = TimeUnit.MILLISECONDS.toNanos(1500);
   private static final int LATENCY_MIN_SAMPLES_TO_TURN_ON = 2;
   private static final double LATENCY_TOGGLE_OFF_THRESHOLD = 0.5;
 
-  private static final Logger LOG = Logger.getLogger(TerminalTypeAheadManager.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TerminalTypeAheadManager.class);
 
   private final TypeAheadTerminalModel myTerminalModel;
   private @Nullable Debouncer myClearPredictionsDebouncer;

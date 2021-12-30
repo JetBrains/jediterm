@@ -2,8 +2,9 @@ package com.jediterm.terminal.model;
 
 import com.jediterm.terminal.util.CharUtils;
 import com.jediterm.terminal.util.Pair;
-import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -13,7 +14,7 @@ import java.util.List;
  * @author traff
  */
 public class SelectionUtil {
-  private static final Logger LOG = Logger.getLogger(SelectionUtil.class);
+  private static final Logger LOG = LoggerFactory.getLogger(SelectionUtil.class);
   
   private static final List<Character> SEPARATORS = new ArrayList<Character>();
   static {

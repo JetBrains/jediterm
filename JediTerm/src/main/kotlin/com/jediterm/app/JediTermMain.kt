@@ -18,20 +18,18 @@ import com.jediterm.terminal.ui.settings.TabbedSettingsProvider
 import com.jediterm.ui.AbstractTerminalFrame
 import com.pty4j.PtyProcess
 import com.pty4j.PtyProcessBuilder
-import org.apache.log4j.BasicConfigurator
-import org.apache.log4j.Level
-import org.apache.log4j.Logger
 import java.io.IOException
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.util.function.Function
+import java.util.logging.Level
+import java.util.logging.Logger
 import javax.swing.SwingUtilities
 
 object JediTermMain {
     @JvmStatic
     fun main(arg: Array<String>) {
-        BasicConfigurator.configure()
-        Logger.getRootLogger().level = Level.INFO
+        Logger.getLogger("").level = Level.INFO
 
         SwingUtilities.invokeLater {
             JediTerm()

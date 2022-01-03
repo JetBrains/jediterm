@@ -11,7 +11,6 @@ import com.jediterm.terminal.emulator.Emulator;
 import com.jediterm.terminal.emulator.JediEmulator;
 import com.jediterm.util.BackBufferDisplay;
 import junit.framework.TestCase;
-import org.apache.log4j.BasicConfigurator;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -24,13 +23,6 @@ public class StyledTextTest extends TestCase {
 
   private static final TextStyle GREEN = new TextStyle(TerminalColor.index(2), null);
   private static final TextStyle BLACK = new TextStyle(TerminalColor.BLACK, null);
-
-  @Override
-  public void setUp() throws Exception
-  {
-    super.setUp();
-    BasicConfigurator.configure();
-  }
 
   public void testStyledTest1() {
 //    final int width = 12;

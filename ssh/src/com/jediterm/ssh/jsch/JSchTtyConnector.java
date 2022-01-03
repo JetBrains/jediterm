@@ -10,15 +10,16 @@ import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.jediterm.terminal.Questioner;
 import com.jediterm.terminal.TtyConnector;
-import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.io.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class JSchTtyConnector<T extends Channel> implements TtyConnector {
-  public static final Logger LOG = Logger.getLogger(JSchTtyConnector.class);
+  public static final Logger LOG = LoggerFactory.getLogger(JSchTtyConnector.class);
 
   public static final int DEFAULT_PORT = 22;
 

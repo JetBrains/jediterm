@@ -5,10 +5,11 @@ import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.util.CharUtils;
 import com.jediterm.terminal.util.Pair;
-import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.TestOnly;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -18,7 +19,7 @@ import java.util.stream.Collectors;
  * @author traff
  */
 public final class TerminalLine {
-  private static final Logger LOG = Logger.getLogger(TerminalLine.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TerminalLine.class);
 
   private TextEntries myTextEntries = new TextEntries();
   private boolean myWrapped = false;

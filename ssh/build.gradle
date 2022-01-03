@@ -8,7 +8,7 @@ sourceSets {
 dependencies {
     implementation project(':terminal')
 
-    implementation 'log4j:log4j:1.2.14'
+    implementation 'org.slf4j:slf4j-api:1.7.32'
     implementation 'org.jetbrains:annotations:13.0'
     implementation 'com.google.guava:guava:25.1-jre'
 

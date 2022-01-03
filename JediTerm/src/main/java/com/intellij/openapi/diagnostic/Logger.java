@@ -16,7 +16,6 @@
 package com.intellij.openapi.diagnostic;
 
 import com.intellij.util.ExceptionUtil;
-import org.apache.log4j.Level;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
@@ -163,8 +162,6 @@ public abstract class Logger {
   public boolean assertTrue(boolean value) {
     return value || assertTrue(false, null);
   }
-
-  public abstract void setLevel(Level level);
 
   protected static Throwable checkException(@Nullable Throwable t) {
     return t instanceof ControlFlowException ? new Throwable("Control-flow exceptions should never be logged", t) : t;

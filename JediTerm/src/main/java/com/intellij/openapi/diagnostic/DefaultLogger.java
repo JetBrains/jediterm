@@ -15,9 +15,7 @@
  */
 package com.intellij.openapi.diagnostic;
 
-import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.ExceptionUtil;
-import org.apache.log4j.Level;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -72,9 +70,6 @@ public class DefaultLogger extends Logger {
     error.initCause(t);
     throw error;
   }
-
-  @Override
-  public void setLevel(Level level) { }
 
   public static String attachmentsToString(@Nullable Throwable t) {
     //noinspection ThrowableResultOfMethodCallIgnored

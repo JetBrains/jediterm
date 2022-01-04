@@ -17,7 +17,6 @@ dependencies {
 
     implementation 'org.slf4j:slf4j-api:1.7.32'
     implementation 'org.jetbrains:annotations:20.1.0'
-    implementation 'com.google.guava:guava:30.1.1-jre'
 
     api 'org.jetbrains.pty4j:pty4j:0.12.3'
 

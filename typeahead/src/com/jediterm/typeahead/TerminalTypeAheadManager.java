@@ -1,6 +1,5 @@
 package com.jediterm.typeahead;
 
-import com.google.common.base.Ascii;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

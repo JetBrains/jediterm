@@ -1,6 +1,5 @@
 package com.jediterm.terminal.model;
 
-import com.google.common.base.Joiner;
 import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.util.CharUtils;
@@ -378,9 +377,9 @@ public final class TerminalLine {
     return myTextEntries.length() + " chars, " +
         (myWrapped ? "wrapped, " : "") +
         myTextEntries.myTextEntries.size() + " entries: " +
-        Joiner.on("|").join(myTextEntries.myTextEntries.stream().map(
-            entry -> entry.getText().toString()).collect(Collectors.toList())
-        );
+        myTextEntries.myTextEntries.stream()
+          .map(entry -> entry.getText().toString())
+          .collect(Collectors.joining("|"));
   }
 
   public static class TextEntry {

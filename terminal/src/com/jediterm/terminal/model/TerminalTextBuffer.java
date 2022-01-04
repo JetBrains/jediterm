@@ -1,7 +1,5 @@
 package com.jediterm.terminal.model;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.StyledTextConsumerAdapter;
@@ -16,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.awt.*;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -242,7 +241,7 @@ public class TerminalTextBuffer {
   }
 
   public void addLine(@NotNull final TerminalLine line) {
-    myScreenBuffer.addLines(Lists.newArrayList(line));
+    myScreenBuffer.addLines(List.of(line));
 
     fireModelChangeEvent();
   }
@@ -270,7 +269,7 @@ public class TerminalTextBuffer {
   }
 
   public String getStyleLines() {
-    final Map<Integer, Integer> hashMap = Maps.newHashMap();
+    final Map<Integer, Integer> hashMap = new HashMap<>();
     myLock.lock();
     try {
       final StringBuilder sb = new StringBuilder();

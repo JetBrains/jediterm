@@ -1,7 +1,5 @@
 package com.jediterm.terminal.ui;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Lists;
 import com.jediterm.terminal.*;
 import com.jediterm.terminal.SubstringFinder.FindResult;
 import com.jediterm.terminal.SubstringFinder.FindResult.FindItem;
@@ -261,13 +259,10 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   @Override
   public List<TerminalAction> getActions() {
-    return Lists.newArrayList(new TerminalAction(mySettingsProvider.getFindActionPresentation(),
-      new Predicate<KeyEvent>() {
-        @Override
-        public boolean apply(KeyEvent input) {
-          showFindText();
-          return true;
-        }
+    return List.of(new TerminalAction(mySettingsProvider.getFindActionPresentation(),
+      keyEvent -> {
+        showFindText();
+        return true;
       }).withMnemonicKey(KeyEvent.VK_F));
   }
 

@@ -1,13 +1,9 @@
 package com.jediterm.ui;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Supplier;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import com.jediterm.app.TtyConnectorWaitFor;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TerminalDisplay;
 import com.jediterm.terminal.TtyConnector;
-import com.jediterm.app.TtyConnectorWaitFor;
 import com.jediterm.terminal.ui.*;
 import com.jediterm.terminal.ui.settings.TabbedSettingsProvider;
 import com.jediterm.terminal.util.JTextFieldLimit;
@@ -17,6 +13,8 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -37,7 +35,7 @@ public abstract class AbstractTabbedTerminalWidget<T extends JediTermWidget> ext
 
   private TabbedSettingsProvider mySettingsProvider;
 
-  private final List<TabListener<T>> myTabListeners = Lists.newArrayList();
+  private final List<TabListener<T>> myTabListeners = new ArrayList<>();
   private List<TerminalWidgetListener> myWidgetListeners = new CopyOnWriteArrayList<>();
   private TerminalActionProvider myNextActionProvider;
 
@@ -146,7 +144,7 @@ public abstract class AbstractTabbedTerminalWidget<T extends JediTermWidget> ext
   }
 
   private String generateUniqueName(String suggestedName, AbstractTabs<T> tabs) {
-    final Set<String> names = Sets.newHashSet();
+    final Set<String> names = new HashSet<>();
     for (int i = 0; i < tabs.getTabCount(); i++) {
       names.add(tabs.getTitleAt(i));
     }
@@ -233,7 +231,7 @@ public abstract class AbstractTabbedTerminalWidget<T extends JediTermWidget> ext
   }
 
   private List<T> getAllTerminalSessions() {
-    List<T> session = Lists.newArrayList();
+    List<T> session = new ArrayList<>();
     if (myTabs != null) {
       for (int i = 0; i < myTabs.getTabCount(); i++) {
         session.add(getTerminalPanel(i));
@@ -266,45 +264,23 @@ public abstract class AbstractTabbedTerminalWidget<T extends JediTermWidget> ext
 
   @Override
   public List<TerminalAction> getActions() {
-    return Lists.newArrayList(
-      new TerminalAction(mySettingsProvider.getNewSessionActionPresentation(), new Predicate<KeyEvent>() {
-        @Override
-        public boolean apply(KeyEvent input) {
-          handleNewSession();
-          return true;
-        }
+    return List.of(
+      new TerminalAction(mySettingsProvider.getNewSessionActionPresentation(), input -> {
+        handleNewSession();
+        return true;
       }).withMnemonicKey(KeyEvent.VK_N),
-      new TerminalAction(mySettingsProvider.getCloseSessionActionPresentation(), new Predicate<KeyEvent>() {
-        @Override
-        public boolean apply(KeyEvent input) {
-          closeCurrentSession();
-          return true;
-        }
+      new TerminalAction(mySettingsProvider.getCloseSessionActionPresentation(), input -> {
+        closeCurrentSession();
+        return true;
       }).withMnemonicKey(KeyEvent.VK_S),
-      new TerminalAction(mySettingsProvider.getNextTabActionPresentation(), new Predicate<KeyEvent>() {
-        @Override
-        public boolean apply(KeyEvent input) {
-          selectNextTab();
-          return true;
-        }
-      }).withEnabledSupplier(new Supplier<Boolean>() {
-        @Override
-        public Boolean get() {
-          return myTabs != null && myTabs.getSelectedIndex() < myTabs.getTabCount() - 1;
-        }
-      }),
-      new TerminalAction(mySettingsProvider.getPreviousTabActionPresentation(), new Predicate<KeyEvent>() {
-        @Override
-        public boolean apply(KeyEvent input) {
-          selectPreviousTab();
-          return true;
-        }
-      }).withEnabledSupplier(new Supplier<Boolean>() {
-        @Override
-        public Boolean get() {
-          return myTabs != null && myTabs.getSelectedIndex() > 0;
-        }
-      })
+      new TerminalAction(mySettingsProvider.getNextTabActionPresentation(), input -> {
+        selectNextTab();
+        return true;
+      }).withEnabledSupplier(() -> myTabs != null && myTabs.getSelectedIndex() < myTabs.getTabCount() - 1),
+      new TerminalAction(mySettingsProvider.getPreviousTabActionPresentation(), input -> {
+        selectPreviousTab();
+        return true;
+      }).withEnabledSupplier(() -> myTabs != null && myTabs.getSelectedIndex() > 0)
     );
   }
 

@@ -1,6 +1,5 @@
 package com.jediterm.terminal.model;
 
-import com.google.common.collect.Lists;
 import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.model.TerminalLine.TextEntry;
@@ -24,7 +23,7 @@ public class LinesBuffer {
   // negative number means no limit
   private int myBufferMaxLinesCount = DEFAULT_MAX_LINES_COUNT;
 
-  private ArrayList<TerminalLine> myLines = Lists.newArrayList();
+  private ArrayList<TerminalLine> myLines = new ArrayList<>();
 
   @Nullable
   private final TextProcessing myTextProcessing;
@@ -79,9 +78,9 @@ public class LinesBuffer {
 
   public synchronized void removeTopLines(int count) {
     if (count >= myLines.size()) { // remove all lines
-      myLines = Lists.newArrayList();
+      myLines = new ArrayList<>();
     } else {
-      myLines = Lists.newArrayList(myLines.subList(count, myLines.size()));
+      myLines = new ArrayList<>(myLines.subList(count, myLines.size()));
     }
   }
 
@@ -207,7 +206,7 @@ public class LinesBuffer {
       // adding more lines than max size
       if (lines.size() >= myBufferMaxLinesCount) {
         int index = lines.size() - myBufferMaxLinesCount;
-        myLines = Lists.newArrayList(lines.subList(index, lines.size()));
+        myLines = new ArrayList<>(lines.subList(index, lines.size()));
         return;
       }
 
@@ -242,13 +241,13 @@ public class LinesBuffer {
   }
 
   private synchronized void addLinesFirst(@NotNull List<TerminalLine> lines) {
-    List<TerminalLine> list = Lists.newArrayList(lines);
+    List<TerminalLine> list = new ArrayList<>(lines);
     list.addAll(myLines);
-    myLines = Lists.newArrayList(list);
+    myLines = new ArrayList<>(list);
   }
 
   private synchronized void removeBottomLines(int count) {
-    myLines = Lists.newArrayList(myLines.subList(0, getLineCount() - count));
+    myLines = new ArrayList<>(myLines.subList(0, getLineCount() - count));
   }
 
   public int removeBottomEmptyLines(int ind, int maxCount) {

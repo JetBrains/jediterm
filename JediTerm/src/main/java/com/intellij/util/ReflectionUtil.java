@@ -15,7 +15,6 @@
  */
 package com.intellij.util;
 
-import com.google.common.collect.Lists;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Condition;
 import org.jetbrains.annotations.NonNls;
@@ -318,7 +317,7 @@ public class ReflectionUtil {
 
   @NotNull
   private static List<Method> filterRealMethods(@NotNull Method[] methods) {
-    List<Method> result = Lists.newArrayList();
+    List<Method> result = new ArrayList<>();
     for (Method method : methods) {
       if (!method.isSynthetic()) {
         result.add(method);

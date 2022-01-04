@@ -1,12 +1,9 @@
 package com.jediterm.terminal.ui;
 
-import com.google.common.base.Supplier;
 import com.jediterm.terminal.util.Util;
-import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.Map;
 
 /**

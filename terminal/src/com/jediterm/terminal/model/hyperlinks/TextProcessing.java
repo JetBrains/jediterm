@@ -1,6 +1,5 @@
 package com.jediterm.terminal.model.hyperlinks;
 
-import com.google.common.collect.Lists;
 import com.jediterm.terminal.HyperlinkStyle;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.model.CharBuffer;
@@ -12,6 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -30,7 +30,7 @@ public class TextProcessing {
                         @NotNull HyperlinkStyle.HighlightMode highlightMode) {
     myHyperlinkColor = hyperlinkColor;
     myHighlightMode = highlightMode;
-    myHyperlinkFilter = Lists.newArrayList();
+    myHyperlinkFilter = new ArrayList<>();
   }
 
   public void setTerminalTextBuffer(@NotNull TerminalTextBuffer terminalTextBuffer) {

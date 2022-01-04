@@ -1,6 +1,5 @@
 package com.jediterm.terminal.model;
 
-import com.google.common.base.Preconditions;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +58,9 @@ class ChangeWidthOperation {
     if (myCurrentLine == null || myCurrentLineLength == myNewWidth) {
       screenStartInd++;
     }
-    Preconditions.checkState(screenStartInd >= 0, "screenStartInd < 0: %d", screenStartInd);
+    if (screenStartInd < 0) {
+      throw new IndexOutOfBoundsException("screenStartInd < 0: " + screenStartInd);
+    }
     LinesBuffer screenBuffer = myTextBuffer.getScreenBufferOrBackup();
     if (screenBuffer.getLineCount() > myTextBuffer.getHeight()) {
       LOG.warn("Terminal height < screen buffer line count: " + myTextBuffer.getHeight() + " < " + screenBuffer.getLineCount());

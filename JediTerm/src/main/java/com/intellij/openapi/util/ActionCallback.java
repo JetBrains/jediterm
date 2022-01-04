@@ -15,14 +15,11 @@
  */
 package com.intellij.openapi.util;
 
-import com.google.common.collect.Sets;
 import com.intellij.util.Consumer;
 import com.intellij.util.concurrency.Semaphore;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.Set;
 
 public class ActionCallback  {
   public static final ActionCallback DONE = new Done();
@@ -218,46 +215,6 @@ public class ActionCallback  {
   public String toString() {
     final String name = myName != null ? myName : super.toString();
     return name + " done=[" + myDone + "] rejected=[" + myRejected + "]";
-  }
-
-  public static class Chunk {
-    private final Set<ActionCallback> myCallbacks = Sets.newHashSet();
-
-    public void add(@NotNull ActionCallback callback) {
-      myCallbacks.add(callback);
-    }
-
-    @NotNull
-    public ActionCallback create() {
-      if (isEmpty()) {
-        return DONE;
-      }
-
-      ActionCallback result = new ActionCallback(myCallbacks.size());
-      Runnable doneRunnable = result.createSetDoneRunnable();
-      for (ActionCallback each : myCallbacks) {
-        each.doWhenDone(doneRunnable).notifyWhenRejected(result);
-      }
-      return result;
-    }
-
-    public boolean isEmpty() {
-      return myCallbacks.isEmpty();
-    }
-
-    public int getSize() {
-      return myCallbacks.size();
-    }
-
-    @NotNull
-    public ActionCallback getWhenProcessed() {
-      final ActionCallback result = new ActionCallback(myCallbacks.size());
-      Runnable setDoneRunnable = result.createSetDoneRunnable();
-      for (ActionCallback each : myCallbacks) {
-        each.doWhenProcessed(setDoneRunnable);
-      }
-      return result;
-    }
   }
 
   @NotNull

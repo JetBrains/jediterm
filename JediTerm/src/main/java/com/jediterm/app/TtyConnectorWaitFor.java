@@ -1,6 +1,5 @@
 package com.jediterm.app;
 
-import com.google.common.base.Predicate;
 import com.jediterm.terminal.TtyConnector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,6 +8,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.function.Predicate;
 
 public class TtyConnectorWaitFor {
   private static final Logger LOG = LoggerFactory.getLogger(TtyConnectorWaitFor.class);
@@ -40,7 +40,7 @@ public class TtyConnectorWaitFor {
         finally {
           try {
             if (!myWaitForThreadFuture.isCancelled()) {
-              myTerminationCallback.take().apply(exitCode);
+              myTerminationCallback.take().test(exitCode);
             }
           }
           catch (InterruptedException e) {

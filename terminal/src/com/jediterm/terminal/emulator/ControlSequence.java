@@ -1,9 +1,8 @@
 package com.jediterm.terminal.emulator;
 
-import com.google.common.base.Ascii;
-import com.google.common.collect.Lists;
 import com.jediterm.terminal.TerminalDataStream;
 import com.jediterm.terminal.util.CharUtils;
+import com.jediterm.typeahead.Ascii;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -81,7 +80,7 @@ public class ControlSequence {
 
   private void addUnhandled(final char b) {
     if (myUnhandledChars == null) {
-      myUnhandledChars = Lists.newArrayList();
+      myUnhandledChars = new ArrayList<>();
     }
     myUnhandledChars.add(b);
   }

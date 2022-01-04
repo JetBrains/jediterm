@@ -15,8 +15,6 @@
  */
 package com.intellij.util.concurrency;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.Consumer;
 import org.jetbrains.annotations.NotNull;
@@ -25,6 +23,8 @@ import org.jetbrains.annotations.TestOnly;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * A ThreadPoolExecutor which also implements {@link ScheduledExecutorService} by awaiting scheduled tasks in a separate thread
@@ -97,7 +97,8 @@ public class AppScheduledExecutorService extends SchedulingWrapper {
   @NotNull
   @Override
   List<Runnable> doShutdownNow() {
-    return Lists.newArrayList(Iterables.concat(super.doShutdownNow(), ((BackendThreadPoolExecutor)backendExecutorService).doShutdownNow()));
+    return Stream.concat(super.doShutdownNow().stream(), ((BackendThreadPoolExecutor)backendExecutorService).doShutdownNow().stream())
+      .collect(Collectors.toList());
   }
 
   public void shutdownAppScheduledExecutorService() {

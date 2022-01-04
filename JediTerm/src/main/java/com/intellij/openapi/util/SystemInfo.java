@@ -15,11 +15,7 @@
  */
 package com.intellij.openapi.util;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
-import com.google.common.collect.Maps;
-import com.google.common.io.Files;
+import com.intellij.openapi.Suppliers;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.SystemProperties;
 import org.jetbrains.annotations.NotNull;
@@ -27,9 +23,14 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 @SuppressWarnings({"HardCodedStringLiteral", "UtilityClassWithoutPrivateConstructor", "UnusedDeclaration"})
 public class SystemInfo extends SystemInfoRt {
@@ -76,8 +77,8 @@ public class SystemInfo extends SystemInfoRt {
         public Map<String, String> get() {
             if (isUnix && !isMac) {
                 try {
-                    List<String> lines = Files.readLines(new File("/etc/os-release"), Charsets.UTF_8);
-                    Map<String, String> info = Maps.newHashMap();
+                    List<String> lines = Files.readAllLines(Path.of("/etc/os-release"), StandardCharsets.UTF_8);
+                    Map<String, String> info = new HashMap<>();
                     for (String line : lines) {
                         int p = line.indexOf('=');
                         if (p > 0) {

@@ -1,7 +1,5 @@
 package com.jediterm.app
 
-import com.google.common.collect.Lists
-import com.google.common.collect.Maps
 import com.intellij.execution.filters.UrlFilter
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Pair
@@ -21,6 +19,7 @@ import com.pty4j.PtyProcessBuilder
 import java.io.IOException
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
+import java.util.*
 import java.util.function.Function
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -57,7 +56,7 @@ class JediTerm : AbstractTerminalFrame(), Disposable {
     override fun createTtyConnector(): TtyConnector {
         try {
             val charset = StandardCharsets.UTF_8
-            val envs = Maps.newHashMap(System.getenv())
+            val envs = HashMap(System.getenv())
             EncodingEnvironmentUtil.setLocaleEnvironmentIfMac(envs, charset)
             val command: Array<String> = if (UIUtil.isWindows) {
                 arrayOf("powershell.exe")
@@ -97,8 +96,8 @@ class JediTerm : AbstractTerminalFrame(), Disposable {
         PtyProcessTtyConnector(process, charset, command), LoggingTtyConnector {
         private val MAX_LOG_SIZE = 200
 
-        private val myDataChunks = Lists.newLinkedList<CharArray>()
-        private val myStates = Lists.newLinkedList<TerminalState>()
+        private val myDataChunks = LinkedList<CharArray>()
+        private val myStates = LinkedList<TerminalState>()
         private var myWidget: JediTermWidget? = null
         private var logStart = 0
 
@@ -127,11 +126,11 @@ class JediTerm : AbstractTerminalFrame(), Disposable {
         }
 
         override fun getChunks(): List<CharArray> {
-            return Lists.newArrayList(myDataChunks)
+            return ArrayList(myDataChunks)
         }
 
         override fun getStates(): List<TerminalState> {
-            return Lists.newArrayList(myStates)
+            return ArrayList(myStates)
         }
 
         override fun getLogStart() = logStart

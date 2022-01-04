@@ -15,9 +15,7 @@
  */
 package com.intellij.util.ui;
 
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
-import com.google.common.collect.Maps;
+import com.intellij.openapi.Suppliers;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ui.GraphicsConfig;
 import com.intellij.openapi.util.Ref;
@@ -37,8 +35,10 @@ import java.awt.image.BufferedImageOp;
 import java.awt.image.ImageObserver;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 public class DrawUtil {
     protected static final Logger LOG = Logger.getInstance("#com.intellij.util.ui.UIUtil");
@@ -542,7 +542,7 @@ public class DrawUtil {
      */
     private final static class DetectRetinaKit {
 
-        private final static Map<GraphicsDevice, Boolean> devicesToRetinaSupportCacheMap = Maps.newHashMap();
+        private final static Map<GraphicsDevice, Boolean> devicesToRetinaSupportCacheMap = new HashMap<>();
 
         /**
          * The best way to understand whether we are on a retina device is [NSScreen backingScaleFactor]

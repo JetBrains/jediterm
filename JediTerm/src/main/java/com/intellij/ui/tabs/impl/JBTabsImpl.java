@@ -15,7 +15,6 @@
  */
 package com.intellij.ui.tabs.impl;
 
-import com.google.common.collect.Lists;
 import com.intellij.openapi.ui.GraphicsConfig;
 import com.intellij.openapi.ui.OnePixelDivider;
 import com.intellij.openapi.util.*;
@@ -44,8 +43,9 @@ import java.awt.geom.Line2D;
 import java.awt.image.BufferedImage;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.util.*;
 import java.util.List;
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class JBTabsImpl extends JComponent
         implements JBTabs, PropertyChangeListener, PopupMenuListener, JBTabsPresentation,
@@ -68,8 +68,8 @@ public class JBTabsImpl extends JComponent
 
     private Insets myInnerInsets = JBUI.emptyInsets();
 
-    private final List<EventListener> myTabMouseListeners = Lists.newCopyOnWriteArrayList();
-    private final List<TabsListener> myTabListeners = Lists.newCopyOnWriteArrayList();
+    private final List<EventListener> myTabMouseListeners = new CopyOnWriteArrayList<>();
+    private final List<TabsListener> myTabListeners = new CopyOnWriteArrayList<>();
     private boolean myFocused;
 
     private String myPopupPlace;

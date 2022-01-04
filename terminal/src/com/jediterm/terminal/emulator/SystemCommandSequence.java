@@ -1,13 +1,13 @@
 package com.jediterm.terminal.emulator;
 
-import com.google.common.base.Ascii;
-import com.google.common.collect.Lists;
 import com.jediterm.terminal.TerminalDataStream;
 import com.jediterm.terminal.util.CharUtils;
+import com.jediterm.typeahead.Ascii;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -17,7 +17,7 @@ final class SystemCommandSequence {
 
   private static final char ST = 0x9c;
 
-  private final List<Object> myArgs = Lists.newArrayList();
+  private final List<Object> myArgs = new ArrayList<>();
   private final StringBuilder mySequence = new StringBuilder();
 
   public SystemCommandSequence(@NotNull TerminalDataStream stream) throws IOException {

@@ -1,7 +1,5 @@
 package com.jediterm.terminal.ui;
 
-import com.google.common.base.Ascii;
-import com.google.common.collect.Lists;
 import com.jediterm.terminal.*;
 import com.jediterm.terminal.SubstringFinder.FindResult.FindItem;
 import com.jediterm.terminal.TextStyle.Option;
@@ -14,6 +12,7 @@ import com.jediterm.terminal.model.hyperlinks.LinkInfo;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
 import com.jediterm.terminal.util.CharUtils;
 import com.jediterm.terminal.util.Pair;
+import com.jediterm.typeahead.Ascii;
 import com.jediterm.typeahead.TerminalTypeAheadManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -1543,7 +1542,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
   @Override
   public List<TerminalAction> getActions() {
-    return Lists.newArrayList(
+    return List.of(
             new TerminalAction(mySettingsProvider.getOpenUrlActionPresentation(), input -> {
               return openSelectionAsURL();
             }).withEnabledSupplier(this::selectionTextIsUrl),

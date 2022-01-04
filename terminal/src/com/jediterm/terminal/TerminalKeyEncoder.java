@@ -1,8 +1,8 @@
 package com.jediterm.terminal;
 
-import com.google.common.base.Ascii;
 import com.jediterm.terminal.ui.UIUtil;
 import com.jediterm.terminal.util.CharUtils;
+import com.jediterm.typeahead.Ascii;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.event.InputEvent;

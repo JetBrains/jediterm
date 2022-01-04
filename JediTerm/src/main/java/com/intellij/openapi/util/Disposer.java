@@ -15,7 +15,6 @@
  */
 package com.intellij.openapi.util;
 
-import com.google.common.collect.Maps;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.util.objectTree.ObjectTree;
 import com.intellij.openapi.util.objectTree.ObjectTreeAction;
@@ -28,6 +27,7 @@ import org.jetbrains.annotations.TestOnly;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Disposer {
   private static final ObjectTree<Disposable> ourTree;
@@ -80,7 +80,7 @@ public class Disposer {
     };
   }
 
-  private static final Map<String, Disposable> ourKeyDisposables = Maps.newConcurrentMap();
+  private static final Map<String, Disposable> ourKeyDisposables = new ConcurrentHashMap<>();
 
   public static void register(@NotNull Disposable parent, @NotNull Disposable child) {
     register(parent, child, null);

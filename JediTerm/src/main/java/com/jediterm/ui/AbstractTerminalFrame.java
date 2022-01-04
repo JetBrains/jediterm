@@ -190,7 +190,7 @@ public abstract class AbstractTerminalFrame {
 
       @Override
       public void onTitleChanged(String title) {
-        frame.setTitle(myTerminal.getCurrentSession().getSessionName());
+        frame.setTitle(title);
       }
     });
 

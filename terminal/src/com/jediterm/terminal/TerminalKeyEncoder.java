@@ -26,6 +26,7 @@ public class TerminalKeyEncoder {
   public TerminalKeyEncoder() {
     setAutoNewLine(false);
     arrowKeysAnsiCursorSequences();
+    configureLeftRight();
     keypadAnsiSequences();
     putCode(VK_BACK_SPACE, Ascii.DEL);
     putCode(VK_F1, ESC, 'O', 'P');
@@ -56,17 +57,6 @@ public class TerminalKeyEncoder {
     putCode(VK_DOWN, ESC, 'O', 'B');
     putCode(VK_RIGHT, ESC, 'O', 'C');
     putCode(VK_LEFT, ESC, 'O', 'D');
-
-    if (UIUtil.isLinux) {
-      putCode(new KeyCodeAndModifier(VK_RIGHT, InputEvent.CTRL_MASK), ESC, '[',  '1', ';', '5', 'C'); // ^[[1;5C
-      putCode(new KeyCodeAndModifier(VK_LEFT, InputEvent.CTRL_MASK), ESC, '[',  '1', ';', '5', 'D'); // ^[[1;5D
-      putCode(new KeyCodeAndModifier(VK_RIGHT, InputEvent.ALT_MASK), ESC, '[',  '1', ';', '3', 'C'); // ^[[1;3C
-      putCode(new KeyCodeAndModifier(VK_LEFT, InputEvent.ALT_MASK), ESC, '[',  '1', ';', '3', 'D'); // ^[[1;3D
-    }
-    else {
-      putCode(new KeyCodeAndModifier(VK_RIGHT, InputEvent.ALT_MASK), ESC, 'f'); // ^[f
-      putCode(new KeyCodeAndModifier(VK_LEFT, InputEvent.ALT_MASK), ESC, 'b'); // ^[b
-    }
   }
 
   public void arrowKeysAnsiCursorSequences() {
@@ -74,9 +64,18 @@ public class TerminalKeyEncoder {
     putCode(VK_DOWN, ESC, '[', 'B');
     putCode(VK_RIGHT, ESC, '[', 'C');
     putCode(VK_LEFT, ESC, '[', 'D');
+  }
+
+  private void configureLeftRight() {
     if (UIUtil.isMac) {
       putCode(new KeyCodeAndModifier(VK_RIGHT, InputEvent.ALT_MASK), ESC, 'f'); // ^[f
       putCode(new KeyCodeAndModifier(VK_LEFT, InputEvent.ALT_MASK), ESC, 'b'); // ^[b
+    }
+    else {
+      putCode(new KeyCodeAndModifier(VK_LEFT, InputEvent.CTRL_MASK), ESC, '[',  '1', ';', '5', 'D'); // ^[[1;5D
+      putCode(new KeyCodeAndModifier(VK_RIGHT, InputEvent.CTRL_MASK), ESC, '[',  '1', ';', '5', 'C'); // ^[[1;5C
+      putCode(new KeyCodeAndModifier(VK_LEFT, InputEvent.ALT_MASK), ESC, '[',  '1', ';', '3', 'D'); // ^[[1;3D
+      putCode(new KeyCodeAndModifier(VK_RIGHT, InputEvent.ALT_MASK), ESC, '[',  '1', ';', '3', 'C'); // ^[[1;3C
     }
   }
 

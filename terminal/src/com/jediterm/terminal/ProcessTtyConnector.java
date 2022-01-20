@@ -74,7 +74,9 @@ public abstract class ProcessTtyConnector implements TtyConnector {
   }
 
   @Override
-  public abstract boolean isConnected();
+  public boolean isConnected() {
+    return myProcess.isAlive();
+  }
 
   @Override
   public void write(String string) throws IOException {

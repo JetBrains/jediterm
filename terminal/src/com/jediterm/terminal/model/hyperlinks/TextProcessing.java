@@ -9,17 +9,17 @@ import com.jediterm.terminal.model.TerminalLine;
 import com.jediterm.terminal.model.TerminalTextBuffer;
 import com.jediterm.terminal.ui.JediTermWidget;
 import com.jediterm.terminal.util.CharUtils;
-import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * @author traff
  */
 public class TextProcessing {
 
-  private static final Logger LOG = Logger.getLogger(TextProcessing.class);
+  private static final Logger LOG = Logger.getLogger(TextProcessing.class.getName());
 
   private final List<HyperlinkFilter> myHyperlinkFilter;
   private TextStyle myHyperlinkColor;
@@ -50,7 +50,7 @@ public class TextProcessing {
         // When lines arrive fast enough, the line might be pushed to the history buffer already.
         updatedLineInd = findHistoryLineInd(myTerminalTextBuffer.getHistoryBuffer(), updatedLine);
         if (updatedLineInd == -1) {
-          LOG.debug("Cannot find line for links processing");
+          LOG.fine("Cannot find line for links processing");
           return;
         }
         buffer = myTerminalTextBuffer.getHistoryBuffer();

@@ -16,9 +16,6 @@ import com.jediterm.terminal.ui.UIUtil
 import com.jediterm.terminal.ui.settings.DefaultTabbedSettingsProvider
 import com.jediterm.terminal.ui.settings.TabbedSettingsProvider
 import com.pty4j.PtyProcess
-import org.apache.log4j.BasicConfigurator
-import org.apache.log4j.Level
-import org.apache.log4j.Logger
 import java.awt.KeyboardFocusManager
 import java.io.IOException
 import java.nio.charset.Charset
@@ -34,9 +31,6 @@ import javax.swing.SwingUtilities
 object JediTermMain {
     @JvmStatic
     fun main(arg: Array<String>) {
-        BasicConfigurator.configure()
-        Logger.getRootLogger().level = Level.INFO
-
 //        initLoggingTracing()
 
         SwingUtilities.invokeLater {
@@ -130,13 +124,13 @@ class JediTerm : AbstractTerminalFrame(), Disposable {
 
         @Throws(IOException::class)
         override fun write(string: String) {
-            AbstractTerminalFrame.LOG.debug("Writing in OutputStream : " + string)
+            AbstractTerminalFrame.LOG.fine("Writing in OutputStream : " + string)
             super.write(string)
         }
 
         @Throws(IOException::class)
         override fun write(bytes: ByteArray) {
-            AbstractTerminalFrame.LOG.debug("Writing in OutputStream : " + Arrays.toString(bytes) + " " + String(bytes))
+            AbstractTerminalFrame.LOG.fine("Writing in OutputStream : " + Arrays.toString(bytes) + " " + String(bytes))
             super.write(bytes)
         }
     }

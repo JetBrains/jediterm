@@ -13,7 +13,6 @@ repositories {
 dependencies {
     compile project(':terminal')
 
-    compile 'log4j:log4j:1.2.17'
     compile 'org.jetbrains:annotations:13.0'
     compile 'com.google.guava:guava:25.1-jre'
 

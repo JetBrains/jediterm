@@ -1,15 +1,16 @@
 package com.jediterm.terminal;
 
 import com.jediterm.terminal.ui.UIUtil;
-import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.awt.datatransfer.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class DefaultTerminalCopyPasteHandler implements TerminalCopyPasteHandler, ClipboardOwner {
-  private static final Logger LOG = Logger.getLogger(DefaultTerminalCopyPasteHandler.class);
+  private static final Logger LOG = Logger.getLogger(DefaultTerminalCopyPasteHandler.class.getName());
 
   @Override
   public void setContents(@NotNull String text, boolean useSystemSelectionClipboardIfAvailable) {
@@ -94,12 +95,11 @@ public class DefaultTerminalCopyPasteHandler implements TerminalCopyPasteHandler
   }
 
   private static void logException(@NotNull String message, @NotNull Exception e) {
+    Level level = Level.WARNING;
     if (UIUtil.isWindows && e instanceof IllegalStateException) {
-      LOG.debug(message, e);
+        level = Level.FINE;
     }
-    else {
-      LOG.warn(message, e);
-    }
+    LOG.log(level, message, e);
   }
 
   @Override

@@ -6,13 +6,13 @@ import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.util.CharUtils;
 import com.jediterm.terminal.util.Pair;
-import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.TestOnly;
 
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 /**
@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
  */
 public class TerminalLine {
 
-  private static final Logger LOG = Logger.getLogger(TerminalLine.class);
+  private static final Logger LOG = Logger.getLogger(TerminalLine.class.getName());
 
   private TextEntries myTextEntries = new TextEntries();
   private boolean myWrapped = false;
@@ -282,7 +282,7 @@ public class TerminalLine {
     int startTextOffsetInd = Arrays.binarySearch(offsets, startTextOffset);
     int endTextOffsetInd = Arrays.binarySearch(offsets, endTextOffset);
     if (startTextOffsetInd < 0 || endTextOffsetInd < 0) {
-      LOG.error("Cannot find " + Arrays.toString(new int[] {startTextOffset, endTextOffset})
+      LOG.severe("Cannot find " + Arrays.toString(new int[] {startTextOffset, endTextOffset})
         + " in " + Arrays.toString(offsets) + ": " + Arrays.toString(new int[] {startTextOffsetInd, endTextOffsetInd}));
       consumer.consume(startTextOffset, y, te.getStyle(), text, startRow);
       return;

@@ -14,7 +14,6 @@ import com.jediterm.terminal.model.hyperlinks.LinkInfo;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
 import com.jediterm.terminal.util.CharUtils;
 import com.jediterm.terminal.util.Pair;
-import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -35,9 +34,11 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class TerminalPanel extends JComponent implements TerminalDisplay, TerminalActionProvider {
-  private static final Logger LOG = Logger.getLogger(TerminalPanel.class);
+  private static final Logger LOG = Logger.getLogger(TerminalPanel.class.getName());
   private static final long serialVersionUID = -1048763516632093014L;
 
   public static final double SCROLL_SPEED = 0.05;
@@ -486,7 +487,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
           try {
             terminalPanel.doRepaint();
           } catch (Exception ex) {
-            LOG.error("Error while terminal panel redraw", ex);
+            LOG.log(Level.SEVERE, "Error while terminal panel redraw", ex);
           }
         }
       } else { // terminalPanel was garbage collected
@@ -578,7 +579,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
       myTerminalStarter.sendString(text);
     } catch (RuntimeException e) {
-      LOG.info(e);
+      LOG.log(Level.INFO, "Unable to paste from clipboard", e);
     }
   }
 
@@ -664,12 +665,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     myCharSize.height = (int)Math.ceil(fontMetricsHeight * lineSpacing);
     mySpaceBetweenLines = Math.max(0, ((myCharSize.height - fontMetricsHeight) / 2) * 2);
     myDescent = fo.getDescent();
-    if (LOG.isDebugEnabled()) {
+    if (LOG.isLoggable(Level.FINE)) {
       // The magic +2 here is to give lines a tiny bit of extra height to avoid clipping when rendering some Apple
       // emoji, which are slightly higher than the font metrics reported character height :(
       int oldCharHeight = fontMetricsHeight + (int) (lineSpacing * 2) + 2;
       int oldDescent = fo.getDescent() + (int)lineSpacing;
-      LOG.debug("charHeight=" + oldCharHeight + "->" + myCharSize.height +
+      LOG.fine("charHeight=" + oldCharHeight + "->" + myCharSize.height +
         ", descent=" + oldDescent + "->" + myDescent);
     }
 
@@ -1635,7 +1636,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
         processCharacter(e);
       }
     } catch (final Exception ex) {
-      LOG.error("Error sending pressed key to emulator", ex);
+      LOG.log(Level.SEVERE, "Error sending pressed key to emulator", ex);
     }
   }
 
@@ -1694,7 +1695,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       try {
         processCharacter(e);
       } catch (final Exception ex) {
-        LOG.error("Error sending typed key to emulator", ex);
+        LOG.log(Level.SEVERE, "Error sending typed key to emulator", ex);
       }
     }
   }

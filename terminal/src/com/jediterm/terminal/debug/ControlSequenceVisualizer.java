@@ -1,16 +1,15 @@
 package com.jediterm.terminal.debug;
 
-import org.apache.log4j.Logger;
-
 import java.io.*;
 import java.nio.CharBuffer;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * @author traff
  */
 public class ControlSequenceVisualizer {
-  private static final Logger LOG = Logger.getLogger(ControlSequenceVisualizer.class);
+  private static final Logger LOG = Logger.getLogger(ControlSequenceVisualizer.class.getName());
 
   private File myTempFile;
 

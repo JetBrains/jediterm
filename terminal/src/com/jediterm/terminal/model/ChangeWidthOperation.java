@@ -1,15 +1,15 @@
 package com.jediterm.terminal.model;
 
 import com.google.common.base.Preconditions;
-import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.util.List;
+import java.util.logging.Logger;
 import java.util.*;
 
 class ChangeWidthOperation {
-  private static final Logger LOG = Logger.getLogger(TerminalTextBuffer.class);
+  private static final Logger LOG = Logger.getLogger(TerminalTextBuffer.class.getName());
 
   private final TerminalTextBuffer myTextBuffer;
   private final int myNewWidth;
@@ -34,7 +34,7 @@ class ChangeWidthOperation {
   Point getTrackedPoint(@NotNull Point original) {
     Point result = myTrackingPoints.get(new Point(original));
     if (result == null) {
-      LOG.warn("Not tracked point: " + original);
+      LOG.warning("Not tracked point: " + original);
       return original;
     }
     return result;
@@ -53,7 +53,7 @@ class ChangeWidthOperation {
     Preconditions.checkState(screenStartInd >= 0, "screenStartInd < 0: %d", screenStartInd);
     LinesBuffer screenBuffer = myTextBuffer.getScreenBufferOrBackup();
     if (screenBuffer.getLineCount() > myTextBuffer.getHeight()) {
-      LOG.warn("Terminal height < screen buffer line count: " + myTextBuffer.getHeight() + " < " + screenBuffer.getLineCount());
+      LOG.warning("Terminal height < screen buffer line count: " + myTextBuffer.getHeight() + " < " + screenBuffer.getLineCount());
     }
     int oldScreenLineCount = Math.min(screenBuffer.getLineCount(), myTextBuffer.getHeight());
     for (int i = 0; i < oldScreenLineCount; i++) {

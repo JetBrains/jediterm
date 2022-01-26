@@ -1,6 +1,6 @@
 package com.jediterm.terminal;
 
-import org.apache.log4j.Logger;
+import java.util.logging.Logger;
 
 public enum TerminalMode {
   Null,
@@ -93,9 +93,9 @@ public enum TerminalMode {
           }
   ;
 
-  private static final Logger LOG = Logger.getLogger(TerminalMode.class);
+  private static final Logger LOG = Logger.getLogger(TerminalMode.class.getName());
   
   public void setEnabled(Terminal terminal, boolean enabled) {
-    LOG.error("Mode " + name() + " is not implemented, setting to " + enabled);
+    LOG.severe("Mode " + name() + " is not implemented, setting to " + enabled);
   }
 }

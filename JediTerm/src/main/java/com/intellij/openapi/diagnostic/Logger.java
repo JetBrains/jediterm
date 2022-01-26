@@ -16,13 +16,13 @@
 package com.intellij.openapi.diagnostic;
 
 import com.intellij.util.ExceptionUtil;
-import org.apache.log4j.Level;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Constructor;
+import java.util.logging.Level;
 
 public abstract class Logger {
   public interface Factory {

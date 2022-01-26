@@ -12,7 +12,6 @@ import com.jediterm.terminal.model.TerminalTextBuffer;
 import com.jediterm.terminal.model.hyperlinks.HyperlinkFilter;
 import com.jediterm.terminal.model.hyperlinks.TextProcessing;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
-import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -26,13 +25,15 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * JediTerm terminal widget with UI implemented in Swing.
  * <p/>
  */
 public class JediTermWidget extends JPanel implements TerminalSession, TerminalWidget, TerminalActionProvider {
-  private static final Logger LOG = Logger.getLogger(JediTermWidget.class);
+  private static final Logger LOG = Logger.getLogger(JediTermWidget.class.getName());
 
   protected final TerminalPanel myTerminalPanel;
   protected final JScrollBar myScrollBar;
@@ -164,7 +165,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
       myEmuThread = new Thread(new EmulatorTask());
       myEmuThread.start();
     } else {
-      LOG.error("Should not try to start session again at this point... ");
+      LOG.severe("Should not try to start session again at this point... ");
     }
   }
 
@@ -362,7 +363,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
           myTerminalStarter.start();
         }
       } catch (Exception e) {
-        LOG.error("Exception running terminal", e);
+        LOG.log(Level.SEVERE, "Exception running terminal", e);
       } finally {
         try {
           myTtyConnector.close();

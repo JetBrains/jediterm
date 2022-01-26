@@ -8,7 +8,6 @@ import com.jediterm.terminal.emulator.mouse.*;
 import com.jediterm.terminal.model.hyperlinks.LinkInfo;
 import com.jediterm.terminal.ui.TerminalCoordinates;
 import com.jediterm.terminal.util.CharUtils;
-import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -22,6 +21,7 @@ import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.logging.Logger;
 
 /**
  * Terminal that reflects obtained commands and text at {@link TerminalDisplay}(handles change of cursor position, screen size etc)
@@ -326,7 +326,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
           myTerminalTextBuffer.moveScreenLinesToHistory();
           break;
         default:
-          LOG.error("Unsupported erase in display mode:" + arg);
+          LOG.severe("Unsupported erase in display mode:" + arg);
           beginY = 1;
           endY = 1;
           break;
@@ -412,7 +412,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
           myTerminalTextBuffer.eraseCharacters(0, -1, myCursorY - 1);
           break;
         default:
-          LOG.error("Unsupported erase in line mode:" + arg);
+          LOG.severe("Unsupported erase in line mode:" + arg);
           break;
       }
     } finally {
@@ -650,7 +650,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   @Override
   public void setScrollingRegion(int top, int bottom) {
     if (top > bottom) {
-      LOG.error("Top margin of scroll region can't be greater then bottom: " + top + ">" + bottom);
+      LOG.severe("Top margin of scroll region can't be greater then bottom: " + top + ">" + bottom);
     }
     myScrollRegionTop = Math.max(1, top);
     myScrollRegionBottom = Math.min(myTerminalHeight, bottom);
@@ -839,7 +839,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
         sb.append(String.format("\033[M%c%c%c", (char) (32 + button), (char) (32 + x), (char) (32 + y)));
         break;
     }
-    LOG.debug(myMouseFormat + " (" + charset + ") report : " + button + ", " + x + "x" + y + " = " + sb);
+    LOG.fine(myMouseFormat + " (" + charset + ") report : " + button + ", " + x + "x" + y + " = " + sb);
     return sb.toString().getBytes(Charset.forName(charset));
   }
 

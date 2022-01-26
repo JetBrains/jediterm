@@ -17,7 +17,9 @@ package com.intellij.openapi.diagnostic;
 
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.ExceptionUtil;
-import org.apache.log4j.Level;
+
+import java.util.logging.Level;
+
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

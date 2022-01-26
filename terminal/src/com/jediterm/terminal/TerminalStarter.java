@@ -2,7 +2,6 @@ package com.jediterm.terminal;
 
 import com.jediterm.terminal.emulator.Emulator;
 import com.jediterm.terminal.emulator.JediEmulator;
-import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
@@ -13,6 +12,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 /**
@@ -21,7 +22,7 @@ import java.util.function.BiConsumer;
  * @author traff
  */
 public class TerminalStarter implements TerminalOutputStream {
-  private static final Logger LOG = Logger.getLogger(TerminalStarter.class);
+  private static final Logger LOG = Logger.getLogger(TerminalStarter.class.getName());
 
   private final Emulator myEmulator;
 
@@ -62,7 +63,7 @@ public class TerminalStarter implements TerminalOutputStream {
         myTerminal.disconnected();
         return;
       }
-      LOG.error("Caught exception in terminal thread", e);
+      LOG.log(Level.SEVERE, "Caught exception in terminal thread", e);
     }
   }
 
@@ -122,7 +123,7 @@ public class TerminalStarter implements TerminalOutputStream {
         myTtyConnector.close();
       }
       catch (Exception e) {
-        LOG.error("Error closing terminal", e);
+        LOG.log(Level.SEVERE, "Error closing terminal", e);
       }
       finally {
         myEmulatorExecutor.shutdown();

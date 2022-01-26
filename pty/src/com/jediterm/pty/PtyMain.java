@@ -7,9 +7,6 @@ import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.ui.AbstractTerminalFrame;
 import com.jediterm.terminal.ui.UIUtil;
 import com.pty4j.PtyProcess;
-import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -43,8 +40,6 @@ public class PtyMain extends AbstractTerminalFrame {
   }
 
   public static void main(final String[] arg) {
-    BasicConfigurator.configure();
-    Logger.getRootLogger().setLevel(Level.INFO);
     new PtyMain();
   }
 
@@ -72,13 +67,13 @@ public class PtyMain extends AbstractTerminalFrame {
 
     @Override
     public void write(String string) throws IOException {
-      LOG.debug("Writing in OutputStream : " + string);
+      LOG.fine("Writing in OutputStream : " + string);
       super.write(string);
     }
 
     @Override
     public void write(byte[] bytes) throws IOException {
-      LOG.debug("Writing in OutputStream : " + Arrays.toString(bytes) + " " + new String(bytes));
+      LOG.fine("Writing in OutputStream : " + Arrays.toString(bytes) + " " + new String(bytes));
       super.write(bytes);
     }
   }

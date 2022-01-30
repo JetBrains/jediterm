@@ -1,7 +1,7 @@
 package com.jediterm.terminal.model.hyperlinks;
 
 import com.jediterm.core.awtCompat.Color;
-import com.jediterm.core.HyperlinkStyle;
+import com.jediterm.terminal.HyperlinkStyle;
 import com.jediterm.core.TerminalColor;
 import com.jediterm.core.TextStyle;
 import com.jediterm.core.model.CharBuffer;

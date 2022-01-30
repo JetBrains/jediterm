@@ -13,7 +13,7 @@ import com.jediterm.core.emulator.charset.CharacterSets;
 import com.jediterm.core.emulator.mouse.MouseMode;
 import com.jediterm.core.awtCompat.Dimension;
 import com.jediterm.core.emulator.mouse.TerminalMouseListener;
-import com.jediterm.core.model.hyperlinks.LinkInfo;
+import com.jediterm.terminal.model.hyperlinks.LinkInfo;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
 import com.jediterm.core.util.CharUtils;
 import com.jediterm.core.util.Pair;

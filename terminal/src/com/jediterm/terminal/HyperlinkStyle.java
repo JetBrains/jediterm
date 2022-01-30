@@ -1,6 +1,8 @@
-package com.jediterm.core;
+package com.jediterm.terminal;
 
-import com.jediterm.core.model.hyperlinks.LinkInfo;
+import com.jediterm.core.TerminalColor;
+import com.jediterm.core.TextStyle;
+import com.jediterm.terminal.model.hyperlinks.LinkInfo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

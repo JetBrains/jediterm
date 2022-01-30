@@ -15,10 +15,6 @@
  */
 package com.jediterm.terminal.model.hyperlinks;
 
-import com.jediterm.core.model.hyperlinks.HyperlinkFilter;
-import com.jediterm.core.model.hyperlinks.LinkInfo;
-import com.jediterm.core.model.hyperlinks.LinkResult;
-import com.jediterm.core.model.hyperlinks.LinkResultItem;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

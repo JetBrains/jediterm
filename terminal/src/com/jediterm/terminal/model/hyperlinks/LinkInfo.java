@@ -1,4 +1,4 @@
-package com.jediterm.core.model.hyperlinks;
+package com.jediterm.terminal.model.hyperlinks;
 
 import com.jediterm.terminal.ui.TerminalAction;
 import org.jetbrains.annotations.NotNull;

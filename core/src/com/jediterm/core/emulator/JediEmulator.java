@@ -1,6 +1,7 @@
 package com.jediterm.core.emulator;
 
 import com.jediterm.core.*;
+import com.jediterm.core.awtCompat.Dimension;
 import com.jediterm.core.emulator.mouse.MouseFormat;
 import com.jediterm.core.emulator.mouse.MouseMode;
 import com.jediterm.core.util.CharUtils;

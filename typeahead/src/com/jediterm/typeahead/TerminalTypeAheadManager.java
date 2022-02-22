@@ -207,6 +207,9 @@ public class TerminalTypeAheadManager {
 
     // @see com.jediterm.terminal.TerminalKeyEncoder
     public static @NotNull List<@NotNull TypeAheadEvent> fromByteArray(byte[] byteArray) {
+      if (byteArray.length == 0) {
+        return Collections.emptyList();
+      }
       String stringRepresentation = new String(byteArray);
       if (isPrintableUnicode(stringRepresentation.charAt(0))) {
         return fromString(stringRepresentation);
@@ -224,12 +227,15 @@ public class TerminalTypeAheadManager {
     }
 
     public static @NotNull List<@NotNull TypeAheadEvent> fromString(@NotNull String string) {
-      ArrayList<@NotNull TypeAheadEvent> events = new ArrayList<>();
+      if (string.isEmpty()) {
+        return Collections.emptyList();
+      }
 
       if (!isPrintableUnicode(string.charAt(0))) {
         return Collections.singletonList(fromSequence(string.getBytes()));
       }
 
+      ArrayList<@NotNull TypeAheadEvent> events = new ArrayList<>();
       for (char ch : string.toCharArray()) {
         TypeAheadEvent event = fromChar(ch);
         events.add(event);

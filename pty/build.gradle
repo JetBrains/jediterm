@@ -14,7 +14,7 @@ repositories {
 
 dependencies {
     api project(':terminal')
-    api project(':core') // FIXME: temporary!
+    api project(':core')
 
     implementation 'org.slf4j:slf4j-api:1.7.32'
     implementation 'org.jetbrains:annotations:20.1.0'

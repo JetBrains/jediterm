@@ -17,7 +17,6 @@ import java.util.List;
 /**
  * @author traff
  */
-
 public class TextProcessing {
 
   private static final Logger LOG = LoggerFactory.getLogger(TextProcessing.class);

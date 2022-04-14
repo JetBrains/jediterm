@@ -1,4 +1,4 @@
-package com.jediterm.terminal.model.hyperlinks;
+package com.jediterm.core.model.hyperlinks;
 
 import org.jetbrains.annotations.Nullable;
 

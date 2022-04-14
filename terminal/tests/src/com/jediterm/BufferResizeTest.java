@@ -4,6 +4,7 @@ import com.jediterm.core.awtCompat.Dimension;
 import com.jediterm.core.awtCompat.Point;
 import com.jediterm.core.model.*;
 import com.jediterm.core.RequestOrigin;
+import com.jediterm.terminal.ui.UIUtil;
 import com.jediterm.util.BackBufferDisplay;
 import com.jediterm.util.BackBufferTerminal;
 import com.jediterm.util.CharBufferUtil;
@@ -228,7 +229,7 @@ public class BufferResizeTest extends TestCase {
     TerminalTextBuffer textBuffer = new TerminalTextBuffer(6, 3, state);
 
     BackBufferDisplay display = new BackBufferDisplay(textBuffer);
-    JediTerminal terminal = new JediTerminal(display, textBuffer, state);
+    JediTerminal terminal = new JediTerminal(display, textBuffer, state, UIUtil.getOS());
 
     terminal.writeString(">line1");
     terminal.newLine();
@@ -278,7 +279,7 @@ public class BufferResizeTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(10, 4, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
 
     terminal.writeString("hi>");
     terminal.crnl();
@@ -306,7 +307,7 @@ public class BufferResizeTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(10, 24, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
 
     terminal.writeString("hi>");
 
@@ -323,7 +324,7 @@ public class BufferResizeTest extends TestCase {
   public void testResizeWidth1() {
     StyleState state = new StyleState();
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(15, 24, state);
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
     terminal.writeString("$ cat long.txt");
     terminal.crnl();
     terminal.writeString("1_2_3_4_5_6_7_8");
@@ -351,7 +352,7 @@ public class BufferResizeTest extends TestCase {
   public void testResizeWidth2() {
     StyleState state = new StyleState();
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(100, 5, state);
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
     terminal.writeString("$ cat long.txt");
     terminal.crnl();
     terminal.writeString("1_2_3_4_5_6_7_8_9_10_11_12_13_14_15_16_17_18_19_20_21_22_23_24_25_26_27_28_30");

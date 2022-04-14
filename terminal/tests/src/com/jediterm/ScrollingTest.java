@@ -5,6 +5,7 @@ import com.jediterm.core.awtCompat.Dimension;
 import com.jediterm.core.model.TerminalTextBuffer;
 import com.jediterm.core.model.JediTerminal;
 import com.jediterm.core.model.StyleState;
+import com.jediterm.terminal.ui.UIUtil;
 import com.jediterm.util.ArrayBasedTextConsumer;
 import com.jediterm.util.BackBufferDisplay;
 import junit.framework.TestCase;
@@ -19,7 +20,7 @@ public class ScrollingTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(5, 3, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
 
     terminal.writeString("line");
     terminal.newLine();
@@ -47,7 +48,7 @@ public class ScrollingTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(5, 3, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
 
     terminal.writeString("line");
     terminal.newLine();
@@ -76,7 +77,7 @@ public class ScrollingTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(10, 4, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
 
     terminal.writeString("1234567890");
     terminal.newLine();
@@ -108,7 +109,7 @@ public class ScrollingTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(2, 3, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
 
     terminal.writeString("1");
     terminal.newLine();

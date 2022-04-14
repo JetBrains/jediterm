@@ -6,6 +6,7 @@ import com.jediterm.core.model.CharBuffer;
 import com.jediterm.core.model.JediTerminal;
 import com.jediterm.core.model.StyleState;
 import com.jediterm.core.model.TerminalTextBuffer;
+import com.jediterm.terminal.ui.UIUtil;
 import com.jediterm.util.BackBufferDisplay;
 import junit.framework.TestCase;
 import org.jetbrains.annotations.NotNull;
@@ -19,7 +20,7 @@ public class TerminalTextBufferTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(15, 10, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
 
     terminal.writeString("  1. line1");
     terminal.newLine();
@@ -64,7 +65,7 @@ public class TerminalTextBufferTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(5, 3, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
 
     terminal.writeString("1.");
     terminal.newLine();
@@ -98,7 +99,7 @@ public class TerminalTextBufferTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(5, 3, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
 
     terminal.writeString("1");
     terminal.newLine();
@@ -125,7 +126,7 @@ public class TerminalTextBufferTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(5, 3, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
 
     terminal.writeString("1");
     terminal.newLine();
@@ -162,7 +163,7 @@ public class TerminalTextBufferTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(5, 3, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
 
     terminal.writeString("1");
     terminal.newLine();
@@ -192,7 +193,7 @@ public class TerminalTextBufferTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(5, 3, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
 
     terminal.writeString("1");
     terminal.newLine();
@@ -223,7 +224,7 @@ public class TerminalTextBufferTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(15, 3, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
 
     terminal.writeString("first line");
     terminal.newLine();
@@ -269,7 +270,7 @@ public class TerminalTextBufferTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(5, 5, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
 
     terminal.writeString("1");
     terminal.newLine();
@@ -303,7 +304,7 @@ public class TerminalTextBufferTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(5, 5, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
 
     terminal.writeString("1");
     terminal.newLine();
@@ -337,7 +338,7 @@ public class TerminalTextBufferTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(5, 2, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
 
     terminal.writeString("11111");
 
@@ -360,7 +361,7 @@ public class TerminalTextBufferTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(10, 2, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
 
     terminal.writeString("11111");
 
@@ -381,7 +382,7 @@ public class TerminalTextBufferTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(10, 2, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
 
     terminal.writeString("生活習慣病");
 

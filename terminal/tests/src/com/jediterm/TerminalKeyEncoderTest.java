@@ -15,12 +15,12 @@ import java.awt.event.KeyEvent;
 public class TerminalKeyEncoderTest extends TestCase {
   
   public void testAltBackspace() {
-    TerminalKeyEncoder terminalKeyEncoder = new TerminalKeyEncoder();
+    TerminalKeyEncoder terminalKeyEncoder = new TerminalKeyEncoder(UIUtil.getOS());
     Assert.assertArrayEquals(new byte[]{Ascii.ESC, Ascii.DEL}, terminalKeyEncoder.getCode('\b', InputEvent.ALT_MASK));
   }
 
   public void testAltLeft() {
-    TerminalKeyEncoder terminalKeyEncoder = new TerminalKeyEncoder();
+    TerminalKeyEncoder terminalKeyEncoder = new TerminalKeyEncoder(UIUtil.getOS());
     byte[] expected = UIUtil.isMac ? new byte[]{Ascii.ESC, 'b'} : new byte[]{Ascii.ESC, '[', '1', ';', '3', 'D'};
     Assert.assertArrayEquals(expected, terminalKeyEncoder.getCode(KeyEvent.VK_LEFT, InputEvent.ALT_MASK));
   }

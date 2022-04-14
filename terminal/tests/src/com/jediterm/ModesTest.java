@@ -4,6 +4,7 @@ import com.jediterm.core.TerminalMode;
 import com.jediterm.core.model.TerminalTextBuffer;
 import com.jediterm.core.model.JediTerminal;
 import com.jediterm.core.model.StyleState;
+import com.jediterm.terminal.ui.UIUtil;
 import com.jediterm.util.BackBufferDisplay;
 import junit.framework.TestCase;
 
@@ -14,7 +15,7 @@ public class ModesTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(10, 3, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
 
     terminal.setModeEnabled(TerminalMode.AutoWrap, false);
     //                             1234567890123456789

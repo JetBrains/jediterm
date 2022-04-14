@@ -7,6 +7,7 @@ import com.jediterm.core.model.TerminalTextBuffer;
 import com.jediterm.core.model.JediTerminal;
 import com.jediterm.core.model.SelectionUtil;
 import com.jediterm.core.model.StyleState;
+import com.jediterm.terminal.ui.UIUtil;
 import com.jediterm.util.BackBufferDisplay;
 import junit.framework.TestCase;
 
@@ -19,7 +20,7 @@ public class SelectionTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(15, 5, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
 
     terminal.writeString("  1. line ");
     terminal.newLine();
@@ -37,7 +38,7 @@ public class SelectionTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(15, 5, state);
 
-    JediTerminal writer = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal writer = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
 
     writer.writeString("   line   ");
     writer.newLine();
@@ -51,7 +52,7 @@ public class SelectionTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(20, 5, state);
 
-    JediTerminal writer = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal writer = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
 
     writer.writeString("text to select ");
     writer.newLine();
@@ -74,7 +75,7 @@ public class SelectionTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(15, 5, state);
 
-    JediTerminal writer = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal writer = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
 
     writer.writeString("first line");
     writer.newLine();
@@ -90,7 +91,7 @@ public class SelectionTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(15, 5, state);
 
-    JediTerminal writer = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal writer = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
 
     writer.writeString("first line");
     writer.newLine();
@@ -108,7 +109,7 @@ public class SelectionTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(5, 3, state);
 
-    JediTerminal writer = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal writer = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
 
     writer.writeString("12");
     writer.newLine();
@@ -136,7 +137,7 @@ public class SelectionTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(10, 2, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state, UIUtil.getOS());
 
     terminal.writeString("生活習慣病");
 

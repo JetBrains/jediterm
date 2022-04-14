@@ -5,7 +5,7 @@ import com.jediterm.core.model.*;
 import com.jediterm.core.SubstringFinder.FindResult;
 import com.jediterm.core.SubstringFinder.FindResult.FindItem;
 import com.jediterm.terminal.debug.DebugBufferType;
-import com.jediterm.terminal.model.hyperlinks.HyperlinkFilter;
+import com.jediterm.core.model.hyperlinks.HyperlinkFilter;
 import com.jediterm.core.model.hyperlinks.TextProcessing;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
 import com.jediterm.terminal.model.JediTermTypeAheadModel;
@@ -66,7 +66,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
     StyleState styleState = createDefaultStyle();
 
-    myTextProcessing = new TextProcessing(); // settingsProvider.getHyperlinkColor(), settingsProvider.getHyperlinkHighlightingMode() TODO: fix links
+    myTextProcessing = new TextProcessing(settingsProvider.getHyperlinkColor(), settingsProvider.getHyperlinkHighlightingMode());
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(columns, lines, styleState, settingsProvider.getBufferMaxLinesCount(), myTextProcessing);
     myTextProcessing.setTerminalTextBuffer(terminalTextBuffer);
@@ -653,7 +653,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   }
 
   public void addHyperlinkFilter(HyperlinkFilter filter) {
-    // myTextProcessing.addHyperlinkFilter(filter); TODO: fix links
+    myTextProcessing.addHyperlinkFilter(filter);
   }
 
   @Override

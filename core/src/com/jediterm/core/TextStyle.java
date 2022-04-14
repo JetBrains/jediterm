@@ -35,9 +35,9 @@ public class TextStyle {
 
   @NotNull
   public static TextStyle getCanonicalStyle(TextStyle currentStyle) {
-    //if (currentStyle instanceof HyperlinkStyle) { // FIXME: commented because HyperlinkStyle depends heavily on awt
-    //  return currentStyle;
-    //}
+    if (currentStyle instanceof HyperlinkStyle) {
+      return currentStyle;
+    }
     final WeakReference<TextStyle> canonRef = styles.get(currentStyle);
     if (canonRef != null) {
       final TextStyle canonStyle = canonRef.get();

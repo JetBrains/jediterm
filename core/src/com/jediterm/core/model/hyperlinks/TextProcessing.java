@@ -1,6 +1,6 @@
 package com.jediterm.core.model.hyperlinks;
 
-// import com.jediterm.terminal.HyperlinkStyle;
+import com.jediterm.core.HyperlinkStyle;
 import com.jediterm.core.TextStyle;
 import com.jediterm.core.model.CharBuffer;
 import com.jediterm.core.model.LinesBuffer;
@@ -18,35 +18,6 @@ import java.util.List;
  * @author traff
  */
 
-public class TextProcessing {
-
-  public TextProcessing() {
-  }
-
-  public void setTerminalTextBuffer(@NotNull TerminalTextBuffer terminalTextBuffer) {
-  }
-
-  public void processHyperlinks(@NotNull LinesBuffer buffer, @NotNull TerminalLine updatedLine) {
-  }
-
-  private void doProcessHyperlinks(@NotNull LinesBuffer buffer, @NotNull TerminalLine updatedLine) {
-  }
-
-  private int findHistoryLineInd(@NotNull LinesBuffer historyBuffer, @NotNull TerminalLine line) {
-    return -1;
-  }
-
-  private static int findLineInd(@NotNull LinesBuffer buffer, @NotNull TerminalLine line) {
-    return -1;
-  }
-
-  @NotNull
-  private String joinLines(@NotNull LinesBuffer buffer, int startLineInd, int updatedLineInd) {
-    return "";
-  }
-}
-
-/*
 public class TextProcessing {
 
   private static final Logger LOG = LoggerFactory.getLogger(TextProcessing.class);
@@ -153,4 +124,3 @@ public class TextProcessing {
     myHyperlinkFilter.add(filter);
   }
 }
-*/

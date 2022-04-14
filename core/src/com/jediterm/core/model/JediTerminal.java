@@ -9,6 +9,7 @@ import com.jediterm.core.emulator.charset.CharacterSet;
 import com.jediterm.core.emulator.charset.GraphicSet;
 import com.jediterm.core.emulator.charset.GraphicSetState;
 import com.jediterm.core.TerminalCoordinates;
+import com.jediterm.core.model.hyperlinks.LinkInfo;
 import com.jediterm.core.util.CharUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -974,20 +975,12 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
   @Override
   public void setLinkUriStarted(@NotNull String uri) {
-    /* TODO: fix links
     TextStyle style = myStyleState.getCurrent();
-    myStyleState.setCurrent(new HyperlinkStyle(style, new LinkInfo(() -> {
-      try {
-        // Desktop.getDesktop().browse(new URI(uri));
-      } catch (Exception ignored) {
-      }
-    })));
-    */
+    myStyleState.setCurrent(new HyperlinkStyle(style, new LinkInfo(uri)));
   }
 
   @Override
   public void setLinkUriFinished() {
-    /* TODO: fix links
     TextStyle current = myStyleState.getCurrent();
     if (current instanceof HyperlinkStyle) {
       TextStyle prevTextStyle = ((HyperlinkStyle) current).getPrevTextStyle();
@@ -995,7 +988,6 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
         myStyleState.setCurrent(prevTextStyle);
       }
     }
-    */
   }
 
   @Override

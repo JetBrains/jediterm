@@ -1,10 +1,10 @@
 package com.jediterm.core;
 
+import com.jediterm.core.awtCompat.InputEvent;
 import com.jediterm.core.util.CharUtils;
 import com.jediterm.typeahead.Ascii;
 import org.jetbrains.annotations.NotNull;
 
-import java.awt.event.InputEvent;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;

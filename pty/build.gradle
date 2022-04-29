@@ -31,8 +31,10 @@ version rootProject.ext.projectVersion
 
 task mainJar(type: Jar) {
     evaluationDependsOn(':terminal')
+    evaluationDependsOn(':core')
     from sourceSets.main.output
     from project(':terminal').sourceSets.main.output
+    from project(':core').sourceSets.main.output
     manifest {
         attributes(
                 'Build-Timestamp': new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(new Date()),
@@ -45,9 +47,11 @@ task mainJar(type: Jar) {
 
 task sourcesJar(type: Jar, dependsOn: classes) {
     evaluationDependsOn(':terminal')
+    evaluationDependsOn(':core')
     archiveClassifier = 'sources'
     from sourceSets.main.allSource
     from project(':terminal').sourceSets.main.allSource
+    from project(':core').sourceSets.main.allSource
 }
 
 artifacts {

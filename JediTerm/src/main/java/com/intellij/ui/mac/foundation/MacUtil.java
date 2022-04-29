@@ -29,8 +29,6 @@ import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.event.AWTEventListener;
 import java.awt.event.KeyEvent;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.intellij.ui.mac.foundation.Foundation.*;

@@ -19,7 +19,6 @@ import com.intellij.openapi.ui.OnePixelDivider;
 import com.intellij.openapi.ui.Splittable;
 import com.intellij.ui.tabs.JBTabsPosition;
 import com.intellij.ui.tabs.TabInfo;
-import com.intellij.util.ui.UIUtil;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;

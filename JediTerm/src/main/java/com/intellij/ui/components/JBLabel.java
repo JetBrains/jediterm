@@ -32,7 +32,6 @@ import javax.swing.text.html.StyleSheet;
 import java.awt.*;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
-import java.util.Collections;
 
 public class JBLabel extends JLabel implements AnchorableComponent {
   private UIUtil.ComponentStyle myComponentStyle = UIUtil.ComponentStyle.REGULAR;

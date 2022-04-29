@@ -18,7 +18,6 @@ package com.intellij.ui.components;
 import com.intellij.openapi.util.SystemInfo;
 import com.intellij.ui.JBColor;
 import com.intellij.util.ui.UIUtil;
-import org.intellij.lang.annotations.JdkConstants;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 

@@ -15,7 +15,6 @@
  */
 package com.intellij.ui.tabs.impl;
 
-import com.intellij.openapi.util.registry.Registry;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;

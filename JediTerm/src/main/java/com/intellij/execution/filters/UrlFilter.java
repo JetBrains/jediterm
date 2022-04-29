@@ -17,13 +17,11 @@ package com.intellij.execution.filters;
 
 import com.intellij.util.io.URLUtil;
 import com.jediterm.core.model.hyperlinks.HyperlinkFilter;
-import com.jediterm.core.model.hyperlinks.LinkInfo;
+import com.jediterm.core.model.hyperlinks.UrlLinkInfo;
 import com.jediterm.core.model.hyperlinks.LinkResult;
 import com.jediterm.core.model.hyperlinks.LinkResultItem;
 import org.jetbrains.annotations.Nullable;
 
-import java.awt.*;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -50,7 +48,7 @@ public class UrlFilter implements HyperlinkFilter {
       }
 
       String url = m.group();
-      item = new LinkResultItem(textStartOffset + m.start(), textStartOffset + m.end(), new LinkInfo(url));
+      item = new LinkResultItem(textStartOffset + m.start(), textStartOffset + m.end(), new UrlLinkInfo(url));
 
       if (items != null) {
         items.add(item);

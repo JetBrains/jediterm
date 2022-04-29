@@ -8,8 +8,7 @@ import com.jediterm.core.emulator.mouse.*;
 import com.jediterm.core.emulator.charset.CharacterSet;
 import com.jediterm.core.emulator.charset.GraphicSet;
 import com.jediterm.core.emulator.charset.GraphicSetState;
-import com.jediterm.core.model.hyperlinks.LinkInfo;
-import com.jediterm.core.TerminalCoordinates;
+import com.jediterm.core.model.hyperlinks.UrlLinkInfo;
 import com.jediterm.core.util.CharUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -976,7 +975,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   @Override
   public void setLinkUriStarted(@NotNull String uri) {
     TextStyle style = myStyleState.getCurrent();
-    myStyleState.setCurrent(new HyperlinkStyle(style, new LinkInfo(uri)));
+    myStyleState.setCurrent(new HyperlinkStyle(style, new UrlLinkInfo(uri)));
   }
 
   @Override

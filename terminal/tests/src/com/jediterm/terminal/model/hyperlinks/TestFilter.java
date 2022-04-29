@@ -16,7 +16,7 @@
 package com.jediterm.terminal.model.hyperlinks;
 
 import com.jediterm.core.model.hyperlinks.HyperlinkFilter;
-import com.jediterm.core.model.hyperlinks.LinkInfo;
+import com.jediterm.core.model.hyperlinks.UrlLinkInfo;
 import com.jediterm.core.model.hyperlinks.LinkResult;
 import com.jediterm.core.model.hyperlinks.LinkResultItem;
 import org.jetbrains.annotations.NotNull;
@@ -40,7 +40,7 @@ public class TestFilter implements HyperlinkFilter {
         endInd++;
       }
       if (endInd > 0) {
-        return new LinkResult(new LinkResultItem(startInd, endInd, new LinkInfo("")));
+        return new LinkResult(new LinkResultItem(startInd, endInd, new UrlLinkInfo("")));
       }
     }
     return null;

@@ -1,4 +1,4 @@
-package com.jediterm.typeahead;
+package com.jediterm.core.typeahead;
 
 public final class Ascii {
 

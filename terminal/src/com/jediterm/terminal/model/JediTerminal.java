@@ -348,7 +348,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
           myTerminalTextBuffer.moveScreenLinesToHistory();
           break;
         default:
-          LOG.error("Unsupported erase in display mode:" + arg);
+          LOG.warn("Unsupported erase in display mode:" + arg);
           beginY = 1;
           endY = 1;
           break;
@@ -434,7 +434,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
           myTerminalTextBuffer.eraseCharacters(0, -1, myCursorY - 1);
           break;
         default:
-          LOG.error("Unsupported erase in line mode:" + arg);
+          LOG.warn("Unsupported erase in line mode:" + arg);
           break;
       }
     } finally {

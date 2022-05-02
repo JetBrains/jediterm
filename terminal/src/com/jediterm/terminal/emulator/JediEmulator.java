@@ -106,7 +106,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         if (!args.pushBackReordered(myDataStream)) {
           boolean result = processControlSequence(args);
           if (!result) {
-            LOG.error("Unhandled Control Sequence (" + args.getDebugInfo() + ")");
+            LOG.warn("Unhandled Control Sequence (" + args.getDebugInfo() + ")");
           }
         }
         break;
@@ -132,7 +132,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         SystemCommandSequence command = new SystemCommandSequence(myDataStream);
 
         if (!deviceControlString(command)) {
-          LOG.error("Error processing DCS: ESCP" + command);
+          LOG.warn("Error processing DCS: ESCP" + command);
         }
         break;
       case ']': // Operating System Command (OSC)
@@ -140,7 +140,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         command = new SystemCommandSequence(myDataStream);
 
         if (!operatingSystemCommand(command)) {
-          LOG.error("Error processing OSC: ESC]" + command);
+          LOG.warn("Error processing OSC: ESC]" + command);
         }
         break;
       case '6':
@@ -379,7 +379,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         if (logThrottlerLimit / logThrottlerRatio > 1) {
           msg += " and " + (logThrottlerLimit / logThrottlerRatio) + " more...";
         }
-        LOG.error(msg);
+        LOG.warn(msg);
       }
     } else {
       logThrottlerLimit *= 10;
@@ -685,14 +685,14 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   }
 
   private boolean restoreDecPrivateModeValues(ControlSequence args) {
-    LOG.error("Unsupported: " + args.toString());
+    LOG.warn("Unsupported: " + args.toString());
 
     return false;
   }
 
   private boolean deviceStatusReport(ControlSequence args) {
     if (args.startsWithQuestionMark()) {
-      LOG.error("Don't support DEC-specific Device Report Status");
+      LOG.warn("Don't support DEC-specific Device Report Status");
       return false;
     }
     int c = args.getArg(0, 0);
@@ -710,7 +710,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       myTerminal.deviceStatusReport(str);
       return true;
     } else {
-      LOG.error("Sending Device Report Status : unsupported parameter: " + args.toString());
+      LOG.warn("Sending Device Report Status : unsupported parameter: " + args.toString());
       return false;
     }
   }
@@ -738,7 +738,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         myTerminal.cursorShape(CursorShape.STEADY_VERTICAL_BAR);
         return true;
       default:
-        LOG.error("Setting cursor shape : unsupported parameter " + args.toString());
+        LOG.warn("Setting cursor shape : unsupported parameter " + args.toString());
         return false;
     }
   }
@@ -912,7 +912,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
 
       final int arg = args.getArg(i, -1);
       if (arg == -1) {
-        LOG.error("Error in processing char attributes, arg " + i);
+        LOG.warn("Error in processing char attributes, arg " + i);
         i++;
         continue;
       }
@@ -1024,7 +1024,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           builder.setBackground(ColorPalette.getIndexedTerminalColor(arg - 92));
           break;
         default:
-          LOG.error("Unknown character attribute:" + arg);
+          LOG.warn("Unknown character attribute:" + arg);
       }
       i = i + step;
     }
@@ -1044,14 +1044,14 @@ public class JediEmulator extends DataStreamIteratingEmulator {
               (val2 >= 0 && val2 < 256)) {
         return new TerminalColor(val0, val1, val2);
       } else {
-        LOG.error("Bogus color setting " + args.toString());
+        LOG.warn("Bogus color setting " + args.toString());
         return null;
       }
     } else if (code == 5) {
       /* indexed color */
       return ColorPalette.getIndexedTerminalColor(args.getArg(index + 2, 0));
     } else {
-      LOG.error("Unsupported code for color attribute " + args.toString());
+      LOG.warn("Unsupported code for color attribute " + args.toString());
       return null;
     }
   }

@@ -107,6 +107,6 @@ public enum TerminalMode {
   private static final Logger LOG = LoggerFactory.getLogger(TerminalMode.class);
   
   public void setEnabled(Terminal terminal, boolean enabled) {
-    LOG.error("Mode " + name() + " is not implemented, setting to " + enabled);
+    LOG.warn("Mode " + name() + " is not implemented, setting to " + enabled);
   }
 }

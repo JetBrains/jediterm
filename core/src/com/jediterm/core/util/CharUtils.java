@@ -2,7 +2,6 @@ package com.jediterm.core.util;
 
 import com.jediterm.core.emulator.charset.CharacterSets;
 import com.jediterm.core.model.CharBuffer;
-import com.jediterm.typeahead.Ascii;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;

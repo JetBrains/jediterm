@@ -2,7 +2,7 @@ package com.jediterm.core.emulator;
 
 import com.jediterm.core.TerminalDataStream;
 import com.jediterm.core.util.CharUtils;
-import com.jediterm.typeahead.Ascii;
+import com.jediterm.core.util.Ascii;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;

@@ -5,7 +5,7 @@ import com.jediterm.core.awtCompat.Dimension;
 import com.jediterm.core.emulator.mouse.MouseFormat;
 import com.jediterm.core.emulator.mouse.MouseMode;
 import com.jediterm.core.util.CharUtils;
-import com.jediterm.typeahead.Ascii;
+import com.jediterm.core.util.Ascii;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

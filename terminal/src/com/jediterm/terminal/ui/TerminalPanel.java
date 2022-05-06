@@ -19,7 +19,7 @@ import com.jediterm.terminal.ui.hyperlinks.UILinkInfo;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
 import com.jediterm.core.util.CharUtils;
 import com.jediterm.core.util.Pair;
-import com.jediterm.typeahead.Ascii;
+import com.jediterm.core.util.Ascii;
 import com.jediterm.core.typeahead.TerminalTypeAheadManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -985,7 +985,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       public void mousePressed(MouseEvent e) {
         if (mySettingsProvider.enableMouseReporting() && isRemoteMouseAction(e)) {
           Point p = panelToCharCoords(e.getPoint());
-          listener.mousePressed(p.x, p.y, mouseEventToJediTermModel(e));
+          listener.mousePressed(p.x, p.y, AwtTransformers.fromAwtMouseEvent(e));
         }
       }
 
@@ -993,7 +993,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       public void mouseReleased(MouseEvent e) {
         if (mySettingsProvider.enableMouseReporting() && isRemoteMouseAction(e)) {
           Point p = panelToCharCoords(e.getPoint());
-          listener.mouseReleased(p.x, p.y, mouseEventToJediTermModel(e));
+          listener.mouseReleased(p.x, p.y, AwtTransformers.fromAwtMouseEvent(e));
         }
       }
     });
@@ -1002,7 +1002,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       if (mySettingsProvider.enableMouseReporting() && isRemoteMouseAction(e)) {
         mySelection = null;
         Point p = panelToCharCoords(e.getPoint());
-        listener.mouseWheelMoved(p.x, p.y, mouseEventToJediTermModel(e));
+        listener.mouseWheelMoved(p.x, p.y, AwtTransformers.fromAwtMouseEvent(e));
       }
     });
 
@@ -1011,7 +1011,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       public void mouseMoved(MouseEvent e) {
         if (mySettingsProvider.enableMouseReporting() && isRemoteMouseAction(e)) {
           Point p = panelToCharCoords(e.getPoint());
-          listener.mouseMoved(p.x, p.y, mouseEventToJediTermModel(e));
+          listener.mouseMoved(p.x, p.y, AwtTransformers.fromAwtMouseEvent(e));
         }
       }
 
@@ -1019,48 +1019,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       public void mouseDragged(MouseEvent e) {
         if (mySettingsProvider.enableMouseReporting() && isRemoteMouseAction(e)) {
           Point p = panelToCharCoords(e.getPoint());
-          listener.mouseDragged(p.x, p.y, mouseEventToJediTermModel(e));
+          listener.mouseDragged(p.x, p.y, AwtTransformers.fromAwtMouseEvent(e));
         }
       }
     });
-  }
-
-  private static com.jediterm.core.awtCompat.MouseEvent mouseEventToJediTermModel(MouseEvent event) {
-    int buttonCode = createButtonCode(event);
-    int modifierKeys = getModifierKeys(event);
-    return new com.jediterm.core.awtCompat.MouseEvent(buttonCode, modifierKeys);
-  }
-
-  private static int createButtonCode(MouseEvent event) {
-    // for mouse dragged, button is stored in modifiers
-    if (SwingUtilities.isLeftMouseButton(event)) {
-      return MouseButtonCodes.LEFT;
-    } else if (SwingUtilities.isMiddleMouseButton(event)) {
-      return MouseButtonCodes.MIDDLE;
-    } else if (SwingUtilities.isRightMouseButton(event)) {
-      return MouseButtonCodes.NONE; //we don't handle right mouse button as it used for the context menu invocation
-    } else if (event instanceof MouseWheelEvent) {
-      if (((MouseWheelEvent) event).getWheelRotation() > 0) {
-        return MouseButtonCodes.SCROLLUP;
-      } else {
-        return MouseButtonCodes.SCROLLDOWN;
-      }
-    }
-    return MouseButtonCodes.NONE;
-  }
-
-  private static int getModifierKeys(MouseEvent event) {
-    int modifier = 0;
-    if (event.isControlDown()) {
-      modifier |= MouseButtonModifierFlags.MOUSE_BUTTON_CTRL_FLAG;
-    }
-    if (event.isShiftDown()) {
-      modifier |= MouseButtonModifierFlags.MOUSE_BUTTON_SHIFT_FLAG;
-    }
-    if ((event.getModifiersEx() & InputEvent.META_MASK) != 0) {
-      modifier |= MouseButtonModifierFlags.MOUSE_BUTTON_META_FLAG;
-    }
-    return modifier;
   }
 
   @NotNull

@@ -57,4 +57,9 @@ public class Color {
   public int hashCode() {
     return Objects.hash(value);
   }
+
+  public String toString() {
+    return getClass().getName() + "[r=" + getRed() + ",g=" + getGreen() + ",b=" + getBlue() + "]";
+  }
+
 }

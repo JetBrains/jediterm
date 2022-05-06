@@ -40,4 +40,8 @@ public class Point {
   public int hashCode() {
     return Objects.hash(x, y);
   }
+
+  public String toString() {
+    return getClass().getName() + "[x=" + x + ",y=" + y + "]";
+  }
 }

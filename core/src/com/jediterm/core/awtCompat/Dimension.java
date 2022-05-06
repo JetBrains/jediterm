@@ -41,4 +41,9 @@ public final class Dimension {
   public int hashCode() {
     return Objects.hash(width, height);
   }
+
+  public String toString() {
+    return getClass().getName() + "[width=" + width + ",height=" + height + "]";
+  }
+
 }

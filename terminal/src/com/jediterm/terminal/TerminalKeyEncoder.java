@@ -39,8 +39,8 @@ public class TerminalKeyEncoder {
     putCode(VK_F8, ESC, '[', '1', '9', '~');
     putCode(VK_F9, ESC, '[', '2', '0', '~');
     putCode(VK_F10, ESC, '[', '2', '1', '~');
-    putCode(VK_F11, ESC, '[', '2', '3', '~', ESC);
-    putCode(VK_F12, ESC, '[', '2', '4', '~', Ascii.BS);
+    putCode(VK_F11, ESC, '[', '2', '3', '~');
+    putCode(VK_F12, ESC, '[', '2', '4', '~');
 
     putCode(VK_INSERT, ESC, '[', '2', '~');
     putCode(VK_DELETE, ESC, '[', '3', '~');

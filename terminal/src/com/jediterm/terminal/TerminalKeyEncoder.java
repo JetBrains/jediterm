@@ -50,6 +50,8 @@ public class TerminalKeyEncoder {
 
     putCode(VK_HOME, ESC, '[', 'H');
     putCode(VK_END, ESC, '[', 'F');
+
+    putCode(new KeyCodeAndModifier(VK_TAB, InputEvent.SHIFT_MASK), ESC, '[', 'Z');
   }
 
   public void arrowKeysApplicationSequences() {

@@ -127,7 +127,7 @@ public class TerminalKeyEncoder {
       return insertCodeAt(bytes, CharUtils.makeCode(ESC), 0);
     }
 
-    if (isCursorKey(key)) {
+    if (isCursorKey(key) || isFunctionKey(key)) {
       return getCodeWithModifiers(bytes, modifiers);
     }
 
@@ -142,14 +142,23 @@ public class TerminalKeyEncoder {
     return key == VK_DOWN || key == VK_UP || key == VK_LEFT || key == VK_RIGHT || key == VK_HOME || key == VK_END;
   }
 
+  private boolean isFunctionKey(int key) {
+    return key >= VK_F1 && key <= VK_F12 || key == VK_INSERT || key == VK_DELETE || key == VK_PAGE_UP || key == VK_PAGE_DOWN;
+  }
+
   /**
    * Refer to section PC-Style Function Keys in http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
    */
   private byte[] getCodeWithModifiers(byte[] bytes, int modifiers) {
     int code = modifiersToCode(modifiers);
 
-    if (code > 0) {
-      return insertCodeAt(bytes, Integer.toString(code).getBytes(), bytes.length-1);
+    if (code > 0 && bytes.length > 2) {
+      // SS3 needs to become CSI.
+      if (bytes[0] == ESC && bytes[1] == 'O') bytes[1] = '[';
+      // If the control sequence has no parameters, it needs a default parameter.
+      // Either way it also needs a semicolon separator.
+      String prefix = bytes.length == 3 ? "1;" : ";";
+      return insertCodeAt(bytes, (prefix + code).getBytes(), bytes.length-1);
     }
     return bytes;
   }

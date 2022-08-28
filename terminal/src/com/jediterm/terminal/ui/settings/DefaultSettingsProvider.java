@@ -228,4 +228,9 @@ public class DefaultSettingsProvider implements SettingsProvider {
   public @NotNull TerminalTypeAheadSettings getTypeAheadSettings() {
     return TerminalTypeAheadSettings.DEFAULT;
   }
+
+  @Override
+  public boolean sendArrowKeysInAlternativeMode() {
+    return true;
+  }
 }

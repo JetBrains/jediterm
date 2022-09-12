@@ -21,18 +21,31 @@ import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.util.*
 import java.util.function.Function
+import java.util.logging.ConsoleHandler
 import java.util.logging.Level
+import java.util.logging.LogManager
 import java.util.logging.Logger
 import javax.swing.SwingUtilities
 
 object JediTermMain {
   @JvmStatic
   fun main(arg: Array<String>) {
-    Logger.getLogger("").level = Level.INFO
+    configureJavaUtilLogging()
 
     SwingUtilities.invokeLater {
       JediTerm()
     }
+  }
+
+  private fun configureJavaUtilLogging() {
+    val format = "[%1\$tF %1\$tT] [%4\\\$-7s] %5\$s %n"
+    LogManager.getLogManager().readConfiguration("java.util.logging.SimpleFormatter.format=$format".byteInputStream())
+
+    val rootLogger = Logger.getLogger("")
+    rootLogger.addHandler(ConsoleHandler().also {
+      it.level = Level.ALL
+    })
+    rootLogger.level = Level.INFO
   }
 }
 

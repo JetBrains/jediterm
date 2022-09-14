@@ -1803,6 +1803,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     }
 
     public void keyPressed(KeyEvent e) {
+      if (e.isConsumed()) {
+        return;
+      }
       myIgnoreNextKeyTypedEvent = false;
       if (TerminalAction.processEvent(TerminalPanel.this, e) || processTerminalKeyPressed(e)) {
         e.consume();
@@ -1811,6 +1814,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     }
 
     public void keyTyped(KeyEvent e) {
+      if (e.isConsumed()) {
+        return;
+      }
       if (myIgnoreNextKeyTypedEvent || processTerminalKeyTyped(e)) {
         e.consume();
       }

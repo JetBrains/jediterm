@@ -34,7 +34,7 @@ public class PtyProcessTtyConnector extends ProcessTtyConnector {
 
   @Override
   public boolean isConnected() {
-    return myProcess.isRunning();
+    return myProcess.isAlive();
   }
 
   @Override

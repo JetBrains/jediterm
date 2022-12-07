@@ -63,4 +63,6 @@ public interface UserSettingsProvider {
   boolean ambiguousCharsAreDoubleWidth();
 
   @NotNull TerminalTypeAheadSettings getTypeAheadSettings();
+
+  boolean sendArrowKeysInAlternativeMode();
 }

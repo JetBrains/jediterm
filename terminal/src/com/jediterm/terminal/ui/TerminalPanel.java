@@ -985,6 +985,19 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
         Point p = panelToCharCoords(e.getPoint());
         listener.mouseWheelMoved(p.x, p.y, e);
       }
+      if (myTerminalTextBuffer.isUsingAlternateBuffer() && mySettingsProvider.sendArrowKeysInAlternativeMode()){
+        //Send Arrow keys instead
+        final byte[] arrowKeys;
+        if (e.getWheelRotation() < 0) {
+          arrowKeys = myTerminalStarter.getCode(KeyEvent.VK_UP,0);
+        }else{
+          arrowKeys = myTerminalStarter.getCode(KeyEvent.VK_DOWN,0);
+        }
+        for(int i = 0; i < Math.abs(e.getUnitsToScroll()); i++){
+          myTerminalStarter.sendBytes(arrowKeys);
+        }
+        e.consume();
+      }
     });
 
     addMouseMotionListener(new MouseMotionAdapter() {

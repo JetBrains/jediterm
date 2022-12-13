@@ -1,6 +1,7 @@
 package com.jediterm.ui;
 
 import com.jediterm.app.JediTerm;
+import com.jediterm.core.compatibility.Point;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.debug.BufferPanel;

@@ -1,5 +1,5 @@
-include ':terminal'
+include ':core'
+include ':ui'
 include ':ssh'
 include ':pty'
 include ':JediTerm'
-include ':typeahead'

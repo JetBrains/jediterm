@@ -4,6 +4,8 @@ package com.jediterm.terminal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.awt.*;
+
 public enum TerminalMode {
   Null,
   CursorKey {
@@ -16,8 +18,10 @@ public enum TerminalMode {
   WideColumn {
     @Override
     public void setEnabled(Terminal terminal, boolean enabled) {
-      // Skip resizing as it would require to resize parent container.
-      // Other terminal emulators (iTerm2, Terminal.app, GNOME Terminal) ignore it too.
+      if (!terminal.isModeEnabled(TerminalMode.AllowWideColumn)) return;
+
+      Dimension newTermSize = new Dimension(enabled ? 132 : 80, terminal.getTerminalHeight());
+      terminal.resize(newTermSize, RequestOrigin.Remote);
       terminal.clearScreen();
       terminal.resetScrollRegions();
     }

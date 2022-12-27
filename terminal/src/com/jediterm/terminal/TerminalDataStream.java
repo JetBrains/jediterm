@@ -1,5 +1,7 @@
 package com.jediterm.terminal;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.IOException;
 
 /**
@@ -20,6 +22,8 @@ public interface TerminalDataStream {
   void pushBackBuffer(char[] bytes, int length) throws IOException;
 
   boolean isEmpty();
+
+  void addOnBeforeBlockingWaitListener(@NotNull Runnable listener);
 
   class EOF extends IOException {
     public EOF() {

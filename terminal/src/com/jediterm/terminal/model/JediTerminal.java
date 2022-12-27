@@ -68,7 +68,6 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
   private MouseMode myMouseMode = MouseMode.MOUSE_REPORTING_NONE;
   private Point myLastMotionReport = null;
-  private boolean myCursorYChanged;
 
   public JediTerminal(final TerminalDisplay display, final TerminalTextBuffer buf, final StyleState initialStyleState) {
     myDisplay = display;
@@ -130,12 +129,6 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   private void writeDecodedCharacters(char[] string) {
     myTerminalTextBuffer.lock();
     try {
-      if (myCursorYChanged && string.length > 0) {
-        myCursorYChanged = false;
-        if (myCursorY > 1) {
-          myTerminalTextBuffer.getLine(myCursorY - 2).setWrapped(false);
-        }
-      }
       wrapLines();
       scrollY();
 
@@ -203,7 +196,6 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
   @Override
   public void newLine() {
-    myCursorYChanged = true;
     myCursorY += 1;
 
     scrollY();
@@ -519,7 +511,6 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   public void cursorUp(final int countY) {
     myTerminalTextBuffer.lock();
     try {
-      myCursorYChanged = true;
       myCursorY -= countY;
       myCursorY = Math.max(myCursorY, scrollingRegionTop());
       adjustXY(-1);
@@ -533,7 +524,6 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   public void cursorDown(final int dY) {
     myTerminalTextBuffer.lock();
     try {
-      myCursorYChanged = true;
       myCursorY += dY;
       myCursorY = Math.min(myCursorY, scrollingRegionBottom());
       adjustXY(-1);
@@ -1227,6 +1217,15 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     return finder.getResult();
   }
 
+  @Override
+  public void lock() {
+    myTerminalTextBuffer.lock();
+  }
+
+  @Override
+  public void unlock() {
+    myTerminalTextBuffer.unlock();
+  }
 
   private static class DefaultTabulator implements Tabulator {
     private static final int TAB_LENGTH = 8;

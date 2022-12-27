@@ -157,8 +157,10 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   }
 
   protected TerminalStarter createTerminalStarter(@NotNull JediTerminal terminal, @NotNull TtyConnector connector) {
-    return new TerminalStarter(terminal, connector,
-      new TtyBasedArrayDataStream(connector, myTypeAheadManager::onTerminalStateChanged), myTypeAheadManager);
+    TtyBasedArrayDataStream dataStream = new TtyBasedArrayDataStream(connector);
+    dataStream.addOnBeforeBlockingWaitListener(myTypeAheadManager::onTerminalStateChanged);
+
+    return new TerminalStarter(terminal, connector, dataStream, myTypeAheadManager);
   }
 
   @Override

@@ -165,4 +165,8 @@ public interface Terminal {
   @Nullable TerminalColor getWindowForeground();
 
   @Nullable TerminalColor getWindowBackground();
+
+  void lock();
+
+  void unlock();
 }

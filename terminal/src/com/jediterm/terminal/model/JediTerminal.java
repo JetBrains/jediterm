@@ -140,7 +140,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
       scrollY();
 
       if (string.length != 0) {
-        CharBuffer characters = newCharBuf(string);
+        CharBuffer characters = new CharBuffer(string,0,string.length);
         myTerminalTextBuffer.writeString(myCursorX, myCursorY, characters);
         myCursorX += characters.length();
       }

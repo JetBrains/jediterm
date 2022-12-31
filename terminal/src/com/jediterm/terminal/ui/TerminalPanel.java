@@ -560,9 +560,28 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   }
 
   private @NotNull Cell panelPointToCell(@NotNull Point p) {
-    int x = Math.min((p.x - getInsetX()) / myCharSize.width, getColumnCount() - 1);
-    x = Math.max(0, x);
     int y = Math.min(p.y / myCharSize.height, getRowCount() - 1) + myClientScrollOrigin;
+
+    TerminalLine buffer=this.myTerminalTextBuffer.getLine(y);
+
+    int bufferLen=buffer.getText().length();
+    int insetX = p.x - getInsetX();
+    int _x = 0;
+    int x = 0;
+    for (int i = 0; i < bufferLen; i++) {
+        if(insetX>_x){
+            char c = buffer.charAt(i);
+            _x=_x+this.getGraphics().getFontMetrics(getFontToDisplay(c,TextStyle.EMPTY)).charWidth(c);
+            if(insetX>_x){
+                x++;
+            }
+        }else {
+            break;
+        }
+    }
+
+    x = Math.min(x, getColumnCount() - 1);
+    x = Math.max(0, x);
     return new Cell(y, x);
   }
 
@@ -870,13 +889,13 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
   private void drawInputMethodUncommitedChars(Graphics2D gfx) {
     if (hasUncommittedChars()) {
-      int xCoord = (myCursor.getCoordX() + 1) * myCharSize.width + getInsetX();
+      int xCoord = computexCoord(myCursor.getCoordX() + 1,myCursor.getCoordY()) + getInsetX();
 
       int y = myCursor.getCoordY() + 1;
 
       int yCoord = y * myCharSize.height - 3;
 
-      int len = (myInputMethodUncommittedChars.length()) * myCharSize.width;
+      int len = computexCoordByCharBuffer(0,myInputMethodUncommittedChars.length(),new CharBuffer(myInputMethodUncommittedChars));
 
       gfx.setColor(getBackground());
       gfx.fillRect(xCoord, (y - 1) * myCharSize.height - 3, len, myCharSize.height);
@@ -907,6 +926,30 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     handleKeyEvent(e);
     handleHyperlinks(e.getComponent(), e.isControlDown());
   }
+
+  private int computexCoord(int coordX,int coordY){
+    int xCoord = 0;
+    Graphics gfx = this.getGraphics();
+    char[] chars=myTerminalTextBuffer.getLine(myClientScrollOrigin + coordY).getText().toCharArray();
+    for (int i = 0; i < coordX; i++) {
+        char c =  i < chars.length ? chars[i] : CharUtils.EMPTY_CHAR;
+        Font font = getFontToDisplay(c, TextStyle.EMPTY);
+        xCoord=xCoord + gfx.getFontMetrics(font).charWidth(c);
+     }
+     return xCoord;
+    }
+
+  private int computexCoordByCharBuffer(int start, int end,CharBuffer buf){
+    int _width = 0;
+    int textLength=end-start;
+    Graphics gfx = this.getGraphics();
+    for (int i = 0; i < textLength; i++) {
+      char c = buf.charAt(i);
+      Font font = getFontToDisplay(c, TextStyle.EMPTY);
+      _width=_width+gfx.getFontMetrics(font).charWidth(c);
+    }
+      return _width;
+    }
 
   // also called from com.intellij.terminal.JBTerminalPanel
   public void handleKeyEvent(@NotNull KeyEvent e) {
@@ -1131,11 +1174,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       }
 
       CharBuffer buf = new CharBuffer(c);
-      int xCoord = x * myCharSize.width + getInsetX();
+      int xCoord = computexCoord(x, y) + getInsetX();
       int yCoord = y * myCharSize.height;
-      int textLength = CharUtils.getTextLengthDoubleWidthAware(buf.getBuf(), buf.getStart(), buf.length(), mySettingsProvider.ambiguousCharsAreDoubleWidth());
+      int textLength = buf.length();
       int height = Math.min(myCharSize.height, getHeight() - yCoord);
-      int width = Math.min(textLength * TerminalPanel.this.myCharSize.width, TerminalPanel.this.getWidth() - xCoord);
+      int width = Math.min(computexCoordByCharBuffer(0,textLength,buf), TerminalPanel.this.getWidth() - xCoord);
       int lineStrokeSize = 2;
 
       Color fgColor = getPalette().getForeground(myStyleState.getForeground(style.getForegroundForRun()));
@@ -1204,16 +1247,16 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
   private void drawCharacters(int x, int y, TextStyle style, CharBuffer buf, Graphics2D gfx,
                               boolean includeSpaceBetweenLines) {
-    int xCoord = x * myCharSize.width + getInsetX();
+    int xCoord = computexCoord(x, y) + getInsetX();
     int yCoord = y * myCharSize.height + (includeSpaceBetweenLines ? 0 : mySpaceBetweenLines / 2);
 
     if (xCoord < 0 || xCoord > getWidth() || yCoord < 0 || yCoord > getHeight()) {
       return;
     }
 
-    int textLength = CharUtils.getTextLengthDoubleWidthAware(buf.getBuf(), buf.getStart(), buf.length(), mySettingsProvider.ambiguousCharsAreDoubleWidth());
+    int textLength = buf.length();
     int height = Math.min(myCharSize.height - (includeSpaceBetweenLines ? 0 : mySpaceBetweenLines), getHeight() - yCoord);
-    int width = Math.min(textLength * TerminalPanel.this.myCharSize.width, TerminalPanel.this.getWidth() - xCoord);
+    int width = Math.min(computexCoordByCharBuffer(0,textLength,buf), TerminalPanel.this.getWidth() - xCoord);
 
     if (style instanceof HyperlinkStyle) {
       HyperlinkStyle hyperlinkStyle = (HyperlinkStyle) style;
@@ -1244,7 +1287,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     if (style.hasOption(TextStyle.Option.UNDERLINED)) {
       int baseLine = (y + 1) * myCharSize.height - mySpaceBetweenLines / 2 - myDescent;
       int lineY = baseLine + 3;
-      gfx.drawLine(xCoord, lineY, (x + textLength) * myCharSize.width + getInsetX(), lineY);
+      gfx.drawLine(xCoord, lineY, computexCoord((x + textLength),lineY) + getInsetX(), lineY);
     }
   }
 
@@ -1271,11 +1314,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     }
 
     while (offset + blockLen <= buf.length()) {
-      if (renderingBuffer.getBuf()[buf.getStart() + offset] == CharUtils.DWC) {
-        offset += blockLen;
-        drawCharsOffset += blockLen;
-        continue; // dont' draw second part(fake one) of double width character
-      }
 
       Font font = getFontToDisplay(buf.charAt(offset + blockLen - 1), style);
 //      while (myMonospaced && (offset + blockLen < buf.getLength()) && isWordCharacter(buf.charAt(offset + blockLen - 1))
@@ -1283,17 +1321,13 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 //        blockLen++;
 //      }
 
-      if (offset + 2 <= buf.length() && Character.isSurrogatePair(renderingBuffer.getBuf()[buf.getStart() + offset], renderingBuffer.getBuf()[buf.getStart() + offset + 1])) {
-        blockLen = 2;
-      }
 
 
       gfx.setFont(font);
 
       int descent = gfx.getFontMetrics(font).getDescent();
       int baseLine = (y + 1) * myCharSize.height - mySpaceBetweenLines / 2 - descent;
-      int xCoord = (x + drawCharsOffset) * myCharSize.width + getInsetX();
-      int textLength = CharUtils.getTextLengthDoubleWidthAware(buf.getBuf(), buf.getStart() + offset, blockLen, mySettingsProvider.ambiguousCharsAreDoubleWidth());
+      int xCoord = computexCoord( (x + drawCharsOffset), y) + getInsetX();
 
       int yCoord = y * myCharSize.height + mySpaceBetweenLines / 2;
 
@@ -1925,7 +1959,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   private class MyInputMethodRequests implements InputMethodRequests {
     @Override
     public Rectangle getTextLocation(TextHitInfo offset) {
-      Rectangle r = new Rectangle(myCursor.getCoordX() * myCharSize.width + getInsetX(), (myCursor.getCoordY() + 1) * myCharSize.height,
+      Rectangle r = new Rectangle(computexCoord(myCursor.getCoordX(), myCursor.getCoordY()) + getInsetX(), (myCursor.getCoordY() + 1) * myCharSize.height,
               0, 0);
       Point p = TerminalPanel.this.getLocationOnScreen();
       r.translate(p.x, p.y);

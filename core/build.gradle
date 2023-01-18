@@ -1,10 +1,23 @@
 import java.text.SimpleDateFormat
 
-apply plugin: 'java-library'
+apply plugin: 'java'
 apply plugin: 'maven-publish'
 
-
-sourceSets.main.java.srcDirs = ['src']
+sourceSets {
+    main {
+        java {
+            srcDir 'src'
+        }
+    }
+    test {
+        java {
+            srcDir 'tests/src'
+        }
+        resources {
+            srcDir 'tests/resources'
+        }
+    }
+}
 
 repositories {
     maven {
@@ -12,26 +25,43 @@ repositories {
     }
 }
 
-dependencies {
-    api project(':core')
+tasks.withType(JavaCompile) {
+  options.encoding = 'UTF-8'
+}
 
+dependencies {
     implementation 'org.slf4j:slf4j-api:1.7.32'
     implementation 'org.jetbrains:annotations:20.1.0'
 
-    api 'org.jetbrains.pty4j:pty4j:0.12.7'
-
     testImplementation 'junit:junit:4.13.2'
+    testRuntimeOnly "org.slf4j:slf4j-simple:1.7.32"
 }
 
-archivesBaseName = "jediterm-core-pty"
+compileJava {
+    sourceCompatibility = '11'
+    targetCompatibility = '11'
+    options.debugOptions.debugLevel = 'lines,vars,source'
+}
+
+compileTestJava {
+    sourceCompatibility = '11'
+    targetCompatibility = '11'
+    options.debugOptions.debugLevel = 'lines,vars,source'
+}
+
+test {
+    testLogging {
+        exceptionFormat = 'full'
+    }
+}
+
+archivesBaseName = "jediterm-core"
 
 group 'org.jetbrains.jediterm'
 version rootProject.ext.projectVersion
 
 task mainJar(type: Jar) {
-    evaluationDependsOn(':core')
     from sourceSets.main.output
-    from project(':core').sourceSets.main.output
     manifest {
         attributes(
                 'Build-Timestamp': new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(new Date()),
@@ -43,10 +73,8 @@ task mainJar(type: Jar) {
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {
-    evaluationDependsOn(':core')
     archiveClassifier = 'sources'
     from sourceSets.main.allSource
-    from project(':core').sourceSets.main.allSource
 }
 
 artifacts {

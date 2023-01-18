@@ -1,12 +1,12 @@
 package com.jediterm.pty;
 
+import com.jediterm.core.compatibility.Dimension;
 import com.jediterm.terminal.ProcessTtyConnector;
 import com.pty4j.PtyProcess;
 import com.pty4j.WinSize;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.awt.Dimension;
 import java.nio.charset.Charset;
 import java.util.List;
 

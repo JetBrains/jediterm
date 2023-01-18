@@ -6,7 +6,8 @@ sourceSets {
 }
 
 dependencies {
-    implementation project(':terminal')
+    implementation project(':ui')
+    implementation project(':core')
 
     implementation 'org.slf4j:slf4j-api:1.7.32'
     implementation 'org.jetbrains:annotations:13.0'

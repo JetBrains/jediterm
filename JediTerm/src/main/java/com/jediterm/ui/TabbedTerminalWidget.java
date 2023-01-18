@@ -1,6 +1,6 @@
 package com.jediterm.ui;
 
-import com.jediterm.terminal.ui.*;
+import com.jediterm.terminal.ui.JediTermWidget;
 import com.jediterm.terminal.ui.settings.TabbedSettingsProvider;
 import org.jetbrains.annotations.NotNull;
 

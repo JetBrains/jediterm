@@ -1,0 +1,113 @@
+import java.text.SimpleDateFormat
+
+apply plugin: 'java'
+apply plugin: 'maven-publish'
+
+sourceSets {
+  main {
+    java {
+      srcDir 'src'
+    }
+  }
+}
+
+tasks.withType(JavaCompile) {
+  options.encoding = 'UTF-8'
+}
+
+dependencies {
+  implementation project(':core')
+
+  implementation 'org.slf4j:slf4j-api:1.7.32'
+  implementation 'org.jetbrains:annotations:20.1.0'
+}
+
+compileJava {
+  sourceCompatibility = '11'
+  targetCompatibility = '11'
+  options.debugOptions.debugLevel = 'lines,vars,source'
+}
+
+compileTestJava {
+  sourceCompatibility = '11'
+  targetCompatibility = '11'
+  options.debugOptions.debugLevel = 'lines,vars,source'
+}
+
+test {
+  testLogging {
+    exceptionFormat = 'full'
+  }
+}
+
+archivesBaseName = "jediterm-ui"
+
+group 'org.jetbrains.jediterm'
+version rootProject.ext.projectVersion
+
+task mainJar(type: Jar) {
+  from sourceSets.main.output
+  manifest {
+    attributes(
+      'Build-Timestamp': new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(new Date()),
+      'Created-By': "Gradle ${gradle.gradleVersion}",
+      'Build-Jdk': "${System.properties['java.runtime.version']}",
+      'Build-OS': "${System.properties['os.name']} ${System.properties['os.arch']} ${System.properties['os.version']}"
+    )
+  }
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+  archiveClassifier = 'sources'
+  from sourceSets.main.allSource
+}
+
+artifacts {
+  archives sourcesJar
+  archives mainJar
+}
+
+publishing {
+  publications {
+    mavenJava(MavenPublication) {
+      groupId = group
+      artifactId = archivesBaseName
+      artifact mainJar
+      artifact sourcesJar
+      pom {
+        name = 'JediTerm'
+        description 'Pure Java Terminal Emulator. Works with SSH and PTY.'
+        url = 'https://github.com/JetBrains/jediterm'
+        licenses {
+          license {
+            name = 'LGPL 3.0'
+            url = 'https://www.gnu.org/licenses/lgpl.txt'
+          }
+        }
+        developers {
+          developer {
+            id = 'JetBrains'
+            name = 'JetBrains Team'
+            organization = 'JetBrains'
+            organizationUrl = 'https://www.jetbrains.com'
+            email = 'sergey.simonchik@jetbrains.com'
+          }
+        }
+        scm {
+          connection = 'scm:git:git://github.com/JetBrains/jediterm.git'
+          developerConnection = 'scm:git:ssh:github.com/JetBrains/jediterm.git'
+          url = 'https://github.com/JetBrains/jediterm'
+        }
+      }
+    }
+  }
+  repositories {
+    maven {
+      url "https://packages.jetbrains.team/maven/p/ij/intellij-dependencies"
+      credentials {
+        username = System.getenv('INTELLIJ_DEPENDENCIES_BOT')
+        password = System.getenv('INTELLIJ_DEPENDENCIES_TOKEN')
+      }
+    }
+  }
+}

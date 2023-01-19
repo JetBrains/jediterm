@@ -3,7 +3,6 @@ package com.jediterm.terminal;
 import com.jediterm.core.compatibility.Dimension;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
 import com.jediterm.terminal.model.JediTerminal;
-import com.jediterm.terminal.model.TerminalSelection;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -36,8 +35,6 @@ public interface TerminalDisplay {
 
   void terminalMouseModeSet(MouseMode mode);
 
-  TerminalSelection getSelection();
-  
   boolean ambiguousCharsAreDoubleWidth();
 
   default void setBracketedPasteMode(boolean enabled) {}

@@ -12,10 +12,8 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
@@ -553,6 +551,13 @@ public abstract class AbstractTabbedTerminalWidget<T extends JediTermWidget> ext
     else {
       return null;
     }
+  }
+
+  public @NotNull T getCurrentTermWidget() {
+    if (myTabs != null) {
+      return Objects.requireNonNull(getTerminalPanel(myTabs.getSelectedIndex()));
+    }
+    return Objects.requireNonNull(myTermWidget);
   }
 
   public void addTabListener(TabListener listener) {

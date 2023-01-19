@@ -24,8 +24,6 @@ public interface TerminalWidget {
 
   Dimension getPreferredSize();
 
-  TerminalSession getCurrentSession();
-
   TerminalDisplay getTerminalDisplay();
 
   void addListener(TerminalWidgetListener listener);

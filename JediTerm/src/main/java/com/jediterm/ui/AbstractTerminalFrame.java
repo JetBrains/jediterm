@@ -7,6 +7,7 @@ import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.debug.BufferPanel;
 import com.jediterm.terminal.model.SelectionUtil;
 import com.jediterm.terminal.ui.JediTermWidget;
+import com.jediterm.terminal.ui.TerminalPanel;
 import com.jediterm.terminal.ui.TerminalPanelListener;
 import com.jediterm.terminal.ui.TerminalWidget;
 import com.jediterm.terminal.ui.settings.DefaultTabbedSettingsProvider;
@@ -30,7 +31,7 @@ public abstract class AbstractTerminalFrame {
 
   private JFrame myBufferFrame;
 
-  private final TerminalWidget myTerminal;
+  private final AbstractTabbedTerminalWidget<? extends JediTermWidget> myTerminal;
   
   private AbstractAction myOpenAction = new AbstractAction("New Session") {
     public void actionPerformed(final ActionEvent e) {
@@ -55,10 +56,10 @@ public abstract class AbstractTerminalFrame {
 
   private AbstractAction myDumpSelection = new AbstractAction("Dump selection") {
     public void actionPerformed(final ActionEvent e) {
-      Pair<Point, Point> points = myTerminal.getTerminalDisplay()
-          .getSelection().pointsForRun(myTerminal.getTerminalDisplay().getColumnCount());
-      LOG.info(myTerminal.getTerminalDisplay().getSelection() + " : '"
-          + SelectionUtil.getSelectionText(points.first, points.second, myTerminal.getCurrentSession().getTerminalTextBuffer()) + "'");
+      TerminalPanel terminalPanel = myTerminal.getCurrentTermWidget().getTerminalPanel();
+      Pair<Point, Point> points = terminalPanel.getSelection().pointsForRun(terminalPanel.getColumnCount());
+      LOG.info(terminalPanel.getSelection() + " : '"
+          + SelectionUtil.getSelectionText(points.first, points.second, terminalPanel.getTerminalTextBuffer()) + "'");
     }
   };
 

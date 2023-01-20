@@ -1,6 +1,6 @@
 package com.jediterm.terminal;
 
-import com.jediterm.core.compatibility.Dimension;
+import com.jediterm.core.util.TermSize;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -20,7 +20,7 @@ public abstract class ProcessTtyConnector implements TtyConnector {
   protected final OutputStream myOutputStream;
   protected final InputStreamReader myReader;
   protected final Charset myCharset;
-  private Dimension myPendingTermSize;
+  private TermSize myPendingTermSize;
   private final Process myProcess;
   private final @Nullable List<String> myCommandLine;
 
@@ -43,8 +43,8 @@ public abstract class ProcessTtyConnector implements TtyConnector {
   }
 
   @Override
-  public void resize(@NotNull Dimension termWinSize) {
-    setPendingTermSize(termWinSize);
+  public void resize(@NotNull TermSize termSize) {
+    setPendingTermSize(termSize);
     if (isConnected()) {
       resizeImmediately();
       setPendingTermSize(null);
@@ -52,7 +52,7 @@ public abstract class ProcessTtyConnector implements TtyConnector {
   }
 
   /**
-   * @deprecated override {@link #resize(Dimension)} instead
+   * @deprecated override {@link #resize(TermSize)} instead
    */
   @Deprecated
   protected void resizeImmediately() {}
@@ -84,18 +84,18 @@ public abstract class ProcessTtyConnector implements TtyConnector {
   }
 
   /**
-   * @deprecated override {@link #resize(Dimension)} instead
+   * @deprecated override {@link #resize(TermSize)} instead
    */
   @Deprecated
-  protected void setPendingTermSize(@Nullable Dimension pendingTermSize) {
+  protected void setPendingTermSize(@Nullable TermSize pendingTermSize) {
     myPendingTermSize = pendingTermSize;
   }
 
   /**
-   * @deprecated override {@link #resize(Dimension)} instead
+   * @deprecated override {@link #resize(TermSize)} instead
    */
   @Deprecated
-  protected @Nullable Dimension getPendingTermSize() {
+  protected @Nullable TermSize getPendingTermSize() {
     return myPendingTermSize;
   }
 
@@ -103,8 +103,8 @@ public abstract class ProcessTtyConnector implements TtyConnector {
    * @deprecated don't use it (pixel size is not used anymore)
    */
   @Deprecated
-  protected Dimension getPendingPixelSize() {
-    return new Dimension(0, 0);
+  protected TermSize getPendingPixelSize() {
+    return new TermSize(0, 0);
   }
 
   @Override

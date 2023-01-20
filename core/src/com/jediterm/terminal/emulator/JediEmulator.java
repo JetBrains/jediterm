@@ -1,7 +1,7 @@
 package com.jediterm.terminal.emulator;
 
-import com.jediterm.core.compatibility.Dimension;
 import com.jediterm.core.util.Ascii;
+import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.*;
 import com.jediterm.terminal.emulator.mouse.MouseFormat;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
@@ -492,7 +492,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         if (height == 0) {
           height = myTerminal.getTerminalHeight();
         }
-        myTerminal.resize(new Dimension(width, height), RequestOrigin.Remote);
+        myTerminal.resize(new TermSize(width, height), RequestOrigin.Remote);
         return true;
       case 22:
         return csi22(args);

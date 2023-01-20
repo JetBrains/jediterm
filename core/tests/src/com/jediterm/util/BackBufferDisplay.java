@@ -1,6 +1,6 @@
 package com.jediterm.util;
 
-import com.jediterm.core.compatibility.Dimension;
+import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.CursorShape;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TerminalColor;
@@ -49,7 +49,7 @@ public class BackBufferDisplay implements TerminalDisplay {
   }
 
   @Override
-  public void requestResize(@NotNull Dimension newWinSize, RequestOrigin origin, int cursorX, int cursorY, JediTerminal.ResizeHandler resizeHandler) {
+  public void requestResize(@NotNull TermSize newWinSize, RequestOrigin origin, int cursorX, int cursorY, JediTerminal.ResizeHandler resizeHandler) {
     myTerminalTextBuffer.resize(newWinSize, origin, cursorX, cursorY, resizeHandler, mySelection);
   }
 

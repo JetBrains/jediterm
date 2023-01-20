@@ -1,10 +1,10 @@
 package com.jediterm.terminal.ui;
 
 import com.jediterm.core.TerminalCoordinates;
-import com.jediterm.core.compatibility.Dimension;
 import com.jediterm.core.compatibility.Point;
 import com.jediterm.core.typeahead.TerminalTypeAheadManager;
 import com.jediterm.core.util.Ascii;
+import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.*;
 import com.jediterm.terminal.SubstringFinder.FindResult.FindItem;
 import com.jediterm.terminal.TextStyle.Option;
@@ -56,9 +56,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   private Font myBoldItalicFont;
   private int myDescent = 0;
   private int mySpaceBetweenLines = 0;
-  protected Dimension myCharSize = new Dimension();
+  protected final Dimension myCharSize = new Dimension();
   private boolean myMonospaced;
-  protected Dimension myTermSize = new Dimension(80, 24);
+  private TermSize myTermSize;
   private boolean myInitialSizeSyncDone = false;
 
   private TerminalStarter myTerminalStarter = null;
@@ -113,8 +113,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     mySettingsProvider = settingsProvider;
     myTerminalTextBuffer = terminalTextBuffer;
     myStyleState = styleState;
-    myTermSize.width = terminalTextBuffer.getWidth();
-    myTermSize.height = terminalTextBuffer.getHeight();
+    myTermSize = new TermSize(terminalTextBuffer.getWidth(), terminalTextBuffer.getHeight());
     myMaxFPS = mySettingsProvider.maxRefreshRate();
     myCopyPasteHandler = createCopyPasteHandler();
 
@@ -279,7 +278,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
               endLine++;
             }
             mySelection = new TerminalSelection(new Point(0, startLine));
-            mySelection.updateEnd(new Point(myTermSize.width, endLine));
+            mySelection.updateEnd(new Point(myTermSize.getColumns(), endLine));
 
             if (mySettingsProvider.copyOnSelect()) {
               handleCopyOnSelect();
@@ -537,11 +536,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   }
 
   private void pageUp() {
-    moveScrollBar(-myTermSize.height);
+    moveScrollBar(-myTermSize.getRows());
   }
 
   private void pageDown() {
-    moveScrollBar(myTermSize.height);
+    moveScrollBar(myTermSize.getRows());
   }
 
   private void scrollUp() {
@@ -626,18 +625,17 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
             BufferedImage.TYPE_INT_RGB);
   }
 
-  @Nullable
-  public Dimension getTerminalSizeFromComponent() {
-    int newWidth = (getWidth() - getInsetX()) / myCharSize.width;
-    int newHeight = getHeight() / myCharSize.height;
-    return newHeight > 0 && newWidth > 0 ? new Dimension(newWidth, newHeight) : null;
+  public @Nullable TermSize getTerminalSizeFromComponent() {
+    int columns = (getWidth() - getInsetX()) / myCharSize.width;
+    int rows = getHeight() / myCharSize.height;
+    return rows > 0 && columns > 0 ? new TermSize(columns, rows) : null;
   }
 
   private void sizeTerminalFromComponent() {
     if (myTerminalStarter != null) {
-      Dimension newSize = getTerminalSizeFromComponent();
+      TermSize newSize = getTerminalSizeFromComponent();
       if (newSize != null) {
-        JediTerminal.ensureTermMinimumSize(newSize);
+        newSize = JediTerminal.ensureTermMinimumSize(newSize);
         if (!myTermSize.equals(newSize) || !myInitialSizeSyncDone) {
           myInitialSizeSyncDone = true;
           myTypeAheadManager.onResize();
@@ -660,14 +658,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     myCustomKeyListeners.remove(keyListener);
   }
 
-  public void requestResize(@NotNull Dimension newSize,
+  public void requestResize(@NotNull TermSize newSize,
                             final RequestOrigin origin,
                             int cursorX,
                             int cursorY,
                             JediTerminal.ResizeHandler resizeHandler) {
     if (!newSize.equals(myTermSize)) {
       myTerminalTextBuffer.resize(newSize, origin, cursorX, cursorY, resizeHandler, mySelection);
-      myTermSize = newSize.copy();
+      myTermSize = newSize;
 
       setPreferredSize(new java.awt.Dimension(getPixelWidth(), getPixelHeight()));
       if (myTerminalPanelListener != null) {
@@ -781,7 +779,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       myTerminalTextBuffer.lock();
       // update myClientScrollOrigin as scrollArea might have been invoked after last WeakRedrawTimer action
       updateScrolling(false);
-      myTerminalTextBuffer.processHistoryAndScreenLines(myClientScrollOrigin, myTermSize.height, new StyledTextConsumer() {
+      myTerminalTextBuffer.processHistoryAndScreenLines(myClientScrollOrigin, myTermSize.getRows(), new StyledTextConsumer() {
         final int columnCount = getColumnCount();
 
         @Override
@@ -936,19 +934,19 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   }
 
   public int getPixelWidth() {
-    return myCharSize.width * myTermSize.width + getInsetX();
+    return myCharSize.width * myTermSize.getColumns() + getInsetX();
   }
 
   public int getPixelHeight() {
-    return myCharSize.height * myTermSize.height;
+    return myCharSize.height * myTermSize.getRows();
   }
 
   public int getColumnCount() {
-    return myTermSize.width;
+    return myTermSize.getColumns();
   }
 
   public int getRowCount() {
-    return myTermSize.height;
+    return myTermSize.getRows();
   }
 
   public String getWindowTitle() {
@@ -1136,7 +1134,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       final int x = getCoordX();
       final int y = getCoordY();
       // Outside bounds of window: do nothing
-      if (y < 0 || y >= myTermSize.height) {
+      if (y < 0 || y >= myTermSize.getRows()) {
         return;
       }
 
@@ -1368,7 +1366,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     try {
       int historyLines = myTerminalTextBuffer.getHistoryLinesCount();
       if (historyLines > 0) {
-        int termHeight = myTermSize.height;
+        int termHeight = myTermSize.getRows();
         myBoundedRangeModel.setRangeProperties(-historyLines, historyLines + termHeight, -historyLines,
             termHeight, false);
         TerminalModelListener modelListener = new TerminalModelListener() {
@@ -1380,8 +1378,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
               SwingUtilities.invokeLater(() -> {
                 myTerminalTextBuffer.lock();
                 try {
-                  myBoundedRangeModel.setRangeProperties(0, myTermSize.height,
-                      -myTerminalTextBuffer.getHistoryLinesCount(), myTermSize.height, false);
+                  myBoundedRangeModel.setRangeProperties(0, myTermSize.getRows(),
+                      -myTerminalTextBuffer.getHistoryLinesCount(), myTermSize.getRows(), false);
                 } finally {
                   myTerminalTextBuffer.unlock();
                 }
@@ -1413,17 +1411,17 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       int historyLineCount = myTerminalTextBuffer.getHistoryLinesCount();
       if (value == 0) {
         myBoundedRangeModel
-                .setRangeProperties(0, myTermSize.height, -historyLineCount, myTermSize.height, false);
+                .setRangeProperties(0, myTermSize.getRows(), -historyLineCount, myTermSize.getRows(), false);
       } else {
         // if scrolled to a specific area, update scroll to keep showing this area
         myBoundedRangeModel.setRangeProperties(
-                Math.min(Math.max(value + dy, -historyLineCount), myTermSize.height),
-                myTermSize.height,
+                Math.min(Math.max(value + dy, -historyLineCount), myTermSize.getRows()),
+                myTermSize.getRows(),
                 -historyLineCount,
-                myTermSize.height, false);
+                myTermSize.getRows(), false);
       }
     } else {
-      myBoundedRangeModel.setRangeProperties(0, myTermSize.height, 0, myTermSize.height, false);
+      myBoundedRangeModel.setRangeProperties(0, myTermSize.getRows(), 0, myTermSize.getRows(), false);
     }
   }
 
@@ -1607,7 +1605,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
   public void selectAll() {
     mySelection = new TerminalSelection(new Point(0, -myTerminalTextBuffer.getHistoryLinesCount()),
-      new Point(myTermSize.width, myTerminalTextBuffer.getScreenLinesCount()));
+      new Point(myTermSize.getColumns(), myTerminalTextBuffer.getScreenLinesCount()));
   }
 
   @NotNull
@@ -1629,7 +1627,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   @Nullable
   private String getSelectionText() {
     if (mySelection != null) {
-      Pair<Point, Point> points = mySelection.pointsForRun(myTermSize.width);
+      Pair<Point, Point> points = mySelection.pointsForRun(myTermSize.getColumns());
 
       if (points.first != null || points.second != null) {
         return SelectionUtil
@@ -1861,7 +1859,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
    */
   private void handleCopy(boolean unselect, boolean useSystemSelectionClipboardIfAvailable) {
     if (mySelection != null) {
-      Pair<Point, Point> points = mySelection.pointsForRun(myTermSize.width);
+      Pair<Point, Point> points = mySelection.pointsForRun(myTermSize.getColumns());
       copySelection(points.first, points.second, useSystemSelectionClipboardIfAvailable);
       if (unselect) {
         mySelection = null;

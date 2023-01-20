@@ -1,7 +1,7 @@
 package com.jediterm.terminal;
 
-import com.jediterm.core.compatibility.Dimension;
 import com.jediterm.core.typeahead.TerminalTypeAheadManager;
+import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.emulator.Emulator;
 import com.jediterm.terminal.emulator.JediEmulator;
 import org.jetbrains.annotations.NotNull;
@@ -75,9 +75,9 @@ public class TerminalStarter implements TerminalOutputStream {
     return myTerminal.getCodeForKey(key, modifiers);
   }
 
-  public void postResize(@NotNull Dimension dimension, @NotNull RequestOrigin origin) {
+  public void postResize(@NotNull TermSize termSize, @NotNull RequestOrigin origin) {
     execute(() -> {
-      resize(myEmulator, myTerminal, myTtyConnector, dimension, origin, (millisDelay, runnable) -> {
+      resize(myEmulator, myTerminal, myTtyConnector, termSize, origin, (millisDelay, runnable) -> {
         myEmulatorExecutor.schedule(runnable, millisDelay, TimeUnit.MILLISECONDS);
       });
     });
@@ -89,7 +89,7 @@ public class TerminalStarter implements TerminalOutputStream {
   public static void resize(@NotNull Emulator emulator,
                             @NotNull Terminal terminal,
                             @NotNull TtyConnector ttyConnector,
-                            @NotNull Dimension newTermSize,
+                            @NotNull TermSize newTermSize,
                             @NotNull RequestOrigin origin,
                             @NotNull BiConsumer<Long, Runnable> taskScheduler) {
     CompletableFuture<?> promptUpdated = ((JediEmulator)emulator).getPromptUpdatedAfterResizeFuture(taskScheduler);

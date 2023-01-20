@@ -1,6 +1,6 @@
 package com.jediterm.terminal;
 
-import com.jediterm.core.compatibility.Dimension;
+import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
 import com.jediterm.terminal.model.JediTerminal;
 import org.jetbrains.annotations.NotNull;
@@ -18,7 +18,7 @@ public interface TerminalDisplay {
 
   void beep();
 
-  void requestResize(@NotNull Dimension newWinSize, RequestOrigin origin, int cursorX, int cursorY,
+  void requestResize(@NotNull TermSize newWinSize, RequestOrigin origin, int cursorX, int cursorY,
                      JediTerminal.ResizeHandler resizeHandler);
 
   void scrollArea(final int scrollRegionTop, final int scrollRegionSize, int dy);

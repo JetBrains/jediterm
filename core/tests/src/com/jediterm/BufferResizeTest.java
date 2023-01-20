@@ -1,7 +1,7 @@
 package com.jediterm;
 
-import com.jediterm.core.compatibility.Dimension;
 import com.jediterm.core.compatibility.Point;
+import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.model.*;
 import com.jediterm.util.BackBufferDisplay;
@@ -33,7 +33,7 @@ public class BufferResizeTest extends TestCase {
     terminal.carriageReturn();
     terminal.writeString("li");
 
-    terminal.resize(new Dimension(10, 10), RequestOrigin.User);
+    terminal.resize(new TermSize(10, 10), RequestOrigin.User);
 
 
     assertEquals(0, textBuffer.getHistoryBuffer().getLineCount());
@@ -71,7 +71,7 @@ public class BufferResizeTest extends TestCase {
 
     assertEquals(4, terminal.getCursorY());
 
-    terminal.resize(new Dimension(10, 2), RequestOrigin.User);
+    terminal.resize(new TermSize(10, 2), RequestOrigin.User);
 
 
     assertEquals("line\n" +
@@ -108,7 +108,7 @@ public class BufferResizeTest extends TestCase {
 
     assertEquals(5, terminal.getCursorY());
 
-    terminal.resize(new Dimension(10, 2), RequestOrigin.User);
+    terminal.resize(new TermSize(10, 2), RequestOrigin.User);
 
 
     assertEquals("line\n" +
@@ -120,7 +120,7 @@ public class BufferResizeTest extends TestCase {
 
     assertEquals(2, terminal.getCursorY());
 
-    terminal.resize(new Dimension(5, 5), RequestOrigin.User);
+    terminal.resize(new TermSize(5, 5), RequestOrigin.User);
 
     assertEquals(0, textBuffer.getHistoryBuffer().getLineCount());
 
@@ -149,7 +149,7 @@ public class BufferResizeTest extends TestCase {
     terminal.carriageReturn();
     terminal.writeString("li");
 
-    terminal.resize(new Dimension(10, 5), RequestOrigin.User);
+    terminal.resize(new TermSize(10, 5), RequestOrigin.User);
 
     assertEquals(0, scrollBuffer.getLineCount());
 
@@ -195,7 +195,7 @@ public class BufferResizeTest extends TestCase {
         ">line5\n" +
         ">     \n", textBuffer.getScreenLines());
 
-    terminal.resize(new Dimension(3, 5), RequestOrigin.User); // JediTerminal.MIN_WIDTH = 5
+    terminal.resize(new TermSize(3, 5), RequestOrigin.User); // JediTerminal.MIN_WIDTH = 5
 
     assertEquals(
         ">line\n" +
@@ -211,7 +211,7 @@ public class BufferResizeTest extends TestCase {
         "5    \n" + 
         ">    \n", textBuffer.getScreenLines());
 
-    terminal.resize(new Dimension(6, 5), RequestOrigin.User);
+    terminal.resize(new TermSize(6, 5), RequestOrigin.User);
 
     assertEquals(">line1", textBuffer.getHistoryBuffer().getLines());
     assertEquals(
@@ -255,7 +255,7 @@ public class BufferResizeTest extends TestCase {
         ">line", selectionText);
 
 
-    terminal.resize(new Dimension(6, 5), RequestOrigin.User);
+    terminal.resize(new TermSize(6, 5), RequestOrigin.User);
 
     assertEquals(selectionText, SelectionUtil.getSelectionText(display.getSelection(), textBuffer));
 
@@ -268,7 +268,7 @@ public class BufferResizeTest extends TestCase {
         ">line", selectionText);
 
 
-    terminal.resize(new Dimension(6, 2), RequestOrigin.User);
+    terminal.resize(new TermSize(6, 2), RequestOrigin.User);
 
     assertEquals(selectionText, SelectionUtil.getSelectionText(display.getSelection(), textBuffer));
   }
@@ -291,7 +291,7 @@ public class BufferResizeTest extends TestCase {
 
 
     // smaller height
-    terminal.resize(new Dimension(10, 3), RequestOrigin.User);
+    terminal.resize(new TermSize(10, 3), RequestOrigin.User);
 
 
     assertEquals("", terminalTextBuffer.getHistoryBuffer().getLines());
@@ -311,7 +311,7 @@ public class BufferResizeTest extends TestCase {
     terminal.writeString("hi>");
 
     // initial resize
-    terminal.resize(new Dimension(10, 3), RequestOrigin.User);
+    terminal.resize(new TermSize(10, 3), RequestOrigin.User);
 
 
     assertEquals("", terminalTextBuffer.getHistoryBuffer().getLines());
@@ -336,7 +336,7 @@ public class BufferResizeTest extends TestCase {
     assertEquals(3, terminal.getCursorX());
     assertEquals(7, terminal.getCursorY());
     assertEquals("", terminalTextBuffer.getHistoryBuffer().getLines());
-    terminal.resize(new Dimension(20, 7), RequestOrigin.User);
+    terminal.resize(new TermSize(20, 7), RequestOrigin.User);
 
     assertEquals("", terminalTextBuffer.getHistoryBuffer().getLines());
     assertEquals("$ cat long.txt      \n" +
@@ -361,7 +361,7 @@ public class BufferResizeTest extends TestCase {
     assertEquals(3, terminal.getCursorX());
     assertEquals(4, terminal.getCursorY());
     assertEquals("", terminalTextBuffer.getHistoryBuffer().getLines());
-    terminal.resize(new Dimension(6, 4), RequestOrigin.User);
+    terminal.resize(new TermSize(6, 4), RequestOrigin.User);
 
     assertEquals(
         "$ cat \n" +
@@ -405,7 +405,7 @@ public class BufferResizeTest extends TestCase {
     terminal.carriageReturn();
     terminal.writeString("line4");
 
-    terminal.resize(new Dimension(5, 4), RequestOrigin.User);
+    terminal.resize(new TermSize(5, 4), RequestOrigin.User);
 
 
     LinesBuffer historyBuffer = textBuffer.getHistoryBuffer();

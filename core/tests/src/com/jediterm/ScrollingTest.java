@@ -1,6 +1,6 @@
 package com.jediterm;
 
-import com.jediterm.core.compatibility.Dimension;
+import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.model.JediTerminal;
 import com.jediterm.terminal.model.StyleState;
@@ -85,7 +85,7 @@ public class ScrollingTest extends TestCase {
     terminal.newLine();
     terminal.carriageReturn();
 
-    terminal.resize(new Dimension(7, 4), RequestOrigin.User);
+    terminal.resize(new TermSize(7, 4), RequestOrigin.User);
 
     terminal.writeString("3456789");
     terminal.newLine();

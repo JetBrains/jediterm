@@ -1,6 +1,6 @@
 package com.jediterm.pty;
 
-import com.jediterm.core.compatibility.Dimension;
+import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.ProcessTtyConnector;
 import com.pty4j.PtyProcess;
 import com.pty4j.WinSize;
@@ -26,9 +26,9 @@ public class PtyProcessTtyConnector extends ProcessTtyConnector {
   }
 
   @Override
-  public void resize(@NotNull Dimension termWinSize) {
+  public void resize(@NotNull TermSize termSize) {
     if (isConnected()) {
-      myProcess.setWinSize(new WinSize(termWinSize.width, termWinSize.height));
+      myProcess.setWinSize(new WinSize(termSize.getColumns(), termSize.getRows()));
     }
   }
 

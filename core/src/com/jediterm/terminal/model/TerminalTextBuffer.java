@@ -1,7 +1,7 @@
 package com.jediterm.terminal.model;
 
-import com.jediterm.core.compatibility.Dimension;
 import com.jediterm.core.compatibility.Point;
+import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.StyledTextConsumerAdapter;
@@ -89,28 +89,27 @@ public class TerminalTextBuffer {
     return new LinesBuffer(myHistoryLinesCount, myTextProcessing);
   }
 
-  public Dimension resize(@NotNull final Dimension pendingResize,
-                          @NotNull final RequestOrigin origin,
-                          final int cursorX,
-                          final int cursorY,
-                          @NotNull JediTerminal.ResizeHandler resizeHandler,
-                          @Nullable TerminalSelection mySelection) {
+  public void resize(@NotNull TermSize newTermSize,
+                     @SuppressWarnings("unused") @NotNull final RequestOrigin origin,
+                     final int cursorX,
+                     final int cursorY,
+                     @NotNull JediTerminal.ResizeHandler resizeHandler,
+                     @Nullable TerminalSelection mySelection) {
     lock();
     try {
-      return doResize(pendingResize, origin, cursorX, cursorY, resizeHandler, mySelection);
+      doResize(newTermSize, cursorX, cursorY, resizeHandler, mySelection);
     } finally {
       unlock();
     }
   }
 
-  private Dimension doResize(@NotNull final Dimension pendingResize,
-                             @NotNull final RequestOrigin origin,
-                             final int cursorX,
-                             final int cursorY,
-                             @NotNull JediTerminal.ResizeHandler resizeHandler,
-                             @Nullable TerminalSelection mySelection) {
-    final int newWidth = pendingResize.width;
-    final int newHeight = pendingResize.height;
+  private void doResize(@NotNull TermSize newTermSize,
+                        final int cursorX,
+                        final int cursorY,
+                        @NotNull JediTerminal.ResizeHandler resizeHandler,
+                        @Nullable TerminalSelection mySelection) {
+    final int newWidth = newTermSize.getColumns();
+    final int newHeight = newTermSize.getRows();
     int newCursorX = cursorX;
     int newCursorY = cursorY;
 
@@ -171,8 +170,6 @@ public class TerminalTextBuffer {
 
 
     fireModelChangeEvent();
-
-    return pendingResize;
   }
 
   public void addModelListener(TerminalModelListener listener) {

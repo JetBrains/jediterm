@@ -2,10 +2,10 @@ package com.jediterm.terminal.model;
 
 import com.jediterm.core.Platform;
 import com.jediterm.core.TerminalCoordinates;
-import com.jediterm.core.compatibility.Dimension;
 import com.jediterm.core.compatibility.Point;
 import com.jediterm.core.input.MouseEvent;
 import com.jediterm.core.input.MouseWheelEvent;
+import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.*;
 import com.jediterm.terminal.emulator.charset.CharacterSet;
 import com.jediterm.terminal.emulator.charset.GraphicSet;
@@ -33,8 +33,8 @@ import java.util.concurrent.CompletableFuture;
 public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCoordinates {
   private static final Logger LOG = LoggerFactory.getLogger(JediTerminal.class.getName());
 
-  private static final int MIN_WIDTH = 5;
-  private static final int MIN_HEIGHT = 2;
+  private static final int MIN_COLUMNS = 5;
+  private static final int MIN_ROWS = 2;
 
   private int myScrollRegionTop;
   private int myScrollRegionBottom;
@@ -1059,30 +1059,33 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   @Override
-  public void resize(@NotNull Dimension newTermSize, @NotNull RequestOrigin origin) {
+  public void resize(@NotNull TermSize newTermSize, @NotNull RequestOrigin origin) {
     resize(newTermSize, origin, CompletableFuture.completedFuture(null));
   }
 
   @Override
-  public void resize(@NotNull Dimension newTermSize, @NotNull RequestOrigin origin, @NotNull CompletableFuture<?> promptUpdated) {
+  public void resize(@NotNull TermSize newTermSize, @NotNull RequestOrigin origin, @NotNull CompletableFuture<?> promptUpdated) {
+    resizeInternal(ensureTermMinimumSize(newTermSize), origin, promptUpdated);
+  }
+
+  private void resizeInternal(@NotNull TermSize newTermSize, @NotNull RequestOrigin origin, @NotNull CompletableFuture<?> promptUpdated) {
     int oldHeight = myTerminalHeight;
-    ensureTermMinimumSize(newTermSize);
-    if (newTermSize.width == myTerminalWidth && newTermSize.height == myTerminalHeight) {
+    if (newTermSize.getColumns() == myTerminalWidth && newTermSize.getRows() == myTerminalHeight) {
       return;
     }
-    if (newTermSize.width == myTerminalWidth) {
+    if (newTermSize.getColumns() == myTerminalWidth) {
       doResize(newTermSize, origin, oldHeight);
     }
     else {
-      myTerminalWidth = newTermSize.width;
-      myTerminalHeight = newTermSize.height;
+      myTerminalWidth = newTermSize.getColumns();
+      myTerminalHeight = newTermSize.getRows();
       promptUpdated.thenRun(() -> {
         doResize(newTermSize, origin, oldHeight);
       });
     }
   }
 
-  private void doResize(@NotNull Dimension newTermSize, @NotNull RequestOrigin origin, int oldHeight) {
+  private void doResize(@NotNull TermSize newTermSize, @NotNull RequestOrigin origin, int oldHeight) {
     myDisplay.requestResize(newTermSize, origin, myCursorX, myCursorY, (termWidth, termHeight, cursorX, cursorY) -> {
       myTerminalWidth = termWidth;
       myTerminalHeight = termHeight;
@@ -1095,8 +1098,8 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     myScrollRegionBottom += myTerminalHeight - oldHeight;
   }
 
-  public static void ensureTermMinimumSize(@NotNull Dimension termSize) {
-    termSize.setSize(Math.max(MIN_WIDTH, termSize.width), Math.max(MIN_HEIGHT, termSize.height));
+  public static @NotNull TermSize ensureTermMinimumSize(@NotNull TermSize termSize) {
+    return new TermSize(Math.max(MIN_COLUMNS, termSize.getColumns()), Math.max(MIN_ROWS, termSize.getRows()));
   }
 
   @Override

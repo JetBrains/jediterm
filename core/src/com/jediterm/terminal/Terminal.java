@@ -1,6 +1,6 @@
 package com.jediterm.terminal;
 
-import com.jediterm.core.compatibility.Dimension;
+import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.emulator.mouse.MouseFormat;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
 import com.jediterm.terminal.model.StyleState;
@@ -16,9 +16,9 @@ import java.util.concurrent.CompletableFuture;
  * @author traff
  */
 public interface Terminal {
-  void resize(@NotNull Dimension newTermSize, @NotNull RequestOrigin origin);
+  void resize(@NotNull TermSize newTermSize, @NotNull RequestOrigin origin);
 
-  void resize(@NotNull Dimension newTermSize, @NotNull RequestOrigin origin, @NotNull CompletableFuture<?> promptUpdated);
+  void resize(@NotNull TermSize newTermSize, @NotNull RequestOrigin origin, @NotNull CompletableFuture<?> promptUpdated);
 
   void beep();
 

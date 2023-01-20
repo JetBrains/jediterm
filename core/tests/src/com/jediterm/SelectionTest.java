@@ -1,7 +1,7 @@
 package com.jediterm;
 
-import com.jediterm.core.compatibility.Dimension;
 import com.jediterm.core.compatibility.Point;
+import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.model.JediTerminal;
 import com.jediterm.terminal.model.SelectionUtil;
@@ -60,7 +60,7 @@ public class SelectionTest extends TestCase {
     writer.newLine();
     writer.carriageReturn();
 
-    writer.resize(new Dimension(8, 10), RequestOrigin.User);
+    writer.resize(new TermSize(8, 10), RequestOrigin.User);
 
     //text to 
     //select 

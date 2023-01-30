@@ -70,22 +70,6 @@ public class TerminalColor {
     return myColorIndex;
   }
 
-  public @NotNull String toHexString16() {
-    Color color = toColor();
-
-    // (n * 0x101) converts the 8-bit number to 16 bits.
-    String red = padStart(Integer.toHexString(color.getRed() * 0x101), 4, '0');
-    String green = padStart(Integer.toHexString(color.getGreen() * 0x101), 4, '0');
-    String blue = padStart(Integer.toHexString(color.getBlue() * 0x101), 4, '0');
-    
-    return red + "/" + green + "/" + blue;
-  }
-
-  @SuppressWarnings("SameParameterValue")
-  private @NotNull String padStart(@NotNull String str, int totalLength, char ch) {
-    return Character.toString(ch).repeat(Math.max(0, totalLength - str.length())) + str;
-  }
-
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;

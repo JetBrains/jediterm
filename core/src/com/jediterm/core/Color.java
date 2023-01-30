@@ -1,5 +1,7 @@
 package com.jediterm.core;
 
+import org.jetbrains.annotations.NotNull;
+
 public final class Color {
   private final int value;
 
@@ -41,6 +43,27 @@ public final class Color {
 
   public int getRGB() {
     return value;
+  }
+
+  /**
+   * Returns <a href="https://linux.die.net/man/3/xparsecolor">XParseColor</a> representation of TerminalColor
+   */
+  public @NotNull String toXParseColor() {
+    return "rgb:" + toHexString16();
+  }
+
+  private @NotNull String toHexString16() {
+    // (n * 0x101) converts the 8-bit number to 16 bits.
+    String red = padStart(Integer.toHexString(getRed() * 0x101), 4, '0');
+    String green = padStart(Integer.toHexString(getGreen() * 0x101), 4, '0');
+    String blue = padStart(Integer.toHexString(getBlue() * 0x101), 4, '0');
+
+    return red + "/" + green + "/" + blue;
+  }
+
+  @SuppressWarnings("SameParameterValue")
+  private @NotNull String padStart(@NotNull String str, int totalLength, char ch) {
+    return Character.toString(ch).repeat(Math.max(0, totalLength - str.length())) + str;
   }
 
   @Override

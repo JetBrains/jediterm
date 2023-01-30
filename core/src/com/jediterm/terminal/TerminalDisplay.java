@@ -1,5 +1,6 @@
 package com.jediterm.terminal;
 
+import com.jediterm.core.Color;
 import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
 import com.jediterm.terminal.model.JediTerminal;
@@ -39,11 +40,11 @@ public interface TerminalDisplay {
 
   default void setBracketedPasteMode(boolean enabled) {}
 
-  default @Nullable TerminalColor getWindowForeground() {
+  default @Nullable Color getWindowForeground() {
     return null;
   }
 
-  default @Nullable TerminalColor getWindowBackground() {
+  default @Nullable Color getWindowBackground() {
     return null;
   }
 }

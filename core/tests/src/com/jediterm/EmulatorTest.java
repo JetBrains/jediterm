@@ -1,6 +1,6 @@
 package com.jediterm;
 
-import com.jediterm.terminal.TerminalColor;
+import com.jediterm.core.Color;
 import com.jediterm.terminal.emulator.ColorPalette;
 import com.jediterm.terminal.model.TerminalTextBuffer;
 import com.jediterm.util.TestSession;
@@ -58,7 +58,7 @@ public class EmulatorTest extends EmulatorTestAbstract {
 
   public void testOsc10Query() throws IOException {
     TestSession session = new TestSession(10, 10);
-    session.getDisplay().setWindowForeground(TerminalColor.rgb(16, 15, 14));
+    session.getDisplay().setWindowForeground(new Color(16, 15, 14));
     session.process("\u001B]10;?\7");
     Assert.assertEquals("\033]10;rgb:1010/0f0f/0e0e\7", session.getTerminal().getOutputAndClear());
 
@@ -68,7 +68,7 @@ public class EmulatorTest extends EmulatorTestAbstract {
 
   public void testOsc11Query() throws IOException {
     TestSession session = new TestSession(10, 10);
-    session.getDisplay().setWindowBackground(TerminalColor.rgb(16, 15, 14));
+    session.getDisplay().setWindowBackground(new Color(16, 15, 14));
     session.process("\u001B]11;?\7");
     Assert.assertEquals("\033]11;rgb:1010/0f0f/0e0e\7", session.getTerminal().getOutputAndClear());
 

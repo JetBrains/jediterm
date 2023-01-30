@@ -1,5 +1,6 @@
 package com.jediterm.terminal.emulator;
 
+import com.jediterm.core.Color;
 import com.jediterm.core.util.Ascii;
 import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.*;
@@ -253,7 +254,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       return false;
     }
     int ps = args.getIntAt(0, -1);
-    TerminalColor color;
+    Color color;
     if (ps == 10) {
       color = myTerminal.getWindowForeground();
     }
@@ -264,20 +265,13 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       return false;
     }
     if (color != null) {
-      String str = args.format(ps + ";" + formatXParseColor(color));
+      String str = args.format(ps + ";" + color.toXParseColor());
       if (LOG.isDebugEnabled()) {
         LOG.debug("Responding to OSC " + ps + " query: " + str);
       }
       myTerminal.deviceStatusReport(str);
     }
     return true;
-  }
-
-  /**
-   * Returns <a href="https://linux.die.net/man/3/xparsecolor">XParseColor</a> representation of TerminalColor
-   */
-  private static @NotNull String formatXParseColor(TerminalColor color) {
-    return "rgb:" + color.toHexString16();
   }
 
   private void processTwoCharSequence(char ch, Terminal terminal) throws IOException {

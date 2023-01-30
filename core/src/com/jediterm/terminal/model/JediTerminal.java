@@ -1,5 +1,6 @@
 package com.jediterm.terminal.model;
 
+import com.jediterm.core.Color;
 import com.jediterm.core.Platform;
 import com.jediterm.core.TerminalCoordinates;
 import com.jediterm.core.compatibility.Point;
@@ -273,12 +274,12 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   @Override
-  public @Nullable TerminalColor getWindowForeground() {
+  public @Nullable Color getWindowForeground() {
     return myDisplay.getWindowForeground();
   }
 
   @Override
-  public @Nullable TerminalColor getWindowBackground() {
+  public @Nullable Color getWindowBackground() {
     return myDisplay.getWindowBackground();
   }
 

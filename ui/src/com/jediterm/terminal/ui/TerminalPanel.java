@@ -1,5 +1,6 @@
 package com.jediterm.terminal.ui;
 
+import com.jediterm.core.Color;
 import com.jediterm.core.TerminalCoordinates;
 import com.jediterm.core.compatibility.Point;
 import com.jediterm.core.typeahead.TerminalTypeAheadManager;
@@ -954,14 +955,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   }
 
   @Override
-  public @Nullable TerminalColor getWindowForeground() {
-    return AwtTransformers.fromAwtToTerminalColor(getForeground());
+  public @Nullable Color getWindowForeground() {
+    return AwtTransformers.fromAwtColor(getForeground());
   }
 
   @Override
-  public @Nullable TerminalColor getWindowBackground() {
-    // Return RGB color because we don't have palette information outside of TerminalPanel.
-    return AwtTransformers.fromAwtToTerminalColor(getBackground());
+  public @Nullable Color getWindowBackground() {
+    // Return RGB color because we don't have palette information outside TerminalPanel.
+    return AwtTransformers.fromAwtColor(getBackground());
   }
 
   protected int getInsetX() {
@@ -1321,7 +1322,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     gfx.setClip(null);
   }
 
-  private @NotNull Color getStyleForeground(@NotNull TextStyle style) {
+  private @NotNull java.awt.Color getStyleForeground(@NotNull TextStyle style) {
     java.awt.Color foreground = getPaletteForeground(myStyleState.getForeground(style.getForegroundForRun()));
     if (style.hasOption(Option.DIM)) {
       java.awt.Color background = getPaletteBackground(myStyleState.getBackground(style.getBackgroundForRun()));

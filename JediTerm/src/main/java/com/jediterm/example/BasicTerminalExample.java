@@ -1,6 +1,5 @@
 package com.jediterm.example;
 
-import com.jediterm.terminal.Questioner;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.ui.JediTermWidget;
 import com.jediterm.terminal.ui.settings.DefaultSettingsProvider;
@@ -59,11 +58,6 @@ public class BasicTerminalExample {
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
-    }
-
-    @Override
-    public boolean init(Questioner q) {
-      return true;
     }
 
     @Override

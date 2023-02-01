@@ -1,6 +1,5 @@
 package com.jediterm.terminal;
 
-import com.jediterm.core.util.TermSize;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -20,7 +19,6 @@ public abstract class ProcessTtyConnector implements TtyConnector {
   protected final OutputStream myOutputStream;
   protected final InputStreamReader myReader;
   protected final Charset myCharset;
-  private TermSize myPendingTermSize;
   private final Process myProcess;
   private final @Nullable List<String> myCommandLine;
 
@@ -41,21 +39,6 @@ public abstract class ProcessTtyConnector implements TtyConnector {
   public Process getProcess() {
     return myProcess;
   }
-
-  @Override
-  public void resize(@NotNull TermSize termSize) {
-    setPendingTermSize(termSize);
-    if (isConnected()) {
-      resizeImmediately();
-      setPendingTermSize(null);
-    }
-  }
-
-  /**
-   * @deprecated override {@link #resize(TermSize)} instead
-   */
-  @Deprecated
-  protected void resizeImmediately() {}
 
   @Override
   public abstract String getName();
@@ -81,35 +64,6 @@ public abstract class ProcessTtyConnector implements TtyConnector {
   @Override
   public void write(String string) throws IOException {
     write(string.getBytes(myCharset));
-  }
-
-  /**
-   * @deprecated override {@link #resize(TermSize)} instead
-   */
-  @Deprecated
-  protected void setPendingTermSize(@Nullable TermSize pendingTermSize) {
-    myPendingTermSize = pendingTermSize;
-  }
-
-  /**
-   * @deprecated override {@link #resize(TermSize)} instead
-   */
-  @Deprecated
-  protected @Nullable TermSize getPendingTermSize() {
-    return myPendingTermSize;
-  }
-
-  /**
-   * @deprecated don't use it (pixel size is not used anymore)
-   */
-  @Deprecated
-  protected TermSize getPendingPixelSize() {
-    return new TermSize(0, 0);
-  }
-
-  @Override
-  public boolean init(Questioner q) {
-    return isConnected();
   }
 
   @Override

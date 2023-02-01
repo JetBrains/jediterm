@@ -1,36 +1,32 @@
 package com.jediterm.terminal;
 
 import com.jediterm.core.util.TermSize;
+import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 
-/**
- * Interface to tty.
- */
 public interface TtyConnector {
-  boolean init(Questioner q);
+  int read(char[] buf, int offset, int length) throws IOException;
 
-  void close();
+  void write(byte[] bytes) throws IOException;
+
+  void write(String string) throws IOException;
+
+  boolean isConnected();
 
   default void resize(@NotNull TermSize termSize) {
     // support old implementations not overriding this method
     resize(new java.awt.Dimension(termSize.getColumns(), termSize.getRows()));
   }
 
-  String getName();
-
-  int read(char[] buf, int offset, int length) throws IOException;
-
-  void write(byte[] bytes) throws IOException;
-
-  boolean isConnected();
-
-  void write(String string) throws IOException;
-
   int waitFor() throws InterruptedException;
 
   boolean ready() throws IOException;
+
+  @Nls String getName();
+
+  void close();
 
   /**
    * @deprecated use {@link #resize(TermSize)} instead
@@ -49,5 +45,14 @@ public interface TtyConnector {
   default void resize(java.awt.Dimension termWinSize, java.awt.Dimension pixelSize) {
     throw new IllegalStateException("This method shouldn't be called. " +
       getClass() + " should override TtyConnector.resize(com.jediterm.core.util.TermSize)");
+  }
+
+  /**
+   * @deprecated Collect extra information when creating {@link TtyConnector}
+   */
+  @SuppressWarnings("removal")
+  @Deprecated(forRemoval = true)
+  default boolean init(Questioner q) {
+    return true;
   }
 }

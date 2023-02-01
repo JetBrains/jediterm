@@ -18,7 +18,6 @@ import org.slf4j.LoggerFactory;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.plaf.basic.BasicArrowButton;
 import javax.swing.plaf.basic.BasicScrollBarUI;
 import java.awt.*;
 import java.awt.event.*;
@@ -41,22 +40,19 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   private final JediTermTypeAheadModel myTypeAheadTerminalModel;
   private final TerminalTypeAheadManager myTypeAheadManager;
   private SearchComponent myFindComponent;
+  @SuppressWarnings("removal")
   private final PreConnectHandler myPreConnectHandler;
   private TtyConnector myTtyConnector;
   private TerminalStarter myTerminalStarter;
   private Thread myEmuThread;
   protected final SettingsProvider mySettingsProvider;
   private TerminalActionProvider myNextActionProvider;
-  private JLayeredPane myInnerPanel;
+  private final JLayeredPane myInnerPanel;
   private final TextProcessing myTextProcessing;
   private final List<TerminalWidgetListener> myListeners = new CopyOnWriteArrayList<>();
 
   public JediTermWidget(@NotNull SettingsProvider settingsProvider) {
     this(80, 24, settingsProvider);
-  }
-
-  public JediTermWidget(Dimension dimension, SettingsProvider settingsProvider) {
-    this(dimension.width, dimension.height, settingsProvider);
   }
 
   public JediTermWidget(int columns, int lines, SettingsProvider settingsProvider) {
@@ -126,6 +122,8 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     return new TerminalPanel(settingsProvider, terminalTextBuffer, styleState);
   }
 
+  @SuppressWarnings({"removal", "DeprecatedIsStillUsed"})
+  @Deprecated(forRemoval = true)
   protected PreConnectHandler createPreConnectHandler(JediTerminal terminal) {
     return new PreConnectHandler(terminal);
   }
@@ -138,6 +136,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     return myTerminalPanel;
   }
 
+  @SuppressWarnings("unused")
   public TerminalTypeAheadManager getTypeAheadManager() {
     return myTypeAheadManager;
   }
@@ -211,12 +210,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   @Override
   public boolean requestFocusInWindow() {
-    SwingUtilities.invokeLater(new Runnable() {
-      public void run() {
-        myTerminalPanel.requestFocusInWindow();
-      }
-    });
-    return super.requestFocusInWindow();
+    return myTerminalPanel.requestFocusInWindow();
   }
 
   @Override
@@ -294,12 +288,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
         }
       });
 
-      myFindComponent.addIgnoreCaseListener(new ItemListener() {
-        @Override
-        public void itemStateChanged(ItemEvent e) {
-          findText(myFindComponent.getText(), myFindComponent.ignoreCase());
-        }
-      });
+      myFindComponent.addIgnoreCaseListener(e -> findText(myFindComponent.getText(), myFindComponent.ignoreCase()));
 
       myFindComponent.addKeyListener(new KeyAdapter() {
         @Override
@@ -325,8 +314,8 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     }
   }
 
-  protected SearchComponent createSearchComponent() {
-    return new SearchPanel();
+  protected @NotNull SearchComponent createSearchComponent() {
+    return new JediTermDefaultSearchComponent(this);
   }
 
   public interface SearchComponent {
@@ -370,6 +359,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
       try {
         mySessionRunning.set(true);
         Thread.currentThread().setName("Connector-" + myTtyConnector.getName());
+        //noinspection removal
         if (myTtyConnector.init(myPreConnectHandler)) {
           myTerminalPanel.addCustomKeyListener(myTerminalPanel.getTerminalKeyListener());
           myTerminalPanel.removeCustomKeyListener(myPreConnectHandler);
@@ -380,7 +370,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
       } finally {
         try {
           myTtyConnector.close();
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
         mySessionRunning.set(false);
         for (TerminalWidgetListener listener : myListeners) {
@@ -390,116 +380,6 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
         myTerminalPanel.removeCustomKeyListener(myTerminalPanel.getTerminalKeyListener());
       }
     }
-  }
-
-  public TerminalStarter getTerminalStarter() {
-    return myTerminalStarter;
-  }
-
-  public class SearchPanel extends JPanel implements SearchComponent {
-
-    private final JTextField myTextField = new JTextField();
-    private final JLabel label = new JLabel();
-    private final JButton prev;
-    private final JButton next;
-    private final JCheckBox ignoreCaseCheckBox = new JCheckBox("Ignore Case", true);
-
-    public SearchPanel() {
-      next = createNextButton();
-      next.addActionListener(new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-          nextFindResultItem(myTerminalPanel.selectNextFindResultItem());
-        }
-      });
-
-      prev = createPrevButton();
-      prev.addActionListener(new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-          prevFindResultItem(myTerminalPanel.selectPrevFindResultItem());
-        }
-      });
-
-      myTextField.setPreferredSize(new Dimension(
-        myTerminalPanel.myCharSize.width * 30,
-        myTerminalPanel.myCharSize.height + 3));
-      myTextField.setEditable(true);
-
-      updateLabel(null);
-
-      add(myTextField);
-      add(ignoreCaseCheckBox);
-      add(label);
-      add(next);
-      add(prev);
-
-      setOpaque(true);
-    }
-
-    protected JButton createNextButton() {
-      return new BasicArrowButton(SwingConstants.NORTH);
-    }
-
-    protected JButton createPrevButton() {
-      return new BasicArrowButton(SwingConstants.SOUTH);
-    }
-
-    @Override
-    public void nextFindResultItem(FindItem selectedItem) {
-      updateLabel(selectedItem);
-    }
-
-    @Override
-    public void prevFindResultItem(FindItem selectedItem) {
-      updateLabel(selectedItem);
-    }
-
-    private void updateLabel(FindItem selectedItem) {
-      FindResult result = myTerminalPanel.getFindResult();
-      label.setText(((selectedItem != null) ? selectedItem.getIndex() : 0)
-        + " of " + ((result != null) ? result.getItems().size() : 0));
-    }
-
-    @Override
-    public void onResultUpdated(FindResult results) {
-      updateLabel(null);
-    }
-
-    @Override
-    public String getText() {
-      return myTextField.getText();
-    }
-
-    @Override
-    public boolean ignoreCase() {
-      return ignoreCaseCheckBox.isSelected();
-    }
-
-    @Override
-    public JComponent getComponent() {
-      return this;
-    }
-
-    public void requestFocus() {
-      myTextField.requestFocus();
-    }
-
-    @Override
-    public void addDocumentChangeListener(DocumentListener listener) {
-      myTextField.getDocument().addDocumentListener(listener);
-    }
-
-    @Override
-    public void addKeyListener(KeyListener listener) {
-      myTextField.addKeyListener(listener);
-    }
-
-    @Override
-    public void addIgnoreCaseListener(ItemListener listener) {
-      ignoreCaseCheckBox.addItemListener(listener);
-    }
-
   }
 
   private class FindResultScrollBarUI extends BasicScrollBarUI {
@@ -553,7 +433,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
         scroll = null;
       }
       if (comp == find) {
-        find = comp;
+        find = null;
       }
     }
 

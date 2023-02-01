@@ -6,6 +6,11 @@ import com.jediterm.terminal.Terminal;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 
+/**
+ * @deprecated
+ */
+@SuppressWarnings("removal")
+@Deprecated(forRemoval = true)
 public class PreConnectHandler implements Questioner, KeyListener {
   private Object mySync = new Object();
   private Terminal myTerminal;

@@ -117,8 +117,13 @@ public abstract class AbstractTabbedTerminalWidget<T extends JediTermWidget> ext
     addTab(terminal, tabs, name);
   }
 
+  @NotNull String getTabName(@NotNull T terminal) {
+    TtyConnector ttyConnector = terminal.getTtyConnector();
+    return ttyConnector != null ? ttyConnector.getName() : "Session";
+  }
+
   private String generateUniqueName(T terminal, AbstractTabs<T> tabs) {
-    return generateUniqueName(mySettingsProvider.tabName(terminal.getTtyConnector(), terminal.getSessionName()), tabs);
+    return generateUniqueName(mySettingsProvider.tabName(terminal.getTtyConnector(), getTabName(terminal)), tabs);
   }
 
   private void addTab(T terminal, AbstractTabs<T> tabs, String name) {

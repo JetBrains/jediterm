@@ -17,11 +17,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import javax.swing.plaf.basic.BasicScrollBarUI;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -259,28 +259,9 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
       myInnerPanel.repaint();
       component.requestFocus();
 
-      myFindComponent.addDocumentChangeListener(new DocumentListener() {
-        @Override
-        public void insertUpdate(DocumentEvent e) {
-          textUpdated();
-        }
-
-        @Override
-        public void removeUpdate(DocumentEvent e) {
-          textUpdated();
-        }
-
-        @Override
-        public void changedUpdate(DocumentEvent e) {
-          textUpdated();
-        }
-
-        private void textUpdated() {
-          findText(myFindComponent.getText(), myFindComponent.ignoreCase());
-        }
+      myFindComponent.addSettingsChangedListener(() -> {
+        findText(myFindComponent.getText(), myFindComponent.ignoreCase());
       });
-
-      myFindComponent.addIgnoreCaseListener(e -> findText(myFindComponent.getText(), myFindComponent.ignoreCase()));
 
       myFindComponent.addKeyListener(new KeyAdapter() {
         @Override
@@ -302,7 +283,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
         }
       });
     } else {
-      myFindComponent.getComponent().requestFocusInWindow();
+      myFindComponent.getComponent().requestFocus();
     }
   }
 
@@ -311,23 +292,21 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   }
 
   public interface SearchComponent {
-    String getText();
+    @NotNull String getText();
 
     boolean ignoreCase();
 
-    JComponent getComponent();
+    @NotNull JComponent getComponent();
 
-    void addDocumentChangeListener(DocumentListener listener);
+    void addSettingsChangedListener(@NotNull Runnable onChangeListener);
 
-    void addKeyListener(KeyListener listener);
+    void addKeyListener(@NotNull KeyListener listener);
 
-    void addIgnoreCaseListener(ItemListener listener);
+    void onResultUpdated(@Nullable FindResult results);
 
-    void onResultUpdated(FindResult results);
+    void nextFindResultItem(@Nullable FindItem selectedItem);
 
-    void nextFindResultItem(FindItem selectedItem);
-
-    void prevFindResultItem(FindItem selectedItem);
+    void prevFindResultItem(@Nullable FindItem selectedItem);
   }
 
   private void findText(String text, boolean ignoreCase) {

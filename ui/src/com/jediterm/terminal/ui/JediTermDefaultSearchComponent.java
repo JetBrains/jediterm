@@ -1,12 +1,14 @@
 package com.jediterm.terminal.ui;
 
 import com.jediterm.terminal.SubstringFinder;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.plaf.basic.BasicArrowButton;
 import java.awt.*;
-import java.awt.event.ItemListener;
 import java.awt.event.KeyListener;
 
 public final class JediTermDefaultSearchComponent extends JPanel implements JediTermWidget.SearchComponent {
@@ -49,12 +51,12 @@ public final class JediTermDefaultSearchComponent extends JPanel implements Jedi
   }
 
   @Override
-  public void nextFindResultItem(SubstringFinder.FindResult.FindItem selectedItem) {
+  public void nextFindResultItem(SubstringFinder.FindResult.@Nullable FindItem selectedItem) {
     updateLabel(selectedItem);
   }
 
   @Override
-  public void prevFindResultItem(SubstringFinder.FindResult.FindItem selectedItem) {
+  public void prevFindResultItem(SubstringFinder.FindResult.@Nullable FindItem selectedItem) {
     updateLabel(selectedItem);
   }
 
@@ -65,12 +67,12 @@ public final class JediTermDefaultSearchComponent extends JPanel implements Jedi
   }
 
   @Override
-  public void onResultUpdated(SubstringFinder.FindResult results) {
+  public void onResultUpdated(SubstringFinder.@Nullable FindResult results) {
     updateLabel(null);
   }
 
   @Override
-  public String getText() {
+  public @NotNull String getText() {
     return myTextField.getText();
   }
 
@@ -80,8 +82,31 @@ public final class JediTermDefaultSearchComponent extends JPanel implements Jedi
   }
 
   @Override
-  public JComponent getComponent() {
+  public @NotNull JComponent getComponent() {
     return this;
+  }
+
+  @Override
+  public void addSettingsChangedListener(@NotNull Runnable onChangeListener) {
+    myTextField.getDocument().addDocumentListener(new DocumentListener() {
+      @Override
+      public void insertUpdate(DocumentEvent e) {
+        onChangeListener.run();
+      }
+
+      @Override
+      public void removeUpdate(DocumentEvent e) {
+        onChangeListener.run();
+      }
+
+      @Override
+      public void changedUpdate(DocumentEvent e) {
+        onChangeListener.run();
+      }
+    });
+    ignoreCaseCheckBox.addItemListener(e -> {
+      onChangeListener.run();
+    });
   }
 
   public void requestFocus() {
@@ -89,18 +114,7 @@ public final class JediTermDefaultSearchComponent extends JPanel implements Jedi
   }
 
   @Override
-  public void addDocumentChangeListener(DocumentListener listener) {
-    myTextField.getDocument().addDocumentListener(listener);
-  }
-
-  @Override
-  public void addKeyListener(KeyListener listener) {
+  public void addKeyListener(@NotNull KeyListener listener) {
     myTextField.addKeyListener(listener);
   }
-
-  @Override
-  public void addIgnoreCaseListener(ItemListener listener) {
-    ignoreCaseCheckBox.addItemListener(listener);
-  }
-
 }

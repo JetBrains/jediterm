@@ -12,6 +12,7 @@ import com.jediterm.terminal.model.hyperlinks.HyperlinkFilter;
 import com.jediterm.terminal.model.hyperlinks.TextProcessing;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -380,6 +381,15 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
         myTerminalPanel.removeCustomKeyListener(myTerminalPanel.getTerminalKeyListener());
       }
     }
+  }
+
+  /**
+   * @deprecated use {@link #getTtyConnector()} to figure out if session started
+   *             use {@link #getTerminal().getCodeForKey(int, int)} instead of {@link TerminalStarter#getCode(int, int)}
+   */
+  @Deprecated
+  public @Nullable TerminalStarter getTerminalStarter() {
+    return myTerminalStarter;
   }
 
   private class FindResultScrollBarUI extends BasicScrollBarUI {

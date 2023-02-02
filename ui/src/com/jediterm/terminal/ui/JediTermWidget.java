@@ -172,15 +172,6 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     return myTerminal;
   }
 
-  @Override
-  public String getSessionName() {
-    if (myTtyConnector != null) {
-      return myTtyConnector.getName();
-    } else {
-      return "Session";
-    }
-  }
-
   public void start() {
     if (!mySessionRunning.get()) {
       myEmuThread = new Thread(new EmulatorTask());

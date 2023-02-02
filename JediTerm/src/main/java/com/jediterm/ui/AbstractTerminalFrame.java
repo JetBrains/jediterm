@@ -29,7 +29,7 @@ public abstract class AbstractTerminalFrame {
   public static final Logger LOG = LoggerFactory.getLogger(AbstractTerminalFrame.class);
   private JFrame myBufferFrame;
 
-  private final AbstractTabbedTerminalWidget<? extends JediTermWidget> myTerminal;
+  private final AbstractTabbedTerminalWidget<JediTermWidget> myTerminal;
   private final JFrame myFrame;
 
   private final AbstractAction myOpenAction = new AbstractAction("New Session") {
@@ -145,7 +145,8 @@ public abstract class AbstractTerminalFrame {
 
   protected AbstractTerminalFrame() {
     AbstractTabbedTerminalWidget<? extends JediTermWidget> tabbedTerminalWidget = createTabbedTerminalWidget();
-    myTerminal = tabbedTerminalWidget;
+    //noinspection unchecked
+    myTerminal = (AbstractTabbedTerminalWidget<JediTermWidget>) tabbedTerminalWidget;
 
     final JFrame frame = new JFrame("JediTerm");
     myFrame = frame;
@@ -241,7 +242,7 @@ public abstract class AbstractTerminalFrame {
 
     @Override
     public void onSelectedTabChanged(@NotNull T terminal) {
-      myFrame.setTitle(terminal.getSessionName());
+      myFrame.setTitle(myTerminal.getTabName(terminal));
     }
   }
 }

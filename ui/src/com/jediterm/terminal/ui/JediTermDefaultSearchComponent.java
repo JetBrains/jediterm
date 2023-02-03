@@ -13,18 +13,16 @@ import java.awt.event.KeyListener;
 
 public final class JediTermDefaultSearchComponent extends JPanel implements JediTermWidget.SearchComponent {
 
-  private final JediTermWidget jediTermWidget;
   private final JTextField myTextField = new JTextField();
   private final JLabel label = new JLabel();
   private final JCheckBox ignoreCaseCheckBox = new JCheckBox("Ignore Case", true);
 
   public JediTermDefaultSearchComponent(JediTermWidget jediTermWidget) {
-    this.jediTermWidget = jediTermWidget;
     JButton next = createNextButton();
-    next.addActionListener(e -> nextFindResultItem(jediTermWidget.myTerminalPanel.selectNextFindResultItem()));
+    next.addActionListener(e -> updateLabel(jediTermWidget.myTerminalPanel.selectNextFindResultItem()));
 
     JButton prev = createPrevButton();
-    prev.addActionListener(e -> prevFindResultItem(jediTermWidget.myTerminalPanel.selectPrevFindResultItem()));
+    prev.addActionListener(e -> updateLabel(jediTermWidget.myTerminalPanel.selectPrevFindResultItem()));
 
     myTextField.setPreferredSize(new Dimension(
       jediTermWidget.myTerminalPanel.myCharSize.width * 30,
@@ -50,20 +48,14 @@ public final class JediTermDefaultSearchComponent extends JPanel implements Jedi
     return new BasicArrowButton(SwingConstants.SOUTH);
   }
 
-  @Override
-  public void nextFindResultItem(SubstringFinder.FindResult.@Nullable FindItem selectedItem) {
-    updateLabel(selectedItem);
-  }
-
-  @Override
-  public void prevFindResultItem(SubstringFinder.FindResult.@Nullable FindItem selectedItem) {
-    updateLabel(selectedItem);
-  }
-
-  private void updateLabel(SubstringFinder.FindResult.FindItem selectedItem) {
-    SubstringFinder.FindResult result = jediTermWidget.myTerminalPanel.getFindResult();
-    label.setText(((selectedItem != null) ? selectedItem.getIndex() : 0)
-      + " of " + ((result != null) ? result.getItems().size() : 0));
+  private void updateLabel(@Nullable SubstringFinder.FindResult result) {
+    if (result == null) {
+      label.setText("");
+    }
+    else {
+      SubstringFinder.FindResult.FindItem selectedItem = result.selectedItem();
+      label.setText(selectedItem.getIndex() + " of " + result.getItems().size());
+    }
   }
 
   @Override

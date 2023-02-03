@@ -1170,7 +1170,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     return myStyleState;
   }
 
-  public SubstringFinder.FindResult searchInTerminalTextBuffer(final String pattern, boolean ignoreCase) {
+  public SubstringFinder.FindResult searchInTerminalTextBuffer(@NotNull String pattern, boolean ignoreCase) {
     if (pattern.length() == 0) {
       return null;
     }

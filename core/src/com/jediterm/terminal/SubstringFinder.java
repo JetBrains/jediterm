@@ -27,8 +27,7 @@ public class SubstringFinder {
   private int myPower = 0;
 
   private final FindResult myResult = new FindResult();
-  private boolean myIgnoreCase;
-
+  private final boolean myIgnoreCase;
 
   public SubstringFinder(String pattern, boolean ignoreCase) {
     myIgnoreCase = ignoreCase;
@@ -97,10 +96,10 @@ public class SubstringFinder {
     return myResult;
   }
 
-  public static class FindResult {
+  public static final class FindResult {
     private final List<FindItem> items = new ArrayList<>();
     private final Map<CharBuffer, List<Pair<Integer, Integer>>> ranges = new HashMap<>();
-    private int currentFindItem = 0;
+    private int selectedItem = 0;
 
     public List<Pair<Integer, Integer>> getRanges(CharBuffer characters) {
       if (characters instanceof SubCharBuffer) {
@@ -171,7 +170,7 @@ public class SubstringFinder {
         return getText();
       }
 
-      // index in the result list
+      // one-based index in the result list
       public int getIndex() {
         return index;
       }
@@ -215,27 +214,31 @@ public class SubstringFinder {
       }
     }
 
-    public List<FindItem> getItems() {
+    public @NotNull List<FindItem> getItems() {
       return items;
     }
 
-    public FindItem prevFindItem() {
-      if (items.isEmpty()) {
-        return null;
-      }
-      currentFindItem++;
-      currentFindItem %= items.size();
-      return items.get(currentFindItem);
+    public @NotNull FindItem selectedItem() {
+      assertNotEmpty();
+      return items.get(selectedItem);
     }
 
-    public FindItem nextFindItem() {
+    public @NotNull FindItem nextFindItem() {
+      assertNotEmpty();
+      selectedItem = (selectedItem + 1) % items.size();
+      return selectedItem();
+    }
+
+    public @NotNull FindItem prevFindItem() {
+      assertNotEmpty();
+      selectedItem = (selectedItem + items.size() - 1) % items.size();
+      return selectedItem();
+    }
+
+    private void assertNotEmpty() {
       if (items.isEmpty()) {
-        return null;
+        throw new AssertionError("No items");
       }
-      currentFindItem--;
-      // modulo can be negative in Java: add items.size() to ensure positive
-      currentFindItem = (currentFindItem + items.size()) % items.size();
-      return items.get(currentFindItem);
     }
   }
 

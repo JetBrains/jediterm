@@ -458,28 +458,27 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     return myFindResult;
   }
 
-  public FindItem selectPrevFindResultItem() {
+  public @Nullable SubstringFinder.FindResult selectPrevFindResultItem() {
     return selectPrevOrNextFindResultItem(false);
   }
 
-  public FindItem selectNextFindResultItem() {
+  public @Nullable SubstringFinder.FindResult selectNextFindResultItem() {
     return selectPrevOrNextFindResultItem(true);
   }
 
-  protected FindItem selectPrevOrNextFindResultItem(boolean next) {
-    if (myFindResult != null) {
-      SubstringFinder.FindResult.FindItem item = next ? myFindResult.nextFindItem() : myFindResult.prevFindItem();
-      if (item != null) {
-        mySelection = new TerminalSelection(new Point(item.getStart().x, item.getStart().y - myTerminalTextBuffer.getHistoryLinesCount()),
-                new Point(item.getEnd().x, item.getEnd().y - myTerminalTextBuffer.getHistoryLinesCount()));
-        if (mySelection.getStart().y < getTerminalTextBuffer().getHeight() / 2) {
-          myBoundedRangeModel.setValue(mySelection.getStart().y - getTerminalTextBuffer().getHeight() / 2);
-        } else {
-          myBoundedRangeModel.setValue(0);
-        }
-        repaint();
-        return item;
+  protected @Nullable SubstringFinder.FindResult selectPrevOrNextFindResultItem(boolean next) {
+    if (myFindResult != null && !myFindResult.getItems().isEmpty()) {
+      FindItem item = next ? myFindResult.nextFindItem() : myFindResult.prevFindItem();
+      mySelection = new TerminalSelection(new Point(item.getStart().x, item.getStart().y - myTerminalTextBuffer.getHistoryLinesCount()),
+        new Point(item.getEnd().x, item.getEnd().y - myTerminalTextBuffer.getHistoryLinesCount()));
+      if (mySelection.getStart().y < getTerminalTextBuffer().getHeight() / 2) {
+        myBoundedRangeModel.setValue(mySelection.getStart().y - getTerminalTextBuffer().getHeight() / 2);
       }
+      else {
+        myBoundedRangeModel.setValue(0);
+      }
+      repaint();
+      return myFindResult;
     }
     return null;
   }

@@ -274,9 +274,9 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
             myTerminalPanel.setFindResult(null);
             myTerminalPanel.requestFocusInWindow();
           } else if (keyEvent.getKeyCode() == KeyEvent.VK_ENTER || keyEvent.getKeyCode() == KeyEvent.VK_UP) {
-            myFindComponent.nextFindResultItem(myTerminalPanel.selectNextFindResultItem());
+            myFindComponent.onResultUpdated(myTerminalPanel.selectNextFindResultItem());
           } else if (keyEvent.getKeyCode() == KeyEvent.VK_DOWN) {
-            myFindComponent.prevFindResultItem(myTerminalPanel.selectPrevFindResultItem());
+            myFindComponent.onResultUpdated(myTerminalPanel.selectPrevFindResultItem());
           } else {
             super.keyPressed(keyEvent);
           }
@@ -303,10 +303,6 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     void addKeyListener(@NotNull KeyListener listener);
 
     void onResultUpdated(@Nullable FindResult results);
-
-    void nextFindResultItem(@Nullable FindItem selectedItem);
-
-    void prevFindResultItem(@Nullable FindItem selectedItem);
   }
 
   private void findText(String text, boolean ignoreCase) {

@@ -21,7 +21,6 @@ import javax.swing.plaf.basic.BasicScrollBarUI;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -40,7 +39,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   protected final AtomicBoolean mySessionRunning = new AtomicBoolean();
   private final JediTermTypeAheadModel myTypeAheadTerminalModel;
   private final TerminalTypeAheadManager myTypeAheadManager;
-  private SearchComponent myFindComponent;
+  private JediTermSearchComponent myFindComponent;
   @SuppressWarnings("removal")
   private final PreConnectHandler myPreConnectHandler;
   private TtyConnector myTtyConnector;
@@ -259,26 +258,45 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
       myInnerPanel.repaint();
       component.requestFocus();
 
-      myFindComponent.addSettingsChangedListener(() -> {
-        findText(myFindComponent.getText(), myFindComponent.ignoreCase());
-      });
+      JediTermSearchComponentListener listener = new JediTermSearchComponentListener() {
+        @Override
+        public void searchSettingsChanged(@NotNull String textToFind, boolean ignoreCase) {
+          findText(textToFind, ignoreCase);
+        }
+
+        @Override
+        public void hideSearchComponent() {
+          myInnerPanel.remove(component);
+          myInnerPanel.revalidate();
+          myInnerPanel.repaint();
+          myFindComponent = null;
+          myTerminalPanel.setFindResult(null);
+          myTerminalPanel.requestFocusInWindow();
+        }
+
+        @Override
+        public void selectNextFindResult() {
+          myFindComponent.onResultUpdated(myTerminalPanel.selectNextFindResultItem());
+        }
+
+        @Override
+        public void selectPrevFindResult() {
+          myFindComponent.onResultUpdated(myTerminalPanel.selectPrevFindResultItem());
+        }
+      };
+      myFindComponent.addListener(listener);
 
       myFindComponent.addKeyListener(new KeyAdapter() {
         @Override
         public void keyPressed(KeyEvent keyEvent) {
           if (keyEvent.getKeyCode() == KeyEvent.VK_ESCAPE) {
-            myInnerPanel.remove(component);
-            myInnerPanel.revalidate();
-            myInnerPanel.repaint();
-            myFindComponent = null;
-            myTerminalPanel.setFindResult(null);
-            myTerminalPanel.requestFocusInWindow();
-          } else if (keyEvent.getKeyCode() == KeyEvent.VK_ENTER || keyEvent.getKeyCode() == KeyEvent.VK_DOWN) {
-            myFindComponent.onResultUpdated(myTerminalPanel.selectNextFindResultItem());
-          } else if (keyEvent.getKeyCode() == KeyEvent.VK_UP) {
-            myFindComponent.onResultUpdated(myTerminalPanel.selectPrevFindResultItem());
-          } else {
-            super.keyPressed(keyEvent);
+            listener.hideSearchComponent();
+          }
+          else if (keyEvent.getKeyCode() == KeyEvent.VK_ENTER || keyEvent.getKeyCode() == KeyEvent.VK_DOWN) {
+            listener.selectNextFindResult();
+          }
+          else if (keyEvent.getKeyCode() == KeyEvent.VK_UP) {
+            listener.selectPrevFindResult();
           }
         }
       });
@@ -287,22 +305,8 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     }
   }
 
-  protected @NotNull SearchComponent createSearchComponent() {
+  protected @NotNull JediTermSearchComponent createSearchComponent() {
     return new JediTermDefaultSearchComponent(this);
-  }
-
-  public interface SearchComponent {
-    @NotNull String getText();
-
-    boolean ignoreCase();
-
-    @NotNull JComponent getComponent();
-
-    void addSettingsChangedListener(@NotNull Runnable onChangeListener);
-
-    void addKeyListener(@NotNull KeyListener listener);
-
-    void onResultUpdated(@Nullable FindResult results);
   }
 
   private void findText(String text, boolean ignoreCase) {

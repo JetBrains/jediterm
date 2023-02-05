@@ -41,11 +41,11 @@ public final class JediTermDefaultSearchComponent extends JPanel implements Jedi
   }
 
   private JButton createNextButton() {
-    return new BasicArrowButton(SwingConstants.NORTH);
+    return new BasicArrowButton(SwingConstants.SOUTH);
   }
 
   private JButton createPrevButton() {
-    return new BasicArrowButton(SwingConstants.SOUTH);
+    return new BasicArrowButton(SwingConstants.NORTH);
   }
 
   private void updateLabel(@Nullable SubstringFinder.FindResult result) {

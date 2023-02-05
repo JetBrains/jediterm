@@ -273,9 +273,9 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
             myFindComponent = null;
             myTerminalPanel.setFindResult(null);
             myTerminalPanel.requestFocusInWindow();
-          } else if (keyEvent.getKeyCode() == KeyEvent.VK_ENTER || keyEvent.getKeyCode() == KeyEvent.VK_UP) {
+          } else if (keyEvent.getKeyCode() == KeyEvent.VK_ENTER || keyEvent.getKeyCode() == KeyEvent.VK_DOWN) {
             myFindComponent.onResultUpdated(myTerminalPanel.selectNextFindResultItem());
-          } else if (keyEvent.getKeyCode() == KeyEvent.VK_DOWN) {
+          } else if (keyEvent.getKeyCode() == KeyEvent.VK_UP) {
             myFindComponent.onResultUpdated(myTerminalPanel.selectPrevFindResultItem());
           } else {
             super.keyPressed(keyEvent);

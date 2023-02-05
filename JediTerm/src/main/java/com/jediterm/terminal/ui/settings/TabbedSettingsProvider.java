@@ -12,6 +12,10 @@ public interface TabbedSettingsProvider extends SettingsProvider {
 
   String tabName(TtyConnector ttyConnector, String sessionName);
 
+  @NotNull TerminalActionPresentation getNewSessionActionPresentation();
+
+  @NotNull TerminalActionPresentation getCloseSessionActionPresentation();
+
   @NotNull TerminalActionPresentation getPreviousTabActionPresentation();
 
   @NotNull TerminalActionPresentation getNextTabActionPresentation();

@@ -21,13 +21,6 @@ import static com.jediterm.terminal.ui.AwtTransformers.fromAwtToTerminalColor;
 
 public class DefaultSettingsProvider implements SettingsProvider {
   @Override
-  public @NotNull TerminalActionPresentation getNewSessionActionPresentation() {
-    return new TerminalActionPresentation("New Session", UIUtil.isMac
-      ? KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.META_DOWN_MASK)
-      : KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
-  }
-
-  @Override
   public @NotNull TerminalActionPresentation getOpenUrlActionPresentation() {
     return new TerminalActionPresentation("Open as URL", Collections.emptyList());
   }
@@ -81,13 +74,6 @@ public class DefaultSettingsProvider implements SettingsProvider {
     return new TerminalActionPresentation("Line Down", UIUtil.isMac
       ? KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, InputEvent.META_DOWN_MASK)
       : KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, InputEvent.CTRL_DOWN_MASK));
-  }
-
-  @Override
-  public @NotNull TerminalActionPresentation getCloseSessionActionPresentation() {
-    return new TerminalActionPresentation("Close Session", UIUtil.isMac
-      ? KeyStroke.getKeyStroke(KeyEvent.VK_W, InputEvent.META_DOWN_MASK)
-      : KeyStroke.getKeyStroke(KeyEvent.VK_W, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
   }
 
   @Override

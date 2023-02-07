@@ -421,6 +421,10 @@ public class TerminalTextBuffer {
     return myHistoryBuffer;
   }
 
+  public @NotNull LinesBuffer getScreenBuffer() {
+    return myScreenBuffer;
+  }
+
   public void insertLines(int y, int count, int scrollRegionBottom) {
     myScreenBuffer.insertLines(y, count, scrollRegionBottom - 1, createFillerEntry());
 

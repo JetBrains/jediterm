@@ -799,6 +799,10 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     setModeEnabled(TerminalMode.CursorBlinking, true);
   }
 
+  public boolean isModelEnabled(@NotNull TerminalMode terminalMode) {
+    return myModes.contains(terminalMode);
+  }
+
   public boolean isAutoNewLine() {
     return myModes.contains(TerminalMode.AutoNewLine);
   }

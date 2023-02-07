@@ -11,9 +11,9 @@ import java.awt.event.KeyListener;
  */
 @SuppressWarnings("removal")
 @Deprecated(forRemoval = true)
-public class PreConnectHandler implements Questioner, KeyListener {
-  private Object mySync = new Object();
-  private Terminal myTerminal;
+final class PreConnectHandler implements Questioner, KeyListener {
+  private final Object mySync = new Object();
+  private final Terminal myTerminal;
   private StringBuffer myAnswer;
   private boolean myVisible;
 

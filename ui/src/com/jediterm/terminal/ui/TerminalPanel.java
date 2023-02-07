@@ -289,7 +289,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
           handlePasteSelection();
         } else if (e.getButton() == MouseEvent.BUTTON3) {
           HyperlinkStyle contextHyperlink = findHyperlink(e.getPoint());
-          JPopupMenu popup = createPopupMenu(contextHyperlink != null ? contextHyperlink.getLinkInfo() : null, e);
+          TerminalActionProvider provider = getTerminalActionProvider(contextHyperlink != null ? contextHyperlink.getLinkInfo() : null, e);
+          JPopupMenu popup = createPopupMenu(provider);
           popup.show(e.getComponent(), e.getX(), e.getY());
         }
         repaint();
@@ -1507,11 +1508,16 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     myCursor.setShouldDrawCursor(shouldDrawCursor);
   }
 
-  protected @NotNull JPopupMenu createPopupMenu(@Nullable LinkInfo linkInfo, @NotNull MouseEvent e) {
+  protected @NotNull JPopupMenu createPopupMenu(@NotNull TerminalActionProvider actionProvider) {
     JPopupMenu popup = new JPopupMenu();
+    TerminalAction.fillMenu(popup, actionProvider);
+    return popup;
+  }
+
+  private @NotNull TerminalActionProvider getTerminalActionProvider(@Nullable LinkInfo linkInfo, @NotNull MouseEvent e) {
     LinkInfoEx.PopupMenuGroupProvider popupMenuGroupProvider = LinkInfoEx.getPopupMenuGroupProvider(linkInfo);
     if (popupMenuGroupProvider != null) {
-      TerminalAction.addToMenu(popup, new TerminalActionProvider() {
+      return new TerminalActionProvider() {
         @Override
         public List<TerminalAction> getActions() {
           return popupMenuGroupProvider.getPopupMenuGroup(e);
@@ -1525,13 +1531,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
         @Override
         public void setNextProvider(TerminalActionProvider provider) {
         }
-      });
+      };
     }
-    else {
-      TerminalAction.addToMenu(popup, this);
-    }
-
-    return popup;
+    return this;
   }
 
   public void setScrollingEnabled(boolean scrollingEnabled) {

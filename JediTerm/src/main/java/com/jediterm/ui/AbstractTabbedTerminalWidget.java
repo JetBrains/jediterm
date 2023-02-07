@@ -429,7 +429,7 @@ public abstract class AbstractTabbedTerminalWidget<T extends JediTermWidget> ext
     protected JPopupMenu createPopup() {
       JPopupMenu popupMenu = new JPopupMenu();
 
-      TerminalAction.addToMenu(popupMenu, AbstractTabbedTerminalWidget.this);
+      TerminalAction.fillMenu(popupMenu, AbstractTabbedTerminalWidget.this);
 
       JMenuItem rename = new JMenuItem("Rename Tab");
 

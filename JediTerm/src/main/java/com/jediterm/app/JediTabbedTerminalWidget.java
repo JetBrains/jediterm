@@ -248,7 +248,7 @@ public class JediTabbedTerminalWidget extends AbstractTabbedTerminalWidget<JediT
       protected JPopupMenu createPopup() {
         JPopupMenu popupMenu = new JPopupMenu();
 
-        TerminalAction.addToMenu(popupMenu, JediTabbedTerminalWidget.this);
+        TerminalAction.fillMenu(popupMenu, JediTabbedTerminalWidget.this);
 
         JMenuItem rename = new JMenuItem("Rename Tab");
 

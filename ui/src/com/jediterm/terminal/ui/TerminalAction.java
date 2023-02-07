@@ -5,6 +5,8 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -16,9 +18,8 @@ public class TerminalAction {
   private final KeyStroke[] myKeyStrokes;
   private final Predicate<KeyEvent> myRunnable;
 
-  private Character myMnemonic = null;
   private Supplier<Boolean> myEnabledSupplier = () -> true;
-  private Integer myMnemonicKey = null;
+  private Integer myMnemonicKeyCode = null;
   private boolean mySeparatorBefore = false;
   private boolean myHidden = false;
 
@@ -34,6 +35,10 @@ public class TerminalAction {
     myName = name;
     myKeyStrokes = keyStrokes;
     myRunnable = runnable;
+  }
+
+  public @Nullable Integer getMnemonicKeyCode() {
+    return myMnemonicKeyCode;
   }
 
   public boolean matches(KeyEvent e) {
@@ -67,57 +72,12 @@ public class TerminalAction {
     return false;
   }
 
-  public static boolean addToMenu(JPopupMenu menu, TerminalActionProvider actionProvider) {
-    boolean added = false;
-    if (actionProvider.getNextProvider() != null) {
-      added = addToMenu(menu, actionProvider.getNextProvider());
-    }
-    boolean addSeparator = added;
-    for (final TerminalAction a : actionProvider.getActions()) {
-      if (a.isHidden()) {
-        continue;
-      }
-      if (!addSeparator) {
-        addSeparator = a.isSeparated();
-      }
-      if (addSeparator) {
-        menu.addSeparator();
-        addSeparator = false;
-      }
-
-      menu.add(a.toMenuItem());
-
-      added = true;
-    }
-
-    return added;
-  }
-
-  public int getKeyCode() {
-    for (KeyStroke ks : myKeyStrokes) {
-      return ks.getKeyCode();
-    }
-    return 0;
-  }
-
-  public int getModifiers() {
-    for (KeyStroke ks : myKeyStrokes) {
-      return ks.getModifiers();
-    }
-    return 0;
-  }
-
-  public String getName() {
+  public @NotNull String getName() {
     return myName;
   }
   
-  public TerminalAction withMnemonic(Character ch) {
-    myMnemonic = ch;
-    return this;
-  }
-
   public TerminalAction withMnemonicKey(Integer key) {
-    myMnemonicKey = key;
+    myMnemonicKeyCode = key;
     return this;
   }
 
@@ -131,14 +91,11 @@ public class TerminalAction {
     return this;
   }
   
-  public JMenuItem toMenuItem() {
+  private @NotNull JMenuItem toMenuItem() {
     JMenuItem menuItem = new JMenuItem(myName);
 
-    if (myMnemonic != null) {
-      menuItem.setMnemonic(myMnemonic);
-    }
-    if (myMnemonicKey != null) {
-      menuItem.setMnemonic(myMnemonicKey);
+    if (myMnemonicKeyCode != null) {
+      menuItem.setMnemonic(myMnemonicKeyCode);
     }
 
     if (myKeyStrokes.length > 0) {
@@ -167,5 +124,45 @@ public class TerminalAction {
   @Override
   public String toString() {
     return "'" + myName + "'";
+  }
+
+  public static void fillMenu(@NotNull JPopupMenu menu, @NotNull TerminalActionProvider actionProvider) {
+    buildMenu(actionProvider, new TerminalActionMenuBuilder() {
+      @Override
+      public void addAction(@NotNull TerminalAction action) {
+        menu.add(action.toMenuItem());
+      }
+
+      @Override
+      public void addSeparator() {
+        menu.addSeparator();
+      }
+    });
+  }
+
+  public static void buildMenu(@NotNull TerminalActionProvider provider, @NotNull TerminalActionMenuBuilder builder) {
+    List<TerminalActionProvider> actionProviders = listActionProviders(provider);
+    boolean emptyGroup = true;
+    for (TerminalActionProvider actionProvider : actionProviders) {
+      boolean addSeparator = !emptyGroup;
+      emptyGroup = true;
+      for (TerminalAction action : actionProvider.getActions()) {
+        if (action.isHidden()) continue;
+        if (addSeparator || action.isSeparated()) {
+          builder.addSeparator();
+          addSeparator = false;
+        }
+        builder.addAction(action);
+        emptyGroup = false;
+      }
+    }
+  }
+
+  private static @NotNull List<TerminalActionProvider> listActionProviders(@NotNull TerminalActionProvider provider) {
+    var providers = new ArrayList<TerminalActionProvider>();
+    for (var p = provider; p != null; p = p.getNextProvider()) {
+      providers.add(0, p);
+    }
+    return providers;
   }
 }

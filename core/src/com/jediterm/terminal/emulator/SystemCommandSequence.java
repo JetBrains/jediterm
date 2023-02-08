@@ -17,12 +17,13 @@ final class SystemCommandSequence {
 
   private static final char ST = 0x9c;
 
-  private final List<Object> myArgs = new ArrayList<>();
+  private final List<String> myArgs;
   private final StringBuilder mySequence = new StringBuilder();
 
   public SystemCommandSequence(@NotNull TerminalDataStream stream) throws IOException {
     StringBuilder argBuilder = new StringBuilder();
     boolean end = false;
+    List<String> args = new ArrayList<>();
     while (!end) {
       char ch = stream.getChar();
       mySequence.append(ch);
@@ -31,25 +32,14 @@ final class SystemCommandSequence {
         if (end && isTwoBytesEnd()) {
           argBuilder.deleteCharAt(argBuilder.length() - 1);
         }
-        myArgs.add(parseArg(argBuilder.toString()));
+        args.add(argBuilder.toString());
         argBuilder.setLength(0);
       }
       else {
         argBuilder.append(ch);
       }
     }
-  }
-
-  private @NotNull Object parseArg(@NotNull String arg) {
-    if (arg.length() > 0 && Character.isDigit(arg.charAt(arg.length() - 1))) {
-      // check isDigit to reduce amount of expensive NumberFormatException
-      try {
-        return Integer.parseInt(arg);
-      }
-      catch (NumberFormatException ignored) {
-      }
-    }
-    return arg;
+    myArgs = List.copyOf(args);
   }
 
   private boolean isEnd() {
@@ -67,18 +57,27 @@ final class SystemCommandSequence {
   }
 
   public @Nullable String getStringAt(int i) {
-    if (i>=myArgs.size()) {
-      return null;
-    }
-    Object val = myArgs.get(i);
-    return val instanceof String ? (String)val : null;
+    return i < myArgs.size() ? myArgs.get(i) : null;
+  }
+
+  public @NotNull List<String> getArgs() {
+    return myArgs;
   }
 
   public int getIntAt(int position, int defaultValue) {
     if (position < myArgs.size()) {
-      Object val = myArgs.get(position);
-      if (val instanceof Integer) {
-        return (Integer) val;
+      return parseArg(myArgs.get(position), defaultValue);
+    }
+    return defaultValue;
+  }
+
+  private int parseArg(@NotNull String arg, int defaultValue) {
+    if (!arg.isEmpty() && Character.isDigit(arg.charAt(arg.length() - 1))) {
+      // check isDigit to reduce amount of expensive NumberFormatException
+      try {
+        return Integer.parseInt(arg);
+      }
+      catch (NumberFormatException ignored) {
       }
     }
     return defaultValue;

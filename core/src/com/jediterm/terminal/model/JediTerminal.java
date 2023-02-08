@@ -24,6 +24,7 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Terminal that reflects obtained commands and text at {@link TerminalDisplay}(handles change of cursor position, screen size etc)
@@ -281,6 +282,20 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   @Override
   public @Nullable Color getWindowBackground() {
     return myDisplay.getWindowBackground();
+  }
+
+  private final List<TerminalCustomCommandListener> myListeners = new CopyOnWriteArrayList<>();
+
+  @Override
+  public void addCustomCommandListener(@NotNull TerminalCustomCommandListener listener) {
+    myListeners.add(listener);
+  }
+
+  @Override
+  public void processCustomCommand(@NotNull List<String> args) {
+    for (TerminalCustomCommandListener listener : myListeners) {
+      listener.process(args);
+    }
   }
 
   @Override

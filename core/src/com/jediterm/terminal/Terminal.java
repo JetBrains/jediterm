@@ -9,6 +9,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.UnsupportedEncodingException;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -166,4 +167,10 @@ public interface Terminal {
   @Nullable Color getWindowForeground();
 
   @Nullable Color getWindowBackground();
+
+  default void addCustomCommandListener(@NotNull TerminalCustomCommandListener listener) {}
+
+  default void removeCustomCommandListener(@NotNull TerminalCustomCommandListener listener) {}
+
+  default void processCustomCommand(@NotNull List<String> args) {}
 }

@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import java.text.Normalizer;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -127,7 +128,8 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
   @Override
   public void writeCharacters(String string) {
-    writeDecodedCharacters(decodeUsingGraphicalState(string));
+    String normalized = Normalizer.normalize(string, Normalizer.Form.NFC);
+    writeDecodedCharacters(decodeUsingGraphicalState(normalized));
   }
 
   private void writeDecodedCharacters(char[] string) {

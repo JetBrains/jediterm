@@ -3,7 +3,6 @@ package com.jediterm.app
 import com.intellij.execution.filters.UrlFilter
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Pair
-import com.intellij.util.EncodingEnvironmentUtil
 import com.jediterm.pty.PtyProcessTtyConnector
 import com.jediterm.terminal.LoggingTtyConnector
 import com.jediterm.terminal.LoggingTtyConnector.TerminalState
@@ -70,7 +69,7 @@ class JediTerm : AbstractTerminalFrame(), Disposable {
     try {
       val charset = StandardCharsets.UTF_8
       val envs = HashMap(System.getenv())
-      EncodingEnvironmentUtil.setLocaleEnvironmentIfMac(envs, charset)
+      envs["LC_CTYPE"] = Charsets.UTF_8.name()
       val command: Array<String> = if (UIUtil.isWindows) {
         arrayOf("powershell.exe")
       }

@@ -1,7 +1,6 @@
 package com.jediterm.terminal;
 
 import com.jediterm.core.util.TermSize;
-import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -24,7 +23,7 @@ public interface TtyConnector {
 
   boolean ready() throws IOException;
 
-  @Nls String getName();
+  String getName();
 
   void close();
 

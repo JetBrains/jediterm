@@ -1,3 +1,2 @@
 include ':terminal'
-include ':ssh'
 include ':pty'

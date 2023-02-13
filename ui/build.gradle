@@ -76,7 +76,7 @@ publishing {
       artifact sourcesJar
       pom {
         name = 'JediTerm'
-        description 'Pure Java Terminal Emulator. Works with SSH and PTY.'
+        description 'Pure Java Terminal Emulator.'
         url = 'https://github.com/JetBrains/jediterm'
         licenses {
           license {

@@ -326,11 +326,11 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   }
 
   class EmulatorTask implements Runnable {
+    @SuppressWarnings("removal")
     public void run() {
       try {
         mySessionRunning.set(true);
         Thread.currentThread().setName("Connector-" + myTtyConnector.getName());
-        //noinspection removal
         if (myTtyConnector.init(myPreConnectHandler)) {
           myTerminalPanel.addCustomKeyListener(myTerminalPanel.getTerminalKeyListener());
           myTerminalPanel.removeCustomKeyListener(myPreConnectHandler);

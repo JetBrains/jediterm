@@ -38,6 +38,7 @@ import java.awt.image.ImageObserver;
 import java.lang.ref.WeakReference;
 import java.net.URI;
 import java.text.AttributedCharacterIterator;
+import java.text.BreakIterator;
 import java.text.CharacterIterator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -1263,13 +1264,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
   /**
    * Draw every char in separate terminal cell to guaranty equal width for different lines.
-   * Nevertheless to improve kerning we draw word characters as one block for monospaced fonts.
+   * Nevertheless, to improve kerning we draw word characters as one block for monospaced fonts.
    */
-  private void drawChars(int x, int y, CharBuffer buf, TextStyle style, Graphics2D gfx) {
-    int blockLen = 1;
-    int offset = 0;
-    int drawCharsOffset = 0;
-
+  private void drawChars(int x, int y, @NotNull CharBuffer buf, @NotNull TextStyle style, @NotNull Graphics2D gfx) {
     // workaround to fix Swing bad rendering of bold special chars on Linux
     // TODO required for italic?
     CharBuffer renderingBuffer;
@@ -1279,47 +1276,70 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       renderingBuffer = buf;
     }
 
-    while (offset + blockLen <= buf.length()) {
-      if (renderingBuffer.getBuf()[buf.getStart() + offset] == CharUtils.DWC) {
-        offset += blockLen;
-        drawCharsOffset += blockLen;
-        continue; // dont' draw second part(fake one) of double width character
-      }
-
-      Font font = getFontToDisplay(buf.charAt(offset + blockLen - 1), style);
-//      while (myMonospaced && (offset + blockLen < buf.getLength()) && isWordCharacter(buf.charAt(offset + blockLen - 1))
-//              && (font == getFontToDisplay(buf.charAt(offset + blockLen - 1), style))) {
-//        blockLen++;
-//      }
-
-      if (offset + 2 <= buf.length() && Character.isSurrogatePair(renderingBuffer.getBuf()[buf.getStart() + offset], renderingBuffer.getBuf()[buf.getStart() + offset + 1])) {
-        blockLen = 2;
-      }
-
-
+    BreakIterator iterator = BreakIterator.getCharacterInstance();
+    char[] text = renderingBuffer.getBuf();
+    iterator.setText(new String(text, renderingBuffer.getStart(), renderingBuffer.length()));
+    int endOffset;
+    int startOffset = 0;
+    while ((endOffset = iterator.next()) != BreakIterator.DONE) {
+      endOffset = extendEndOffset(text, iterator, startOffset, endOffset);
+      Font font = getFontToDisplay(text, startOffset, endOffset, style);
       gfx.setFont(font);
-
       int descent = gfx.getFontMetrics(font).getDescent();
       int baseLine = (y + 1) * myCharSize.height - mySpaceBetweenLines / 2 - descent;
-      int xCoord = (x + drawCharsOffset) * myCharSize.width + getInsetX();
-      int textLength = CharUtils.getTextLengthDoubleWidthAware(buf.getBuf(), buf.getStart() + offset, blockLen, mySettingsProvider.ambiguousCharsAreDoubleWidth());
-
+      int xCoord = (x + startOffset) * myCharSize.width + getInsetX();
       int yCoord = y * myCharSize.height + mySpaceBetweenLines / 2;
-
-      gfx.setClip(xCoord,
-              yCoord,
-              getWidth() - xCoord,
-              getHeight() - yCoord);
+      gfx.setClip(xCoord, yCoord, getWidth() - xCoord, getHeight() - yCoord);
 
       gfx.setColor(getStyleForeground(style));
+      int count = endOffset - startOffset;
+      if (count >= 3) {
+        int drawnWidth = gfx.getFontMetrics().stringWidth(new String(text, startOffset, count));
+        if ((count - 1) * myCharSize.width > drawnWidth) {
+          // heuristic to paint an emoji closer to the center of the empty area
+          xCoord += myCharSize.width;
+        }
+      }
+      gfx.drawChars(text, renderingBuffer.getStart() + startOffset, count, xCoord, baseLine);
 
-      gfx.drawChars(renderingBuffer.getBuf(), buf.getStart() + offset, blockLen, xCoord, baseLine);
-
-      drawCharsOffset += blockLen;
-      offset += blockLen;
-      blockLen = 1;
+      startOffset = endOffset;
     }
     gfx.setClip(null);
+  }
+
+  private static int extendEndOffset(char[] text, @NotNull BreakIterator iterator, int startOffset, int endOffset) {
+    while (endOffset - startOffset > 1 || isFormatChar(text, startOffset, endOffset)) {
+      int newEndOffset = iterator.next();
+      if (newEndOffset == BreakIterator.DONE) {
+        break;
+      }
+      if (newEndOffset - endOffset == 1 && !isFormatChar(text, endOffset, newEndOffset)) {
+        iterator.previous(); // do not eat a plain char following Unicode symbol
+        break;
+      }
+      startOffset = endOffset;
+      endOffset = newEndOffset;
+    }
+    return endOffset;
+  }
+
+  private static boolean isFormatChar(char[] text, int start, int end) {
+    if (end - start == 1) {
+      int charCode = text[start];
+      if (charCode == 0x2B1B /* Black large square */) {
+        return true;
+      }
+      // From CMap#getFormatCharGlyph
+      if (charCode >= 0x200c) {
+        //noinspection RedundantIfStatement
+        if ((charCode <= 0x200f) ||
+          (charCode >= 0x2028 && charCode <= 0x202e) ||
+          (charCode >= 0x206a && charCode <= 0x206f)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   private @NotNull java.awt.Color getStyleForeground(@NotNull TextStyle style) {
@@ -1334,11 +1354,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     return foreground;
   }
 
-  protected Font getFontToDisplay(char c, TextStyle style) {
+  protected @NotNull Font getFontToDisplay(char[] text, int start, int end, @NotNull TextStyle style) {
     boolean bold = style.hasOption(TextStyle.Option.BOLD);
     boolean italic = style.hasOption(TextStyle.Option.ITALIC);
     // workaround to fix Swing bad rendering of bold special chars on Linux
-    if (bold && mySettingsProvider.DECCompatibilityMode() && CharacterSets.isDecBoxChar(c)) {
+    if (bold && mySettingsProvider.DECCompatibilityMode() && CharacterSets.isDecBoxChar(text[start])) {
       return myNormalFont;
     }
     return bold ? (italic ? myBoldItalicFont : myBoldFont)

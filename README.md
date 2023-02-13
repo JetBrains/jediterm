@@ -36,10 +36,6 @@ Gradle is used to build this project. The project consists of 4 sub-projects:
 
     The core library that provides VT100 compatible terminal emulator and Java Swing based implementation of terminal panel UI.
 
-* **ssh**
-
-    The jediterm-ssh.jar library that provides, using the Jsch library, a terminal for remote SSH terminal sessions.
-
 * **pty**
 
     The jediterm-pty.jar library that, by using the [Pty4J](https://github.com/traff/pty4j) library, enables a terminal for local PTY terminal sessions.
@@ -51,7 +47,6 @@ Gradle is used to build this project. The project consists of 4 sub-projects:
 
 Features
 --------
-* Ssh using JSch from jcraft.org
 * Local terminal for Unix, Mac and Windows using [Pty4J](https://github.com/traff/pty4j)
 * Xterm emulation - passes most of tests from vttest
 * Xterm 256 colours

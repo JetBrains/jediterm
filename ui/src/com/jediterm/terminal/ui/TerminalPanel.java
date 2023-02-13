@@ -1277,8 +1277,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     }
 
     BreakIterator iterator = BreakIterator.getCharacterInstance();
-    char[] text = renderingBuffer.getBuf();
-    iterator.setText(new String(text, renderingBuffer.getStart(), renderingBuffer.length()));
+    char[] text = renderingBuffer.clone().getBuf();
+    iterator.setText(new String(text));
     int endOffset;
     int startOffset = 0;
     while ((endOffset = iterator.next()) != BreakIterator.DONE) {
@@ -1287,20 +1287,20 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       gfx.setFont(font);
       int descent = gfx.getFontMetrics(font).getDescent();
       int baseLine = (y + 1) * myCharSize.height - mySpaceBetweenLines / 2 - descent;
-      int xCoord = (x + startOffset) * myCharSize.width + getInsetX();
+      int charWidth = myCharSize.width;
+      int xCoord = (x + startOffset) * charWidth + getInsetX();
       int yCoord = y * myCharSize.height + mySpaceBetweenLines / 2;
       gfx.setClip(xCoord, yCoord, getWidth() - xCoord, getHeight() - yCoord);
 
       gfx.setColor(getStyleForeground(style));
       int count = endOffset - startOffset;
-      if (count >= 3) {
-        int drawnWidth = gfx.getFontMetrics().stringWidth(new String(text, startOffset, count));
-        if ((count - 1) * myCharSize.width > drawnWidth) {
-          // heuristic to paint an emoji closer to the center of the empty area
-          xCoord += myCharSize.width;
-        }
+      if (count >= 2) {
+        int drawnWidth = gfx.getFontMetrics(font).charsWidth(text, startOffset, count);
+        int emptySpace = Math.max(0, count * charWidth - drawnWidth);
+        // paint a Unicode symbol closer to the center
+        xCoord += emptySpace / 2;
       }
-      gfx.drawChars(text, renderingBuffer.getStart() + startOffset, count, xCoord, baseLine);
+      gfx.drawChars(text, startOffset, count, xCoord, baseLine);
 
       startOffset = endOffset;
     }

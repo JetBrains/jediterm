@@ -110,6 +110,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   private LinkInfoEx.HoverConsumer myLinkHoverConsumer;
   private TerminalTypeAheadManager myTypeAheadManager;
   private volatile boolean myBracketedPasteMode;
+  private boolean myUsingAlternateBuffer = false;
 
   public TerminalPanel(@NotNull SettingsProvider settingsProvider, @NotNull TerminalTextBuffer terminalTextBuffer, @NotNull StyleState styleState) {
     mySettingsProvider = settingsProvider;
@@ -150,7 +151,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     super.repaint();
   }
 
-  @Deprecated
   protected void reinitFontAndResize() {
     initFont();
 
@@ -686,7 +686,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     final Graphics2D graphics = img.createGraphics();
     graphics.setFont(myNormalFont);
 
-    final float lineSpacing = mySettingsProvider.getLineSpacing();
+    final float lineSpacing = myTerminalTextBuffer.isUsingAlternateBuffer() ? 1.0f : mySettingsProvider.getLineSpacing();
     final FontMetrics fo = graphics.getFontMetrics();
 
     myCharSize.width = fo.charWidth('W');
@@ -1556,8 +1556,18 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
   public void setScrollingEnabled(boolean scrollingEnabled) {
     myScrollingEnabled = scrollingEnabled;
-
-    SwingUtilities.invokeLater(() -> updateScrolling(true));
+    SwingUtilities.invokeLater(() -> {
+      updateScrolling(true);
+      if (myUsingAlternateBuffer != myTerminalTextBuffer.isUsingAlternateBuffer()) {
+        myUsingAlternateBuffer = myTerminalTextBuffer.isUsingAlternateBuffer();
+        Timer timer = new Timer(10, e -> {});
+        timer.addActionListener(e -> {
+          reinitFontAndResize();
+          timer.stop();
+        });
+        timer.start();
+      }
+    });
   }
 
   @Override

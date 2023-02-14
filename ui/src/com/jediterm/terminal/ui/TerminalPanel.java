@@ -111,6 +111,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   private TerminalTypeAheadManager myTypeAheadManager;
   private volatile boolean myBracketedPasteMode;
   private boolean myUsingAlternateBuffer = false;
+  private boolean myFillCharacterBackgroundIncludingLineSpacing;
 
   public TerminalPanel(@NotNull SettingsProvider settingsProvider, @NotNull TerminalTextBuffer terminalTextBuffer, @NotNull StyleState styleState) {
     mySettingsProvider = settingsProvider;
@@ -316,9 +317,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       }
     });
 
+    myFillCharacterBackgroundIncludingLineSpacing = mySettingsProvider.shouldFillCharacterBackgroundIncludingLineSpacing();
     addFocusListener(new FocusAdapter() {
       @Override
       public void focusGained(FocusEvent e) {
+        myFillCharacterBackgroundIncludingLineSpacing = mySettingsProvider.shouldFillCharacterBackgroundIncludingLineSpacing();
         myCursor.cursorChanged();
       }
 
@@ -686,7 +689,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     final Graphics2D graphics = img.createGraphics();
     graphics.setFont(myNormalFont);
 
-    final float lineSpacing = myTerminalTextBuffer.isUsingAlternateBuffer() ? 1.0f : mySettingsProvider.getLineSpacing();
+    final float lineSpacing = getLineSpacing();
     final FontMetrics fo = graphics.getFontMetrics();
 
     myCharSize.width = fo.charWidth('W');
@@ -710,6 +713,13 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
     img.flush();
     graphics.dispose();
+  }
+
+  private float getLineSpacing() {
+    if (myTerminalTextBuffer.isUsingAlternateBuffer() && mySettingsProvider.shouldDisableLineSpacingForAlternateScreenBuffer()) {
+      return 1.0f;
+    }
+    return mySettingsProvider.getLineSpacing();
   }
 
   private static boolean isMonospaced(FontMetrics fontMetrics) {
@@ -787,7 +797,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
         @Override
         public void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
           int row = y - startRow;
-          drawCharacters(x, row, style, characters, gfx, false);
+          drawCharacters(x, row, style, characters, gfx, myFillCharacterBackgroundIncludingLineSpacing);
 
           if (myFindResult != null) {
             List<Pair<Integer, Integer>> ranges = myFindResult.getRanges(characters);
@@ -1560,12 +1570,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       updateScrolling(true);
       if (myUsingAlternateBuffer != myTerminalTextBuffer.isUsingAlternateBuffer()) {
         myUsingAlternateBuffer = myTerminalTextBuffer.isUsingAlternateBuffer();
-        Timer timer = new Timer(10, e -> {});
-        timer.addActionListener(e -> {
-          reinitFontAndResize();
-          timer.stop();
-        });
-        timer.start();
+        if (mySettingsProvider.shouldDisableLineSpacingForAlternateScreenBuffer()) {
+          Timer timer = new Timer(10, e -> {});
+          timer.addActionListener(e -> {
+            reinitFontAndResize();
+            timer.stop();
+          });
+          timer.start();
+        }
       }
     });
   }

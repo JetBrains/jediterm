@@ -22,6 +22,14 @@ public interface UserSettingsProvider {
     return 1.0f;
   }
 
+  default boolean shouldDisableLineSpacingForAlternateScreenBuffer() {
+    return false;
+  }
+
+  default boolean shouldFillCharacterBackgroundIncludingLineSpacing() {
+    return true;
+  }
+
   TextStyle getDefaultStyle();
 
   TextStyle getSelectionColor();

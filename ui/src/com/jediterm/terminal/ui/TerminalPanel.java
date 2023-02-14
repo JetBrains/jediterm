@@ -40,6 +40,7 @@ import java.net.URI;
 import java.text.AttributedCharacterIterator;
 import java.text.BreakIterator;
 import java.text.CharacterIterator;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -1292,7 +1293,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     int startOffset = 0;
     while ((endOffset = iterator.next()) != BreakIterator.DONE) {
       endOffset = extendEndOffset(text, iterator, startOffset, endOffset);
-      Font font = getFontToDisplay(text, startOffset, endOffset, style);
+      int effectiveEndOffset = shiftDwcToEnd(text, startOffset, endOffset);
+      if (effectiveEndOffset == startOffset) {
+        startOffset = endOffset;
+        continue; // nothing to draw
+      }
+      Font font = getFontToDisplay(text, startOffset, effectiveEndOffset, style);
       gfx.setFont(font);
       int descent = gfx.getFontMetrics(font).getDescent();
       int baseLine = (y + 1) * myCharSize.height - mySpaceBetweenLines / 2 - descent;
@@ -1301,27 +1307,38 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       int yCoord = y * myCharSize.height + mySpaceBetweenLines / 2;
       gfx.setClip(xCoord, yCoord, getWidth() - xCoord, getHeight() - yCoord);
 
-      int count = endOffset - startOffset;
-      if (count >= 2) {
-        int drawnWidth = gfx.getFontMetrics(font).charsWidth(text, startOffset, count);
-        int emptySpace = Math.max(0, count * charWidth - drawnWidth);
+      int emptyCells = endOffset - startOffset;
+      if (emptyCells >= 2) {
+        int drawnWidth = gfx.getFontMetrics(font).charsWidth(text, startOffset, effectiveEndOffset - startOffset);
+        int emptySpace = Math.max(0, emptyCells * charWidth - drawnWidth);
         // paint a Unicode symbol closer to the center
         xCoord += emptySpace / 2;
       }
-      gfx.drawChars(text, startOffset, count, xCoord, baseLine);
+      gfx.drawChars(text, startOffset, effectiveEndOffset - startOffset, xCoord, baseLine);
 
       startOffset = endOffset;
     }
     gfx.setClip(null);
   }
 
+  private static int shiftDwcToEnd(char[] text, int startOffset, int endOffset) {
+    int ind = startOffset;
+    for (int i = startOffset; i < endOffset; i++) {
+      if (text[i] != CharUtils.DWC) {
+        text[ind++] = text[i];
+      }
+    }
+    Arrays.fill(text, ind, endOffset, CharUtils.DWC);
+    return ind;
+  }
+
   private static int extendEndOffset(char[] text, @NotNull BreakIterator iterator, int startOffset, int endOffset) {
-    while (endOffset - startOffset > 1 || isFormatChar(text, startOffset, endOffset)) {
+    while (shouldExtend(text, startOffset, endOffset)) {
       int newEndOffset = iterator.next();
       if (newEndOffset == BreakIterator.DONE) {
         break;
       }
-      if (newEndOffset - endOffset == 1 && !isFormatChar(text, endOffset, newEndOffset)) {
+      if (newEndOffset - endOffset == 1 && !isUnicodePart(text, endOffset)) {
         iterator.previous(); // do not eat a plain char following Unicode symbol
         break;
       }
@@ -1331,12 +1348,29 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     return endOffset;
   }
 
+  private static boolean shouldExtend(char[] text, int startOffset, int endOffset) {
+    if (endOffset - startOffset > 1) {
+      return true;
+    }
+    if (isFormatChar(text, startOffset, endOffset)) {
+      return true;
+    }
+    return endOffset < text.length && text[endOffset] == CharUtils.DWC;
+  }
+
+  private static boolean isUnicodePart(char[] text, int ind) {
+    if (isFormatChar(text, ind, ind + 1)) {
+      return true;
+    }
+    if (text[ind] == CharUtils.DWC) {
+      return true;
+    }
+    return Character.UnicodeBlock.of(text[ind]) == Character.UnicodeBlock.MISCELLANEOUS_SYMBOLS_AND_ARROWS;
+  }
+
   private static boolean isFormatChar(char[] text, int start, int end) {
     if (end - start == 1) {
       int charCode = text[start];
-      if (charCode == 0x2B1B /* Black large square */) {
-        return true;
-      }
       // From CMap#getFormatCharGlyph
       if (charCode >= 0x200c) {
         //noinspection RedundantIfStatement

@@ -1246,10 +1246,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       return; // nothing more to do
     }
 
-    drawChars(x, y, buf, style, gfx);
-
     gfx.setColor(getStyleForeground(style));
 
+    drawChars(x, y, buf, style, gfx);
 
     if (style.hasOption(TextStyle.Option.UNDERLINED)) {
       int baseLine = (y + 1) * myCharSize.height - mySpaceBetweenLines / 2 - myDescent;
@@ -1292,7 +1291,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       int yCoord = y * myCharSize.height + mySpaceBetweenLines / 2;
       gfx.setClip(xCoord, yCoord, getWidth() - xCoord, getHeight() - yCoord);
 
-      gfx.setColor(getStyleForeground(style));
       int count = endOffset - startOffset;
       if (count >= 2) {
         int drawnWidth = gfx.getFontMetrics(font).charsWidth(text, startOffset, count);

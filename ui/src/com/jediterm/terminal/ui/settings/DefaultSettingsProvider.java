@@ -108,8 +108,7 @@ public class DefaultSettingsProvider implements SettingsProvider {
 
   @Override
   public Double getTerminalFontWidthRatio() {
-    //return 1.0;
-    return 0.8;
+    return 1.0;
   }
 
   @Override

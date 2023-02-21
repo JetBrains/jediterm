@@ -114,7 +114,7 @@ public class DefaultSettingsProvider implements SettingsProvider {
 
   @Override
   public float getTerminalFontSize() {
-    return 11;
+    return 14;
   }
 
   @Override

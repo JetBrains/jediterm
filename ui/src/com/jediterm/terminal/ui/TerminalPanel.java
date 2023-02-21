@@ -693,7 +693,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     final float lineSpacing = getLineSpacing();
     final FontMetrics fo = graphics.getFontMetrics();
 
-    myCharSize.width = fo.charWidth('W');
+    myCharSize.width =(int)(fo.charWidth('W') * mySettingsProvider.getTerminalFontWidthRatio());
     int fontMetricsHeight = fo.getHeight();
     myCharSize.height = (int)Math.ceil(fontMetricsHeight * lineSpacing);
     mySpaceBetweenLines = Math.max(0, ((myCharSize.height - fontMetricsHeight) / 2) * 2);

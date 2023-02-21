@@ -5,19 +5,45 @@ import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.ui.JediTermWidget;
 import com.jediterm.terminal.ui.UIUtil;
 import com.jediterm.terminal.ui.settings.DefaultSettingsProvider;
+import com.jediterm.terminal.ui.settings.SettingsProvider;
 import com.pty4j.PtyProcess;
 import com.pty4j.PtyProcessBuilder;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import java.awt.*;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class BasicTerminalShellExample {
 
+  private static Logger logger = Logger.getLogger(BasicTerminalShellExample.class.getName());
+
   private static @NotNull JediTermWidget createTerminalWidget() {
-    JediTermWidget widget = new JediTermWidget(80, 24, new DefaultSettingsProvider());
+
+    SettingsProvider setting = new DefaultSettingsProvider() {
+      @Override
+      public Font getTerminalFont() {
+        /**
+         * Consolas
+         * NanumGothicCoding
+         * NanumGothic
+         * malgun
+         */
+        return new Font("malgun", Font.PLAIN, (int)getTerminalFontSize());
+      }
+
+      @Override
+      public Double getTerminalFontWidthRatio() {
+        return 0.7;
+      }
+    };
+
+    JediTermWidget widget = new JediTermWidget(80, 40, setting);
     widget.setTtyConnector(createTtyConnector());
     widget.start();
     return widget;
@@ -51,6 +77,11 @@ public class BasicTerminalShellExample {
   }
 
   public static void main(String[] args) {
+    try {
+      UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
+      logger.log(Level.SEVERE, null, e);
+    }
     // Create and show this application's GUI in the event-dispatching thread.
     SwingUtilities.invokeLater(BasicTerminalShellExample::createAndShowGUI);
   }

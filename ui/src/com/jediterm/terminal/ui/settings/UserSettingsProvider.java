@@ -13,6 +13,8 @@ public interface UserSettingsProvider {
 
   Font getTerminalFont();
 
+  Double getTerminalFontWidthRatio();
+
   float getTerminalFontSize();
 
   /**

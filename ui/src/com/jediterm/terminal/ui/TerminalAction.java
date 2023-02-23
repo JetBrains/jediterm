@@ -14,8 +14,7 @@ import java.util.function.Supplier;
  * @author traff
  */
 public class TerminalAction {
-  private final String myName;
-  private final KeyStroke[] myKeyStrokes;
+  private final TerminalActionPresentation myPresentation;
   private final Predicate<KeyEvent> myRunnable;
 
   private Supplier<Boolean> myEnabledSupplier = () -> true;
@@ -24,17 +23,16 @@ public class TerminalAction {
   private boolean myHidden = false;
 
   public TerminalAction(@NotNull TerminalActionPresentation presentation, @NotNull Predicate<KeyEvent> runnable) {
-    this(presentation.getName(), presentation.getKeyStrokes().toArray(new KeyStroke[0]), runnable);
+    myPresentation = presentation;
+    myRunnable = runnable;
   }
 
   public TerminalAction(@NotNull TerminalActionPresentation presentation) {
     this(presentation, keyEvent -> true);
   }
 
-  public TerminalAction(@NotNull String name, @NotNull KeyStroke[] keyStrokes, @NotNull Predicate<KeyEvent> runnable) {
-    myName = name;
-    myKeyStrokes = keyStrokes;
-    myRunnable = runnable;
+  public @NotNull TerminalActionPresentation getPresentation() {
+    return myPresentation;
   }
 
   public @Nullable Integer getMnemonicKeyCode() {
@@ -42,7 +40,7 @@ public class TerminalAction {
   }
 
   public boolean matches(KeyEvent e) {
-    for (KeyStroke ks : myKeyStrokes) {
+    for (KeyStroke ks : myPresentation.getKeyStrokes()) {
       if (ks.equals(KeyStroke.getKeyStrokeForEvent(e))) {
         return true;
       }
@@ -73,9 +71,9 @@ public class TerminalAction {
   }
 
   public @NotNull String getName() {
-    return myName;
+    return myPresentation.getName();
   }
-  
+
   public TerminalAction withMnemonicKey(Integer key) {
     myMnemonicKeyCode = key;
     return this;
@@ -92,14 +90,14 @@ public class TerminalAction {
   }
   
   private @NotNull JMenuItem toMenuItem() {
-    JMenuItem menuItem = new JMenuItem(myName);
+    JMenuItem menuItem = new JMenuItem(myPresentation.getName());
 
     if (myMnemonicKeyCode != null) {
       menuItem.setMnemonic(myMnemonicKeyCode);
     }
 
-    if (myKeyStrokes.length > 0) {
-      menuItem.setAccelerator(myKeyStrokes[0]);
+    if (!myPresentation.getKeyStrokes().isEmpty()) {
+      menuItem.setAccelerator(myPresentation.getKeyStrokes().get(0));
     }
 
     menuItem.addActionListener(actionEvent -> actionPerformed(null));
@@ -123,7 +121,7 @@ public class TerminalAction {
 
   @Override
   public String toString() {
-    return "'" + myName + "'";
+    return "'" + myPresentation.getName() + "'";
   }
 
   public static void fillMenu(@NotNull JPopupMenu menu, @NotNull TerminalActionProvider actionProvider) {

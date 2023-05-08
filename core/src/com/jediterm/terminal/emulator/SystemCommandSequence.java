@@ -16,6 +16,7 @@ import java.util.List;
 final class SystemCommandSequence {
 
   private static final char ST = 0x9c;
+  static final char OSC = 0x9d; // C1 control code
 
   private final List<String> myArgs;
   private final StringBuilder mySequence = new StringBuilder();

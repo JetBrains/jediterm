@@ -80,6 +80,9 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       case Ascii.ESC: // ESC
         processEscapeSequence(myDataStream.getChar(), myTerminal);
         break;
+      case SystemCommandSequence.OSC:
+        processOsc();
+        break;
       default:
         if (ch <= Ascii.US) {
           StringBuilder sb = new StringBuilder("Unhandled control character:");
@@ -138,12 +141,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         }
         break;
       case ']': // Operating System Command (OSC)
-        // xterm uses it to set parameters like windows title
-        command = new SystemCommandSequence(myDataStream);
-
-        if (!operatingSystemCommand(command)) {
-          LOG.warn("Error processing OSC: ESC]" + command);
-        }
+        processOsc();
         break;
       case '6':
         unsupported("Back Index (DECBI), VT420 and up");
@@ -199,6 +197,13 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         break;
       default:
         unsupported(ch);
+    }
+  }
+
+  private void processOsc() throws IOException {
+    SystemCommandSequence command = new SystemCommandSequence(myDataStream);
+    if (!operatingSystemCommand(command)) {
+      LOG.warn("Error processing OSC: ESC]" + command);
     }
   }
 
@@ -286,10 +291,10 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         switch (secondCh) {
           //About different character sets: http://en.wikipedia.org/wiki/ISO/IEC_2022
           case 'F': //7-bit controls
-            unsupported("Switching ot 7-bit");
+            unsupported("Switching to 7-bit");
             break;
           case 'G': //8-bit controls
-            unsupported("Switching ot 8-bit");
+            unsupported("Switching to 8-bit");
             break;
           //About ANSI conformance levels: http://www.vt100.net/docs/vt510-rm/ANSI
           case 'L': //Set ANSI conformance level 1

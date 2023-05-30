@@ -32,9 +32,9 @@ public interface UserSettingsProvider {
 
   TextStyle getDefaultStyle();
 
-  TextStyle getSelectionColor();
+  @NotNull TextStyle getSelectionColor();
 
-  TextStyle getFoundPatternColor();
+  @NotNull TextStyle getFoundPatternColor();
 
   TextStyle getHyperlinkColor();
 

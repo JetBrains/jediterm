@@ -113,6 +113,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   private volatile boolean myBracketedPasteMode;
   private boolean myUsingAlternateBuffer = false;
   private boolean myFillCharacterBackgroundIncludingLineSpacing;
+  private @Nullable TextStyle myCachedSelectionColor;
+  private @Nullable TextStyle myCachedFoundPatternColor;
 
   public TerminalPanel(@NotNull SettingsProvider settingsProvider, @NotNull TerminalTextBuffer terminalTextBuffer, @NotNull StyleState styleState) {
     mySettingsProvider = settingsProvider;
@@ -780,6 +782,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
   @Override
   public void paintComponent(final Graphics g) {
+    resetColorCache();
     final Graphics2D gfx = (Graphics2D) g;
 
     setupAntialiasing(gfx);
@@ -802,11 +805,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
           if (myFindResult != null) {
             List<Pair<Integer, Integer>> ranges = myFindResult.getRanges(characters);
-            if (ranges != null) {
+            if (ranges != null && !ranges.isEmpty()) {
+              TextStyle foundPatternStyle = getFoundPattern(style);
               for (Pair<Integer, Integer> range : ranges) {
-                TextStyle foundPatternStyle = getFoundPattern(style);
                 CharBuffer foundPatternChars = characters.subBuffer(range);
-
                 drawCharacters(x + range.first, row, foundPatternStyle, foundPatternChars, gfx);
               }
             }
@@ -855,17 +857,27 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
           cursorChar += myTerminalTextBuffer.getStyledCharAt(cursorX + 1, cursorY).first;
         }
         TextStyle normalStyle = sc.second != null ? sc.second : myStyleState.getCurrent();
-        TextStyle selectionStyle = getSelectionStyle(normalStyle);
-        boolean inSelection = inSelection(cursorX, cursorY);
-        myCursor.drawCursor(cursorChar, gfx, inSelection ? selectionStyle : normalStyle);
+        TextStyle cursorStyle;
+        if (inSelection(cursorX, cursorY)) {
+          cursorStyle = getSelectionStyle(normalStyle);
+        }
+        else {
+          cursorStyle = normalStyle;
+        }
+        myCursor.drawCursor(cursorChar, gfx, cursorStyle);
       }
     } finally {
       myTerminalTextBuffer.unlock();
     }
-
+    resetColorCache();
     drawInputMethodUncommitedChars(gfx);
 
     drawMargins(gfx, getWidth(), getHeight());
+  }
+
+  private void resetColorCache() {
+    myCachedSelectionColor = null;
+    myCachedFoundPatternColor = null;
   }
 
   @NotNull
@@ -874,19 +886,37 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       return getInversedStyle(style);
     }
     TextStyle.Builder builder = style.toBuilder();
-    TextStyle mySelectionStyle = mySettingsProvider.getSelectionColor();
-    builder.setBackground(mySelectionStyle.getBackground());
-    builder.setForeground(mySelectionStyle.getForeground());
+    TextStyle selectionStyle = getSelectionColor();
+    builder.setBackground(selectionStyle.getBackground());
+    builder.setForeground(selectionStyle.getForeground());
     if (builder instanceof HyperlinkStyle.Builder) {
       return ((HyperlinkStyle.Builder)builder).build(true);
     }
     return builder.build();
   }
 
+  private @NotNull TextStyle getSelectionColor() {
+    TextStyle selectionColor = myCachedSelectionColor;
+    if (selectionColor == null) {
+      selectionColor = mySettingsProvider.getSelectionColor();
+      myCachedSelectionColor = selectionColor;
+    }
+    return selectionColor;
+  }
+
+  private @NotNull TextStyle getFoundPatternColor() {
+    TextStyle foundPatternColor = myCachedFoundPatternColor;
+    if (foundPatternColor == null) {
+      foundPatternColor = mySettingsProvider.getFoundPatternColor();
+      myCachedFoundPatternColor = foundPatternColor;
+    }
+    return foundPatternColor;
+  }
+
   @NotNull
   private TextStyle getFoundPattern(@NotNull TextStyle style) {
     TextStyle.Builder builder = style.toBuilder();
-    TextStyle foundPattern = mySettingsProvider.getFoundPatternColor();
+    TextStyle foundPattern = getFoundPatternColor();
     builder.setBackground(foundPattern.getBackground());
     builder.setForeground(foundPattern.getForeground());
     return builder.build();

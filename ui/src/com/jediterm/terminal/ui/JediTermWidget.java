@@ -347,8 +347,6 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
         for (TerminalWidgetListener listener : myListeners) {
           listener.allSessionsClosed(JediTermWidget.this);
         }
-        myTerminalPanel.addCustomKeyListener(myPreConnectHandler);
-        myTerminalPanel.removeCustomKeyListener(myTerminalPanel.getTerminalKeyListener());
       }
     }
   }

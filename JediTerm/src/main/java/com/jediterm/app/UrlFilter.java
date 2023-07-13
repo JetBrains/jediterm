@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.intellij.execution.filters;
+package com.jediterm.app;
 
-import com.intellij.util.io.URLUtil;
 import com.jediterm.terminal.model.hyperlinks.HyperlinkFilter;
 import com.jediterm.terminal.model.hyperlinks.LinkInfo;
 import com.jediterm.terminal.model.hyperlinks.LinkResult;
 import com.jediterm.terminal.model.hyperlinks.LinkResultItem;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
@@ -27,18 +27,29 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @author yole
  */
 public class UrlFilter implements HyperlinkFilter {
+
+  private static final Pattern URL_PATTERN = Pattern.compile("\\b(mailto:|(news|(ht|f)tp(s?))://|((?<![\\p{L}0-9_.])(www\\.)))[-A-Za-z0-9+$&@#/%?=~_|!:,.;]*[-A-Za-z0-9+$&@#/%=~_|]");
+
+  /**
+   * @return if false, then the line contains no URL; if true, then more heavy {@link #URL_PATTERN} check should be used.
+   */
+  public static boolean canContainUrl(@NotNull String line) {
+    return line.contains("mailto:") || line.contains("://") || line.contains("www.");
+  }
+
   @Nullable
   @Override
   public LinkResult apply(String line) {
-    if (!URLUtil.canContainUrl(line)) return null;
+    if (!canContainUrl(line)) return null;
 
     int textStartOffset = 0;
-    Matcher m = URLUtil.URL_PATTERN.matcher(line);
+    Matcher m = URL_PATTERN.matcher(line);
     LinkResultItem item = null;
     List<LinkResultItem> items = null;
     while (m.find()) {
@@ -50,14 +61,11 @@ public class UrlFilter implements HyperlinkFilter {
       }
 
       String url = m.group();
-      item = new LinkResultItem(textStartOffset + m.start(), textStartOffset + m.end(), new LinkInfo(new Runnable() {
-        @Override
-        public void run() {
-          try {
-            Desktop.getDesktop().browse(new URI(url));
-          } catch (Exception e) {
-            //pass
-          }
+      item = new LinkResultItem(textStartOffset + m.start(), textStartOffset + m.end(), new LinkInfo(() -> {
+        try {
+          Desktop.getDesktop().browse(new URI(url));
+        } catch (Exception e) {
+          //pass
         }
       }));
 

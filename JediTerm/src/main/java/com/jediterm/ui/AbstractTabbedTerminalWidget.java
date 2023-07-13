@@ -10,7 +10,7 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.KeyEvent;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -127,10 +127,7 @@ public abstract class AbstractTabbedTerminalWidget<T extends JediTermWidget> ext
   }
 
   private void addTab(T terminal, AbstractTabs<T> tabs, String name) {
-    tabs.addTab(name,
-                terminal);
-
-    tabs.setTabComponentAt(tabs.getTabCount() - 1, createTabComponent(tabs, terminal));
+    tabs.addTab(name, terminal);
     tabs.setSelectedComponent(terminal);
   }
 
@@ -185,10 +182,6 @@ public abstract class AbstractTabbedTerminalWidget<T extends JediTermWidget> ext
 
   protected abstract AbstractTabs<T> createTabbedPane();
 
-  protected Component createTabComponent(AbstractTabs<T> tabs, T terminal) {
-    return new TabComponent(tabs, terminal);
-  }
-
   public void closeTab(final T terminal) {
     if (terminal != null) {
       if (myTabs != null && myTabs.indexOfComponent(terminal) != -1) {
@@ -205,27 +198,6 @@ public abstract class AbstractTabbedTerminalWidget<T extends JediTermWidget> ext
     T session = getCurrentSession();
     session.close();
     closeTab(session);
-  }
-
-  public void dispose() {
-    for (TerminalSession s : getAllTerminalSessions()) {
-      if (s != null) s.close();
-    }
-  }
-
-  private List<T> getAllTerminalSessions() {
-    List<T> session = new ArrayList<>();
-    if (myTabs != null) {
-      for (int i = 0; i < myTabs.getTabCount(); i++) {
-        session.add(getTerminalPanel(i));
-      }
-    }
-    else {
-      if (myTermWidget != null) {
-        session.add(myTermWidget);
-      }
-    }
-    return session;
   }
 
   public void removeTab(T terminal) {
@@ -287,187 +259,6 @@ public abstract class AbstractTabbedTerminalWidget<T extends JediTermWidget> ext
 
   private void handleNewSession() {
     myCreateNewSessionAction.apply(this);
-  }
-
-  public static class TabRenamer {
-
-    public interface RenameCallBack {
-
-      void setComponent(Component c);
-
-      void setNewName(int index, String name);
-    }
-
-    public void install(final int selectedIndex, final String text, final Component label, final RenameCallBack callBack) {
-      final JTextField textField = createTextField();
-
-      textField.setOpaque(false);
-
-      textField.setDocument(new JTextFieldLimit(50));
-      textField.setText(text);
-
-      final FocusAdapter focusAdapter = new FocusAdapter() {
-        @Override
-        public void focusLost(FocusEvent focusEvent) {
-          finishRename(selectedIndex, label, textField.getText(), callBack);
-        }
-      };
-      textField.addFocusListener(focusAdapter);
-      textField.addKeyListener(new KeyAdapter() {
-        @Override
-        public void keyPressed(KeyEvent keyEvent) {
-          if (keyEvent.getKeyCode() == KeyEvent.VK_ESCAPE) {
-            textField.removeFocusListener(focusAdapter);
-            finishRename(selectedIndex, label, null, callBack);
-          }
-          else if (keyEvent.getKeyCode() == KeyEvent.VK_ENTER) {
-            textField.removeFocusListener(focusAdapter);
-            finishRename(selectedIndex, label, textField.getText(), callBack);
-          }
-          else {
-            super.keyPressed(keyEvent);
-          }
-        }
-      });
-
-      callBack.setComponent(textField);
-
-
-      textField.requestFocus();
-      textField.selectAll();
-    }
-
-    protected JTextField createTextField() {
-      return new JTextField();
-    }
-
-    private static void finishRename(int index, Component label, String newName, RenameCallBack callBack) {
-      if (newName != null) {
-        callBack.setNewName(index, newName);
-      }
-      callBack.setComponent(label);
-    }
-  }
-
-  private class TabComponent extends JPanel implements FocusListener {
-
-    private final T myTerminal;
-
-    private final MyLabelHolder myLabelHolder = new MyLabelHolder();
-
-    private class MyLabelHolder extends JPanel {
-
-      public void set(Component c) {
-        myLabelHolder.removeAll();
-        myLabelHolder.add(c);
-        myLabelHolder.validate();
-        myLabelHolder.repaint();
-      }
-    }
-
-    class TabComponentLabel extends JLabel {
-
-      public String getText() {
-        if (myTabs != null) {
-          int i = myTabs.indexOfTabComponent(TabComponent.this);
-          if (i != -1) {
-            return myTabs.getTitleAt(i);
-          }
-        }
-        return null;
-      }
-    }
-
-    private TabComponent(final @NotNull AbstractTabs<T> tabs, final T terminal) {
-      super(new FlowLayout(FlowLayout.LEFT, 0, 0));
-      myTerminal = terminal;
-      setOpaque(false);
-
-      setFocusable(false);
-
-      addFocusListener(this);
-
-      //make JLabel read titles from JTabbedPane
-      JLabel label = new TabComponentLabel();
-
-      label.addFocusListener(this);
-
-      //add more space between the label and the button
-//      label.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 5));
-
-      label.addMouseListener(new MouseAdapter() {
-
-        @Override
-        public void mouseReleased(MouseEvent event) {
-          handleMouse(event);
-        }
-
-        @Override
-        public void mousePressed(MouseEvent event) {
-          tabs.setSelectedComponent(terminal);
-          handleMouse(event);
-        }
-      });
-
-      myLabelHolder.set(label);
-      add(myLabelHolder);
-    }
-
-    protected void handleMouse(MouseEvent event) {
-      if (event.isPopupTrigger()) {
-        JPopupMenu menu = createPopup();
-        menu.show(event.getComponent(), event.getX(), event.getY());
-      }
-      else {
-        if (event.getClickCount() == 2 && !event.isConsumed()) {
-          event.consume();
-          renameTab();
-        }
-      }
-    }
-
-    protected JPopupMenu createPopup() {
-      JPopupMenu popupMenu = new JPopupMenu();
-
-      TerminalAction.fillMenu(popupMenu, AbstractTabbedTerminalWidget.this);
-
-      JMenuItem rename = new JMenuItem("Rename Tab");
-
-      rename.addActionListener(actionEvent -> renameTab());
-
-      popupMenu.add(rename);
-
-      return popupMenu;
-    }
-
-    private void renameTab() {
-      final int selectedIndex = myTabs.getSelectedIndex();
-      final JLabel label = (JLabel)myLabelHolder.getComponent(0);
-
-      new TabRenamer().install(selectedIndex, label.getText(), label, new TabRenamer.RenameCallBack() {
-        @Override
-        public void setComponent(Component c) {
-          myLabelHolder.set(c);
-        }
-
-        @Override
-        public void setNewName(int index, String name) {
-          if (myTabs != null) {
-            myTabs.setTitleAt(index, name);
-          }
-        }
-      });
-    }
-
-    @Override
-    public void focusGained(FocusEvent e) {
-      myTerminal.getComponent().requestFocusInWindow();
-    }
-
-    @Override
-    public void focusLost(FocusEvent e) {
-
-    }
   }
 
   public AbstractTabs<T> getTerminalTabs() {

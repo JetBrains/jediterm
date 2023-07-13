@@ -3,8 +3,6 @@ package com.jediterm.ui;
 import com.jediterm.terminal.ui.JediTermWidget;
 
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.ContainerEvent;
 import java.awt.event.ContainerListener;
@@ -41,18 +39,8 @@ public class TerminalTabsImpl implements AbstractTabs<JediTermWidget> {
   }
 
   @Override
-  public void setTabComponentAt(int index, Component component) {
-    myTabbedPane.setTabComponentAt(index, component);
-  }
-
-  @Override
   public int indexOfComponent(Component component) {
     return myTabbedPane.indexOfComponent(component);
-  }
-
-  @Override
-  public int indexOfTabComponent(Component component) {
-    return myTabbedPane.indexOfTabComponent(component);
   }
 
   @Override
@@ -87,12 +75,7 @@ public class TerminalTabsImpl implements AbstractTabs<JediTermWidget> {
 
   @Override
   public void addChangeListener(final TabChangeListener listener) {
-    myTabbedPane.addChangeListener(new ChangeListener() {
-      @Override
-      public void stateChanged(ChangeEvent e) {
-        listener.selectionChanged();
-      }
-    });
+    myTabbedPane.addChangeListener(e -> listener.selectionChanged());
     
     myTabbedPane.addContainerListener(new ContainerListener() {
       @Override

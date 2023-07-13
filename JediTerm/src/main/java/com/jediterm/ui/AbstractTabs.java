@@ -18,11 +18,7 @@ public interface AbstractTabs<T extends Component> {
 
   void setSelectedIndex(int index);
 
-  void setTabComponentAt(int index, Component component);
-
   int indexOfComponent(Component component);
-
-  int indexOfTabComponent(Component component);
 
   void removeAll();
 

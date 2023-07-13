@@ -1,8 +1,5 @@
 package com.jediterm.app
 
-import com.intellij.execution.filters.UrlFilter
-import com.intellij.openapi.Disposable
-import com.intellij.openapi.util.Pair
 import com.jediterm.core.Platform
 import com.jediterm.pty.PtyProcessTtyConnector
 import com.jediterm.terminal.LoggingTtyConnector
@@ -49,16 +46,11 @@ object JediTermMain {
   }
 }
 
-class JediTerm : AbstractTerminalFrame(), Disposable {
-  override fun dispose() {
-    // TODO
-  }
-
+class JediTerm : AbstractTerminalFrame() {
   override fun createTabbedTerminalWidget(): JediTabbedTerminalWidget {
     return object : JediTabbedTerminalWidget(
       DefaultTabbedSettingsProvider(),
       Function<Pair<TerminalWidget, String>, JediTerminalWidget> { pair -> openSession(pair?.first) as JediTerminalWidget },
-      this
     ) {
       override fun createInnerTerminalWidget(): JediTerminalWidget {
         return createTerminalWidget(settingsProvider)
@@ -99,7 +91,7 @@ class JediTerm : AbstractTerminalFrame(), Disposable {
   }
 
   override fun createTerminalWidget(settingsProvider: TabbedSettingsProvider): JediTerminalWidget {
-    val widget = JediTerminalWidget(settingsProvider, this)
+    val widget = JediTerminalWidget(settingsProvider)
     widget.addHyperlinkFilter(UrlFilter())
     return widget
   }

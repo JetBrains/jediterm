@@ -10,6 +10,8 @@ import com.pty4j.PtyProcessBuilder;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -44,8 +46,24 @@ public class BasicTerminalShellExample {
 
   private static void createAndShowGUI() {
     JFrame frame = new JFrame("Basic Terminal Shell Example");
-    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-    frame.setContentPane(createTerminalWidget());
+    frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    JediTermWidget widget = createTerminalWidget();
+    widget.addListener(terminalWidget -> {
+      widget.close(); // terminate the current process and dispose all allocated resources
+      SwingUtilities.invokeLater(() -> {
+        if (frame.isVisible()) {
+          frame.dispose();
+        }
+      });
+    });
+    frame.addWindowListener(new WindowAdapter() {
+      @Override
+      public void windowClosing(WindowEvent e) {
+        frame.setVisible(false);
+        widget.getTtyConnector().close(); // terminate the current process
+      }
+    });
+    frame.setContentPane(widget);
     frame.pack();
     frame.setVisible(true);
   }

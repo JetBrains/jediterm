@@ -50,6 +50,8 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   private final JLayeredPane myInnerPanel;
   private final TextProcessing myTextProcessing;
   private final List<TerminalWidgetListener> myListeners = new CopyOnWriteArrayList<>();
+  private final Object myExecutorServiceManagerLock = new Object();
+  private volatile TerminalExecutorServiceManager myExecutorServiceManager;
 
   public JediTermWidget(@NotNull SettingsProvider settingsProvider) {
     this(80, 24, settingsProvider);
@@ -74,7 +76,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     myTypeAheadTerminalModel = new JediTermTypeAheadModel(myTerminal, terminalTextBuffer, settingsProvider);
     myTypeAheadManager = new TerminalTypeAheadManager(myTypeAheadTerminalModel);
     JediTermDebouncerImpl typeAheadDebouncer =
-      new JediTermDebouncerImpl(myTypeAheadManager::debounce, TerminalTypeAheadManager.MAX_TERMINAL_DELAY);
+      new JediTermDebouncerImpl(myTypeAheadManager::debounce, TerminalTypeAheadManager.MAX_TERMINAL_DELAY, getExecutorServiceManager());
     myTypeAheadManager.setClearPredictionsDebouncer(typeAheadDebouncer);
     myTerminalPanel.setTypeAheadManager(myTypeAheadManager);
 
@@ -136,6 +138,23 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     return myTerminalPanel;
   }
 
+  protected final @NotNull TerminalExecutorServiceManager getExecutorServiceManager() {
+    TerminalExecutorServiceManager manager = myExecutorServiceManager;
+    if (manager != null) return manager;
+    synchronized (myExecutorServiceManagerLock) {
+      manager = myExecutorServiceManager;
+      if (manager == null) {
+        manager = createExecutorServiceManager();
+        myExecutorServiceManager = manager;
+      }
+      return manager;
+    }
+  }
+
+  protected @NotNull TerminalExecutorServiceManager createExecutorServiceManager() {
+    return new JediTermExecutorServiceManager();
+  }
+
   @SuppressWarnings("unused")
   public TerminalTypeAheadManager getTypeAheadManager() {
     return myTypeAheadManager;
@@ -158,7 +177,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   protected TerminalStarter createTerminalStarter(@NotNull JediTerminal terminal, @NotNull TtyConnector connector) {
     return new TerminalStarter(terminal, connector,
-      new TtyBasedArrayDataStream(connector, myTypeAheadManager::onTerminalStateChanged), myTypeAheadManager);
+      new TtyBasedArrayDataStream(connector, myTypeAheadManager::onTerminalStateChanged), myTypeAheadManager, getExecutorServiceManager());
   }
 
   @Override
@@ -236,6 +255,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
       myTerminalStarter.close();
     }
     myTerminalPanel.dispose();
+    getExecutorServiceManager().shutdownWhenAllExecuted();
   }
 
   @Override

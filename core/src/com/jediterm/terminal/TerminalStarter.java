@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -32,15 +31,19 @@ public class TerminalStarter implements TerminalOutputStream {
   private final TtyConnector myTtyConnector;
 
   private final TerminalTypeAheadManager myTypeAheadManager;
+  private final ScheduledExecutorService myExecutor;
 
-  private final ScheduledExecutorService myEmulatorExecutor = Executors.newSingleThreadScheduledExecutor();
-
-  public TerminalStarter(final Terminal terminal, final TtyConnector ttyConnector, TerminalDataStream dataStream, TerminalTypeAheadManager typeAheadManager) {
+  public TerminalStarter(@NotNull Terminal terminal,
+                         @NotNull TtyConnector ttyConnector,
+                         @NotNull TerminalDataStream dataStream,
+                         @NotNull TerminalTypeAheadManager typeAheadManager,
+                         @NotNull TerminalExecutorServiceManager executorServiceManager) {
     myTtyConnector = ttyConnector;
     myTerminal = terminal;
     myTerminal.setTerminalOutput(this);
     myEmulator = createEmulator(dataStream, terminal);
     myTypeAheadManager = typeAheadManager;
+    myExecutor = executorServiceManager.getSingleThreadedExecutorService();
   }
 
   protected JediEmulator createEmulator(TerminalDataStream dataStream, Terminal terminal) {
@@ -48,8 +51,8 @@ public class TerminalStarter implements TerminalOutputStream {
   }
 
   private void execute(Runnable runnable) {
-    if (!myEmulatorExecutor.isShutdown()) {
-      myEmulatorExecutor.execute(runnable);
+    if (!myExecutor.isShutdown()) {
+      myExecutor.execute(runnable);
     }
   }
 
@@ -78,7 +81,7 @@ public class TerminalStarter implements TerminalOutputStream {
   public void postResize(@NotNull TermSize termSize, @NotNull RequestOrigin origin) {
     execute(() -> {
       resize(myEmulator, myTerminal, myTtyConnector, termSize, origin, (millisDelay, runnable) -> {
-        myEmulatorExecutor.schedule(runnable, millisDelay, TimeUnit.MILLISECONDS);
+        myExecutor.schedule(runnable, millisDelay, TimeUnit.MILLISECONDS);
       });
     });
   }
@@ -145,9 +148,6 @@ public class TerminalStarter implements TerminalOutputStream {
       }
       catch (Exception e) {
         LOG.error("Error closing terminal", e);
-      }
-      finally {
-        myEmulatorExecutor.shutdown();
       }
     });
   }

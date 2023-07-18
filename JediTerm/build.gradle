@@ -1,56 +1,24 @@
-buildscript {
-    ext.kotlin_version = '1.7.10'
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-    }
-}
-
 plugins {
-    id 'edu.sc.seis.launch4j' version '2.4.4'
+  id 'org.jetbrains.kotlin.jvm' version '1.9.0'
+  id 'application'
 }
-
-apply plugin: 'application'
-apply plugin: 'java'
-apply plugin: 'kotlin'
-
 
 repositories {
-    flatDir dirs: ['libs', '../pty/libs']
     mavenCentral()
     maven {
         url "https://packages.jetbrains.team/maven/p/ij/intellij-dependencies"
     }
 }
 
-sourceSets {
-    main.java.srcDirs += 'src/main/java'
-    main.kotlin.srcDirs += 'src/main/kotlin'
-}
-
 dependencies {
     implementation project(':pty')
     implementation project(':ui')
 
-    implementation ":eawtstub:"
-
-    testImplementation 'junit:junit:4.13.2'
-
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    implementation 'org.slf4j:slf4j-api:1.7.32'
-    implementation 'org.slf4j:slf4j-jdk14:1.7.32'
-    implementation "org.jetbrains:annotations:13.0"
-    implementation 'net.java.dev.jna:jna:4.5.0'
-    implementation 'net.java.dev.jna:jna-platform:4.5.0'
-    implementation ":trove4j:"
+    implementation 'org.slf4j:slf4j-api:1.7.36'
+    implementation 'org.slf4j:slf4j-jdk14:1.7.36'
+    implementation 'org.jetbrains:annotations:24.0.0'
 }
 
-mainClassName = "com.jediterm.app.JediTermMain"
-
-
-launch4j {
-    mainClassName = "com.jediterm.app.JediTermMain"
-    icon = "$projectDir/img/JediTerm.ico"
+application {
+  mainClass = 'com.jediterm.app.JediTermMain'
 }

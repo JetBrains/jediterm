@@ -23,8 +23,10 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * JediTerm terminal widget with UI implemented in Swing.
@@ -34,9 +36,9 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   private static final Logger LOG = LoggerFactory.getLogger(JediTermWidget.class);
 
   protected final TerminalPanel myTerminalPanel;
-  protected final JScrollBar myScrollBar;
+  private final JScrollBar myScrollBar;
   protected final JediTerminal myTerminal;
-  protected final AtomicBoolean mySessionRunning = new AtomicBoolean();
+  private final AtomicReference<Session> myRunningSession = new AtomicReference<>();
   private final JediTermTypeAheadModel myTypeAheadTerminalModel;
   private final TerminalTypeAheadManager myTypeAheadManager;
   private JediTermSearchComponent myFindComponent;
@@ -44,7 +46,6 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   private final PreConnectHandler myPreConnectHandler;
   private TtyConnector myTtyConnector;
   private TerminalStarter myTerminalStarter;
-  private Thread myEmuThread;
   protected final SettingsProvider mySettingsProvider;
   private TerminalActionProvider myNextActionProvider;
   private final JLayeredPane myInnerPanel;
@@ -101,7 +102,6 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     add(myInnerPanel, BorderLayout.CENTER);
 
     myScrollBar.setModel(myTerminalPanel.getVerticalScrollModel());
-    mySessionRunning.set(false);
 
     myTerminalPanel.init(myScrollBar);
 
@@ -138,7 +138,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     return myTerminalPanel;
   }
 
-  protected final @NotNull TerminalExecutorServiceManager getExecutorServiceManager() {
+  public final @NotNull TerminalExecutorServiceManager getExecutorServiceManager() {
     TerminalExecutorServiceManager manager = myExecutorServiceManager;
     if (manager != null) return manager;
     synchronized (myExecutorServiceManagerLock) {
@@ -191,22 +191,40 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   }
 
   public void start() {
-    if (!mySessionRunning.get()) {
-      myEmuThread = new Thread(new EmulatorTask());
-      myEmuThread.start();
-    } else {
-      LOG.error("Should not try to start session again at this point... ");
+    synchronized (myRunningSession) {
+      if (myRunningSession.get() == null) {
+        EmulatorTask task = new EmulatorTask();
+        CompletableFuture<?> future = CompletableFuture.runAsync(task, getExecutorServiceManager().getUnboundedExecutorService());
+        myRunningSession.set(new Session(task, future));
+        future.whenComplete((o, throwable) -> {
+          synchronized (myRunningSession) {
+            myRunningSession.set(null);
+          }
+        });
+      }
+      else {
+        LOG.error("Should not try to start session again at this point... ");
+      }
     }
   }
 
+  /**
+   * @deprecated use {@link #close()} instead
+   */
+  @Deprecated
   public void stop() {
-    if (mySessionRunning.get() && myEmuThread != null) {
-      myEmuThread.interrupt();
+    stopRunningSession();
+  }
+
+  private void stopRunningSession() {
+    Session session = myRunningSession.get();
+    if (session != null) {
+      session.stop();
     }
   }
 
   public boolean isSessionRunning() {
-    return mySessionRunning.get();
+    return myRunningSession.get() != null;
   }
 
   public String getBufferText(DebugBufferType type, int stateIndex) {
@@ -250,7 +268,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   @Override
   public void close() {
-    stop();
+    stopRunningSession();
     if (myTerminalStarter != null) {
       myTerminalStarter.close();
     }
@@ -345,29 +363,55 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     this.myNextActionProvider = actionProvider;
   }
 
-  class EmulatorTask implements Runnable {
+  private static class Session {
+    private final EmulatorTask myEmulatorTask;
+    private final Future<?> mySessionFuture;
+
+    public Session(@NotNull EmulatorTask emulatorTask, @NotNull Future<?> sessionFuture) {
+      myEmulatorTask = emulatorTask;
+      mySessionFuture = sessionFuture;
+    }
+
+    void stop() {
+      myEmulatorTask.requestStop();
+      mySessionFuture.cancel(true);
+    }
+  }
+
+  private class EmulatorTask implements Runnable {
+    private final TerminalStarter myStarter;
+
+    public EmulatorTask() {
+      myStarter = Objects.requireNonNull(myTerminalStarter);
+    }
+
     @SuppressWarnings("removal")
     public void run() {
+      TtyConnector ttyConnector = myStarter.getTtyConnector();
       try {
-        mySessionRunning.set(true);
-        Thread.currentThread().setName("Connector-" + myTtyConnector.getName());
-        if (myTtyConnector.init(myPreConnectHandler)) {
+        if (ttyConnector.init(myPreConnectHandler)) {
           myTerminalPanel.addCustomKeyListener(myTerminalPanel.getTerminalKeyListener());
           myTerminalPanel.removeCustomKeyListener(myPreConnectHandler);
-          myTerminalStarter.start();
+          myStarter.start();
         }
-      } catch (Exception e) {
+      }
+      catch (Exception e) {
         LOG.error("Exception running terminal", e);
-      } finally {
+      }
+      finally {
         try {
-          myTtyConnector.close();
-        } catch (Exception ignored) {
+          ttyConnector.close();
         }
-        mySessionRunning.set(false);
+        catch (Exception ignored) {
+        }
         for (TerminalWidgetListener listener : myListeners) {
           listener.allSessionsClosed(JediTermWidget.this);
         }
       }
+    }
+
+    void requestStop() {
+      myStarter.requestEmulatorStop();
     }
   }
 

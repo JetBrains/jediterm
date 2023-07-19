@@ -13,7 +13,6 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.util.List;
 import java.util.*;
-import java.util.concurrent.Executors;
 import java.util.function.Function;
 
 /**
@@ -103,7 +102,7 @@ public abstract class AbstractTabbedTerminalWidget<T extends JediTermWidget> ext
   public abstract T createInnerTerminalWidget();
 
   protected void setupTtyConnectorWaitFor(final TtyConnector ttyConnector, final T widget) {
-    new TtyConnectorWaitFor(ttyConnector, Executors.newSingleThreadExecutor()).setTerminationCallback(integer -> {
+    new TtyConnectorWaitFor(ttyConnector, widget.getExecutorServiceManager().getUnboundedExecutorService()).setTerminationCallback(integer -> {
       if (mySettingsProvider.shouldCloseTabOnLogout(ttyConnector)) {
         closeTab(widget);
       }

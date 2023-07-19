@@ -445,10 +445,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     return isMouseReporting() && !e.isShiftDown();
   }
 
-  protected boolean isRetina() {
-    return UIUtil.isRetina();
-  }
-
   public void setBlinkingPeriod(int blinkingPeriod) {
     myBlinkingPeriod = blinkingPeriod;
   }

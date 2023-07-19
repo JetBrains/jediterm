@@ -31,7 +31,8 @@ public class TerminalStarter implements TerminalOutputStream {
   private final TtyConnector myTtyConnector;
 
   private final TerminalTypeAheadManager myTypeAheadManager;
-  private final ScheduledExecutorService myExecutor;
+  private final ScheduledExecutorService mySingleThreadScheduledExecutor;
+  private volatile boolean myStopped = false;
 
   public TerminalStarter(@NotNull Terminal terminal,
                          @NotNull TtyConnector ttyConnector,
@@ -43,7 +44,7 @@ public class TerminalStarter implements TerminalOutputStream {
     myTerminal.setTerminalOutput(this);
     myEmulator = createEmulator(dataStream, terminal);
     myTypeAheadManager = typeAheadManager;
-    myExecutor = executorServiceManager.getSingleThreadedExecutorService();
+    mySingleThreadScheduledExecutor = executorServiceManager.getSingleThreadScheduledExecutor();
   }
 
   protected JediEmulator createEmulator(TerminalDataStream dataStream, Terminal terminal) {
@@ -51,14 +52,22 @@ public class TerminalStarter implements TerminalOutputStream {
   }
 
   private void execute(Runnable runnable) {
-    if (!myExecutor.isShutdown()) {
-      myExecutor.execute(runnable);
+    if (!mySingleThreadScheduledExecutor.isShutdown()) {
+      mySingleThreadScheduledExecutor.execute(runnable);
     }
   }
 
+  public @NotNull TtyConnector getTtyConnector() {
+    return myTtyConnector;
+  }
+
   public void start() {
+    runUnderThreadName("TerminalEmulator-" + myTtyConnector.getName(), this::doStartEmulator);
+  }
+
+  private void doStartEmulator() {
     try {
-      while (!Thread.currentThread().isInterrupted() && myEmulator.hasNext()) {
+      while ((!Thread.currentThread().isInterrupted() && !myStopped) && myEmulator.hasNext()) {
         myEmulator.next();
       }
     }
@@ -74,6 +83,27 @@ public class TerminalStarter implements TerminalOutputStream {
     }
   }
 
+  public void requestEmulatorStop() {
+    myStopped = true;
+  }
+
+  private static void runUnderThreadName(@NotNull String threadName, @NotNull Runnable runnable) {
+    Thread currentThread = Thread.currentThread();
+    String oldThreadName = currentThread.getName();
+    if (threadName.equals(oldThreadName)) {
+      runnable.run();
+    }
+    else {
+      currentThread.setName(threadName);
+      try {
+        runnable.run();
+      }
+      finally {
+        currentThread.setName(oldThreadName);
+      }
+    }
+  }
+
   public byte[] getCode(final int key, final int modifiers) {
     return myTerminal.getCodeForKey(key, modifiers);
   }
@@ -81,7 +111,7 @@ public class TerminalStarter implements TerminalOutputStream {
   public void postResize(@NotNull TermSize termSize, @NotNull RequestOrigin origin) {
     execute(() -> {
       resize(myEmulator, myTerminal, myTtyConnector, termSize, origin, (millisDelay, runnable) -> {
-        myExecutor.schedule(runnable, millisDelay, TimeUnit.MILLISECONDS);
+        mySingleThreadScheduledExecutor.schedule(runnable, millisDelay, TimeUnit.MILLISECONDS);
       });
     });
   }

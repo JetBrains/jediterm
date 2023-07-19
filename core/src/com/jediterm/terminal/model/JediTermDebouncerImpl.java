@@ -20,7 +20,7 @@ public class JediTermDebouncerImpl implements Debouncer {
                                @NotNull TerminalExecutorServiceManager executorServiceManager) {
     myRunnable = runnable;
     myDelay = delay;
-    myScheduler = executorServiceManager.getSingleThreadedExecutorService();
+    myScheduler = executorServiceManager.getSingleThreadScheduledExecutor();
   }
 
   @Override

@@ -7,7 +7,6 @@ import com.jediterm.terminal.LoggingTtyConnector.TerminalState
 import com.jediterm.terminal.TtyConnector
 import com.jediterm.terminal.ui.JediTermWidget
 import com.jediterm.terminal.ui.TerminalWidget
-import com.jediterm.terminal.ui.UIUtil
 import com.jediterm.terminal.ui.settings.DefaultTabbedSettingsProvider
 import com.jediterm.terminal.ui.settings.TabbedSettingsProvider
 import com.jediterm.ui.AbstractTerminalFrame
@@ -16,6 +15,7 @@ import com.pty4j.PtyProcessBuilder
 import java.io.IOException
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
+import java.nio.file.Path
 import java.util.*
 import java.util.function.Function
 import java.util.logging.ConsoleHandler
@@ -23,6 +23,7 @@ import java.util.logging.Level
 import java.util.logging.LogManager
 import java.util.logging.Logger
 import javax.swing.SwingUtilities
+import kotlin.io.path.pathString
 
 object JediTermMain {
   @JvmStatic
@@ -65,17 +66,21 @@ class JediTerm : AbstractTerminalFrame() {
       if (Platform.current() == Platform.Mac) {
         envs["LC_CTYPE"] = Charsets.UTF_8.name()
       }
-      val command: Array<String> = if (UIUtil.isWindows) {
+      else {
+        envs["TERM"] = "xterm-256color"
+      }
+      val command: Array<String> = if (Platform.current() == Platform.Windows) {
         arrayOf("powershell.exe")
       }
       else {
-        envs["TERM"] = "xterm-256color"
         val shell = envs["SHELL"] ?: "/bin/bash"
-        if (UIUtil.isMac) arrayOf(shell, "--login") else arrayOf(shell)
+        if (Platform.current() == Platform.Mac) arrayOf(shell, "--login") else arrayOf(shell)
       }
+      val workingDirectory = Path.of(".").toAbsolutePath().normalize().pathString
 
-      LOG.info("Starting ${command.joinToString()}")
+      LOG.info("Starting ${command.joinToString()} in $workingDirectory")
       val process = PtyProcessBuilder()
+        .setDirectory(workingDirectory)
         .setCommand(command)
         .setEnvironment(envs)
         .setConsole(false)

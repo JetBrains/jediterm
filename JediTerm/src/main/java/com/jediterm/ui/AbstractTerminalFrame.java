@@ -6,6 +6,7 @@ import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.debug.BufferPanel;
 import com.jediterm.terminal.model.SelectionUtil;
+import com.jediterm.terminal.model.TerminalSelection;
 import com.jediterm.terminal.ui.JediTermWidget;
 import com.jediterm.terminal.ui.TerminalPanel;
 import com.jediterm.terminal.ui.TerminalPanelListener;
@@ -56,9 +57,15 @@ public abstract class AbstractTerminalFrame {
   private final AbstractAction myDumpSelection = new AbstractAction("Dump selection") {
     public void actionPerformed(final ActionEvent e) {
       TerminalPanel terminalPanel = myTerminal.getCurrentSession().getTerminalPanel();
-      Pair<Point, Point> points = terminalPanel.getSelection().pointsForRun(terminalPanel.getColumnCount());
-      LOG.info(terminalPanel.getSelection() + " : '"
-        + SelectionUtil.getSelectionText(points.first, points.second, terminalPanel.getTerminalTextBuffer()) + "'");
+      TerminalSelection selection = terminalPanel.getSelection();
+      if (selection != null) {
+        Pair<Point, Point> points = selection.pointsForRun(terminalPanel.getColumnCount());
+        LOG.info(selection + " : '"
+          + SelectionUtil.getSelectionText(points.first, points.second, terminalPanel.getTerminalTextBuffer()) + "'");
+      }
+      else {
+        LOG.info("No selection");
+      }
     }
   };
 

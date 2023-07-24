@@ -1573,7 +1573,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     return myTerminalTextBuffer;
   }
 
-  public TerminalSelection getSelection() {
+  public @Nullable TerminalSelection getSelection() {
     return mySelection;
   }
 

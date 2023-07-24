@@ -1,4 +1,3 @@
 include ':core'
 include ':ui'
-include ':pty'
 include ':JediTerm'

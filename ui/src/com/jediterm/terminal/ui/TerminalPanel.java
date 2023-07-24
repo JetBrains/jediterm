@@ -641,6 +641,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       if (newSize != null) {
         newSize = JediTerminal.ensureTermMinimumSize(newSize);
         if (!myTermSize.equals(newSize) || !myInitialSizeSyncDone) {
+          myTermSize = newSize;
           myInitialSizeSyncDone = true;
           myTypeAheadManager.onResize();
           myTerminalStarter.postResize(newSize, RequestOrigin.User);
@@ -667,16 +668,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
                             int cursorX,
                             int cursorY,
                             JediTerminal.ResizeHandler resizeHandler) {
-    if (!newSize.equals(myTermSize)) {
-      myTerminalTextBuffer.resize(newSize, origin, cursorX, cursorY, resizeHandler, mySelection);
-      myTermSize = newSize;
+    myTerminalTextBuffer.resize(newSize, origin, cursorX, cursorY, resizeHandler, mySelection);
+    myTermSize = newSize;
 
-      setPreferredSize(new java.awt.Dimension(getPixelWidth(), getPixelHeight()));
-      if (myTerminalPanelListener != null) {
-        SwingUtilities.invokeLater(() -> myTerminalPanelListener.onPanelResize(origin));
-      }
-      SwingUtilities.invokeLater(() -> updateScrolling(true));
+    setPreferredSize(new java.awt.Dimension(getPixelWidth(), getPixelHeight()));
+    if (myTerminalPanelListener != null) {
+      SwingUtilities.invokeLater(() -> myTerminalPanelListener.onPanelResize(origin));
     }
+    SwingUtilities.invokeLater(() -> updateScrolling(true));
   }
 
   public void setTerminalPanelListener(final TerminalPanelListener terminalPanelListener) {

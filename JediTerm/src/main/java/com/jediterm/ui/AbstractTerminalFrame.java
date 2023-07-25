@@ -41,9 +41,7 @@ public abstract class AbstractTerminalFrame {
 
   private final AbstractAction myShowBuffersAction = new AbstractAction("Show buffers") {
     public void actionPerformed(final ActionEvent e) {
-      if (myBufferFrame == null) {
-        showBuffers();
-      }
+      showBuffers();
     }
   };
 
@@ -219,22 +217,25 @@ public abstract class AbstractTerminalFrame {
   }
 
   private void showBuffers() {
-    SwingUtilities.invokeLater(() -> {
-      myBufferFrame = new JFrame("buffers");
-      final JPanel panel = new BufferPanel(myTerminal.getCurrentSession());
+    if (myBufferFrame != null) {
+      myBufferFrame.requestFocus();
+      return;
+    }
+    myBufferFrame = new JFrame("buffers");
+    final JPanel panel = new BufferPanel(myTerminal.getCurrentSession());
 
-      myBufferFrame.getContentPane().add(panel);
-      myBufferFrame.pack();
-      myBufferFrame.setLocationByPlatform(true);
-      myBufferFrame.setVisible(true);
-      myBufferFrame.setSize(800, 600);
+    myBufferFrame.getContentPane().add(panel);
+    myBufferFrame.pack();
+    myBufferFrame.setLocationByPlatform(true);
+    myBufferFrame.setVisible(true);
+    myBufferFrame.setSize(800, 600);
 
-      myBufferFrame.addWindowListener(new WindowAdapter() {
-        @Override
-        public void windowClosing(final WindowEvent e) {
-          myBufferFrame = null;
-        }
-      });
+    myBufferFrame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+    myBufferFrame.addWindowListener(new WindowAdapter() {
+      @Override
+      public void windowClosed(final WindowEvent e) {
+        myBufferFrame = null;
+      }
     });
   }
 

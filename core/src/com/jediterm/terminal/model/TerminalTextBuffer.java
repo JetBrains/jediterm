@@ -138,8 +138,9 @@ public class TerminalTextBuffer {
       int count = oldHeight - newHeight;
       if (!myAlternateBuffer) {
         //we need to move lines from text buffer to the scroll buffer
-        //but empty bottom lines can be collapsed
-        int emptyLinesDeleted = myScreenBuffer.removeBottomEmptyLines(oldHeight - 1, count);
+        //but empty bottom lines up to the cursor can be collapsed
+        int maxBottomLinesToRemove = Math.min(count, Math.max(0, oldHeight - cursorY));
+        int emptyLinesDeleted = myScreenBuffer.removeBottomEmptyLines(oldHeight - 1, maxBottomLinesToRemove);
         myScreenBuffer.moveTopLinesTo(count - emptyLinesDeleted, myHistoryBuffer);
         newCursorY = cursorY - (count - emptyLinesDeleted);
       } else {

@@ -8,6 +8,9 @@ import com.jediterm.util.BackBufferDisplay;
 import com.jediterm.util.BackBufferTerminal;
 import com.jediterm.util.CharBufferUtil;
 import junit.framework.TestCase;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.List;
 
 /**
  * @author traff
@@ -131,6 +134,26 @@ public class BufferResizeTest extends TestCase {
         "li   \n", textBuffer.getScreenLines());
   }
 
+  public void testResizeToSmallerHeightAndKeepCursorVisible() {
+    BackBufferTerminal terminal = createTerminal(10, 4);
+    TerminalTextBuffer textBuffer = terminal.getTextBuffer();
+
+    terminal.writeString("line1");
+    terminal.crnl();
+    terminal.writeString("line2");
+    terminal.crnl();
+    terminal.writeString("line3");
+    terminal.crnl();
+
+    assertEquals(1, terminal.getCursorX());
+    assertEquals(4, terminal.getCursorY());
+
+    terminal.resize(new TermSize(10, 3), RequestOrigin.User);
+    assertEquals(List.of("line1"), textBuffer.getHistoryBuffer().getLineTexts());
+    assertEquals(List.of("line2", "line3"), textBuffer.getScreenBuffer().getLineTexts());
+    assertEquals(1, terminal.getCursorX());
+    assertEquals(3, terminal.getCursorY());
+  }
 
   public void testResizeInHeightWithScrolling() {
     StyleState state = new StyleState();
@@ -420,5 +443,12 @@ public class BufferResizeTest extends TestCase {
 
     assertEquals(1, terminal.getCursorX());
     assertEquals(4, terminal.getCursorY());
+  }
+
+  @SuppressWarnings("SameParameterValue")
+  private @NotNull BackBufferTerminal createTerminal(int width, int height) {
+    StyleState state = new StyleState();
+    TerminalTextBuffer textBuffer = new TerminalTextBuffer(width, height, state);
+    return new BackBufferTerminal(textBuffer, state);
   }
 }

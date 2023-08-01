@@ -54,6 +54,18 @@ public class LinesBuffer {
     return sb.toString();
   }
 
+  public @NotNull List<String> getLineTexts() {
+    return getLineTexts(0, getLineCount());
+  }
+
+  @SuppressWarnings("SameParameterValue")
+  @NotNull List<String> getLineTexts(int from, int to) {
+    List<String> lines = new ArrayList<>();
+    for (int i = from; i < Math.min(to, getLineCount()); i++) {
+      lines.add(myLines.get(i).getText());
+    }
+    return lines;
+  }
 
   public synchronized void addNewLine(@NotNull TextStyle style, @NotNull CharBuffer characters) {
     addNewLine(new TerminalLine.TextEntry(style, characters));
@@ -250,17 +262,17 @@ public class LinesBuffer {
     myLines = new ArrayList<>(myLines.subList(0, getLineCount() - count));
   }
 
-  public int removeBottomEmptyLines(int ind, int maxCount) {
-    int i = 0;
-    while ((maxCount - i) > 0 && (ind >= myLines.size() || myLines.get(ind).isNul())) {
+  public int removeBottomEmptyLines(int bottomMostLineInd, int maxCount) {
+    int removedCount = 0;
+    int ind = bottomMostLineInd;
+    while (removedCount < maxCount && ind >= 0 && (ind >= myLines.size() || myLines.get(ind).isNul())) {
       if (ind < myLines.size()) {
         myLines.remove(ind);
       }
       ind--;
-      i++;
+      removedCount++;
     }
-
-    return i;
+    return removedCount;
   }
 
   synchronized int findLineIndex(@NotNull TerminalLine line) {

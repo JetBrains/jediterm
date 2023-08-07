@@ -350,6 +350,16 @@ public class TerminalTextBuffer {
     myLock.unlock();
   }
 
+  public void modify(@NotNull Runnable runnable) {
+    myLock.lock();
+    try {
+      runnable.run();
+    }
+    finally {
+      myLock.unlock();
+    }
+  }
+
   public boolean tryLock() {
     return myLock.tryLock();
   }

@@ -667,25 +667,27 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
   @Override
   public void cursorPosition(int x, int y) {
-    if (isOriginMode()) {
-      myCursorY = y + scrollingRegionTop() - 1;
-    } else {
-      myCursorY = y;
-    }
+    myTerminalTextBuffer.modify(() -> {
+      if (isOriginMode()) {
+        myCursorY = y + scrollingRegionTop() - 1;
+      } else {
+        myCursorY = y;
+      }
 
-    if (myCursorY > scrollingRegionBottom()) {
-      myCursorY = scrollingRegionBottom();
-    }
+      if (myCursorY > scrollingRegionBottom()) {
+        myCursorY = scrollingRegionBottom();
+      }
 
-    // avoid issue due to malformed sequence
-    myCursorX = Math.max(0, x - 1);
-    myCursorX = Math.min(myCursorX, myTerminalWidth - 1);
+      // avoid issue due to malformed sequence
+      myCursorX = Math.max(0, x - 1);
+      myCursorX = Math.min(myCursorX, myTerminalWidth - 1);
 
-    myCursorY = Math.max(0, myCursorY);
+      myCursorY = Math.max(0, myCursorY);
 
-    adjustXY(-1);
+      adjustXY(-1);
 
-    myDisplay.setCursor(myCursorX, myCursorY);
+      myDisplay.setCursor(myCursorX, myCursorY);
+    });
   }
 
   @Override
@@ -1095,29 +1097,22 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     if (newTermSize.getColumns() == myTerminalWidth && newTermSize.getRows() == myTerminalHeight) {
       return;
     }
-    if (newTermSize.getColumns() == myTerminalWidth) {
-      doResize(newTermSize, origin, oldHeight);
-    }
-    else {
-      myTerminalWidth = newTermSize.getColumns();
-      myTerminalHeight = newTermSize.getRows();
-      promptUpdated.thenRun(() -> {
-        doResize(newTermSize, origin, oldHeight);
-      });
-    }
+    doResize(newTermSize, origin, oldHeight);
   }
 
   private void doResize(@NotNull TermSize newTermSize, @NotNull RequestOrigin origin, int oldHeight) {
-    myDisplay.requestResize(newTermSize, origin, myCursorX, myCursorY, (termWidth, termHeight, cursorX, cursorY) -> {
-      myTerminalWidth = termWidth;
-      myTerminalHeight = termHeight;
-      myCursorY = cursorY;
-      myCursorX = Math.min(cursorX, myTerminalWidth - 1);
-      myDisplay.setCursor(myCursorX, myCursorY);
+    myTerminalTextBuffer.modify(() -> {
+      myDisplay.requestResize(newTermSize, origin, myCursorX, myCursorY, (termWidth, termHeight, cursorX, cursorY) -> {
+        myTerminalWidth = termWidth;
+        myTerminalHeight = termHeight;
+        myCursorY = cursorY;
+        myCursorX = Math.min(cursorX, myTerminalWidth - 1);
+        myDisplay.setCursor(myCursorX, myCursorY);
 
-      myTabulator.resize(myTerminalWidth);
+        myTabulator.resize(myTerminalWidth);
+      });
+      myScrollRegionBottom += myTerminalHeight - oldHeight;
     });
-    myScrollRegionBottom += myTerminalHeight - oldHeight;
   }
 
   public static @NotNull TermSize ensureTermMinimumSize(@NotNull TermSize termSize) {

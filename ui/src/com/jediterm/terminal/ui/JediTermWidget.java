@@ -55,7 +55,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   private volatile TerminalExecutorServiceManager myExecutorServiceManager;
 
   public JediTermWidget(@NotNull SettingsProvider settingsProvider) {
-    this(80, 24, settingsProvider);
+    this(80, 4, settingsProvider);
   }
 
   public JediTermWidget(int columns, int lines, SettingsProvider settingsProvider) {

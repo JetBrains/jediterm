@@ -25,10 +25,6 @@ class ChangeWidthOperation {
     myNewHeight = newHeight;
   }
 
-  void addPointToTrack(@NotNull Point point) {
-    addPointToTrack(point, false);
-  }
-
  void addPointToTrack(@NotNull Point point, boolean isForceVisible) {
     myTrackingPoints.put(new TrackingPoint(point, isForceVisible), null);
   }

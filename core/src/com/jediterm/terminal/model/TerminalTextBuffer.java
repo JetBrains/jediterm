@@ -118,8 +118,8 @@ public class TerminalTextBuffer {
       Point cursor = new Point(cursorX, cursorY - 1);
       changeWidthOperation.addPointToTrack(cursor, true);
       if (mySelection != null) {
-        changeWidthOperation.addPointToTrack(mySelection.getStart());
-        changeWidthOperation.addPointToTrack(mySelection.getEnd());
+        changeWidthOperation.addPointToTrack(mySelection.getStart(), false);
+        changeWidthOperation.addPointToTrack(mySelection.getEnd(), false);
       }
       changeWidthOperation.run();
       myWidth = newWidth;

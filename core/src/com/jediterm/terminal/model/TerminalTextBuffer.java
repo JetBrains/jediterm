@@ -501,14 +501,15 @@ public class TerminalTextBuffer {
     fireModelChangeEvent();
   }
 
-  void moveScreenLinesToHistory() {
+  int moveScreenLinesToHistory() {
     myLock.lock();
     try {
       myScreenBuffer.removeBottomEmptyLines(myScreenBuffer.getLineCount() - 1, myScreenBuffer.getLineCount());
-      myScreenBuffer.moveTopLinesTo(myScreenBuffer.getLineCount(), myHistoryBuffer);
+      int movedToHistoryLineCount = myScreenBuffer.moveTopLinesTo(myScreenBuffer.getLineCount(), myHistoryBuffer);
       if (myHistoryBuffer.getLineCount() > 0) {
         myHistoryBuffer.getLine(myHistoryBuffer.getLineCount() - 1).setWrapped(false);
       }
+      return movedToHistoryLineCount;
     }
     finally {
       myLock.unlock();

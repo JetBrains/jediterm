@@ -207,10 +207,11 @@ public class LinesBuffer {
     }
   }
 
-  public synchronized void moveTopLinesTo(int count, final @NotNull LinesBuffer buffer) {
+  synchronized int moveTopLinesTo(int count, final @NotNull LinesBuffer buffer) {
     count = Math.min(count, getLineCount());
     buffer.addLines(myLines.subList(0, count));
     removeTopLines(count);
+    return count;
   }
 
   public synchronized void addLines(@NotNull List<TerminalLine> lines) {

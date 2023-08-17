@@ -364,7 +364,10 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
         case 2:
           beginY = 0;
           endY = myTerminalHeight - 1;
-          myTerminalTextBuffer.moveScreenLinesToHistory();
+          int movedToHistoryLineCount = myTerminalTextBuffer.moveScreenLinesToHistory();
+          if (movedToHistoryLineCount > 0) {
+            myDisplay.historyBufferLineCountChanged();
+          }
           break;
         default:
           LOG.warn("Unsupported erase in display mode:" + arg);

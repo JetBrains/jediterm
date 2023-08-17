@@ -1,8 +1,6 @@
-package com.jediterm;
+package com.jediterm.terminal.model;
 
 import com.jediterm.terminal.TextStyle;
-import com.jediterm.terminal.model.CharBuffer;
-import com.jediterm.terminal.model.LinesBuffer;
 import com.jediterm.util.CharBufferUtil;
 import junit.framework.TestCase;
 import org.jetbrains.annotations.NotNull;

@@ -96,6 +96,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
   private Timer myRepaintTimer;
   private AtomicInteger scrollDy = new AtomicInteger(0);
+  private final AtomicBoolean myHistoryBufferLineCountChanged = new AtomicBoolean(false);
   private AtomicBoolean needRepaint = new AtomicBoolean(true);
 
   private int myMaxFPS = 50;
@@ -1448,6 +1449,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     mySelection = null;
   }
 
+  @Override
+  public void historyBufferLineCountChanged() {
+    myHistoryBufferLineCountChanged.set(true);
+  }
+
   // should be called on EDT
   public void scrollToShowAllOutput() {
     myTerminalTextBuffer.lock();
@@ -1491,7 +1497,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
   private void updateScrolling(boolean forceUpdate) {
     int dy = scrollDy.getAndSet(0);
-    if (dy == 0 && !forceUpdate) {
+    boolean historyBufferLineCountChanged = myHistoryBufferLineCountChanged.getAndSet(false);
+    if (dy == 0 && !forceUpdate && !historyBufferLineCountChanged) {
       return;
     }
     if (myScrollingEnabled) {

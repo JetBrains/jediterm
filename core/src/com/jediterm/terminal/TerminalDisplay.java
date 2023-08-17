@@ -24,6 +24,8 @@ public interface TerminalDisplay {
 
   void scrollArea(final int scrollRegionTop, final int scrollRegionSize, int dy);
 
+  default void historyBufferLineCountChanged() {}
+
   void setCursorVisible(boolean shouldDrawCursor);
 
   void setScrollingEnabled(boolean enabled);

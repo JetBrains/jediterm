@@ -95,9 +95,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   private String myInputMethodUncommittedChars;
 
   private Timer myRepaintTimer;
-  private AtomicInteger scrollDy = new AtomicInteger(0);
+  private final AtomicInteger scrollDy = new AtomicInteger(0);
   private final AtomicBoolean myHistoryBufferLineCountChanged = new AtomicBoolean(false);
-  private AtomicBoolean needRepaint = new AtomicBoolean(true);
+  private final AtomicBoolean needRepaint = new AtomicBoolean(true);
 
   private int myMaxFPS = 50;
   private int myBlinkingPeriod = 500;

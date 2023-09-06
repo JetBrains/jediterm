@@ -32,6 +32,7 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class TerminalTextBuffer {
   private static final Logger LOG = LoggerFactory.getLogger(TerminalTextBuffer.class);
+  private static final Boolean USE_CONPTY_COMPATIBLE_RESIZE = true;
 
   @NotNull
   private final StyleState myStyleState;
@@ -150,13 +151,19 @@ public class TerminalTextBuffer {
         mySelection.shiftY(-count);
       }
     } else if (newHeight > oldHeight) {
-      if (!myAlternateBuffer) {
-        //we need to move lines from scroll buffer to the text buffer
-        int historyLinesCount = Math.min(newHeight - oldHeight, myHistoryBuffer.getLineCount());
-        myHistoryBuffer.moveBottomLinesTo(historyLinesCount, myScreenBuffer);
-        newCursorY = cursorY + historyLinesCount;
-      } else {
+      if (USE_CONPTY_COMPATIBLE_RESIZE) {
+        // do not move lines from scroll buffer to the screen buffer
         newCursorY = cursorY;
+      }
+      else {
+        if (!myAlternateBuffer) {
+          //we need to move lines from scroll buffer to the text buffer
+          int historyLinesCount = Math.min(newHeight - oldHeight, myHistoryBuffer.getLineCount());
+          myHistoryBuffer.moveBottomLinesTo(historyLinesCount, myScreenBuffer);
+          newCursorY = cursorY + historyLinesCount;
+        } else {
+          newCursorY = cursorY;
+        }
       }
       if (mySelection != null) {
         mySelection.shiftY(newHeight - cursorY);

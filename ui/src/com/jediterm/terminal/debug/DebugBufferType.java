@@ -10,7 +10,7 @@ import java.util.List;
  * @author traff
  */
 public enum DebugBufferType {
-  Back() {
+  Screen() {
     public String getValue(TerminalSession session, int stateIndex) {
       List<TerminalState> states = ((LoggingTtyConnector) session.getTtyConnector()).getStates();
       if (stateIndex == states.size()) {
@@ -30,7 +30,7 @@ public enum DebugBufferType {
       }
     }
   },
-  Scroll() {
+  History() {
     public String getValue(TerminalSession session, int stateIndex) {
       List<TerminalState> states = ((LoggingTtyConnector) session.getTtyConnector()).getStates();
       if (stateIndex == states.size()) {

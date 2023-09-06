@@ -10,7 +10,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.UnsupportedEncodingException;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Executes terminal commands interpreted by {@link com.jediterm.terminal.emulator.Emulator}, receives text
@@ -19,8 +18,6 @@ import java.util.concurrent.CompletableFuture;
  */
 public interface Terminal {
   void resize(@NotNull TermSize newTermSize, @NotNull RequestOrigin origin);
-
-  void resize(@NotNull TermSize newTermSize, @NotNull RequestOrigin origin, @NotNull CompletableFuture<?> promptUpdated);
 
   void beep();
 

@@ -180,7 +180,6 @@ public abstract class AbstractTerminalFrame {
         if (origin == RequestOrigin.Remote) {
           sizeFrameForTerm(frame);
         }
-        frame.pack();
       }
 
       @Override

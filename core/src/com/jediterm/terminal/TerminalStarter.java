@@ -10,9 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 
 
@@ -110,23 +108,24 @@ public class TerminalStarter implements TerminalOutputStream {
 
   public void postResize(@NotNull TermSize termSize, @NotNull RequestOrigin origin) {
     execute(() -> {
-      resize(myEmulator, myTerminal, myTtyConnector, termSize, origin, (millisDelay, runnable) -> {
-        mySingleThreadScheduledExecutor.schedule(runnable, millisDelay, TimeUnit.MILLISECONDS);
-      });
+      myTerminal.resize(termSize, origin);
+      myTtyConnector.resize(termSize);
     });
   }
 
   /**
+   * @deprecated use {@link Terminal#resize(TermSize, RequestOrigin)} and {@link TtyConnector#resize(TermSize)} independently.
    * Resizes terminal and tty connector, should be called on a pooled thread.
    */
+  @SuppressWarnings("unused")
+  @Deprecated(forRemoval = true)
   public static void resize(@NotNull Emulator emulator,
                             @NotNull Terminal terminal,
                             @NotNull TtyConnector ttyConnector,
                             @NotNull TermSize newTermSize,
                             @NotNull RequestOrigin origin,
                             @NotNull BiConsumer<Long, Runnable> taskScheduler) {
-    CompletableFuture<?> promptUpdated = ((JediEmulator)emulator).getPromptUpdatedAfterResizeFuture(taskScheduler);
-    terminal.resize(newTermSize, origin, promptUpdated);
+    terminal.resize(newTermSize, origin);
     ttyConnector.resize(newTermSize);
   }
 

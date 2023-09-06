@@ -24,7 +24,6 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.text.Normalizer;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -1087,15 +1086,10 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
   @Override
   public void resize(@NotNull TermSize newTermSize, @NotNull RequestOrigin origin) {
-    resize(newTermSize, origin, CompletableFuture.completedFuture(null));
+    resizeInternal(ensureTermMinimumSize(newTermSize), origin);
   }
 
-  @Override
-  public void resize(@NotNull TermSize newTermSize, @NotNull RequestOrigin origin, @NotNull CompletableFuture<?> promptUpdated) {
-    resizeInternal(ensureTermMinimumSize(newTermSize), origin, promptUpdated);
-  }
-
-  private void resizeInternal(@NotNull TermSize newTermSize, @NotNull RequestOrigin origin, @NotNull CompletableFuture<?> promptUpdated) {
+  private void resizeInternal(@NotNull TermSize newTermSize, @NotNull RequestOrigin origin) {
     int oldHeight = myTerminalHeight;
     if (newTermSize.getColumns() == myTerminalWidth && newTermSize.getRows() == myTerminalHeight) {
       return;

@@ -112,11 +112,11 @@ class ChangeWidthOperation {
   }
 
   private int getEmptyBottomLineCount() {
-    int result = 0;
-    while (result < myAllLines.size() && myAllLines.get(myAllLines.size() - result - 1).isNul()) {
-      result++;
+    int ind = myAllLines.size() - 1;
+    while (ind >= 0 && myAllLines.get(ind).isNulOrEmpty()) {
+      ind--;
     }
-    return result;
+    return myAllLines.size() - 1 - ind;
   }
 
   @NotNull

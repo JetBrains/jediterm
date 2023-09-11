@@ -354,6 +354,10 @@ public final class TerminalLine {
     return true;
   }
 
+  public boolean isNulOrEmpty() {
+    return isNul() || isEmpty();
+  }
+
   void forEachEntry(@NotNull Consumer<TextEntry> action) {
     myTextEntries.forEach(action);
   }

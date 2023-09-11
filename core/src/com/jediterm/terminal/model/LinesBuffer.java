@@ -266,7 +266,7 @@ public class LinesBuffer {
   public int removeBottomEmptyLines(int bottomMostLineInd, int maxCount) {
     int removedCount = 0;
     int ind = bottomMostLineInd;
-    while (removedCount < maxCount && ind >= 0 && (ind >= myLines.size() || myLines.get(ind).isEmpty())) {
+    while (removedCount < maxCount && ind >= 0 && (ind >= myLines.size() || myLines.get(ind).isNulOrEmpty())) {
       if (ind < myLines.size()) {
         myLines.remove(ind);
       }

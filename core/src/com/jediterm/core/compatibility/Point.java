@@ -42,6 +42,6 @@ public final class Point {
   }
 
   public String toString() {
-    return getClass().getName() + "[x=" + x + ",y=" + y + "]";
+    return "[x=" + x + ",y=" + y + "]";
   }
 }

@@ -208,6 +208,9 @@ public class LinesBuffer {
   }
 
   synchronized int moveTopLinesTo(int count, final @NotNull LinesBuffer buffer) {
+    if (count < 0) {
+      throw new AssertionError("Moving negative line count: " + count);
+    }
     count = Math.min(count, getLineCount());
     buffer.addLines(myLines.subList(0, count));
     removeTopLines(count);

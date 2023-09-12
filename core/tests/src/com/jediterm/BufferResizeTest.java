@@ -246,28 +246,15 @@ public class BufferResizeTest extends TestCase {
   }
 
   public void testSelectionAfterResize() {
-    StyleState state = new StyleState();
+    BackBufferTerminal terminal = createTerminal(6, 3);
+    TerminalTextBuffer textBuffer = terminal.getTextBuffer();
+    BackBufferDisplay display = terminal.getDisplay();
 
-    TerminalTextBuffer textBuffer = new TerminalTextBuffer(6, 3, state);
-
-    BackBufferDisplay display = new BackBufferDisplay(textBuffer);
-    JediTerminal terminal = new JediTerminal(display, textBuffer, state);
-
-    terminal.writeString(">line1");
-    terminal.newLine();
-    terminal.carriageReturn();
-    terminal.writeString(">line2");
-    terminal.newLine();
-    terminal.carriageReturn();
-    terminal.writeString(">line3");
-    terminal.newLine();
-    terminal.carriageReturn();
-    terminal.writeString(">line4");
-    terminal.newLine();
-    terminal.carriageReturn();
-    terminal.writeString(">line5");
-    terminal.newLine();
-    terminal.carriageReturn();
+    for (int i = 1; i <= 5; i++) {
+      terminal.writeString(">line" + i);
+      terminal.newLine();
+      terminal.carriageReturn();
+    }
     terminal.writeString(">");
 
     display.setSelection(new TerminalSelection(new Point(1, 0), new Point(5, 1)));
@@ -283,7 +270,7 @@ public class BufferResizeTest extends TestCase {
     assertEquals(selectionText, SelectionUtil.getSelectionText(display.getSelection(), textBuffer));
 
 
-    display.setSelection(new TerminalSelection(new Point(1, 0), new Point(5, 1)));
+    display.setSelection(new TerminalSelection(new Point(1, -2), new Point(5, -1)));
 
     selectionText = SelectionUtil.getSelectionText(display.getSelection(), textBuffer);
 

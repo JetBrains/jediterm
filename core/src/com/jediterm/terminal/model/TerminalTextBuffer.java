@@ -136,19 +136,21 @@ public class TerminalTextBuffer {
 
     final int oldHeight = myHeight;
     if (newHeight < oldHeight) {
-      int count = oldHeight - newHeight;
       if (!myAlternateBuffer) {
+        int lineDiffCount = oldHeight - newHeight;
         //we need to move lines from text buffer to the scroll buffer
         //but empty bottom lines up to the cursor can be collapsed
-        int maxBottomLinesToRemove = Math.min(count, Math.max(0, oldHeight - cursorY));
+        int maxBottomLinesToRemove = Math.min(lineDiffCount, Math.max(0, oldHeight - cursorY));
         int emptyLinesDeleted = myScreenBuffer.removeBottomEmptyLines(oldHeight - 1, maxBottomLinesToRemove);
-        myScreenBuffer.moveTopLinesTo(count - emptyLinesDeleted, myHistoryBuffer);
-        newCursorY = cursorY - (count - emptyLinesDeleted);
-      } else {
-        newCursorY = cursorY;
+        int screenLinesToMove = lineDiffCount - emptyLinesDeleted;
+        myScreenBuffer.moveTopLinesTo(screenLinesToMove, myHistoryBuffer);
+        newCursorY = cursorY - screenLinesToMove;
+        if (selection != null) {
+          selection.shiftY(-screenLinesToMove);
+        }
       }
-      if (selection != null) {
-        selection.shiftY(-count);
+      else {
+        newCursorY = cursorY;
       }
     } else if (newHeight > oldHeight) {
       if (USE_CONPTY_COMPATIBLE_RESIZE) {
@@ -161,12 +163,12 @@ public class TerminalTextBuffer {
           int historyLinesCount = Math.min(newHeight - oldHeight, myHistoryBuffer.getLineCount());
           myHistoryBuffer.moveBottomLinesTo(historyLinesCount, myScreenBuffer);
           newCursorY = cursorY + historyLinesCount;
+          if (selection != null) {
+            selection.shiftY(historyLinesCount);
+          }
         } else {
           newCursorY = cursorY;
         }
-      }
-      if (selection != null) {
-        selection.shiftY(newHeight - cursorY);
       }
     }
 

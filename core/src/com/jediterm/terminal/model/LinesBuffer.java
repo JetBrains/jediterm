@@ -209,14 +209,7 @@ public class LinesBuffer {
 
   synchronized int moveTopLinesTo(int count, final @NotNull LinesBuffer buffer) {
     count = Math.min(count, getLineCount());
-    List<TerminalLine> lines = myLines.subList(0, count);
-    if (lines.stream().anyMatch(line -> {
-      String text = line.getText();
-      return text.startsWith("#") && text.contains("screen size");
-    })) {
-      System.out.print("");
-    }
-    buffer.addLines(lines);
+    buffer.addLines(myLines.subList(0, count));
     removeTopLines(count);
     return count;
   }

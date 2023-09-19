@@ -40,6 +40,12 @@ public interface UserSettingsProvider {
 
   HyperlinkStyle.HighlightMode getHyperlinkHighlightingMode();
 
+  default boolean enableTextBlink() { return false; }
+
+  default int slowTextBlinkMs() { return 1000; }
+
+  default int rapidTextBlinkMs() { return 500; }
+
   boolean useInverseSelectionColor();
 
   boolean copyOnSelect();

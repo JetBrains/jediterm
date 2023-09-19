@@ -82,6 +82,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   /*scroll and cursor*/
   final private TerminalCursor myCursor = new TerminalCursor();
 
+  final private BlinkingTextTracker myTextBlinkingTracker = new BlinkingTextTracker();
+
   //we scroll a window [0, terminal_height] in the range [-history_lines_count, terminal_height]
   private final BoundedRangeModel myBoundedRangeModel = new DefaultBoundedRangeModel(0, 80, 0, 80);
 
@@ -101,6 +103,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
   private int myMaxFPS = 50;
   private int myBlinkingPeriod = 500;
+  private boolean myTextBlinkingEnabled = false;
+  private int mySlowTextBlinkingPeriod = 1000;
+  private int myRapidTextBlinkingPeriod = 500;
   private TerminalCoordinates myCoordsAccessor;
 
   private SubstringFinder.FindResult myFindResult;
@@ -450,6 +455,18 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     myBlinkingPeriod = blinkingPeriod;
   }
 
+  public void toggleTextBlink(boolean textBlinkingEnabled) {
+    myTextBlinkingEnabled = textBlinkingEnabled;
+  }
+
+  public void setSlowTextBlinkingPeriod(int slowTextBlinkingPeriod) {
+    mySlowTextBlinkingPeriod = slowTextBlinkingPeriod;
+  }
+
+  public void setRapidTextBlinkingPeriod(int rapidTextBlinkingPeriod) {
+    myRapidTextBlinkingPeriod = rapidTextBlinkingPeriod;
+  }
+
   public void setCoordAccessor(TerminalCoordinates coordAccessor) {
     myCoordsAccessor = coordAccessor;
   }
@@ -501,6 +518,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       TerminalPanel terminalPanel = ref.get();
       if (terminalPanel != null) {
         terminalPanel.myCursor.changeStateIfNeeded();
+        terminalPanel.myTextBlinkingTracker.changeStateIfNeeded();
         terminalPanel.updateScrolling(false);
         if (terminalPanel.needRepaint.getAndSet(false)) {
           try {
@@ -1221,11 +1239,80 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     }
   }
 
+  public class BlinkingTextTracker {
+    private long myLastSlowTextBlink;
+    private long myLastRapidTextBlink;
+
+    private boolean mySlowTextBlinking;
+    private boolean myRapidTextBlinking;
+
+    public boolean isSlowTextBlinking() {
+      return mySlowTextBlinking;
+    }
+
+    public boolean isRapidTextBlinking() {
+      return myRapidTextBlinking;
+    }
+
+    public void changeStateIfNeeded() {
+      if (!isTextBlinkingEnabled())
+        return;
+      boolean repaint = false;
+      long currentTime = System.currentTimeMillis();
+
+      long slowRate = getSlowTextBlinkingPeriod();
+      long slowTriggerPoint = currentTime - slowRate;
+      if (myLastSlowTextBlink < slowTriggerPoint) {
+        mySlowTextBlinking = !mySlowTextBlinking;
+        if (myLastSlowTextBlink == 0)
+          myLastSlowTextBlink = currentTime;
+        else while (myLastSlowTextBlink < slowTriggerPoint)
+          myLastSlowTextBlink += slowRate;
+        repaint = true;
+      }
+
+      long rapidRate = getRapidTextBlinkingPeriod();
+      long rapidTriggerPoint = currentTime - rapidRate;
+      if (myLastRapidTextBlink < rapidTriggerPoint) {
+        myRapidTextBlinking = !myRapidTextBlinking;
+        if (myLastRapidTextBlink == 0)
+          myLastRapidTextBlink = currentTime;
+        else while (myLastRapidTextBlink < rapidTriggerPoint)
+          myLastRapidTextBlink += rapidRate;
+        repaint = true;
+      }
+
+      if (repaint)
+        repaint();
+    }
+  }
+
   private int getBlinkingPeriod() {
     if (myBlinkingPeriod != mySettingsProvider.caretBlinkingMs()) {
       setBlinkingPeriod(mySettingsProvider.caretBlinkingMs());
     }
     return myBlinkingPeriod;
+  }
+
+  private boolean isTextBlinkingEnabled() {
+    if (myTextBlinkingEnabled != mySettingsProvider.enableTextBlink()) {
+      toggleTextBlink(mySettingsProvider.enableTextBlink());
+    }
+    return myTextBlinkingEnabled;
+  }
+
+  private int getSlowTextBlinkingPeriod() {
+    if (mySlowTextBlinkingPeriod != mySettingsProvider.slowTextBlinkMs()) {
+      setSlowTextBlinkingPeriod(mySettingsProvider.slowTextBlinkMs());
+    }
+    return mySlowTextBlinkingPeriod;
+  }
+
+  private int getRapidTextBlinkingPeriod() {
+    if (myRapidTextBlinkingPeriod != mySettingsProvider.rapidTextBlinkMs()) {
+      setRapidTextBlinkingPeriod(mySettingsProvider.rapidTextBlinkMs());
+    }
+    return myRapidTextBlinkingPeriod;
   }
 
   protected void drawImage(Graphics2D g, BufferedImage image, int dx1, int dy1, int dx2, int dy2, int sx1, int sy1, int sx2, int sy2) {
@@ -1251,6 +1338,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
   private void drawCharacters(int x, int y, TextStyle style, CharBuffer buf, Graphics2D gfx,
                               boolean includeSpaceBetweenLines) {
+    if ((style.hasOption(Option.SLOW_BLINK) && myTextBlinkingTracker.isSlowTextBlinking()) ||
+        (style.hasOption(Option.RAPID_BLINK) && myTextBlinkingTracker.isRapidTextBlinking())) {
+      style = getInversedStyle(style);
+    }
+
     int xCoord = x * myCharSize.width + getInsetX();
     int yCoord = y * myCharSize.height + (includeSpaceBetweenLines ? 0 : mySpaceBetweenLines / 2);
 

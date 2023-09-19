@@ -102,7 +102,8 @@ public class TextStyle {
   public enum Option {
     BOLD,
     ITALIC,
-    BLINK,
+    SLOW_BLINK,
+    RAPID_BLINK,
     DIM,
     INVERSE,
     UNDERLINED,

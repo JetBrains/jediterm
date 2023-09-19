@@ -929,8 +929,13 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 4:// Underlined
           builder.setOption(TextStyle.Option.UNDERLINED, true);
           break;
-        case 5:// Blink (appears as Bold)
-          builder.setOption(TextStyle.Option.BLINK, true);
+        case 5:// Slow Blink
+          builder.setOption(TextStyle.Option.SLOW_BLINK, true);
+          builder.setOption(TextStyle.Option.RAPID_BLINK, false);
+          break;
+        case 6:// Rapid Blink
+          builder.setOption(TextStyle.Option.SLOW_BLINK, false);
+          builder.setOption(TextStyle.Option.RAPID_BLINK, true);
           break;
         case 7:// Inverse
           builder.setOption(TextStyle.Option.INVERSE, true);
@@ -949,7 +954,8 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           builder.setOption(TextStyle.Option.UNDERLINED, false);
           break;
         case 25: //Steady (not blinking)
-          builder.setOption(TextStyle.Option.BLINK, false);
+          builder.setOption(TextStyle.Option.SLOW_BLINK, false);
+          builder.setOption(TextStyle.Option.RAPID_BLINK, false);
           break;
         case 27: //Positive (not inverse)
           builder.setOption(TextStyle.Option.INVERSE, false);

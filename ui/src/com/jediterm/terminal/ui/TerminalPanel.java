@@ -1075,15 +1075,15 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     return myTerminalKeyHandler;
   }
 
-  public enum TerminalCursorState {
+  private enum TerminalCursorState {
     SHOWING, HIDDEN, NO_FOCUS;
   }
 
-  public class TerminalCursor {
+  private class TerminalCursor {
 
     // cursor state
     private boolean myCursorIsShown; // blinking state
-    protected Point myCursorCoordinates = new Point();
+    private final Point myCursorCoordinates = new Point();
     private CursorShape myShape = CursorShape.BLINK_BLOCK;
 
     // terminal modes
@@ -1536,12 +1536,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       case STEADY_BLOCK:
       case STEADY_UNDERLINE:
       case STEADY_VERTICAL_BAR:
-        myCursor.myBlinking = false;
+        myCursor.setBlinking(false);
         break;
       case BLINK_BLOCK:
       case BLINK_UNDERLINE:
       case BLINK_VERTICAL_BAR:
-        myCursor.myBlinking = true;
+        myCursor.setBlinking(true);
         break;
     }
   }
@@ -1656,10 +1656,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   @Override
   public void setBlinkingCursor(boolean isCursorBlinking) {
     myCursor.setBlinking(isCursorBlinking);
-  }
-
-  public TerminalCursor getTerminalCursor() {
-    return myCursor;
   }
 
   public TerminalOutputStream getTerminalOutputStream() {

@@ -1,9 +1,9 @@
 package com.jediterm.ui;
 
 import com.jediterm.app.TtyConnectorWaitFor;
-import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TerminalDisplay;
 import com.jediterm.terminal.TtyConnector;
+import com.jediterm.terminal.model.TerminalApplicationTitleListener;
 import com.jediterm.terminal.ui.*;
 import com.jediterm.terminal.ui.settings.TabbedSettingsProvider;
 import org.jetbrains.annotations.NotNull;
@@ -21,7 +21,7 @@ import java.util.function.Function;
 public abstract class AbstractTabbedTerminalWidget<T extends JediTermWidget> extends JPanel implements TerminalWidget, TerminalActionProvider {
   private final Object myLock = new Object();
 
-  private TerminalPanelListener myTerminalPanelListener = null;
+  private TerminalApplicationTitleListener myTerminalApplicationTitleListener = null;
 
   private T myTermWidget = null;
 
@@ -72,8 +72,8 @@ public abstract class AbstractTabbedTerminalWidget<T extends JediTermWidget> ext
 
     terminal.setNextProvider(this);
 
-    if (myTerminalPanelListener != null) {
-      terminal.setTerminalPanelListener(myTerminalPanelListener);
+    if (myTerminalApplicationTitleListener != null) {
+      terminal.getTerminal().addApplicationTitleListener(myTerminalApplicationTitleListener);
     }
 
     if (myTermWidget == null && myTabs == null) {
@@ -82,10 +82,6 @@ public abstract class AbstractTabbedTerminalWidget<T extends JediTermWidget> ext
 
       add(myTermWidget.getComponent(), BorderLayout.CENTER);
       setSize(size);
-
-      if (myTerminalPanelListener != null) {
-        myTerminalPanelListener.onPanelResize(RequestOrigin.User);
-      }
 
       onSessionChanged();
     }
@@ -283,16 +279,16 @@ public abstract class AbstractTabbedTerminalWidget<T extends JediTermWidget> ext
     return true;
   }
 
-  @Override
-  public void setTerminalPanelListener(TerminalPanelListener terminalPanelListener) {
+  public void setTerminalTitleListener(@NotNull TerminalApplicationTitleListener terminalApplicationTitleListener) {
     if (myTabs != null) {
       for (int i = 0; i < myTabs.getTabCount(); i++) {
-        getTerminalPanel(i).setTerminalPanelListener(terminalPanelListener);
+        getTerminalPanel(i).getTerminal().addApplicationTitleListener(terminalApplicationTitleListener);
       }
-    } else if (myTermWidget!= null) {
-      myTermWidget.setTerminalPanelListener(terminalPanelListener);
     }
-    myTerminalPanelListener = terminalPanelListener;
+    else if (myTermWidget != null) {
+      myTermWidget.getTerminal().addApplicationTitleListener(terminalApplicationTitleListener);
+    }
+    myTerminalApplicationTitleListener = terminalApplicationTitleListener;
   }
 
   public @NotNull T getCurrentSession() {

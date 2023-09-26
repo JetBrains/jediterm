@@ -10,7 +10,6 @@ import com.jediterm.terminal.model.SelectionUtil;
 import com.jediterm.terminal.model.TerminalSelection;
 import com.jediterm.terminal.ui.JediTermWidget;
 import com.jediterm.terminal.ui.TerminalPanel;
-import com.jediterm.terminal.ui.TerminalPanelListener;
 import com.jediterm.terminal.ui.TerminalWidget;
 import com.jediterm.terminal.ui.settings.DefaultTabbedSettingsProvider;
 import com.jediterm.terminal.ui.settings.TabbedSettingsProvider;
@@ -177,18 +176,7 @@ public abstract class AbstractTerminalFrame {
     frame.setResizable(true);
 
     tabbedTerminalWidget.addTabListener(new MyTabListener<>());
-    myTerminal.setTerminalPanelListener(new TerminalPanelListener() {
-      public void onPanelResize(@NotNull RequestOrigin origin) {
-        if (origin == RequestOrigin.Remote) {
-          sizeFrameForTerm(frame);
-        }
-      }
-
-      @Override
-      public void onTitleChanged(String title) {
-        frame.setTitle(title);
-      }
-    });
+    myTerminal.setTerminalTitleListener(frame::setTitle);
 
     openSession(myTerminal);
   }

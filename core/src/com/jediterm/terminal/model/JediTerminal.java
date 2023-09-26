@@ -15,6 +15,7 @@ import com.jediterm.terminal.emulator.mouse.*;
 import com.jediterm.terminal.model.hyperlinks.LinkResultItem;
 import com.jediterm.terminal.model.hyperlinks.TextProcessing;
 import com.jediterm.terminal.util.CharUtils;
+import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -71,6 +72,8 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   private MouseMode myMouseMode = MouseMode.MOUSE_REPORTING_NONE;
   private Point myLastMotionReport = null;
   private boolean myCursorYChanged;
+
+  private final List<TerminalApplicationTitleListener> myApplicationTitleListeners = new CopyOnWriteArrayList<>();
 
   public JediTerminal(@NotNull TerminalDisplay display, @NotNull TerminalTextBuffer buf, @NotNull StyleState initialStyleState) {
     myTerminalKeyEncoder = new TerminalKeyEncoder(Platform.current());
@@ -258,7 +261,24 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
   @Override
   public void setWindowTitle(@NotNull String name) {
-    myDisplay.setWindowTitle(name);
+    changeApplicationTitle(name);
+  }
+
+  @Override
+  public void addApplicationTitleListener(@NotNull TerminalApplicationTitleListener listener) {
+    myApplicationTitleListeners.add(listener);
+  }
+
+  @Override
+  public void removeApplicationTitleListener(@NotNull TerminalApplicationTitleListener listener) {
+    myApplicationTitleListeners.remove(listener);
+  }
+
+  private void changeApplicationTitle(@Nls String newApplicationTitle) {
+    for (TerminalApplicationTitleListener applicationTitleListener : myApplicationTitleListeners) {
+      applicationTitleListener.onApplicationTitleChanged(newApplicationTitle);
+    }
+    myDisplay.setWindowTitle(newApplicationTitle);
   }
 
   @Override
@@ -271,7 +291,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   public void restoreWindowTitleFromStack() {
     if (!myWindowTitlesStack.empty()) {
       String title = myWindowTitlesStack.pop();
-      myDisplay.setWindowTitle(title);
+      changeApplicationTitle(title);
     }
   }
 
@@ -285,16 +305,16 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     return myDisplay.getWindowBackground();
   }
 
-  private final List<TerminalCustomCommandListener> myListeners = new CopyOnWriteArrayList<>();
+  private final List<TerminalCustomCommandListener> myCustomCommandListeners = new CopyOnWriteArrayList<>();
 
   @Override
   public void addCustomCommandListener(@NotNull TerminalCustomCommandListener listener) {
-    myListeners.add(listener);
+    myCustomCommandListeners.add(listener);
   }
 
   @Override
   public void processCustomCommand(@NotNull List<String> args) {
-    for (TerminalCustomCommandListener listener : myListeners) {
+    for (TerminalCustomCommandListener listener : myCustomCommandListeners) {
       listener.process(args);
     }
   }

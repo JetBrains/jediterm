@@ -61,14 +61,7 @@ class JediTerm : AbstractTerminalFrame() {
 
   override fun createTtyConnector(): TtyConnector {
     try {
-      val charset = StandardCharsets.UTF_8
-      val envs = HashMap(System.getenv())
-      if (Platform.current() == Platform.Mac) {
-        envs["LC_CTYPE"] = Charsets.UTF_8.name()
-      }
-      else {
-        envs["TERM"] = "xterm-256color"
-      }
+      val envs: Map<String, String> = configureEnvironmentVariables()
       val command: Array<String> = if (Platform.current() == Platform.Windows) {
         arrayOf("powershell.exe")
       }
@@ -87,12 +80,23 @@ class JediTerm : AbstractTerminalFrame() {
         .setUseWinConPty(true)
         .start()
 
-      return LoggingPtyProcessTtyConnector(process, charset, command.toList())
+      return LoggingPtyProcessTtyConnector(process, StandardCharsets.UTF_8, command.toList())
     }
     catch (e: Exception) {
       throw IllegalStateException(e)
     }
 
+  }
+
+  private fun configureEnvironmentVariables(): Map<String, String> {
+    val envs = HashMap(System.getenv())
+    if (Platform.current() == Platform.Mac) {
+      envs["LC_CTYPE"] = Charsets.UTF_8.name()
+    }
+    if (Platform.current() != Platform.Windows) {
+      envs["TERM"] = "xterm-256color"
+    }
+    return envs
   }
 
   override fun createTerminalWidget(settingsProvider: TabbedSettingsProvider): JediTerminalWidget {

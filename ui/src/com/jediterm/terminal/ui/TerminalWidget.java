@@ -2,6 +2,8 @@ package com.jediterm.terminal.ui;
 
 import com.jediterm.terminal.TerminalDisplay;
 import com.jediterm.terminal.TtyConnector;
+import com.jediterm.terminal.model.JediTerminal;
+import com.jediterm.terminal.model.TerminalApplicationTitleListener;
 
 import javax.swing.*;
 import java.awt.*;
@@ -20,7 +22,11 @@ public interface TerminalWidget {
 
   boolean canOpenSession();
 
-  void setTerminalPanelListener(TerminalPanelListener terminalPanelListener);
+  /**
+   * @deprecated use {@link JediTerminal#addApplicationTitleListener(TerminalApplicationTitleListener)} instead
+   */
+  @Deprecated
+  default void setTerminalPanelListener(TerminalPanelListener terminalPanelListener) {}
 
   Dimension getPreferredSize();
 

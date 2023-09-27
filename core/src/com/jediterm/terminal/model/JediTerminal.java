@@ -72,14 +72,14 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   private Point myLastMotionReport = null;
   private boolean myCursorYChanged;
 
-  public JediTerminal(final TerminalDisplay display, final TerminalTextBuffer buf, final StyleState initialStyleState) {
+  public JediTerminal(@NotNull TerminalDisplay display, @NotNull TerminalTextBuffer buf, @NotNull StyleState initialStyleState) {
     myTerminalKeyEncoder = new TerminalKeyEncoder(Platform.current());
     myDisplay = display;
     myTerminalTextBuffer = buf;
     myStyleState = initialStyleState;
 
-    myTerminalWidth = display.getColumnCount();
-    myTerminalHeight = display.getRowCount();
+    myTerminalWidth = buf.getWidth();
+    myTerminalHeight = buf.getHeight();
 
     myScrollRegionTop = 1;
     myScrollRegionBottom = myTerminalHeight;
@@ -257,7 +257,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   @Override
-  public void setWindowTitle(String name) {
+  public void setWindowTitle(@NotNull String name) {
     myDisplay.setWindowTitle(name);
   }
 
@@ -405,7 +405,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   @Override
   public void useAlternateBuffer(boolean enabled) {
     myTerminalTextBuffer.useAlternateBuffer(enabled);
-    myDisplay.setScrollingEnabled(!enabled);
+    myDisplay.useAlternateScreenBuffer(enabled);
   }
 
   @Override
@@ -651,7 +651,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   @Override
-  public void cursorShape(CursorShape shape) {
+  public void cursorShape(@NotNull CursorShape shape) {
     myDisplay.setCursorShape(shape);
   }
 
@@ -798,7 +798,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
     myTerminalTextBuffer.clearAll();
 
-    myDisplay.setScrollingEnabled(true);
+    myDisplay.useAlternateScreenBuffer(false);
 
     initModes();
 
@@ -1034,8 +1034,9 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   @Override
-  public void setMouseFormat(MouseFormat mouseFormat) {
+  public void setMouseFormat(@NotNull MouseFormat mouseFormat) {
     myMouseFormat = mouseFormat;
+    myDisplay.setMouseFormat(mouseFormat);
   }
 
   private void adjustXY(int dirX) {

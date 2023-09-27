@@ -11,6 +11,7 @@ import com.jediterm.terminal.SubstringFinder.FindResult.FindItem;
 import com.jediterm.terminal.TextStyle.Option;
 import com.jediterm.terminal.emulator.ColorPalette;
 import com.jediterm.terminal.emulator.charset.CharacterSets;
+import com.jediterm.terminal.emulator.mouse.MouseFormat;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
 import com.jediterm.terminal.emulator.mouse.TerminalMouseListener;
 import com.jediterm.terminal.model.*;
@@ -518,9 +519,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   }
 
   @Override
-  public void terminalMouseModeSet(MouseMode mode) {
-    myMouseMode = mode;
+  public void terminalMouseModeSet(@NotNull MouseMode mouseMode) {
+    myMouseMode = mouseMode;
   }
+
+  @Override
+  public void setMouseFormat(@NotNull MouseFormat mouseFormat) {}
 
   private boolean isMouseReporting() {
     return myMouseMode != MouseMode.MOUSE_REPORTING_NONE;
@@ -665,10 +669,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   }
 
   public void requestResize(@NotNull TermSize newSize,
-                            final RequestOrigin origin,
+                            @NotNull RequestOrigin origin,
                             int cursorX,
                             int cursorY,
-                            JediTerminal.ResizeHandler resizeHandler) {
+                            JediTerminal.@NotNull ResizeHandler resizeHandler) {
     myTerminalTextBuffer.resize(newSize, origin, cursorX, cursorY, resizeHandler, mySelection);
     myTermSize = newSize;
 
@@ -980,11 +984,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     return myCharSize.height * myTermSize.getRows();
   }
 
-  public int getColumnCount() {
+  private int getColumnCount() {
     return myTermSize.getColumns();
   }
 
-  public int getRowCount() {
+  private int getRowCount() {
     return myTermSize.getRows();
   }
 
@@ -1526,9 +1530,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   }
 
   @Override
-  public void setCursorShape(CursorShape shape) {
-    myCursor.setShape(shape);
-    switch (shape) {
+  public void setCursorShape(@NotNull CursorShape cursorShape) {
+    myCursor.setShape(cursorShape);
+    switch (cursorShape) {
       case STEADY_BLOCK:
       case STEADY_UNDERLINE:
       case STEADY_VERTICAL_BAR:
@@ -1589,8 +1593,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   }
 
   @Override
-  public void setBracketedPasteMode(boolean enabled) {
-    myBracketedPasteMode = enabled;
+  public void setBracketedPasteMode(boolean bracketedPasteModeEnabled) {
+    myBracketedPasteMode = bracketedPasteModeEnabled;
   }
 
   public LinesBuffer getScrollBuffer() {
@@ -1598,8 +1602,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   }
 
   @Override
-  public void setCursorVisible(boolean shouldDrawCursor) {
-    myCursor.setShouldDrawCursor(shouldDrawCursor);
+  public void setCursorVisible(boolean isCursorVisible) {
+    myCursor.setShouldDrawCursor(isCursorVisible);
   }
 
   protected @NotNull JPopupMenu createPopupMenu(@NotNull TerminalActionProvider actionProvider) {
@@ -1630,8 +1634,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     return this;
   }
 
-  public void setScrollingEnabled(boolean scrollingEnabled) {
-    myScrollingEnabled = scrollingEnabled;
+  @Override
+  public void useAlternateScreenBuffer(boolean useAlternateScreenBuffer) {
+    myScrollingEnabled = !useAlternateScreenBuffer;
     SwingUtilities.invokeLater(() -> {
       updateScrolling(true);
       if (myUsingAlternateBuffer != myTerminalTextBuffer.isUsingAlternateBuffer()) {
@@ -1649,8 +1654,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   }
 
   @Override
-  public void setBlinkingCursor(boolean enabled) {
-    myCursor.setBlinking(enabled);
+  public void setBlinkingCursor(boolean isCursorBlinking) {
+    myCursor.setBlinking(isCursorBlinking);
   }
 
   public TerminalCursor getTerminalCursor() {
@@ -1662,8 +1667,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   }
 
   @Override
-  public void setWindowTitle(String name) {
-    myWindowTitle = name;
+  public void setWindowTitle(@NotNull String windowTitle) {
+    myWindowTitle = windowTitle;
     if (myTerminalPanelListener != null) {
       myTerminalPanelListener.onTitleChanged(myWindowTitle);
     }

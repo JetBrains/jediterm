@@ -5,6 +5,7 @@ import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.CursorShape;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TerminalDisplay;
+import com.jediterm.terminal.emulator.mouse.MouseFormat;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
 import com.jediterm.terminal.model.JediTerminal;
 import com.jediterm.terminal.model.TerminalSelection;
@@ -27,21 +28,11 @@ public class BackBufferDisplay implements TerminalDisplay {
   }
 
   @Override
-  public int getRowCount() {
-    return myTerminalTextBuffer.getHeight();
-  }
-
-  @Override
-  public int getColumnCount() {
-    return myTerminalTextBuffer.getWidth();
-  }
-
-  @Override
   public void setCursor(int x, int y) {
   }
 
   @Override
-  public void setCursorShape(CursorShape shape) {
+  public void setCursorShape(@NotNull CursorShape cursorShape) {
   }
 
   @Override
@@ -49,7 +40,8 @@ public class BackBufferDisplay implements TerminalDisplay {
   }
 
   @Override
-  public void requestResize(@NotNull TermSize newWinSize, RequestOrigin origin, int cursorX, int cursorY, JediTerminal.ResizeHandler resizeHandler) {
+  public void requestResize(@NotNull TermSize newWinSize, @NotNull RequestOrigin origin, int cursorX, int cursorY,
+                            JediTerminal.@NotNull ResizeHandler resizeHandler) {
     myTerminalTextBuffer.resize(newWinSize, origin, cursorX, cursorY, resizeHandler, mySelection);
   }
 
@@ -58,20 +50,20 @@ public class BackBufferDisplay implements TerminalDisplay {
   }
 
   @Override
-  public void setCursorVisible(boolean shouldDrawCursor) {
+  public void setCursorVisible(boolean isCursorVisible) {
   }
 
   @Override
-  public void setScrollingEnabled(boolean enabled) {
+  public void useAlternateScreenBuffer(boolean useAlternateScreenBuffer) {
   }
 
   @Override
-  public void setBlinkingCursor(boolean enabled) {
+  public void setBlinkingCursor(boolean isCursorBlinking) {
   }
 
   @Override
-  public void setWindowTitle(String title) {
-    myWindowTitle = title;
+  public void setWindowTitle(@NotNull String windowTitle) {
+    myWindowTitle = windowTitle;
   }
 
   public @Nullable String getWindowTitle() {
@@ -92,7 +84,11 @@ public class BackBufferDisplay implements TerminalDisplay {
   }
 
   @Override
-  public void terminalMouseModeSet(MouseMode mode) {
+  public void terminalMouseModeSet(@NotNull MouseMode mouseMode) {
+  }
+
+  @Override
+  public void setMouseFormat(@NotNull MouseFormat mouseFormat) {
   }
 
   @Override

@@ -3,6 +3,7 @@ package com.jediterm.ui;
 import com.jediterm.app.JediTerm;
 import com.jediterm.core.compatibility.Point;
 import com.jediterm.terminal.RequestOrigin;
+import com.jediterm.terminal.Terminal;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.debug.BufferPanel;
 import com.jediterm.terminal.model.SelectionUtil;
@@ -47,17 +48,18 @@ public abstract class AbstractTerminalFrame {
 
   private final AbstractAction myDumpDimension = new AbstractAction("Dump terminal dimension") {
     public void actionPerformed(final ActionEvent e) {
-      LOG.info(myTerminal.getTerminalDisplay().getColumnCount() +
-        "x" + myTerminal.getTerminalDisplay().getRowCount());
+      Terminal terminal = myTerminal.getCurrentSession().getTerminal();
+      LOG.info(terminal.getTerminalWidth() + "x" + terminal.getTerminalHeight());
     }
   };
 
   private final AbstractAction myDumpSelection = new AbstractAction("Dump selection") {
     public void actionPerformed(final ActionEvent e) {
-      TerminalPanel terminalPanel = myTerminal.getCurrentSession().getTerminalPanel();
+      JediTermWidget widget = myTerminal.getCurrentSession();
+      TerminalPanel terminalPanel = widget.getTerminalPanel();
       TerminalSelection selection = terminalPanel.getSelection();
       if (selection != null) {
-        Pair<Point, Point> points = selection.pointsForRun(terminalPanel.getColumnCount());
+        Pair<Point, Point> points = selection.pointsForRun(widget.getTerminal().getTerminalWidth());
         LOG.info(selection + " : '"
           + SelectionUtil.getSelectionText(points.first, points.second, terminalPanel.getTerminalTextBuffer()) + "'");
       }

@@ -81,7 +81,7 @@ public interface Terminal {
 
   void cursorBackward(int dX);
 
-  void cursorShape(CursorShape shape);
+  void cursorShape(@NotNull CursorShape shape);
 
   void eraseInLine(int arg);
 
@@ -103,7 +103,7 @@ public interface Terminal {
 
   void singleShiftSelect(int num);
 
-  void setWindowTitle(String name);
+  void setWindowTitle(@NotNull String name);
 
   void saveWindowTitleOnStack();
 

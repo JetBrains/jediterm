@@ -4,7 +4,7 @@ import com.jediterm.app.JediTerm;
 import com.jediterm.core.compatibility.Point;
 import com.jediterm.terminal.Terminal;
 import com.jediterm.terminal.TtyConnector;
-import com.jediterm.ui.debug.BufferPanel;
+import com.jediterm.ui.debug.TerminalDebugView;
 import com.jediterm.terminal.model.SelectionUtil;
 import com.jediterm.terminal.model.TerminalSelection;
 import com.jediterm.terminal.ui.JediTermWidget;
@@ -210,19 +210,19 @@ public abstract class AbstractTerminalFrame {
       return;
     }
     myBufferFrame = new JFrame("buffers");
-    final JPanel panel = new BufferPanel(myTerminal.getCurrentSession());
-
-    myBufferFrame.getContentPane().add(panel);
+    TerminalDebugView debugView = new TerminalDebugView(myTerminal.getCurrentSession());
+    myBufferFrame.getContentPane().add(debugView.getComponent());
     myBufferFrame.pack();
     myBufferFrame.setLocationByPlatform(true);
     myBufferFrame.setVisible(true);
-    myBufferFrame.setSize(800, 600);
+    myBufferFrame.setSize(1600, 1000);
 
     myBufferFrame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
     myBufferFrame.addWindowListener(new WindowAdapter() {
       @Override
       public void windowClosed(final WindowEvent e) {
         myBufferFrame = null;
+        debugView.stop();
       }
     });
   }

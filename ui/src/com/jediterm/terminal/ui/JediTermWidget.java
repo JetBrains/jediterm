@@ -6,7 +6,6 @@ import com.jediterm.core.typeahead.TypeAheadTerminalModel;
 import com.jediterm.terminal.*;
 import com.jediterm.terminal.SubstringFinder.FindResult;
 import com.jediterm.terminal.SubstringFinder.FindResult.FindItem;
-import com.jediterm.terminal.debug.DebugBufferType;
 import com.jediterm.terminal.model.*;
 import com.jediterm.terminal.model.hyperlinks.HyperlinkFilter;
 import com.jediterm.terminal.model.hyperlinks.TextProcessing;
@@ -225,10 +224,6 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   public boolean isSessionRunning() {
     return myRunningSession.get() != null;
-  }
-
-  public String getBufferText(DebugBufferType type, int stateIndex) {
-    return type.getValue(this, stateIndex);
   }
 
   @Override

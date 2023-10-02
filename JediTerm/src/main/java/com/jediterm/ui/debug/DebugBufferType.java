@@ -1,8 +1,9 @@
-package com.jediterm.terminal.debug;
+package com.jediterm.ui.debug;
 
 import com.jediterm.terminal.LoggingTtyConnector;
 import com.jediterm.terminal.LoggingTtyConnector.TerminalState;
 import com.jediterm.terminal.ui.TerminalSession;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
@@ -11,7 +12,7 @@ import java.util.List;
  */
 public enum DebugBufferType {
   Screen() {
-    public String getValue(TerminalSession session, int stateIndex) {
+    public @NotNull String getValue(TerminalSession session, int stateIndex) {
       List<TerminalState> states = ((LoggingTtyConnector) session.getTtyConnector()).getStates();
       if (stateIndex == states.size()) {
         return session.getTerminalTextBuffer().getScreenLines();
@@ -21,7 +22,7 @@ public enum DebugBufferType {
     }
   },
   BackStyle() {
-    public String getValue(TerminalSession session, int stateIndex) {
+    public @NotNull String getValue(TerminalSession session, int stateIndex) {
       List<TerminalState> states = ((LoggingTtyConnector) session.getTtyConnector()).getStates();
       if (stateIndex == states.size()) {
         return session.getTerminalTextBuffer().getStyleLines();
@@ -31,7 +32,7 @@ public enum DebugBufferType {
     }
   },
   History() {
-    public String getValue(TerminalSession session, int stateIndex) {
+    public @NotNull String getValue(TerminalSession session, int stateIndex) {
       List<TerminalState> states = ((LoggingTtyConnector) session.getTtyConnector()).getStates();
       if (stateIndex == states.size()) {
         return session.getTerminalTextBuffer().getHistoryBuffer().getLines();
@@ -41,5 +42,5 @@ public enum DebugBufferType {
     }
   };
 
-  public abstract String getValue(TerminalSession session, int stateIndex);
+  public abstract @NotNull String getValue(TerminalSession session, int stateIndex);
 }

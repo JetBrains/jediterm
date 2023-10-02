@@ -1,10 +1,11 @@
 /**
  *
  */
-package com.jediterm.terminal.debug;
+package com.jediterm.ui.debug;
 
 import com.jediterm.terminal.LoggingTtyConnector;
 import com.jediterm.terminal.ui.TerminalSession;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
@@ -13,10 +14,10 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
-
+import java.util.Objects;
 
 public class BufferPanel extends JPanel {
-  public BufferPanel(final TerminalSession terminal) {
+  public BufferPanel(@NotNull TerminalSession terminal) {
     super(new GridBagLayout());
 
 
@@ -88,7 +89,7 @@ public class BufferPanel extends JPanel {
       private String myLastUpdateControlSequenceVisualization = "";
 
       public void update() {
-        final DebugBufferType type = (DebugBufferType) chooser.getSelectedItem();
+        final DebugBufferType type = Objects.requireNonNull((DebugBufferType) chooser.getSelectedItem());
         int newMinStateIndex = ttyConnector.getLogStart();
         int newMaxStateIndex = newMinStateIndex + ttyConnector.getChunks().size();
         slider.setMinimum(newMinStateIndex);
@@ -96,7 +97,7 @@ public class BufferPanel extends JPanel {
         SpinnerModel spinnerModel = new SpinnerNumberModel(Math.max((int) spinner.getValue(), newMinStateIndex), newMinStateIndex, newMaxStateIndex, 1);
         spinner.setModel(spinnerModel);
         int stateIndex = slider.getValue() - slider.getMinimum();
-        final String text = terminal.getBufferText(type, stateIndex);
+        final String text = type.getValue(terminal, stateIndex);
         final String controlSequencesVisualization = getControlSequencesVisualization(terminal, stateIndex);
         if (!text.equals(myLastUpdateText)) {
           area.setText(text);

@@ -1,4 +1,4 @@
-package com.jediterm.terminal.debug;
+package com.jediterm.ui.debug;
 
 import org.jetbrains.annotations.NotNull;
 

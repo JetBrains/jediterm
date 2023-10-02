@@ -2,10 +2,9 @@ package com.jediterm.ui;
 
 import com.jediterm.app.JediTerm;
 import com.jediterm.core.compatibility.Point;
-import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.Terminal;
 import com.jediterm.terminal.TtyConnector;
-import com.jediterm.terminal.debug.BufferPanel;
+import com.jediterm.ui.debug.BufferPanel;
 import com.jediterm.terminal.model.SelectionUtil;
 import com.jediterm.terminal.model.TerminalSelection;
 import com.jediterm.terminal.ui.JediTermWidget;

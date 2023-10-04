@@ -1779,14 +1779,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
         if (keepLastLine) {
           if (myCoordsAccessor.getY() > 0) {
             TerminalLine lastLine = myTerminalTextBuffer.getLine(myCoordsAccessor.getY() - 1);
-            myTerminalTextBuffer.clearAll();
+            myTerminalTextBuffer.clearScreenBuffer();
             myCoordsAccessor.setY(0);
             myCursor.setY(1);
             myTerminalTextBuffer.addLine(lastLine);
           }
         }
         else {
-          myTerminalTextBuffer.clearAll();
+          myTerminalTextBuffer.clearScreenBuffer();
           myCoordsAccessor.setX(0);
           myCoordsAccessor.setY(1);
           myCursor.setX(0);

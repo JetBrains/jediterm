@@ -91,7 +91,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
     myGraphicSetState = new GraphicSetState();
 
-    reset();
+    reset(true);
   }
 
 
@@ -811,14 +811,18 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   @Override
-  public void reset() {
+  public void reset(boolean clearScrollBackBuffer) {
     myGraphicSetState.resetState();
 
     myStyleState.reset();
 
-    myTerminalTextBuffer.clearAll();
-
-    myDisplay.useAlternateScreenBuffer(false);
+    useAlternateBuffer(false);
+    if (clearScrollBackBuffer) {
+      myTerminalTextBuffer.clearScreenAndHistoryBuffers();
+    }
+    else {
+      myTerminalTextBuffer.clearScreenBuffer();
+    }
 
     initModes();
 

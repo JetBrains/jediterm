@@ -56,7 +56,7 @@ public interface Terminal {
 
   void restoreCursor();
 
-  void reset();
+  void reset(boolean clearScrollBackBuffer);
 
   void characterAttributes(TextStyle textStyle);
 

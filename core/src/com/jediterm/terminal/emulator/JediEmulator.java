@@ -204,13 +204,12 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   }
 
   private boolean operatingSystemCommand(SystemCommandSequence args) {
+    // https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
     int ps = args.getIntAt(0, -1);
-
     switch (ps) {
       case 0: // Icon name / Window Title
       case 1: // Icon name
       case 2: // Window Title
-        // https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
         String name = args.getStringAt(1);
         if (name != null) {
           myTerminal.setWindowTitle(name);
@@ -236,6 +235,11 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       case 10:
       case 11:
         return processColorQuery(args);
+      case 104:
+        // `Ps = 104 ; c` (Reset Color Number c).
+        // Let's support resetting to avoid warnings.
+        // As there is no support for `Ps = 4 ; c ; spec` (Change Color Number c to the color specified by spec),
+        // resetting is just no operation.
       case 1341:
         List<String> argList = args.getArgs();
         myTerminal.processCustomCommand(argList.subList(1, argList.size()));

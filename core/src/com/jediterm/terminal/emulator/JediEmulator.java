@@ -156,8 +156,8 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       case 'F': //Cursor to lower left corner of the screen
         terminal.cursorPosition(1, terminal.getTerminalHeight());
         break;
-      case 'c': //Full Reset (RIS)
-        terminal.reset();
+      case 'c': // RIS (Reset to Initial State) https://vt100.net/docs/vt510-rm/RIS.html
+        terminal.reset(true);
         break;
       case 'n': //Invoke the G2 Character Set as GL - locking shift 2 (LS2)
         myTerminal.mapCharsetToGL(2);

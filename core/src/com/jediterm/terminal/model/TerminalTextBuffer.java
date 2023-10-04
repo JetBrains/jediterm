@@ -476,6 +476,21 @@ public class TerminalTextBuffer {
     }
   }
 
+  public void clearScreenAndHistoryBuffers() {
+    myScreenBuffer.clearAll();
+    myHistoryBuffer.clearAll();
+    fireModelChangeEvent();
+  }
+
+  public void clearScreenBuffer() {
+    myScreenBuffer.clearAll();
+    fireModelChangeEvent();
+  }
+
+  /**
+   * @deprecated use {@link #clearScreenAndHistoryBuffers()} instead
+   */
+  @Deprecated
   public void clearAll() {
     myScreenBuffer.clearAll();
     fireModelChangeEvent();

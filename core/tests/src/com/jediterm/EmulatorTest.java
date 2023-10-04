@@ -9,6 +9,7 @@ import org.junit.Assert;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 
 /**
  * @author traff
@@ -74,6 +75,37 @@ public class EmulatorTest extends EmulatorTestAbstract {
 
     session.process("\u001B]11;?\u001B\\");
     Assert.assertEquals("\033]11;rgb:1010/0f0f/0e0e\u001B\\", session.getTerminal().getOutputAndClear());
+  }
+
+  public void testResetToInitialState() throws IOException {
+    TestSession session = new TestSession(20, 4);
+    for (int i = 1; i <= 9; i++) {
+      if (i > 1) {
+        session.process("\r\n");
+      }
+      session.process("foo " + i);
+    }
+
+    assertScreenLines(session, List.of("foo 6", "foo 7", "foo 8", "foo 9"));
+    assertHistoryLines(session, List.of("foo 1", "foo 2", "foo 3", "foo 4", "foo 5"));
+
+    session.process(esc("c"));
+
+    assertScreenLines(session, List.of(""));
+    assertHistoryLines(session, List.of());
+  }
+
+  private void assertScreenLines(@NotNull TestSession session, @NotNull List<String> expectedScreenLines) {
+    Assert.assertEquals(expectedScreenLines, session.getTerminalTextBuffer().getScreenBuffer().getLineTexts());
+  }
+
+  private void assertHistoryLines(@NotNull TestSession session, @NotNull List<String> expectedHistoryLines) {
+    Assert.assertEquals(expectedHistoryLines, session.getTerminalTextBuffer().getHistoryBuffer().getLineTexts());
+  }
+
+  @SuppressWarnings("SameParameterValue")
+  private static @NotNull String esc(@NotNull String string) {
+    return "\u001B" + string;
   }
 
   @Override

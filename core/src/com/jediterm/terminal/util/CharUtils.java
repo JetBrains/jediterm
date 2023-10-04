@@ -308,6 +308,7 @@ public class CharUtils {
                          .replace("\r", "\\r")
                          .replace("\u0007", "BEL")
                          .replace(" ", "<S>")
+                         .replace("\t", "TAB")
                          .replace("\b", "\\b");
   }
 }

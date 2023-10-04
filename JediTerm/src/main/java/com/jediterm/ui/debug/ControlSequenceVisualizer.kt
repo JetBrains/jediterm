@@ -1,79 +1,33 @@
-package com.jediterm.ui.debug;
+package com.jediterm.ui.debug
 
-import org.jetbrains.annotations.NotNull;
+import com.jediterm.terminal.util.CharUtils
 
-import java.io.*;
-import java.util.List;
-
-/**
- * @author traff
- */
-public class ControlSequenceVisualizer {
-
-  private File myTempFile;
-
-  public ControlSequenceVisualizer() {
-    myTempFile = null;
-    try {
-      myTempFile = File.createTempFile("jeditermData", ".txt");
-      myTempFile.deleteOnExit();
+internal object ControlSequenceVisualizer {
+  fun getVisualizedString(logStart: Int,
+                          arrayChunks: List<CharArray>,
+                          settings: ControlSequenceSettings): String {
+    val originalChunks: List<String> = arrayChunks.map { String(it) }
+    var chunks: List<String> = originalChunks
+    if (settings.useTeseq) {
+      chunks = TeseqVisualizer().apply(chunks)
     }
-    catch (IOException e) {
-      throw new IllegalStateException(e);
+    if (settings.showInvisibleCharacters) {
+      chunks = chunks.map { CharUtils.toHumanReadableText(it) }
     }
+    if (settings.showChunkId) {
+      chunks = withChunkId(logStart, chunks, originalChunks)
+    }
+    return chunks.joinToString("")
   }
 
-  @NotNull String getVisualizedString(@NotNull List<char[]> chunks) {
-    try {
-      writeChunksToFile(chunks);
-      return readOutput(List.of("teseq", myTempFile.getAbsolutePath()));
+  private fun withChunkId(logStart: Int, chunks: List<String>, originalChunks: List<String>): List<String> {
+    check(chunks.size == originalChunks.size)
+    val result = ArrayList<String>()
+    for ((id, chunk) in chunks.withIndex()) {
+      val label = "--- # ${id + 1 + logStart} of ${originalChunks[id].length} chars ---\n"
+      result.add(if (id == 0) label else "\n$label")
+      result.add(chunk)
     }
-    catch (IOException e) {
-      return
-        "Control sequence visualizer teseq is not installed.\nSee http://www.gnu.org/software/teseq/\nNow printing characters as is:\n\n" +
-        joinChunks(chunks);
-    }
-  }
-
-  private static @NotNull String joinChunks(@NotNull List<char[]> chunks) {
-    StringBuilder sb = new StringBuilder();
-    for (char[] ch : chunks) {
-      sb.append(ch);
-    }
-    return sb.toString();
-  }
-
-  private void writeChunksToFile(@NotNull List<char[]> chunks) throws IOException {
-    try (OutputStreamWriter stream = new OutputStreamWriter(new FileOutputStream(myTempFile, false))) {
-      for (char[] data : chunks) {
-        stream.write(data);
-      }
-    }
-  }
-
-  private @NotNull String readOutput(@NotNull List<String> command) throws IOException {
-    Process process = new ProcessBuilder(command).start();
-
-    Reader inStreamReader = new InputStreamReader(process.getInputStream());
-    BufferedReader in = new BufferedReader(inStreamReader);
-
-    StringBuilder sb = new StringBuilder();
-    int i = 0;
-    String lastNum = null;
-    String line;
-    while ((line = in.readLine()) != null) {
-      if (!line.startsWith("&") && !line.startsWith("\"")) {
-        lastNum = String.format("%3d ", i++);
-        sb.append(lastNum);
-      } else {
-        if (lastNum != null) {
-          sb.append(" ".repeat(lastNum.length()));
-        }
-      }
-      sb.append(line);
-      sb.append("\n");
-    }
-    in.close();
-    return sb.toString();
+    return result
   }
 }

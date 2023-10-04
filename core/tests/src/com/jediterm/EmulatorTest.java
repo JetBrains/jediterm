@@ -113,6 +113,24 @@ public class EmulatorTest extends EmulatorTestAbstract {
     assertHistoryLines(session, List.of("foo 1", "foo 2", "foo 3", "foo 4", "foo 5"));
   }
 
+  public void testEraseInDisplay3() throws IOException {
+    TestSession session = new TestSession(20, 2);
+    for (int i = 1; i <= 5; i++) {
+      if (i > 1) {
+        session.process("\r\n");
+      }
+      session.process("foo " + i);
+    }
+
+    assertScreenLines(session, List.of("foo 4", "foo 5"));
+    assertHistoryLines(session, List.of("foo 1", "foo 2", "foo 3"));
+
+    session.process(csi("3J"));
+
+    assertScreenLines(session, List.of("", ""));
+    assertHistoryLines(session, List.of());
+  }
+
   private void assertScreenLines(@NotNull TestSession session, @NotNull List<String> expectedScreenLines) {
     Assert.assertEquals(expectedScreenLines, session.getTerminalTextBuffer().getScreenBuffer().getLineTexts());
   }

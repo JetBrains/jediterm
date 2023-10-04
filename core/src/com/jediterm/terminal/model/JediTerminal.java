@@ -357,6 +357,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
   @Override
   public void eraseInDisplay(final int arg) {
+    // ED (Erase in Display) https://vt100.net/docs/vt510-rm/ED.html
     myTerminalTextBuffer.lock();
     try {
       int beginY;
@@ -387,6 +388,14 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
           if (movedToHistoryLineCount > 0) {
             myDisplay.historyBufferLineCountChanged();
           }
+          break;
+        case 3:
+          // Clear entire screen and delete all lines saved in the scrollback buffer (xterm).
+          // https://en.wikipedia.org/wiki/ANSI_escape_code#CSIsection
+          // `clear` command emits it, and the scroll buffer is expected to be cleared as a result.
+          beginY = 0;
+          endY = myTerminalHeight - 1;
+          myTerminalTextBuffer.clearHistory();
           break;
         default:
           LOG.warn("Unsupported erase in display mode:" + arg);

@@ -800,16 +800,11 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   }
 
   private boolean eraseInDisplay(ControlSequence args) {
-    // ESC [ Ps J
-    final int arg = args.getArg(0, 0);
-
     if (args.startsWithQuestionMark()) {
-      //TODO: support ESC [ ? Ps J - Selective Erase (DECSED)
+      // Selective Erase (DECSED) is not supported
       return false;
     }
-
-    myTerminal.eraseInDisplay(arg);
-
+    myTerminal.eraseInDisplay(args.getArg(0, 0));
     return true;
   }
 

@@ -816,6 +816,8 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
     myStyleState.reset();
 
+    resetScrollRegions();
+
     useAlternateBuffer(false);
     if (clearScrollBackBuffer) {
       myTerminalTextBuffer.clearScreenAndHistoryBuffers();

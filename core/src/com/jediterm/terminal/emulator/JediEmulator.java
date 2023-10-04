@@ -460,6 +460,13 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         return characterAttributes(args); //Character Attributes (SGR)
       case 'n':
         return deviceStatusReport(args); //DSR
+      case 'p':
+        if (args.startsWithExclamationMark()) {
+          // DECSTR (Soft Terminal Reset) https://vt100.net/docs/vt510-rm/DECSTR.html
+          myTerminal.reset(false);
+          return true;
+        }
+        return false;
       case 'q':
         return cursorShape(args); //DECSCUSR
       case 'r':

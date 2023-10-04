@@ -17,6 +17,7 @@ public class ControlSequence {
 
   private ArrayList<Character> myUnhandledChars;
 
+  private boolean myStartsWithExclamationMark = false; // true when CSI !
   private boolean myStartsWithQuestionMark = false; // true when CSI ?
   private boolean myStartsWithMoreMark = false; // true when CSI >
 
@@ -41,7 +42,10 @@ public class ControlSequence {
       final char b = channel.getChar();
       mySequenceString.append(b);
       pos++;
-      if (b == '?' && pos == 0) {
+      if (b == '!' && pos == 0) {
+        myStartsWithExclamationMark = true;
+      }
+      else if (b == '?' && pos == 0) {
         myStartsWithQuestionMark = true;
       }
       else if (b == '>' && pos == 0) {
@@ -95,6 +99,9 @@ public class ControlSequence {
     bytes[i++] = (byte)Ascii.ESC;
     bytes[i++] = (byte)'[';
 
+    if (myStartsWithExclamationMark) {
+      bytes[i++] = (byte)'!';
+    }
     if (myStartsWithQuestionMark) {
       bytes[i++] = (byte)'?';
     }
@@ -129,10 +136,12 @@ public class ControlSequence {
   private void appendToBuffer(final StringBuilder sb) {
     sb.append("ESC[");
 
+    if (myStartsWithExclamationMark) {
+      sb.append("!");
+    }
     if (myStartsWithQuestionMark) {
       sb.append("?");
     }
-
     if (myStartsWithMoreMark) {
       sb.append(">");
     }
@@ -163,6 +172,10 @@ public class ControlSequence {
 
   public char getFinalChar() {
     return myFinalChar;
+  }
+
+  public boolean startsWithExclamationMark() {
+    return myStartsWithExclamationMark;
   }
 
   public boolean startsWithQuestionMark() {

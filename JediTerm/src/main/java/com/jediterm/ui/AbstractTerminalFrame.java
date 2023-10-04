@@ -20,9 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import java.awt.event.*;
 import java.util.logging.Level;
 
 public abstract class AbstractTerminalFrame {
@@ -215,14 +213,25 @@ public abstract class AbstractTerminalFrame {
     myBufferFrame.pack();
     myBufferFrame.setLocationByPlatform(true);
     myBufferFrame.setVisible(true);
-    myBufferFrame.setSize(1600, 1000);
+    myBufferFrame.setSize(1600, 800);
 
+    closeOnEscape(myBufferFrame);
     myBufferFrame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
     myBufferFrame.addWindowListener(new WindowAdapter() {
       @Override
       public void windowClosed(final WindowEvent e) {
         myBufferFrame = null;
         debugView.stop();
+      }
+    });
+  }
+
+  private void closeOnEscape(JFrame frame) {
+    frame.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(
+      KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "Cancel");
+    frame.getRootPane().getActionMap().put("Cancel", new AbstractAction() {
+      public void actionPerformed(ActionEvent e) {
+        frame.dispose();
       }
     });
   }

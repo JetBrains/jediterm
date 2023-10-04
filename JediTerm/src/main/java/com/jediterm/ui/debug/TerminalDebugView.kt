@@ -5,7 +5,6 @@ import com.jediterm.terminal.ui.TerminalSession
 import java.awt.*
 import java.util.concurrent.CopyOnWriteArrayList
 import javax.swing.*
-import kotlin.math.max
 
 class TerminalDebugView(private val terminal: TerminalSession) {
   private val loggingTtyConnector: LoggingTtyConnector = terminal.getTtyConnector() as LoggingTtyConnector
@@ -27,7 +26,6 @@ class TerminalDebugView(private val terminal: TerminalSession) {
       update()
     }
     slider.addChangeListener {
-      spinner.value = slider.value
       update()
     }
     spinner.addChangeListener {
@@ -74,7 +72,7 @@ class TerminalDebugView(private val terminal: TerminalSession) {
   }
 
   private fun createSlider(): JSlider {
-    val slider = JSlider(0, 0, 0)
+    val slider = JSlider(INITIAL, INITIAL, INITIAL)
     slider.setMajorTickSpacing(10)
     slider.setMinorTickSpacing(1)
     slider.setPaintTicks(true)
@@ -84,16 +82,29 @@ class TerminalDebugView(private val terminal: TerminalSession) {
 
   private fun update() {
     val type: DebugBufferType = typeComboBox.selectedItem as DebugBufferType
-    val newMinStateIndex = loggingTtyConnector.getLogStart()
-    val newMaxStateIndex = newMinStateIndex + loggingTtyConnector.getChunks().size
-    slider.setMinimum(newMinStateIndex)
-    slider.setMaximum(newMaxStateIndex)
-    val spinnerModel: SpinnerModel = SpinnerNumberModel(max(spinner.value as Int, newMinStateIndex), newMinStateIndex, newMaxStateIndex, 1)
-    spinner.setModel(spinnerModel)
+    val newMinimum = loggingTtyConnector.getLogStart()
+    val newMaximum = newMinimum + loggingTtyConnector.getChunks().size
+    val initialize = slider.value == INITIAL
+    slider.setMinimum(newMinimum)
+    slider.setMaximum(newMaximum)
+    if (initialize) {
+      slider.value = newMaximum
+    }
+    syncSliderToSpinner()
     val stateIndex = slider.value - slider.minimum
     val controlSequenceSettings = controlSequenceSettingsView.get()
     for (listener in listeners) {
       listener.stateChanged(type, controlSequenceSettings, stateIndex)
+    }
+  }
+
+  private fun syncSliderToSpinner() {
+    val spinnerModel = spinner.model as SpinnerNumberModel
+    val sliderModel = slider.model
+    if (spinnerModel.value != sliderModel.value
+      || spinnerModel.minimum != sliderModel.minimum
+      || spinnerModel.maximum != sliderModel.maximum) {
+      spinner.setModel(SpinnerNumberModel(sliderModel.value, sliderModel.minimum, sliderModel.maximum, 1))
     }
   }
 
@@ -190,5 +201,7 @@ class TerminalDebugView(private val terminal: TerminalSession) {
         it.setFont(Font("Monospaced", Font.PLAIN, 14))
       }
     }
+
+    const val INITIAL: Int = -1
   }
 }

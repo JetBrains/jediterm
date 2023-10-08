@@ -1,2 +1,1 @@
 include ':terminal'
-include ':pty'

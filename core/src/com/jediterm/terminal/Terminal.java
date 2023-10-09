@@ -6,6 +6,7 @@ import com.jediterm.terminal.emulator.mouse.MouseFormat;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
 import com.jediterm.terminal.model.StyleState;
 import com.jediterm.terminal.model.TerminalApplicationTitleListener;
+import com.jediterm.terminal.model.TerminalResizeListener;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -169,6 +170,10 @@ public interface Terminal {
   default void addApplicationTitleListener(@NotNull TerminalApplicationTitleListener listener) {}
 
   default void removeApplicationTitleListener(@NotNull TerminalApplicationTitleListener listener) {}
+
+  default void addResizeListener(@NotNull TerminalResizeListener listener) {}
+
+  default void removeResizeListener(@NotNull TerminalResizeListener listener) {}
 
   default void addCustomCommandListener(@NotNull TerminalCustomCommandListener listener) {}
 

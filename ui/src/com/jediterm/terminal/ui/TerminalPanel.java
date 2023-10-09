@@ -668,13 +668,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     myCustomKeyListeners.remove(keyListener);
   }
 
-  public void requestResize(@NotNull TermSize newSize,
-                            @NotNull RequestOrigin origin,
-                            int cursorX,
-                            int cursorY,
-                            JediTerminal.@NotNull ResizeHandler resizeHandler) {
-    myTerminalTextBuffer.resize(newSize, origin, cursorX, cursorY, resizeHandler, mySelection);
-    myTermSize = newSize;
+  @Override
+  public void onResize(@NotNull TermSize newTermSize, @NotNull RequestOrigin origin) {
+    myTermSize = newTermSize;
 
     setPreferredSize(new java.awt.Dimension(getPixelWidth(), getPixelHeight()));
     if (myTerminalPanelListener != null) {
@@ -1583,6 +1579,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     return myTerminalTextBuffer;
   }
 
+  @Override
   public @Nullable TerminalSelection getSelection() {
     return mySelection;
   }

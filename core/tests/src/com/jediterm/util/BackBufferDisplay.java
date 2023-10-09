@@ -1,13 +1,10 @@
 package com.jediterm.util;
 
 import com.jediterm.core.Color;
-import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.CursorShape;
-import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TerminalDisplay;
 import com.jediterm.terminal.emulator.mouse.MouseFormat;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
-import com.jediterm.terminal.model.JediTerminal;
 import com.jediterm.terminal.model.TerminalSelection;
 import com.jediterm.terminal.model.TerminalTextBuffer;
 import org.jetbrains.annotations.NotNull;
@@ -40,12 +37,6 @@ public class BackBufferDisplay implements TerminalDisplay {
   }
 
   @Override
-  public void requestResize(@NotNull TermSize newWinSize, @NotNull RequestOrigin origin, int cursorX, int cursorY,
-                            JediTerminal.@NotNull ResizeHandler resizeHandler) {
-    myTerminalTextBuffer.resize(newWinSize, origin, cursorX, cursorY, resizeHandler, mySelection);
-  }
-
-  @Override
   public void scrollArea(int scrollRegionTop, int scrollRegionSize, int dy) {
   }
 
@@ -70,7 +61,8 @@ public class BackBufferDisplay implements TerminalDisplay {
     return myWindowTitle;
   }
 
-  public TerminalSelection getSelection() {
+  @Override
+  public @Nullable TerminalSelection getSelection() {
     return mySelection;
   }
 

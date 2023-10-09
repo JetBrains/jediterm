@@ -8,6 +8,7 @@ import com.jediterm.terminal.model.SelectionUtil;
 import com.jediterm.terminal.model.StyleState;
 import com.jediterm.terminal.model.TerminalTextBuffer;
 import com.jediterm.util.BackBufferDisplay;
+import com.jediterm.util.TestSession;
 import junit.framework.TestCase;
 
 /**
@@ -47,26 +48,24 @@ public class SelectionTest extends TestCase {
   }
 
   public void testSelectionOutOfTheScreen() {
-    StyleState state = new StyleState();
+    TestSession session = new TestSession(20, 5);
+    TerminalTextBuffer textBuffer = session.getTerminalTextBuffer();
+    JediTerminal terminal = session.getTerminal();
 
-    TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(20, 5, state);
+    terminal.writeString("text to select ");
+    terminal.crnl();
+    terminal.writeString("and copy");
+    terminal.crnl();
 
-    JediTerminal writer = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
-
-    writer.writeString("text to select ");
-    writer.newLine();
-    writer.carriageReturn();
-    writer.writeString("and copy");
-    writer.newLine();
-    writer.carriageReturn();
-
-    writer.resize(new TermSize(8, 10), RequestOrigin.User);
+    session.assertCursorPosition(1, 3);
+    terminal.resize(new TermSize(8, 10), RequestOrigin.User);
 
     //text to 
     //select 
     //and copy
 
-    assertEquals("text to select \nand copy", SelectionUtil.getSelectionText(new Point(0, 0), new Point(8, 2), terminalTextBuffer));
+    assertEquals("text to select \nand copy", SelectionUtil.getSelectionText(new Point(0, 0), new Point(8, 2), textBuffer));
+    session.assertCursorPosition(1, 4);
   }
 
   public void testSelectionTheLastLine() {

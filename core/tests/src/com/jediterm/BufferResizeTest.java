@@ -5,10 +5,9 @@ import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.model.*;
 import com.jediterm.util.BackBufferDisplay;
-import com.jediterm.util.BackBufferTerminal;
 import com.jediterm.util.CharBufferUtil;
+import com.jediterm.util.TestSession;
 import junit.framework.TestCase;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
@@ -17,13 +16,9 @@ import java.util.List;
  */
 public class BufferResizeTest extends TestCase {
   public void testResizeToBiggerHeight() {
-    StyleState state = new StyleState();
-
-
-    TerminalTextBuffer textBuffer = new TerminalTextBuffer(5, 5, state);
-
-    JediTerminal terminal = new BackBufferTerminal(textBuffer, state);
-
+    TestSession session = new TestSession(5, 5);
+    TerminalTextBuffer textBuffer = session.getTerminalTextBuffer();
+    JediTerminal terminal = session.getTerminal();
 
     terminal.writeString("line");
     terminal.newLine();
@@ -36,8 +31,8 @@ public class BufferResizeTest extends TestCase {
     terminal.carriageReturn();
     terminal.writeString("li");
 
+    session.assertCursorPosition(3, 4);
     terminal.resize(new TermSize(10, 10), RequestOrigin.User);
-
 
     assertEquals(0, textBuffer.getHistoryBuffer().getLineCount());
 
@@ -52,17 +47,14 @@ public class BufferResizeTest extends TestCase {
         "          \n" +
         "          \n", textBuffer.getScreenLines());
 
-    assertEquals(4, terminal.getCursorY());
+    session.assertCursorPosition(3, 4);
   }
 
 
   public void testResizeToSmallerHeight() {
-    StyleState state = new StyleState();
-
-    TerminalTextBuffer textBuffer = new TerminalTextBuffer(5, 5, state);
-
-    JediTerminal terminal = new BackBufferTerminal(textBuffer, state);
-
+    TestSession session = new TestSession(5, 5);
+    TerminalTextBuffer textBuffer = session.getTerminalTextBuffer();
+    JediTerminal terminal = session.getTerminal();
 
     terminal.writeString("line");
     terminal.crnl();
@@ -72,7 +64,7 @@ public class BufferResizeTest extends TestCase {
     terminal.crnl();
     terminal.writeString("li");
 
-    assertEquals(4, terminal.getCursorY());
+    session.assertCursorPosition(3, 4);
 
     terminal.resize(new TermSize(10, 2), RequestOrigin.User);
 
@@ -83,17 +75,14 @@ public class BufferResizeTest extends TestCase {
     assertEquals("line3     \n" +
         "li        \n", textBuffer.getScreenLines());
 
-    assertEquals(2, terminal.getCursorY());
+    session.assertCursorPosition(3, 2);
   }
 
 
   public void testResizeToSmallerHeightAndBack() {
-    StyleState state = new StyleState();
-
-    TerminalTextBuffer textBuffer = new TerminalTextBuffer(5, 5, state);
-
-    JediTerminal terminal = new BackBufferTerminal(textBuffer, state);
-
+    TestSession session = new TestSession(5, 5);
+    TerminalTextBuffer textBuffer = session.getTerminalTextBuffer();
+    JediTerminal terminal = session.getTerminal();
 
     terminal.writeString("line");
     terminal.newLine();
@@ -109,19 +98,19 @@ public class BufferResizeTest extends TestCase {
     terminal.carriageReturn();
     terminal.writeString("li");
 
-    assertEquals(5, terminal.getCursorY());
+    session.assertCursorPosition(3, 5);
 
     terminal.resize(new TermSize(10, 2), RequestOrigin.User);
 
 
     assertEquals("line\n" +
-        "line2\n" +
-        "line3", textBuffer.getHistoryBuffer().getLines());
+      "line2\n" +
+      "line3", textBuffer.getHistoryBuffer().getLines());
 
     assertEquals("line4     \n" +
-        "li        \n", textBuffer.getScreenLines());
+      "li        \n", textBuffer.getScreenLines());
 
-    assertEquals(2, terminal.getCursorY());
+    session.assertCursorPosition(3, 2);
 
     terminal.resize(new TermSize(5, 5), RequestOrigin.User);
 
@@ -132,11 +121,14 @@ public class BufferResizeTest extends TestCase {
         "line3\n" +
         "line4\n" +
         "li   \n", textBuffer.getScreenLines());
+
+    session.assertCursorPosition(3, 5);
   }
 
   public void testResizeToSmallerHeightAndKeepCursorVisible() {
-    BackBufferTerminal terminal = createTerminal(10, 4);
-    TerminalTextBuffer textBuffer = terminal.getTextBuffer();
+    TestSession session = new TestSession(10, 4);
+    TerminalTextBuffer textBuffer = session.getTerminalTextBuffer();
+    JediTerminal terminal = session.getTerminal();
 
     terminal.writeString("line1");
     terminal.crnl();
@@ -145,53 +137,47 @@ public class BufferResizeTest extends TestCase {
     terminal.writeString("line3");
     terminal.crnl();
 
-    assertEquals(1, terminal.getCursorX());
-    assertEquals(4, terminal.getCursorY());
+    session.assertCursorPosition(1, 4);
 
     terminal.resize(new TermSize(10, 3), RequestOrigin.User);
     assertEquals(List.of("line1"), textBuffer.getHistoryBuffer().getLineTexts());
     assertEquals(List.of("line2", "line3"), textBuffer.getScreenBuffer().getLineTexts());
-    assertEquals(1, terminal.getCursorX());
-    assertEquals(3, terminal.getCursorY());
+    session.assertCursorPosition(1, 3);
   }
 
   public void testResizeInHeightWithScrolling() {
-    StyleState state = new StyleState();
-
-    TerminalTextBuffer textBuffer = new TerminalTextBuffer(5, 2, state);
-
-    JediTerminal terminal = new BackBufferTerminal(textBuffer, state);
-
+    TestSession session = new TestSession(5, 2);
+    JediTerminal terminal = session.getTerminal();
+    TerminalTextBuffer textBuffer = session.getTerminalTextBuffer();
     LinesBuffer scrollBuffer = textBuffer.getHistoryBuffer();
 
-    scrollBuffer.addNewLine(state.getCurrent(), CharBufferUtil.create("line"));
-    scrollBuffer.addNewLine(state.getCurrent(), CharBufferUtil.create("line2"));
+    scrollBuffer.addNewLine(session.getCurrentStyle(), CharBufferUtil.create("line"));
+    scrollBuffer.addNewLine(session.getCurrentStyle(), CharBufferUtil.create("line2"));
 
     terminal.writeString("line3");
     terminal.newLine();
     terminal.carriageReturn();
     terminal.writeString("li");
 
+    session.assertCursorPosition(3, 2);
     terminal.resize(new TermSize(10, 5), RequestOrigin.User);
 
     assertEquals(0, scrollBuffer.getLineCount());
 
     assertEquals("line      \n" +
-        "line2     \n" +
-        "line3     \n" +
-        "li        \n" +
-        "          \n", textBuffer.getScreenLines());
+                 "line2     \n" +
+                 "line3     \n" +
+                 "li        \n" +
+                 "          \n", textBuffer.getScreenLines());
 
-    assertEquals(4, terminal.getCursorY());
+    session.assertCursorPosition(3, 4);
   }
 
 
   public void testTypeOnLastLineAndResizeWidth() {
-    StyleState state = new StyleState();
-
-    TerminalTextBuffer textBuffer = new TerminalTextBuffer(6, 5, state);
-
-    JediTerminal terminal = new BackBufferTerminal(textBuffer, state);
+    TestSession session = new TestSession(6, 5);
+    JediTerminal terminal = session.getTerminal();
+    TerminalTextBuffer textBuffer = session.getTerminalTextBuffer();
 
     terminal.writeString(">line1");
     terminal.newLine();
@@ -218,6 +204,7 @@ public class BufferResizeTest extends TestCase {
         ">line5\n" +
         ">     \n", textBuffer.getScreenLines());
 
+    session.assertCursorPosition(2, 5);
     terminal.resize(new TermSize(3, 5), RequestOrigin.User); // JediTerminal.MIN_WIDTH = 5
 
     assertEquals(
@@ -231,24 +218,29 @@ public class BufferResizeTest extends TestCase {
         ">line\n" +
         "4    \n" +
         ">line\n" +
-        "5    \n" + 
+        "5    \n" +
         ">    \n", textBuffer.getScreenLines());
+
+    session.assertCursorPosition(2, 5);
 
     terminal.resize(new TermSize(6, 5), RequestOrigin.User);
 
     assertEquals(">line1", textBuffer.getHistoryBuffer().getLines());
     assertEquals(
         ">line2\n" +
-            ">line3\n" +
-            ">line4\n" +
-            ">line5\n" +
-            ">     \n", textBuffer.getScreenLines());
+        ">line3\n" +
+        ">line4\n" +
+        ">line5\n" +
+        ">     \n", textBuffer.getScreenLines());
+
+    session.assertCursorPosition(2, 5);
   }
 
   public void testSelectionAfterResize() {
-    BackBufferTerminal terminal = createTerminal(6, 3);
-    TerminalTextBuffer textBuffer = terminal.getTextBuffer();
-    BackBufferDisplay display = terminal.getDisplay();
+    TestSession session = new TestSession(6, 3);
+    JediTerminal terminal = session.getTerminal();
+    TerminalTextBuffer textBuffer = session.getTerminalTextBuffer();
+    BackBufferDisplay display = session.getDisplay();
 
     for (int i = 1; i <= 5; i++) {
       terminal.writeString(">line" + i);
@@ -264,6 +256,7 @@ public class BufferResizeTest extends TestCase {
     assertEquals("line4\n" +
         ">line", selectionText);
 
+    session.assertCursorPosition(2, 3);
 
     terminal.resize(new TermSize(6, 5), RequestOrigin.User);
 
@@ -275,20 +268,21 @@ public class BufferResizeTest extends TestCase {
     selectionText = SelectionUtil.getSelectionText(display.getSelection(), textBuffer);
 
     assertEquals("line2\n" +
-        ">line", selectionText);
+                 ">line", selectionText);
 
+    session.assertCursorPosition(2, 3);
 
     terminal.resize(new TermSize(6, 2), RequestOrigin.User);
 
     assertEquals(selectionText, SelectionUtil.getSelectionText(display.getSelection(), textBuffer));
+
+    session.assertCursorPosition(2, 2);
   }
 
   public void testClearAndResizeVertically() {
-    StyleState state = new StyleState();
-
-    TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(10, 4, state);
-
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    TestSession session = new TestSession(10, 4);
+    TerminalTextBuffer terminalTextBuffer = session.getTerminalTextBuffer();
+    JediTerminal terminal = session.getTerminal();
 
     terminal.writeString("hi>");
     terminal.crnl();
@@ -299,6 +293,7 @@ public class BufferResizeTest extends TestCase {
     terminal.cursorPosition(0, 0);
     terminal.writeString("hi3>");
 
+    session.assertCursorPosition(5, 1);
 
     // smaller height
     terminal.resize(new TermSize(10, 3), RequestOrigin.User);
@@ -306,34 +301,38 @@ public class BufferResizeTest extends TestCase {
 
     assertEquals("", terminalTextBuffer.getHistoryBuffer().getLines());
     assertEquals("hi3>      \n" +
-            "          \n" +
-            "          \n", terminalTextBuffer.getScreenLines());
+                 "          \n" +
+                 "          \n", terminalTextBuffer.getScreenLines());
+
+    session.assertCursorPosition(5, 1);
   }
 
 
   public void testInitialResize() {
-    StyleState state = new StyleState();
-
-    TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(10, 24, state);
-
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    TestSession session = new TestSession(10, 24);
+    TerminalTextBuffer terminalTextBuffer = session.getTerminalTextBuffer();
+    JediTerminal terminal = session.getTerminal();
 
     terminal.writeString("hi>");
 
+    session.assertCursorPosition(4, 1);
     // initial resize
     terminal.resize(new TermSize(10, 3), RequestOrigin.User);
 
 
     assertEquals("", terminalTextBuffer.getHistoryBuffer().getLines());
     assertEquals("hi>       \n" +
-            "          \n" +
-            "          \n", terminalTextBuffer.getScreenLines());
+                 "          \n" +
+                 "          \n", terminalTextBuffer.getScreenLines());
+
+    session.assertCursorPosition(4, 1);
   }
 
   public void testResizeWidth1() {
-    StyleState state = new StyleState();
-    TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(15, 24, state);
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    TestSession session = new TestSession(15, 24);
+    TerminalTextBuffer textBuffer = session.getTerminalTextBuffer();
+    JediTerminal terminal = session.getTerminal();
+
     terminal.writeString("$ cat long.txt");
     terminal.crnl();
     terminal.writeString("1_2_3_4_5_6_7_8");
@@ -343,34 +342,34 @@ public class BufferResizeTest extends TestCase {
     terminal.writeString("24_25_26");
     terminal.crnl();
     terminal.writeString("$ ");
-    assertEquals(3, terminal.getCursorX());
-    assertEquals(7, terminal.getCursorY());
-    assertEquals("", terminalTextBuffer.getHistoryBuffer().getLines());
+    session.assertCursorPosition(3, 7);
+    assertEquals("", textBuffer.getHistoryBuffer().getLines());
     terminal.resize(new TermSize(20, 7), RequestOrigin.User);
 
-    assertEquals("", terminalTextBuffer.getHistoryBuffer().getLines());
+    assertEquals("", textBuffer.getHistoryBuffer().getLines());
     assertEquals("$ cat long.txt      \n" +
                  "1_2_3_4_5_6_7_8_9_10\n" +
                  "_11_12_13_14_15_16_1\n" +
                  "7_18_19_20_21_22_23_\n" +
                  "24_25_26            \n" +
                  "$                   \n" +
-                 "                    \n", terminalTextBuffer.getScreenLines());
+                 "                    \n", textBuffer.getScreenLines());
+    session.assertCursorPosition(3, 6);
   }
 
   public void testResizeWidth2() {
-    StyleState state = new StyleState();
-    TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(100, 5, state);
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    TestSession session = new TestSession(100, 5);
+    TerminalTextBuffer textBuffer = session.getTerminalTextBuffer();
+    JediTerminal terminal = session.getTerminal();
+
     terminal.writeString("$ cat long.txt");
     terminal.crnl();
     terminal.writeString("1_2_3_4_5_6_7_8_9_10_11_12_13_14_15_16_17_18_19_20_21_22_23_24_25_26_27_28_30");
     terminal.crnl();
     terminal.crnl();
     terminal.writeString("$ ");
-    assertEquals(3, terminal.getCursorX());
-    assertEquals(4, terminal.getCursorY());
-    assertEquals("", terminalTextBuffer.getHistoryBuffer().getLines());
+    session.assertCursorPosition(3, 4);
+    assertEquals("", textBuffer.getHistoryBuffer().getLines());
     terminal.resize(new TermSize(6, 4), RequestOrigin.User);
 
     assertEquals(
@@ -387,22 +386,19 @@ public class BufferResizeTest extends TestCase {
         "18_19_\n" +
         "20_21_\n" +
         "22_23_\n" +
-        "24_25_", terminalTextBuffer.getHistoryBuffer().getLines());
+        "24_25_", textBuffer.getHistoryBuffer().getLines());
     assertEquals(
-        "26_27_\n" +
+      "26_27_\n" +
         "28_30 \n" +
         "      \n" +
-        "$     \n", terminalTextBuffer.getScreenLines());
+        "$     \n", textBuffer.getScreenLines());
+    session.assertCursorPosition(3, 4);
   }
 
   public void testPointsTracking() {
-    StyleState state = new StyleState();
-
-
-    TerminalTextBuffer textBuffer = new TerminalTextBuffer(10, 4, state);
-
-    JediTerminal terminal = new BackBufferTerminal(textBuffer, state);
-
+    TestSession session = new TestSession(10, 4);
+    TerminalTextBuffer textBuffer = session.getTerminalTextBuffer();
+    JediTerminal terminal = session.getTerminal();
 
     terminal.writeString("line1");
     terminal.newLine();
@@ -415,8 +411,8 @@ public class BufferResizeTest extends TestCase {
     terminal.carriageReturn();
     terminal.writeString("line4");
 
+    session.assertCursorPosition(6, 4);
     terminal.resize(new TermSize(5, 4), RequestOrigin.User);
-
 
     LinesBuffer historyBuffer = textBuffer.getHistoryBuffer();
     assertEquals(1, historyBuffer.getLineCount());
@@ -428,14 +424,6 @@ public class BufferResizeTest extends TestCase {
       "line4\n" +
       "     \n", textBuffer.getScreenLines());
 
-    assertEquals(1, terminal.getCursorX());
-    assertEquals(4, terminal.getCursorY());
-  }
-
-  @SuppressWarnings("SameParameterValue")
-  private @NotNull BackBufferTerminal createTerminal(int width, int height) {
-    StyleState state = new StyleState();
-    TerminalTextBuffer textBuffer = new TerminalTextBuffer(width, height, state);
-    return new BackBufferTerminal(textBuffer, state);
+    session.assertCursorPosition(1, 4);
   }
 }

@@ -7,6 +7,7 @@ import com.jediterm.terminal.model.StyleState;
 import com.jediterm.terminal.model.TerminalTextBuffer;
 import com.jediterm.util.ArrayBasedTextConsumer;
 import com.jediterm.util.BackBufferDisplay;
+import com.jediterm.util.TestSession;
 import junit.framework.TestCase;
 
 /**
@@ -72,35 +73,43 @@ public class ScrollingTest extends TestCase {
   }
 
   public void testScrollAndResize() {
-    StyleState state = new StyleState();
-
-    TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(10, 4, state);
-
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    TestSession session = new TestSession(10, 4);
+    TerminalTextBuffer textBuffer = session.getTerminalTextBuffer();
+    JediTerminal terminal = session.getTerminal();
 
     terminal.writeString("1234567890");
-    terminal.newLine();
-    terminal.carriageReturn();
+    terminal.crnl();
     terminal.writeString("2345678901");
-    terminal.newLine();
-    terminal.carriageReturn();
+    terminal.crnl();
+
+    session.assertCursorPosition(1, 3);
 
     terminal.resize(new TermSize(7, 4), RequestOrigin.User);
 
+    assertEquals("1234567", textBuffer.getHistoryBuffer().getLines());
+
+    assertEquals(
+        "890    \n" +
+        "2345678\n" +
+        "901    \n" +
+        "       \n"
+      , textBuffer.getScreenLines());
+
     terminal.writeString("3456789");
-    terminal.newLine();
-    terminal.carriageReturn();
+    terminal.crnl();
 
     assertEquals(
-            "2345678\n" +
-            "901    \n" +
-            "3456789\n" +
-            "       \n"
-        , terminalTextBuffer.getScreenLines());
+      "1234567\n" +
+        "890", textBuffer.getHistoryBuffer().getLines());
 
     assertEquals(
-        "1234567\n" +
-        "890", terminalTextBuffer.getHistoryBuffer().getLines());
+        "2345678\n" +
+        "901    \n" +
+        "3456789\n" +
+        "       \n"
+      , textBuffer.getScreenLines());
+
+    session.assertCursorPosition(1, 4);
   }
 
   public void testScrollingOrigin() {

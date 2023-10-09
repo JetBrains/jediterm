@@ -1,7 +1,10 @@
 import java.text.SimpleDateFormat
 
-apply plugin: 'java'
-apply plugin: 'maven-publish'
+plugins {
+  id 'org.jetbrains.kotlin.jvm' version '1.9.0'
+  id 'java'
+  id 'maven-publish'
+}
 
 sourceSets {
   main {

@@ -4,7 +4,7 @@ import com.jediterm.core.Color;
 import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.emulator.mouse.MouseFormat;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
-import com.jediterm.terminal.model.JediTerminal;
+import com.jediterm.terminal.model.TerminalSelection;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -15,8 +15,7 @@ public interface TerminalDisplay {
 
   void beep();
 
-  void requestResize(@NotNull TermSize newWinSize, @NotNull RequestOrigin origin, int cursorX, int cursorY,
-                     @NotNull JediTerminal.ResizeHandler resizeHandler);
+  default void onResize(@NotNull TermSize newTermSize, @NotNull RequestOrigin origin) {}
 
   void scrollArea(final int scrollRegionTop, final int scrollRegionSize, int dy);
 
@@ -31,6 +30,8 @@ public interface TerminalDisplay {
   String getWindowTitle();
 
   void setWindowTitle(@NotNull String windowTitle);
+
+  @Nullable TerminalSelection getSelection();
 
   void terminalMouseModeSet(@NotNull MouseMode mouseMode);
 

@@ -1,8 +1,8 @@
 package com.jediterm.terminal.model;
 
 import com.jediterm.core.compatibility.Point;
+import com.jediterm.core.util.CellPosition;
 import com.jediterm.core.util.TermSize;
-import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.StyledTextConsumerAdapter;
 import com.jediterm.terminal.TextStyle;
@@ -90,34 +90,19 @@ public class TerminalTextBuffer {
     return new LinesBuffer(myHistoryLinesCount, myTextProcessing);
   }
 
-  public void resize(@NotNull TermSize newTermSize,
-                     @SuppressWarnings("unused") @NotNull final RequestOrigin origin,
-                     final int cursorX,
-                     final int cursorY,
-                     @NotNull JediTerminal.ResizeHandler resizeHandler,
-                     @Nullable TerminalSelection mySelection) {
-    lock();
-    try {
-      doResize(newTermSize, cursorX, cursorY, resizeHandler, mySelection);
-    } finally {
-      unlock();
-    }
-  }
-
-  private void doResize(@NotNull TermSize newTermSize,
-                        final int cursorX,
-                        final int cursorY,
-                        @NotNull JediTerminal.ResizeHandler resizeHandler,
-                        @Nullable TerminalSelection selection) {
+  @NotNull TerminalResizeResult resize(@NotNull TermSize newTermSize,
+                                       @NotNull CellPosition oldCursor,
+                                       @Nullable TerminalSelection selection) {
     final int newWidth = newTermSize.getColumns();
     final int newHeight = newTermSize.getRows();
-    int newCursorX = cursorX;
-    int newCursorY = cursorY;
+    int newCursorX = oldCursor.getX();
+    int newCursorY = oldCursor.getY();
+    final int oldCursorY = oldCursor.getY();
 
     if (myWidth != newWidth) {
       ChangeWidthOperation changeWidthOperation = new ChangeWidthOperation(this, newWidth, newHeight);
-      Point cursor = new Point(cursorX, cursorY - 1);
-      changeWidthOperation.addPointToTrack(cursor, true);
+      Point cursorPoint = new Point(oldCursor.getX() - 1, oldCursor.getY() - 1);
+      changeWidthOperation.addPointToTrack(cursorPoint, true);
       if (selection != null) {
         changeWidthOperation.addPointToTrack(selection.getStart(), false);
         changeWidthOperation.addPointToTrack(selection.getEnd(), false);
@@ -125,8 +110,8 @@ public class TerminalTextBuffer {
       changeWidthOperation.run();
       myWidth = newWidth;
       myHeight = newHeight;
-      Point newCursor = changeWidthOperation.getTrackedPoint(cursor);
-      newCursorX = newCursor.x;
+      Point newCursor = changeWidthOperation.getTrackedPoint(cursorPoint);
+      newCursorX = newCursor.x + 1;
       newCursorY = newCursor.y + 1;
       if (selection != null) {
         selection.getStart().setLocation(changeWidthOperation.getTrackedPoint(selection.getStart()));
@@ -140,34 +125,34 @@ public class TerminalTextBuffer {
         int lineDiffCount = oldHeight - newHeight;
         //we need to move lines from text buffer to the scroll buffer
         //but empty bottom lines up to the cursor can be collapsed
-        int maxBottomLinesToRemove = Math.min(lineDiffCount, Math.max(0, oldHeight - cursorY));
+        int maxBottomLinesToRemove = Math.min(lineDiffCount, Math.max(0, oldHeight - oldCursorY));
         int emptyLinesDeleted = myScreenBuffer.removeBottomEmptyLines(oldHeight - 1, maxBottomLinesToRemove);
         int screenLinesToMove = lineDiffCount - emptyLinesDeleted;
         myScreenBuffer.moveTopLinesTo(screenLinesToMove, myHistoryBuffer);
-        newCursorY = cursorY - screenLinesToMove;
+        newCursorY = oldCursorY - screenLinesToMove;
         if (selection != null) {
           selection.shiftY(-screenLinesToMove);
         }
       }
       else {
-        newCursorY = cursorY;
+        newCursorY = oldCursorY;
       }
     } else if (newHeight > oldHeight) {
       if (USE_CONPTY_COMPATIBLE_RESIZE) {
         // do not move lines from scroll buffer to the screen buffer
-        newCursorY = cursorY;
+        newCursorY = oldCursorY;
       }
       else {
         if (!myAlternateBuffer) {
           //we need to move lines from scroll buffer to the text buffer
           int historyLinesCount = Math.min(newHeight - oldHeight, myHistoryBuffer.getLineCount());
           myHistoryBuffer.moveBottomLinesTo(historyLinesCount, myScreenBuffer);
-          newCursorY = cursorY + historyLinesCount;
+          newCursorY = oldCursorY + historyLinesCount;
           if (selection != null) {
             selection.shiftY(historyLinesCount);
           }
         } else {
-          newCursorY = cursorY;
+          newCursorY = oldCursorY;
         }
       }
     }
@@ -175,11 +160,8 @@ public class TerminalTextBuffer {
     myWidth = newWidth;
     myHeight = newHeight;
 
-
-    resizeHandler.sizeUpdated(myWidth, myHeight, newCursorX, newCursorY);
-
-
     fireModelChangeEvent();
+    return new TerminalResizeResult(new CellPosition(newCursorX, newCursorY));
   }
 
   public void addModelListener(TerminalModelListener listener) {

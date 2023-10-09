@@ -6,6 +6,7 @@ import com.jediterm.core.TerminalCoordinates;
 import com.jediterm.core.compatibility.Point;
 import com.jediterm.core.input.MouseEvent;
 import com.jediterm.core.input.MouseWheelEvent;
+import com.jediterm.core.util.CellPosition;
 import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.*;
 import com.jediterm.terminal.emulator.charset.CharacterSet;
@@ -74,6 +75,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   private boolean myCursorYChanged;
 
   private final List<TerminalApplicationTitleListener> myApplicationTitleListeners = new CopyOnWriteArrayList<>();
+  private final List<TerminalResizeListener> myTerminalResizeListeners = new CopyOnWriteArrayList<>();
 
   public JediTerminal(@NotNull TerminalDisplay display, @NotNull TerminalTextBuffer buf, @NotNull StyleState initialStyleState) {
     myTerminalKeyEncoder = new TerminalKeyEncoder(Platform.current());
@@ -293,6 +295,16 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
       String title = myWindowTitlesStack.pop();
       changeApplicationTitle(title);
     }
+  }
+
+  @Override
+  public void addResizeListener(@NotNull TerminalResizeListener listener) {
+    myTerminalResizeListeners.add(listener);
+  }
+
+  @Override
+  public void removeResizeListener(@NotNull TerminalResizeListener listener) {
+    myTerminalResizeListeners.remove(listener);
   }
 
   @Override
@@ -1116,10 +1128,6 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     writeCharacters(s);
   }
 
-  public interface ResizeHandler {
-    void sizeUpdated(int termWidth, int termHeight, int cursorX, int cursorY);
-  }
-
   @Override
   public void resize(@NotNull TermSize newTermSize, @NotNull RequestOrigin origin) {
     resizeInternal(ensureTermMinimumSize(newTermSize), origin);
@@ -1134,17 +1142,22 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   private void doResize(@NotNull TermSize newTermSize, @NotNull RequestOrigin origin, int oldHeight) {
+    TermSize oldTermSize = new TermSize(myTerminalWidth, myTerminalHeight);
     myTerminalTextBuffer.modify(() -> {
-      myDisplay.requestResize(newTermSize, origin, myCursorX, myCursorY, (termWidth, termHeight, cursorX, cursorY) -> {
-        myTerminalWidth = termWidth;
-        myTerminalHeight = termHeight;
-        myCursorY = cursorY;
-        myCursorX = Math.min(cursorX, myTerminalWidth - 1);
-        myDisplay.setCursor(myCursorX, myCursorY);
-
-        myTabulator.resize(myTerminalWidth);
-      });
+      CellPosition cursor = new CellPosition(getCursorX(), getCursorY());
+      TerminalResizeResult result = myTerminalTextBuffer.resize(newTermSize, cursor, myDisplay.getSelection());
+      myTerminalWidth = newTermSize.getColumns();
+      myTerminalHeight = newTermSize.getRows();
+      myCursorX = result.getNewCursor().getX() - 1;
+      myCursorY = result.getNewCursor().getY();
+      myTabulator.resize(myTerminalWidth);
       myScrollRegionBottom += myTerminalHeight - oldHeight;
+
+      myDisplay.setCursor(myCursorX, myCursorY);
+      myDisplay.onResize(newTermSize, origin);
+      for (TerminalResizeListener resizeListener : myTerminalResizeListeners) {
+        resizeListener.onResize(oldTermSize, newTermSize);
+      }
     });
   }
 

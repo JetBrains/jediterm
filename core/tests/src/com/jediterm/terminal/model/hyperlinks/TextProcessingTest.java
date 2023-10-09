@@ -52,7 +52,7 @@ public class TextProcessingTest extends TestCase {
     String str = "<[-------- PROGRESS 1ms";
     mySession.process(str);
     assertEquals(
-        Collections.singletonList(new TerminalLine.TextEntry(mySession.getDefaultStyle(), new CharBuffer(str))),
+        Collections.singletonList(new TerminalLine.TextEntry(mySession.getCurrentStyle(), new CharBuffer(str))),
         getTextBuffer().getLine(0).getEntries()
     );
     mySession.process("\u001b[1;1H"); // move cursor to the beginning of the line
@@ -61,7 +61,7 @@ public class TextProcessingTest extends TestCase {
     assertEquals(
         Arrays.asList(
             new TerminalLine.TextEntry(myHyperlinkStyle, new CharBuffer(link + "GRESS")),
-            new TerminalLine.TextEntry(mySession.getDefaultStyle(), new CharBuffer(" 1ms"))
+            new TerminalLine.TextEntry(mySession.getCurrentStyle(), new CharBuffer(" 1ms"))
         ),
         getTextBuffer().getLine(0).getEntries()
     );
@@ -69,7 +69,7 @@ public class TextProcessingTest extends TestCase {
     assertEquals(
         Arrays.asList(
             new TerminalLine.TextEntry(myHyperlinkStyle, new CharBuffer(link)),
-            new TerminalLine.TextEntry(mySession.getDefaultStyle(), new CharBuffer(CharUtils.NUL_CHAR, str.length() - link.length()))
+            new TerminalLine.TextEntry(mySession.getCurrentStyle(), new CharBuffer(CharUtils.NUL_CHAR, str.length() - link.length()))
         ),
         getTextBuffer().getLine(0).getEntries()
     );
@@ -80,7 +80,7 @@ public class TextProcessingTest extends TestCase {
     assertEquals(
       Arrays.asList(
         new TerminalLine.TextEntry(myHyperlinkStyle, new CharBuffer("Foo link")),
-        new TerminalLine.TextEntry(mySession.getDefaultStyle(), new CharBuffer(" Some text 1"))
+        new TerminalLine.TextEntry(mySession.getCurrentStyle(), new CharBuffer(" Some text 1"))
       ),
       getTextBuffer().getLine(0).getEntries()
     );
@@ -89,7 +89,7 @@ public class TextProcessingTest extends TestCase {
     assertEquals(
       Arrays.asList(
         new TerminalLine.TextEntry(myHyperlinkStyle, new CharBuffer("Bar link")),
-        new TerminalLine.TextEntry(mySession.getDefaultStyle(), new CharBuffer(" Some text 2"))
+        new TerminalLine.TextEntry(mySession.getCurrentStyle(), new CharBuffer(" Some text 2"))
       ),
       getTextBuffer().getLine(1).getEntries()
     );

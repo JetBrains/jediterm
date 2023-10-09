@@ -1240,18 +1240,35 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   }
 
   public class BlinkingTextTracker {
-    private long myLastSlowTextBlink;
-    private long myLastRapidTextBlink;
+    private class BlinkTracker {
+      private long lastBlink;
+      private boolean state;
 
-    private boolean mySlowTextBlinking;
-    private boolean myRapidTextBlinking;
+      boolean update(long currentTime, long period) {
+        long triggerPoint = currentTime - period;
+        if (lastBlink < triggerPoint) {
+          if (lastBlink == 0) {
+            state = !state;
+            lastBlink = currentTime;
+          } else while (lastBlink < triggerPoint) {
+            state = !state;
+            lastBlink += period;
+          }
+          return true;
+        }
+        return false;
+      }
+    }
+
+    private final BlinkTracker slowBlinkTracker = new BlinkTracker();
+    private final BlinkTracker rapidBlinkTracker = new BlinkTracker();
 
     public boolean isSlowTextBlinking() {
-      return mySlowTextBlinking;
+      return slowBlinkTracker.state;
     }
 
     public boolean isRapidTextBlinking() {
-      return myRapidTextBlinking;
+      return rapidBlinkTracker.state;
     }
 
     public void changeStateIfNeeded() {
@@ -1260,27 +1277,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       boolean repaint = false;
       long currentTime = System.currentTimeMillis();
 
-      long slowRate = getSlowTextBlinkingPeriod();
-      long slowTriggerPoint = currentTime - slowRate;
-      if (myLastSlowTextBlink < slowTriggerPoint) {
-        mySlowTextBlinking = !mySlowTextBlinking;
-        if (myLastSlowTextBlink == 0)
-          myLastSlowTextBlink = currentTime;
-        else while (myLastSlowTextBlink < slowTriggerPoint)
-          myLastSlowTextBlink += slowRate;
-        repaint = true;
-      }
-
-      long rapidRate = getRapidTextBlinkingPeriod();
-      long rapidTriggerPoint = currentTime - rapidRate;
-      if (myLastRapidTextBlink < rapidTriggerPoint) {
-        myRapidTextBlinking = !myRapidTextBlinking;
-        if (myLastRapidTextBlink == 0)
-          myLastRapidTextBlink = currentTime;
-        else while (myLastRapidTextBlink < rapidTriggerPoint)
-          myLastRapidTextBlink += rapidRate;
-        repaint = true;
-      }
+      repaint |= slowBlinkTracker.update(currentTime, getSlowTextBlinkingPeriod());
+      repaint |= rapidBlinkTracker.update(currentTime, getRapidTextBlinkingPeriod());
 
       if (repaint)
         repaint();

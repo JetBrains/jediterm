@@ -73,15 +73,16 @@ public class TerminalStarter implements TerminalOutputStream {
         myEmulator.next();
       }
     }
-    catch (final InterruptedIOException e) {
-      LOG.info("Terminal exiting");
+    catch (InterruptedIOException e) {
+      LOG.debug("Terminal I/0 has been interrupted");
     }
-    catch (final Exception e) {
-      if (!myTtyConnector.isConnected()) {
-        myTerminal.disconnected();
-        return;
+    catch (Exception e) {
+      if (myTtyConnector.isConnected()) {
+        throw new RuntimeException("Uncaught exception in terminal emulator thread", e);
       }
-      LOG.error("Caught exception in terminal thread", e);
+    }
+    finally {
+      myTerminal.disconnected();
     }
   }
 

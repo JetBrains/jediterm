@@ -22,7 +22,6 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
@@ -192,14 +191,13 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   public void start() {
     synchronized (myRunningSession) {
       if (myRunningSession.get() == null) {
-        EmulatorTask task = new EmulatorTask();
-        CompletableFuture<?> future = CompletableFuture.runAsync(task, getExecutorServiceManager().getUnboundedExecutorService());
-        myRunningSession.set(new Session(task, future));
-        future.whenComplete((o, throwable) -> {
+        EmulatorTask task = new EmulatorTask(() -> {
           synchronized (myRunningSession) {
             myRunningSession.set(null);
           }
         });
+        Future<?> future = getExecutorServiceManager().getUnboundedExecutorService().submit(task);
+        myRunningSession.set(new Session(task, future));
       }
       else {
         LOG.error("Should not try to start session again at this point... ");
@@ -375,9 +373,11 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   private class EmulatorTask implements Runnable {
     private final TerminalStarter myStarter;
+    private final Runnable myOnDone;
 
-    public EmulatorTask() {
+    public EmulatorTask(@NotNull Runnable onDone) {
       myStarter = Objects.requireNonNull(myTerminalStarter);
+      myOnDone = onDone;
     }
 
     @SuppressWarnings("removal")
@@ -399,8 +399,19 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
         }
         catch (Exception ignored) {
         }
-        for (TerminalWidgetListener listener : myListeners) {
-          listener.allSessionsClosed(JediTermWidget.this);
+        try {
+          for (TerminalWidgetListener listener : myListeners) {
+            listener.allSessionsClosed(JediTermWidget.this);
+          }
+        }
+        catch (Exception e) {
+          LOG.error("Unhandled exception when closing terminal", e);
+        }
+        try {
+          myOnDone.run();
+        }
+        catch (Exception e) {
+          LOG.error("Unhandled exception when closing terminal", e);
         }
       }
     }

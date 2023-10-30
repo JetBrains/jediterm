@@ -74,6 +74,8 @@ class JediTerm : AbstractTerminalFrame() {
       LOG.info("Starting ${command.joinToString()} in $workingDirectory")
       val process = PtyProcessBuilder()
         .setDirectory(workingDirectory)
+        .setInitialColumns(120)
+        .setInitialRows(20)
         .setCommand(command)
         .setEnvironment(envs)
         .setConsole(false)

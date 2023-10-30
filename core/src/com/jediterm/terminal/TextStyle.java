@@ -3,17 +3,13 @@ package com.jediterm.terminal;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.ref.WeakReference;
 import java.util.EnumSet;
 import java.util.Objects;
-import java.util.WeakHashMap;
 
 public class TextStyle {
   private static final EnumSet<Option> NO_OPTIONS = EnumSet.noneOf(Option.class);
 
   public static final TextStyle EMPTY = new TextStyle();
-
-  private static final WeakHashMap<TextStyle, WeakReference<TextStyle>> styles = new WeakHashMap<>();
 
   private final TerminalColor myForeground;
   private final TerminalColor myBackground;
@@ -31,22 +27,6 @@ public class TextStyle {
     myForeground = foreground;
     myBackground = background;
     myOptions = options.clone();
-  }
-
-  @NotNull
-  public static TextStyle getCanonicalStyle(TextStyle currentStyle) {
-    if (currentStyle instanceof HyperlinkStyle) {
-      return currentStyle;
-    }
-    final WeakReference<TextStyle> canonRef = styles.get(currentStyle);
-    if (canonRef != null) {
-      final TextStyle canonStyle = canonRef.get();
-      if (canonStyle != null) {
-        return canonStyle;
-      }
-    }
-    styles.put(currentStyle, new WeakReference<>(currentStyle));
-    return currentStyle;
   }
 
   @Nullable
@@ -121,7 +101,7 @@ public class TextStyle {
   public static class Builder {
     private TerminalColor myForeground;
     private TerminalColor myBackground;
-    private EnumSet<Option> myOptions;
+    private final EnumSet<Option> myOptions;
 
     public Builder(@NotNull TextStyle textStyle) {
       myForeground = textStyle.myForeground;

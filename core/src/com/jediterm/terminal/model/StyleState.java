@@ -5,33 +5,18 @@ import com.jediterm.terminal.TextStyle;
 import org.jetbrains.annotations.NotNull;
 
 public class StyleState {
-  private TextStyle myCurrentStyle = TextStyle.EMPTY;
-  private TextStyle myDefaultStyle = TextStyle.EMPTY;
-  
-  private TextStyle myMergedStyle = null;
+  private volatile TextStyle myCurrentStyle = TextStyle.EMPTY;
+  private volatile TextStyle myDefaultStyle = TextStyle.EMPTY;
 
   public StyleState() {
   }
 
-  public TextStyle getCurrent() {
-    return TextStyle.getCanonicalStyle(getMergedStyle());
-  }
-
-  @NotNull
-  private static TextStyle merge(@NotNull TextStyle style, @NotNull TextStyle defaultStyle) {
-    TextStyle.Builder builder = style.toBuilder();
-    if (style.getBackground() == null && defaultStyle.getBackground() != null) {
-      builder.setBackground(defaultStyle.getBackground());
-    }
-    if (style.getForeground() == null && defaultStyle.getForeground() != null) {
-      builder.setForeground(defaultStyle.getForeground());
-    }
-    return builder.build();
+  public @NotNull TextStyle getCurrent() {
+    return myCurrentStyle;
   }
 
   public void reset() {
     myCurrentStyle = myDefaultStyle;
-    myMergedStyle = null;
   }
 
   public void set(StyleState styleState) {
@@ -40,7 +25,6 @@ public class StyleState {
 
   public void setDefaultStyle(TextStyle defaultStyle) {
     myDefaultStyle = defaultStyle;
-    myMergedStyle = null;
   }
 
   public TerminalColor getBackground() {
@@ -61,13 +45,5 @@ public class StyleState {
 
   public void setCurrent(TextStyle current) {
     myCurrentStyle = current;
-    myMergedStyle = null;
-  }
-
-  private TextStyle getMergedStyle() {
-    if (myMergedStyle == null) {
-      myMergedStyle = merge(myCurrentStyle, myDefaultStyle);
-    }
-    return myMergedStyle;
   }
 }

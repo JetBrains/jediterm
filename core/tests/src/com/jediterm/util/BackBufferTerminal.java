@@ -56,7 +56,7 @@ public class BackBufferTerminal extends JediTerminal {
     }
 
     @Override
-    public void sendBytes(byte[] response) {
+    public void sendBytes(byte @NotNull [] response, boolean userInput) {
       try {
         myOutputStream.write(response);
       } catch (IOException e) {
@@ -65,7 +65,7 @@ public class BackBufferTerminal extends JediTerminal {
     }
 
     @Override
-    public void sendString(String string) {
+    public void sendString(@NotNull String string, boolean userInput) {
       try {
         myOutputStream.write(string.getBytes(StandardCharsets.UTF_8));
       } catch (IOException e) {

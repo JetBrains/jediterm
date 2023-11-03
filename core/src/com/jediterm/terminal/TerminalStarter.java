@@ -157,12 +157,7 @@ public class TerminalStarter implements TerminalOutputStream {
   }
 
   @Override
-  public void sendBytes(final byte[] bytes) {
-    sendBytes(bytes, false);
-  }
-
-  @Override
-  public void sendBytes(final byte[] bytes, boolean userInput) {
+  public void sendBytes(byte @NotNull [] bytes, boolean userInput) {
     execute(() -> {
       try {
         if (userInput) {
@@ -177,12 +172,7 @@ public class TerminalStarter implements TerminalOutputStream {
   }
 
   @Override
-  public void sendString(final String string) {
-    sendString(string, false);
-  }
-
-  @Override
-  public void sendString(final String string, boolean userInput) {
+  public void sendString(@NotNull String string, boolean userInput) {
     execute(() -> {
       try {
         if (userInput) {

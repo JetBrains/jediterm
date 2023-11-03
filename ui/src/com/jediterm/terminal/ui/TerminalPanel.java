@@ -1041,7 +1041,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
           arrowKeys = myTerminalStarter.getCode(KeyEvent.VK_DOWN,0);
         }
         for(int i = 0; i < Math.abs(e.getUnitsToScroll()); i++){
-          myTerminalStarter.sendBytes(arrowKeys);
+          myTerminalStarter.sendBytes(arrowKeys, false);
         }
         e.consume();
       }

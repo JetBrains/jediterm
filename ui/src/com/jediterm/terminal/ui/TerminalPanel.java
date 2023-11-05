@@ -1036,9 +1036,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
         //Send Arrow keys instead
         final byte[] arrowKeys;
         if (e.getWheelRotation() < 0) {
-          arrowKeys = myTerminalStarter.getCode(KeyEvent.VK_UP,0);
-        }else{
-          arrowKeys = myTerminalStarter.getCode(KeyEvent.VK_DOWN,0);
+          arrowKeys = myTerminalStarter.getTerminal().getCodeForKey(KeyEvent.VK_UP, 0);
+        }
+        else {
+          arrowKeys = myTerminalStarter.getTerminal().getCodeForKey(KeyEvent.VK_DOWN, 0);
         }
         for(int i = 0; i < Math.abs(e.getUnitsToScroll()); i++){
           myTerminalStarter.sendBytes(arrowKeys, false);
@@ -1829,7 +1830,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
         return true;
       }
 
-      final byte[] code = myTerminalStarter.getCode(keycode, e.getModifiers());
+      final byte[] code = myTerminalStarter.getTerminal().getCodeForKey(keycode, e.getModifiers());
       if (code != null) {
         myTerminalStarter.sendBytes(code, true);
         if (mySettingsProvider.scrollToBottomOnTyping() && isCodeThatScrolls(keycode)) {

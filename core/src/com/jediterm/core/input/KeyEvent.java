@@ -4,6 +4,7 @@ public final class KeyEvent {
   public static final int VK_ENTER          = '\n';
   public static final int VK_BACK_SPACE     = '\b';
   public static final int VK_TAB            = '\t';
+  public static final int VK_ESCAPE         = 0x1B;
   public static final int VK_F1             = 0x70;
   public static final int VK_F2             = 0x71;
   public static final int VK_F3             = 0x72;

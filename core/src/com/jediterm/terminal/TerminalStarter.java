@@ -1,5 +1,6 @@
 package com.jediterm.terminal;
 
+import com.jediterm.core.input.KeyEvent;
 import com.jediterm.core.typeahead.TerminalTypeAheadManager;
 import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.emulator.Emulator;
@@ -35,6 +36,7 @@ public class TerminalStarter implements TerminalOutputStream {
   private final ScheduledExecutorService mySingleThreadScheduledExecutor;
   private volatile boolean myStopped = false;
   private volatile ScheduledFuture<?> myScheduledTtyConnectorResizeFuture;
+  private volatile boolean myIsLastSentByteEscape = false;
 
   public TerminalStarter(@NotNull JediTerminal terminal,
                          @NotNull TtyConnector ttyConnector,
@@ -61,6 +63,10 @@ public class TerminalStarter implements TerminalOutputStream {
 
   public @NotNull TtyConnector getTtyConnector() {
     return myTtyConnector;
+  }
+
+  public @NotNull Terminal getTerminal() {
+    return myTerminal;
   }
 
   public void start() {
@@ -107,6 +113,10 @@ public class TerminalStarter implements TerminalOutputStream {
     }
   }
 
+  /**
+   * @deprecated use {@link JediTerminal#getCodeForKey(int, int)} instead
+   */
+  @Deprecated
   public byte[] getCode(final int key, final int modifiers) {
     return myTerminal.getCodeForKey(key, modifiers);
   }
@@ -158,6 +168,10 @@ public class TerminalStarter implements TerminalOutputStream {
 
   @Override
   public void sendBytes(byte @NotNull [] bytes, boolean userInput) {
+    int length = bytes.length;
+    if (length > 0) {
+      myIsLastSentByteEscape = bytes[length - 1] == KeyEvent.VK_ESCAPE;
+    }
     execute(() -> {
       try {
         if (userInput) {
@@ -166,13 +180,17 @@ public class TerminalStarter implements TerminalOutputStream {
         myTtyConnector.write(bytes);
       }
       catch (IOException e) {
-        throw new RuntimeException(e);
+        logWriteError(e);
       }
     });
   }
 
   @Override
   public void sendString(@NotNull String string, boolean userInput) {
+    int length = string.length();
+    if (length > 0) {
+      myIsLastSentByteEscape = string.charAt(length - 1) == KeyEvent.VK_ESCAPE;
+    }
     execute(() -> {
       try {
         if (userInput) {
@@ -182,9 +200,13 @@ public class TerminalStarter implements TerminalOutputStream {
         myTtyConnector.write(string);
       }
       catch (IOException e) {
-        throw new RuntimeException(e);
+        logWriteError(e);
       }
     });
+  }
+
+  private void logWriteError(@NotNull IOException e) {
+    LOG.info("Cannot write to TtyConnector " + myTtyConnector.getClass().getName() + ", connected: " + myTtyConnector.isConnected(), e);
   }
 
   public void close() {
@@ -196,5 +218,9 @@ public class TerminalStarter implements TerminalOutputStream {
         LOG.error("Error closing terminal", e);
       }
     });
+  }
+
+  public boolean isLastSentByteEscape() {
+    return myIsLastSentByteEscape;
   }
 }

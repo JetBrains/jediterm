@@ -22,9 +22,11 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 /**
  * JediTerm terminal widget with UI implemented in Swing.
@@ -44,6 +46,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   private final PreConnectHandler myPreConnectHandler;
   private TtyConnector myTtyConnector;
   private TerminalStarter myTerminalStarter;
+  private CompletableFuture<TerminalStarter> myTerminalStarterFuture = new CompletableFuture<>();
   protected final SettingsProvider mySettingsProvider;
   private TerminalActionProvider myNextActionProvider;
   private final JLayeredPane myInnerPanel;
@@ -170,6 +173,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     }
     myTypeAheadTerminalModel.setShellType(shellType);
     myTerminalStarter = createTerminalStarter(myTerminal, myTtyConnector);
+    myTerminalStarterFuture.complete(myTerminalStarter);
     myTerminalPanel.setTerminalStarter(myTerminalStarter);
   }
 
@@ -423,11 +427,14 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   /**
    * @deprecated use {@link #getTtyConnector()} to figure out if session started
-   *             use {@link #getTerminal().getCodeForKey(int, int)} instead of {@link TerminalStarter#getCode(int, int)}
    */
   @Deprecated
   public @Nullable TerminalStarter getTerminalStarter() {
     return myTerminalStarter;
+  }
+
+  protected void doWithTerminalStarter(@NotNull Consumer<TerminalStarter> consumer) {
+    myTerminalStarterFuture.thenAccept(consumer);
   }
 
   private class FindResultScrollBarUI extends BasicScrollBarUI {

@@ -73,7 +73,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     myTextProcessing.setTerminalTextBuffer(terminalTextBuffer);
 
     myTerminalPanel = createTerminalPanel(mySettingsProvider, styleState, terminalTextBuffer);
-    myTerminal = new JediTerminal(myTerminalPanel, terminalTextBuffer, styleState);
+    myTerminal = createTerminal(myTerminalPanel, terminalTextBuffer, styleState);
 
     myTypeAheadTerminalModel = new JediTermTypeAheadModel(myTerminal, terminalTextBuffer, settingsProvider);
     myTypeAheadManager = new TerminalTypeAheadManager(myTypeAheadTerminalModel);
@@ -123,6 +123,12 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   protected TerminalPanel createTerminalPanel(@NotNull SettingsProvider settingsProvider, @NotNull StyleState styleState, @NotNull TerminalTextBuffer terminalTextBuffer) {
     return new TerminalPanel(settingsProvider, terminalTextBuffer, styleState);
+  }
+
+  protected @NotNull JediTerminal createTerminal(@NotNull TerminalDisplay display,
+                                                 @NotNull TerminalTextBuffer textBuffer,
+                                                 @NotNull StyleState initialStyleState) {
+    return new JediTerminal(display, textBuffer, initialStyleState);
   }
 
   @SuppressWarnings({"removal", "DeprecatedIsStillUsed"})

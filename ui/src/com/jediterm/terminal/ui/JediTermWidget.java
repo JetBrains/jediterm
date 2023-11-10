@@ -46,7 +46,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   private final PreConnectHandler myPreConnectHandler;
   private TtyConnector myTtyConnector;
   private TerminalStarter myTerminalStarter;
-  private CompletableFuture<TerminalStarter> myTerminalStarterFuture = new CompletableFuture<>();
+  private final CompletableFuture<TerminalStarter> myTerminalStarterFuture = new CompletableFuture<>();
   protected final SettingsProvider mySettingsProvider;
   private TerminalActionProvider myNextActionProvider;
   private final JLayeredPane myInnerPanel;

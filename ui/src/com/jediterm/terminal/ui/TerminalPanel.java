@@ -83,6 +83,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   /*scroll and cursor*/
   final private TerminalCursor myCursor = new TerminalCursor();
 
+  private final BlinkingTextTracker myTextBlinkingTracker = new BlinkingTextTracker();
+
   //we scroll a window [0, terminal_height] in the range [-history_lines_count, terminal_height]
   private final BoundedRangeModel myBoundedRangeModel = new DefaultBoundedRangeModel(0, 80, 0, 80);
 
@@ -502,6 +504,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       TerminalPanel terminalPanel = ref.get();
       if (terminalPanel != null) {
         terminalPanel.myCursor.changeStateIfNeeded();
+        terminalPanel.myTextBlinkingTracker.updateState(terminalPanel.mySettingsProvider, terminalPanel);
         terminalPanel.updateScrolling(false);
         if (terminalPanel.needRepaint.getAndSet(false)) {
           try {
@@ -1252,6 +1255,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
   private void drawCharacters(int x, int y, TextStyle style, CharBuffer buf, Graphics2D gfx,
                               boolean includeSpaceBetweenLines) {
+    if (myTextBlinkingTracker.shouldBlinkNow(style)) {
+      style = getInversedStyle(style);
+    }
+
     int xCoord = x * myCharSize.width + getInsetX();
     int yCoord = y * myCharSize.height + (includeSpaceBetweenLines ? 0 : mySpaceBetweenLines / 2);
 

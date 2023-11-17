@@ -4,8 +4,8 @@ class CellPosition(/* one-based column */ val x: Int,
                    /* one-based row    */ val y: Int) {
 
   init {
-    require(x >= 1) { "positive column: $x" }
-    require(y >= 1) { "positive row: $y" }
+    require(x >= 1) { "Positive column is expected, got $x" }
+    require(y >= 1) { "Positive row is expected, got $y" }
   }
 
   override fun equals(other: Any?): Boolean {

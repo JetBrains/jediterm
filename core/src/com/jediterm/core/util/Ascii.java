@@ -21,6 +21,8 @@ public final class Ascii {
    */
   public static final byte BEL = 7;
 
+  public static final char BEL_CHAR = BEL;
+
   /**
    * Backspace ('\b'): A format effector which controls the movement of the printing position one
    * printing space backward on the same printing line. (Applicable also to display devices.)
@@ -82,6 +84,8 @@ public final class Ascii {
    * interpretation of a limited number of contiguously following characters.
    */
   public static final byte ESC = 27;
+
+  public static final char ESC_CHAR = ESC;
 
   /**
    * Unit Separator: These four information separators may be used within data in optional fashion,

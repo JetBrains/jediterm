@@ -690,7 +690,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   }
 
   private boolean restoreDecPrivateModeValues(ControlSequence args) {
-    LOG.warn("Unsupported: " + args.toString());
+    LOG.warn("Unsupported: " + args);
 
     return false;
   }
@@ -715,7 +715,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       myTerminal.deviceStatusReport(str);
       return true;
     } else {
-      LOG.warn("Sending Device Report Status : unsupported parameter: " + args.toString());
+      LOG.warn("Sending Device Report Status : unsupported parameter: " + args);
       return false;
     }
   }
@@ -743,7 +743,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         myTerminal.cursorShape(CursorShape.STEADY_VERTICAL_BAR);
         return true;
       default:
-        LOG.warn("Setting cursor shape : unsupported parameter " + args.toString());
+        LOG.warn("Setting cursor shape : unsupported parameter " + args);
         return false;
     }
   }
@@ -1050,14 +1050,14 @@ public class JediEmulator extends DataStreamIteratingEmulator {
               (val2 >= 0 && val2 < 256)) {
         return new TerminalColor(val0, val1, val2);
       } else {
-        LOG.warn("Bogus color setting " + args.toString());
+        LOG.warn("Bogus color setting " + args);
         return null;
       }
     } else if (code == 5) {
       /* indexed color */
       return ColorPalette.getIndexedTerminalColor(args.getArg(index + 2, 0));
     } else {
-      LOG.warn("Unsupported code for color attribute " + args.toString());
+      LOG.warn("Unsupported code for color attribute " + args);
       return null;
     }
   }

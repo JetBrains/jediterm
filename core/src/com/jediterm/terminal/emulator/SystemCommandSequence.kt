@@ -19,7 +19,7 @@ internal class SystemCommandSequence
     } while (!isTerminated(textBuf))
     text = textBuf.toString()
     val body = text.dropLast(terminatorLength(text))
-    args = java.util.List.copyOf(body.split(';'))
+    args = java.util.List.copyOf(body.split(ARG_SEPARATOR))
   }
 
   fun getStringAt(index: Int): String? = args.getOrNull(index)
@@ -30,18 +30,19 @@ internal class SystemCommandSequence
     return value?.toIntOrNull() ?: defaultValue
   }
 
-  fun format(body: String): String {
+  fun format(args: List<String>): String {
     // https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
     // XTerm accepts either BEL  or ST  for terminating OSC
     // sequences, and when returning information, uses the same
     // terminator used in a query.
-    return Ascii.ESC_CHAR + "]" + body + text.takeLast(terminatorLength(text))
+    return Ascii.ESC_CHAR + "]" + args.joinToString(ARG_SEPARATOR.toString()) + text.takeLast(terminatorLength(text))
   }
 
   override fun toString(): String = CharUtils.toHumanReadableText(Ascii.ESC_CHAR + "]" + text)
 
   internal companion object {
     private const val ST: Char = 0x9c.toChar()
+    private const val ARG_SEPARATOR: Char = ';'
     internal const val OSC: Char = 0x9d.toChar() // C1 control code
 
     private fun isTerminated(text: CharSequence): Boolean {

@@ -277,7 +277,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       return false;
     }
     if (color != null) {
-      String str = args.format(ps + ";" + color.toXParseColor());
+      String str = args.format(List.of(String.valueOf(ps), color.toXParseColor()));
       if (LOG.isDebugEnabled()) {
         LOG.debug("Responding to OSC " + ps + " query: " + str);
       }

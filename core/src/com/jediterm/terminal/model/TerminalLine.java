@@ -6,7 +6,6 @@ import com.jediterm.terminal.util.CharUtils;
 import com.jediterm.terminal.util.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.TestOnly;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -362,8 +361,7 @@ public final class TerminalLine {
     myTextEntries.forEach(action);
   }
 
-  @TestOnly
-  public List<TextEntry> getEntries() {
+  public @NotNull List<TextEntry> getEntries() {
     return Collections.unmodifiableList(myTextEntries.entries());
   }
 

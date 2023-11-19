@@ -193,9 +193,15 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   }
 
   private void processOsc() throws IOException {
-    SystemCommandSequence command = new SystemCommandSequence(myDataStream);
-    if (!operatingSystemCommand(command)) {
-      LOG.warn("Error processing OSC: ESC]" + command);
+    SystemCommandSequence osc = new SystemCommandSequence(myDataStream);
+    try {
+      boolean processed = doProcessOsc(osc);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Processed OSC (" + osc + "): " + processed);
+      }
+    }
+    catch (Exception e) {
+      LOG.error("Error processing OSC (" + osc + ")", e);
     }
   }
 
@@ -203,7 +209,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     return false;
   }
 
-  private boolean operatingSystemCommand(SystemCommandSequence args) {
+  private boolean doProcessOsc(@NotNull SystemCommandSequence args) {
     // https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
     int ps = args.getIntAt(0, -1);
     switch (ps) {

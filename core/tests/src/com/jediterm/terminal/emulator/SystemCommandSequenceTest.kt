@@ -30,9 +30,9 @@ class SystemCommandSequenceTest {
   @Test
   fun `format using same terminator`() {
     val seq1 = create("2;Test 1$BEL_CHAR")
-    Assert.assertEquals("$ESC_CHAR]foo$BEL_CHAR", seq1.format("foo"))
+    Assert.assertEquals("$ESC_CHAR]foo$BEL_CHAR", seq1.format(listOf("foo")))
     val seq2 = create("2;Test 1$TWO_BYTES_TERMINATOR")
-    Assert.assertEquals("$ESC_CHAR]bar$TWO_BYTES_TERMINATOR", seq2.format("bar"))
+    Assert.assertEquals("$ESC_CHAR]bar;baz$TWO_BYTES_TERMINATOR", seq2.format(listOf("bar", "baz")))
   }
 
   @Suppress("unused")

@@ -83,8 +83,15 @@ public enum TerminalMode {
   KeyboardAction, 
   InsertMode,
   SendReceive,
-  EightBitInput, //Interpret "meta" key, sets eighth bit. (enables the eightBitInput resource).
-               // http://www.leonerd.org.uk/hacks/hints/xterm-8bit.html
+  EightBitInput {
+      @Override
+      public void setEnabled(Terminal terminal, boolean enabled) {
+        //Interpret "meta" key, sets eighth bit. (enables the eightBitInput resource).
+        // http://www.leonerd.org.uk/hacks/hints/xterm-8bit.html
+        // https://github.com/microsoft/terminal/issues/6722
+        // Not implemented for now. The method is overridden to suppress warnings.
+      }
+    },
 
   AltSendsEscape //See section Alt and Meta Keys in http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
           {

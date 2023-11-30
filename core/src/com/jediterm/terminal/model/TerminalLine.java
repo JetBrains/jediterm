@@ -357,7 +357,7 @@ public final class TerminalLine {
     return isNul() || isEmpty();
   }
 
-  void forEachEntry(@NotNull Consumer<TextEntry> action) {
+  public void forEachEntry(@NotNull Consumer<TextEntry> action) {
     myTextEntries.forEach(action);
   }
 

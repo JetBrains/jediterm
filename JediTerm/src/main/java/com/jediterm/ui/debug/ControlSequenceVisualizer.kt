@@ -24,7 +24,7 @@ internal object ControlSequenceVisualizer {
     check(chunks.size == originalChunks.size)
     val result = ArrayList<String>()
     for ((id, chunk) in chunks.withIndex()) {
-      val label = "--- # ${id + 1 + logStart} of ${originalChunks[id].length} chars ---\n"
+      val label = "--- #${id + 1 + logStart} (received ${originalChunks[id].length} chars) ---\n"
       result.add(if (id == 0) label else "\n$label")
       result.add(chunk)
     }

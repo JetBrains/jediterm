@@ -10,6 +10,7 @@ import com.jediterm.terminal.ui.TerminalWidget
 import com.jediterm.terminal.ui.settings.DefaultTabbedSettingsProvider
 import com.jediterm.terminal.ui.settings.TabbedSettingsProvider
 import com.jediterm.ui.AbstractTerminalFrame
+import com.jediterm.ui.debug.TerminalDebugUtil
 import com.pty4j.PtyProcess
 import com.pty4j.PtyProcessBuilder
 import java.io.IOException
@@ -130,7 +131,7 @@ class JediTerm : AbstractTerminalFrame() {
         val terminalTextBuffer = myWidget!!.terminalTextBuffer
         val terminalState = TerminalState(
           terminalTextBuffer.screenLines,
-          terminalTextBuffer.styleLines,
+          TerminalDebugUtil.getStyleLines(terminalTextBuffer),
           terminalTextBuffer.historyBuffer.lines
         )
         myStates.add(terminalState)

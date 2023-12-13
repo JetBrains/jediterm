@@ -43,10 +43,6 @@ public class TextStyle {
     return new TextStyle(myForeground, myBackground);
   }
 
-  public int getId() {
-    return hashCode();
-  }
-
   public boolean hasOption(final Option option) {
     return myOptions.contains(option);
   }

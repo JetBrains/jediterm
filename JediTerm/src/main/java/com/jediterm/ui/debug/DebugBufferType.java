@@ -25,7 +25,7 @@ public enum DebugBufferType {
     public @NotNull String getValue(TerminalSession session, int stateIndex) {
       List<TerminalState> states = ((LoggingTtyConnector) session.getTtyConnector()).getStates();
       if (stateIndex == states.size()) {
-        return session.getTerminalTextBuffer().getStyleLines();
+        return TerminalDebugUtil.getStyleLines(session.getTerminalTextBuffer());
       } else {
         return states.get(stateIndex).myStyleLines;
       }

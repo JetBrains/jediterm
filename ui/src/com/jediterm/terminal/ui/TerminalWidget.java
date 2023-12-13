@@ -22,12 +22,6 @@ public interface TerminalWidget {
 
   boolean canOpenSession();
 
-  /**
-   * @deprecated use {@link JediTerminal#addApplicationTitleListener(TerminalApplicationTitleListener)} instead
-   */
-  @Deprecated
-  default void setTerminalPanelListener(TerminalPanelListener terminalPanelListener) {}
-
   Dimension getPreferredSize();
 
   TerminalDisplay getTerminalDisplay();

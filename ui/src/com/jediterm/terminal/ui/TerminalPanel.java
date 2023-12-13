@@ -73,8 +73,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
   private final TerminalCopyPasteHandler myCopyPasteHandler;
 
-  private TerminalPanelListener myTerminalPanelListener;
-
   private final SettingsProvider mySettingsProvider;
   private final TerminalTextBuffer myTerminalTextBuffer;
 
@@ -144,10 +142,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   @NotNull
   protected TerminalCopyPasteHandler createCopyPasteHandler() {
     return new DefaultTerminalCopyPasteHandler();
-  }
-
-  public TerminalPanelListener getTerminalPanelListener() {
-    return myTerminalPanelListener;
   }
 
   @Override
@@ -676,14 +670,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     myTermSize = newTermSize;
 
     setPreferredSize(new java.awt.Dimension(getPixelWidth(), getPixelHeight()));
-    if (myTerminalPanelListener != null) {
-      SwingUtilities.invokeLater(() -> myTerminalPanelListener.onPanelResize(origin));
-    }
     SwingUtilities.invokeLater(() -> updateScrolling(true));
-  }
-
-  public void setTerminalPanelListener(final TerminalPanelListener terminalPanelListener) {
-    myTerminalPanelListener = terminalPanelListener;
   }
 
   private void establishFontMetrics() {
@@ -1670,9 +1657,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   @Override
   public void setWindowTitle(@NotNull String windowTitle) {
     myWindowTitle = windowTitle;
-    if (myTerminalPanelListener != null) {
-      myTerminalPanelListener.onTitleChanged(myWindowTitle);
-    }
   }
 
   @Override

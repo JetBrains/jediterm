@@ -4,7 +4,6 @@ import com.jediterm.core.compatibility.Point;
 import com.jediterm.core.util.CellPosition;
 import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.StyledTextConsumer;
-import com.jediterm.terminal.StyledTextConsumerAdapter;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.model.TerminalLine.TextEntry;
 import com.jediterm.terminal.model.hyperlinks.TextProcessing;
@@ -15,9 +14,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -255,32 +252,6 @@ public class TerminalTextBuffer {
       }
 
       fireModelChangeEvent();
-    }
-  }
-
-  public String getStyleLines() {
-    final Map<Integer, Integer> hashMap = new HashMap<>();
-    myLock.lock();
-    try {
-      final StringBuilder sb = new StringBuilder();
-      myScreenBuffer.processLines(0, myHeight, new StyledTextConsumerAdapter() {
-        int count = 0;
-
-        @Override
-        public void consume(int x, int y, @NotNull TextStyle style, @NotNull CharBuffer characters, int startRow) {
-          if (x == 0) {
-            sb.append("\n");
-          }
-          int styleNum = style.getId();
-          if (!hashMap.containsKey(styleNum)) {
-            hashMap.put(styleNum, count++);
-          }
-          sb.append(String.format("%02d ", hashMap.get(styleNum)));
-        }
-      });
-      return sb.toString();
-    } finally {
-      myLock.unlock();
     }
   }
 

@@ -1,6 +1,7 @@
 package com.jediterm.terminal;
 
 import com.jediterm.core.Color;
+import com.jediterm.core.util.CellPosition;
 import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.emulator.mouse.MouseFormat;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
@@ -93,6 +94,8 @@ public interface Terminal {
 
   int getTerminalHeight();
 
+  @NotNull TermSize getSize();
+
   void eraseInDisplay(int arg);
 
   void setModeEnabled(TerminalMode mode, boolean enabled);
@@ -102,6 +105,8 @@ public interface Terminal {
   int getCursorX();
 
   int getCursorY();
+
+  @NotNull CellPosition getCursorPosition();
 
   void singleShiftSelect(int num);
 

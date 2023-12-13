@@ -1144,8 +1144,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   private void doResize(@NotNull TermSize newTermSize, @NotNull RequestOrigin origin, int oldHeight) {
     TermSize oldTermSize = new TermSize(myTerminalWidth, myTerminalHeight);
     myTerminalTextBuffer.modify(() -> {
-      CellPosition cursor = new CellPosition(getCursorX(), getCursorY());
-      TerminalResizeResult result = myTerminalTextBuffer.resize(newTermSize, cursor, myDisplay.getSelection());
+      TerminalResizeResult result = myTerminalTextBuffer.resize(newTermSize, getCursorPosition(), myDisplay.getSelection());
       myTerminalWidth = newTermSize.getColumns();
       myTerminalHeight = newTermSize.getRows();
       myCursorX = result.getNewCursor().getX() - 1;
@@ -1222,6 +1221,11 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   @Override
+  public @NotNull TermSize getSize() {
+    return new TermSize(myTerminalWidth, myTerminalHeight);
+  }
+
+  @Override
   public int getCursorX() {
     return myCursorX + 1;
   }
@@ -1229,6 +1233,11 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   @Override
   public int getCursorY() {
     return myCursorY;
+  }
+
+  @Override
+  public @NotNull CellPosition getCursorPosition() {
+    return new CellPosition(getCursorX(), getCursorY());
   }
 
   @Override

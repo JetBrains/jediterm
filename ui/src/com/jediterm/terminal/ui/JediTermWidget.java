@@ -254,11 +254,6 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   }
 
   @Override
-  public void setTerminalPanelListener(TerminalPanelListener terminalPanelListener) {
-    myTerminalPanel.setTerminalPanelListener(terminalPanelListener);
-  }
-
-  @Override
   public JediTermWidget createTerminalSession(TtyConnector ttyConnector) {
     setTtyConnector(ttyConnector);
     return this;

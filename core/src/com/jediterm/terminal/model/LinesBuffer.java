@@ -37,7 +37,7 @@ public class LinesBuffer {
     myTextProcessing = textProcessing;
   }
 
-  public synchronized String getLines() {
+  public String getLines() {
     final StringBuilder sb = new StringBuilder();
 
     boolean first = true;
@@ -67,16 +67,16 @@ public class LinesBuffer {
     return lines;
   }
 
-  public synchronized void addNewLine(@NotNull TextStyle style, @NotNull CharBuffer characters) {
+  public void addNewLine(@NotNull TextStyle style, @NotNull CharBuffer characters) {
     addNewLine(new TerminalLine.TextEntry(style, characters));
   }
 
 
-  private synchronized void addNewLine(@NotNull TerminalLine.TextEntry entry) {
+  private void addNewLine(@NotNull TerminalLine.TextEntry entry) {
     addLine(new TerminalLine(entry));
   }
 
-  private synchronized void addLine(@NotNull TerminalLine line) {
+  private void addLine(@NotNull TerminalLine line) {
     if (myBufferMaxLinesCount > 0 && myLines.size() >= myBufferMaxLinesCount) {
       removeTopLines(1);
     }
@@ -84,11 +84,11 @@ public class LinesBuffer {
     myLines.add(line);
   }
 
-  public synchronized int getLineCount() {
+  public int getLineCount() {
     return myLines.size();
   }
 
-  public synchronized void removeTopLines(int count) {
+  public void removeTopLines(int count) {
     if (count >= myLines.size()) { // remove all lines
       myLines = new ArrayList<>();
     } else {
@@ -102,7 +102,7 @@ public class LinesBuffer {
     return line.getText();
   }
 
-  public synchronized void insertLines(int y, int count, int lastLine, @NotNull TextEntry filler) {
+  public void insertLines(int y, int count, int lastLine, @NotNull TextEntry filler) {
     LinesBuffer tail = new LinesBuffer(myTextProcessing);
 
     if (lastLine < getLineCount() - 1) {
@@ -125,7 +125,7 @@ public class LinesBuffer {
     tail.moveTopLinesTo(tail.getLineCount(), this);
   }
 
-  public synchronized LinesBuffer deleteLines(int y, int count, int lastLine, @NotNull TextEntry filler) {
+  public LinesBuffer deleteLines(int y, int count, int lastLine, @NotNull TextEntry filler) {
     LinesBuffer tail = new LinesBuffer(myTextProcessing);
 
     if (lastLine < getLineCount() - 1) {
@@ -153,7 +153,7 @@ public class LinesBuffer {
     return removed;
   }
 
-  public synchronized void writeString(int x, int y, CharBuffer str, @NotNull TextStyle style) {
+  public void writeString(int x, int y, CharBuffer str, @NotNull TextStyle style) {
     TerminalLine line = getLine(y);
 
     line.writeString(x, str, style);
@@ -163,43 +163,43 @@ public class LinesBuffer {
     }
   }
 
-  public synchronized void clearLines(int startRow, int endRow, @NotNull TextEntry filler) {
+  public void clearLines(int startRow, int endRow, @NotNull TextEntry filler) {
     for (int i = startRow; i <= endRow; i++) {
       getLine(i).clear(filler);
     }
   }
 
   // used for reset, style not needed here (reset as well)
-  public synchronized void clearAll() {
+  public void clearAll() {
     myLines.clear();
   }
 
-  public synchronized void deleteCharacters(int x, int y, int count, @NotNull TextStyle style) {
+  public void deleteCharacters(int x, int y, int count, @NotNull TextStyle style) {
     TerminalLine line = getLine(y);
     line.deleteCharacters(x, count, style);
   }
 
-  public synchronized void insertBlankCharacters(final int x, final int y, final int count, final int maxLen, @NotNull TextStyle style) {
+  public void insertBlankCharacters(final int x, final int y, final int count, final int maxLen, @NotNull TextStyle style) {
     TerminalLine line = getLine(y);
     line.insertBlankCharacters(x, count, maxLen, style);
   }
 
-  public synchronized void clearArea(int leftX, int topY, int rightX, int bottomY, @NotNull TextStyle style) {
+  public void clearArea(int leftX, int topY, int rightX, int bottomY, @NotNull TextStyle style) {
     for (int y = topY; y < bottomY; y++) {
       TerminalLine line = getLine(y);
       line.clearArea(leftX, rightX, style);
     }
   }
 
-  public synchronized void processLines(final int yStart, final int yCount, @NotNull final StyledTextConsumer consumer) {
+  public void processLines(final int yStart, final int yCount, @NotNull final StyledTextConsumer consumer) {
     processLines(yStart, yCount, consumer, -getLineCount());
   }
 
-  public synchronized void processLines(final int firstLine,
-                                        final int count,
-                                        @NotNull final StyledTextConsumer consumer,
-                                        final int startRow) {
-    if (firstLine<0) {
+  public void processLines(final int firstLine,
+                           final int count,
+                           @NotNull final StyledTextConsumer consumer,
+                           final int startRow) {
+    if (firstLine < 0) {
       throw new IllegalArgumentException("firstLine=" + firstLine + ", should be >0");
     }
     for (int y = firstLine; y < Math.min(firstLine + count, myLines.size()); y++) {
@@ -207,7 +207,7 @@ public class LinesBuffer {
     }
   }
 
-  synchronized int moveTopLinesTo(int count, final @NotNull LinesBuffer buffer) {
+  int moveTopLinesTo(int count, final @NotNull LinesBuffer buffer) {
     if (count < 0) {
       throw new AssertionError("Moving negative line count: " + count);
     }
@@ -217,7 +217,7 @@ public class LinesBuffer {
     return count;
   }
 
-  public synchronized void addLines(@NotNull List<TerminalLine> lines) {
+  public void addLines(@NotNull List<TerminalLine> lines) {
     if (myBufferMaxLinesCount > 0) {
       // adding more lines than max size
       if (lines.size() >= myBufferMaxLinesCount) {
@@ -235,9 +235,8 @@ public class LinesBuffer {
     myLines.addAll(lines);
   }
 
-  @NotNull
-  public synchronized TerminalLine getLine(int row) {
-    if (row<0) {
+  public @NotNull TerminalLine getLine(int row) {
+    if (row < 0) {
       LOG.error("Negative line number: " + row);
       return TerminalLine.createEmpty();
     }
@@ -249,20 +248,20 @@ public class LinesBuffer {
     return myLines.get(row);
   }
 
-  public synchronized void moveBottomLinesTo(int count, final @NotNull LinesBuffer buffer) {
+  public void moveBottomLinesTo(int count, @NotNull LinesBuffer buffer) {
     count = Math.min(count, getLineCount());
     buffer.addLinesFirst(myLines.subList(getLineCount() - count, getLineCount()));
 
     removeBottomLines(count);
   }
 
-  private synchronized void addLinesFirst(@NotNull List<TerminalLine> lines) {
+  private void addLinesFirst(@NotNull List<TerminalLine> lines) {
     List<TerminalLine> list = new ArrayList<>(lines);
     list.addAll(myLines);
     myLines = new ArrayList<>(list);
   }
 
-  private synchronized void removeBottomLines(int count) {
+  private void removeBottomLines(int count) {
     myLines = new ArrayList<>(myLines.subList(0, getLineCount() - count));
   }
 
@@ -279,11 +278,11 @@ public class LinesBuffer {
     return removedCount;
   }
 
-  synchronized int findLineIndex(@NotNull TerminalLine line) {
+  int findLineIndex(@NotNull TerminalLine line) {
     return myLines.indexOf(line);
   }
 
-  public synchronized void clearTypeAheadPredictions() {
+  public void clearTypeAheadPredictions() {
     for (TerminalLine line : myLines) {
       line.myTypeAheadLine = null;
     }

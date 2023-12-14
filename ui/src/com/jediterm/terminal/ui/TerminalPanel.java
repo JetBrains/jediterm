@@ -451,7 +451,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     myCoordsAccessor = coordAccessor;
   }
 
-  public void setFindResult(SubstringFinder.FindResult findResult) {
+  public void setFindResult(@Nullable SubstringFinder.FindResult findResult) {
     myFindResult = findResult;
     repaint();
   }

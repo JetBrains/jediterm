@@ -261,7 +261,7 @@ public class TerminalTextBuffer {
    * @param index index of line
    * @return history lines for index<0, screen line for index>=0
    */
-  public TerminalLine getLine(int index) {
+  public @NotNull TerminalLine getLine(int index) {
     if (index >= 0) {
       if (index >= getHeight()) {
         LOG.error("Attempt to get line out of bounds: " + index + " >= " + getHeight());
@@ -350,18 +350,13 @@ public class TerminalTextBuffer {
     return getLine(y).getStyleAt(x);
   }
 
-  public Pair<Character, TextStyle> getStyledCharAt(int x, int y) {
-    synchronized (myScreenBuffer) {
-      TerminalLine line = getLine(y);
-      return new Pair<Character, TextStyle>(line.charAt(x), line.getStyleAt(x));
-    }
+  public @NotNull Pair<Character, TextStyle> getStyledCharAt(int x, int y) {
+    TerminalLine line = getLine(y);
+    return new Pair<>(line.charAt(x), line.getStyleAt(x));
   }
 
   public char getCharAt(int x, int y) {
-    synchronized (myScreenBuffer) {
-      TerminalLine line = getLine(y);
-      return line.charAt(x);
-    }
+    return getLine(y).charAt(x);
   }
 
   public boolean isUsingAlternateBuffer() {

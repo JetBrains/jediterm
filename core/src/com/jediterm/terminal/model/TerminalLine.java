@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -21,7 +22,7 @@ public final class TerminalLine {
 
   private TextEntries myTextEntries = new TextEntries();
   private boolean myWrapped = false;
-  private final List<TerminalLineIntervalHighlighting> myCustomHighlightings = new ArrayList<>();
+  private final List<TerminalLineIntervalHighlighting> myCustomHighlightings = new CopyOnWriteArrayList<>();
   TerminalLine myTypeAheadLine;
 
   public TerminalLine() {
@@ -73,7 +74,7 @@ public final class TerminalLine {
     myWrapped = wrapped;
   }
 
-  public synchronized void clear(@NotNull TextEntry filler) {
+  public void clear(@NotNull TextEntry filler) {
     myTextEntries.clear();
     myTextEntries.add(filler);
     setWrapped(false);
@@ -87,7 +88,7 @@ public final class TerminalLine {
     insertCharacters(x, style, str);
   }
 
-  private synchronized void writeCharacters(int x, @NotNull TextStyle style, @NotNull CharBuffer characters) {
+  private void writeCharacters(int x, @NotNull TextStyle style, @NotNull CharBuffer characters) {
     int len = myTextEntries.length();
 
     if (x >= len) {
@@ -102,7 +103,7 @@ public final class TerminalLine {
     }
   }
 
-  private synchronized void insertCharacters(int x, @NotNull TextStyle style, @NotNull CharBuffer characters) {
+  private void insertCharacters(int x, @NotNull TextStyle style, @NotNull CharBuffer characters) {
     int length = myTextEntries.length();
     if (x > length) {
       writeCharacters(x, style, characters);
@@ -167,17 +168,17 @@ public final class TerminalLine {
     return result;
   }
 
-  public synchronized void deleteCharacters(int x) {
+  public void deleteCharacters(int x) {
     deleteCharacters(x, TextStyle.EMPTY);
   }
 
-  public synchronized void deleteCharacters(int x, @NotNull TextStyle style) {
+  public void deleteCharacters(int x, @NotNull TextStyle style) {
     deleteCharacters(x, myTextEntries.length() - x, style);
     // delete to the end of line : line is no more wrapped
     setWrapped(false);
   }
 
-  public synchronized void deleteCharacters(int x, int count, @NotNull TextStyle style) {
+  public void deleteCharacters(int x, int count, @NotNull TextStyle style) {
     int p = 0;
     TextEntries newEntries = new TextEntries();
 
@@ -216,7 +217,7 @@ public final class TerminalLine {
     myTextEntries = newEntries;
   }
 
-  public synchronized void insertBlankCharacters(int x, int count, int maxLen, @NotNull TextStyle style) {
+  public void insertBlankCharacters(int x, int count, int maxLen, @NotNull TextStyle style) {
     int len = myTextEntries.length();
     len = Math.min(len + count, maxLen);
 
@@ -259,7 +260,7 @@ public final class TerminalLine {
     myTextEntries = collectFromBuffer(buf, styles);
   }
 
-  public synchronized void clearArea(int leftX, int rightX, @NotNull TextStyle style) {
+  public void clearArea(int leftX, int rightX, @NotNull TextStyle style) {
     if (rightX == -1) {
       rightX = Math.max(myTextEntries.length(), leftX);
     }
@@ -268,8 +269,7 @@ public final class TerminalLine {
             rightX - leftX));
   }
 
-  @Nullable
-  public synchronized TextStyle getStyleAt(int x) {
+  public @Nullable TextStyle getStyleAt(int x) {
     int i = 0;
 
     for (TextEntry te : myTextEntries) {
@@ -282,7 +282,7 @@ public final class TerminalLine {
     return null;
   }
 
-  public synchronized void process(int y, StyledTextConsumer consumer, int startRow) {
+  public void process(int y, StyledTextConsumer consumer, int startRow) {
     int x = 0;
     int nulIndex = -1;
     TerminalLineIntervalHighlighting highlighting = myCustomHighlightings.stream().findFirst().orElse(null);
@@ -334,7 +334,7 @@ public final class TerminalLine {
     }
   }
 
-  public synchronized boolean isNul() {
+  public boolean isNul() {
     for (TextEntry e : myTextEntries) {
       if (!e.isNul()) {
         return false;
@@ -370,13 +370,11 @@ public final class TerminalLine {
   }
 
   @SuppressWarnings("unused") // used by IntelliJ
-  public synchronized @NotNull TerminalLineIntervalHighlighting addCustomHighlighting(int startOffset, int length, @NotNull TextStyle textStyle) {
+  public @NotNull TerminalLineIntervalHighlighting addCustomHighlighting(int startOffset, int length, @NotNull TextStyle textStyle) {
     TerminalLineIntervalHighlighting highlighting = new TerminalLineIntervalHighlighting(this, startOffset, length, textStyle) {
       @Override
       protected void doDispose() {
-        synchronized (TerminalLine.this) {
-          myCustomHighlightings.remove(this);
-        }
+        myCustomHighlightings.remove(this);
       }
     };
     myCustomHighlightings.add(highlighting);

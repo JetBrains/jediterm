@@ -1,6 +1,5 @@
-package com.jediterm;
+package com.jediterm.terminal;
 
-import com.jediterm.terminal.SubstringFinder;
 import com.jediterm.terminal.model.CharBuffer;
 import junit.framework.TestCase;
 import org.jetbrains.annotations.NotNull;

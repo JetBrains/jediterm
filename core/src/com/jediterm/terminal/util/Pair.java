@@ -17,6 +17,10 @@ package com.jediterm.terminal.util;
 
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * @deprecated use other Pair class instead, e.g. {@link kotlin.Pair}
+ */
+@Deprecated(forRemoval = true)
 public class Pair<A, B> {
   public final A first;
   public final B second;

@@ -21,7 +21,7 @@ import com.jediterm.terminal.ui.input.AwtMouseEvent;
 import com.jediterm.terminal.ui.input.AwtMouseWheelEvent;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
 import com.jediterm.terminal.util.CharUtils;
-import com.jediterm.terminal.util.Pair;
+import kotlin.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -795,7 +795,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
               TextStyle foundPatternStyle = getFoundPattern(style);
               for (Pair<Integer, Integer> range : ranges) {
                 CharBuffer foundPatternChars = characters.subBuffer(range);
-                drawCharacters(x + range.first, row, foundPatternStyle, foundPatternChars, gfx);
+                drawCharacters(x + range.getFirst(), row, foundPatternStyle, foundPatternChars, gfx);
               }
             }
           }
@@ -804,9 +804,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
             Pair<Integer, Integer> interval = mySelection.intersect(x, row + myClientScrollOrigin, characters.length());
             if (interval != null) {
               TextStyle selectionStyle = getSelectionStyle(style);
-              CharBuffer selectionChars = characters.subBuffer(interval.first - x, interval.second);
+              CharBuffer selectionChars = characters.subBuffer(interval.getFirst() - x, interval.getSecond());
 
-              drawCharacters(interval.first, row, selectionStyle, selectionChars, gfx);
+              drawCharacters(interval.getFirst(), row, selectionStyle, selectionChars, gfx);
             }
           }
         }
@@ -838,11 +838,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       if (cursorY < getRowCount() && !hasUncommittedChars()) {
         int cursorX = myCursor.getCoordX();
         Pair<Character, TextStyle> sc = myTerminalTextBuffer.getStyledCharAt(cursorX, cursorY);
-        String cursorChar = "" + sc.first;
-        if (Character.isHighSurrogate(sc.first)) {
-          cursorChar += myTerminalTextBuffer.getStyledCharAt(cursorX + 1, cursorY).first;
+        String cursorChar = "" + sc.getFirst();
+        if (Character.isHighSurrogate(sc.getFirst())) {
+          cursorChar += myTerminalTextBuffer.getStyledCharAt(cursorX + 1, cursorY).getFirst();
         }
-        TextStyle normalStyle = sc.second != null ? sc.second : myStyleState.getCurrent();
+        TextStyle normalStyle = sc.getSecond() != null ? sc.getSecond() : myStyleState.getCurrent();
         TextStyle cursorStyle;
         if (inSelection(cursorX, cursorY)) {
           cursorStyle = getSelectionStyle(normalStyle);
@@ -1727,9 +1727,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     if (mySelection != null) {
       Pair<Point, Point> points = mySelection.pointsForRun(myTermSize.getColumns());
 
-      if (points.first != null || points.second != null) {
+      if (points.getFirst() != null || points.getSecond() != null) {
         return SelectionUtil
-                .getSelectionText(points.first, points.second, myTerminalTextBuffer);
+                .getSelectionText(points.getFirst(), points.getSecond(), myTerminalTextBuffer);
 
       }
     }
@@ -1961,7 +1961,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   private void handleCopy(boolean unselect, boolean useSystemSelectionClipboardIfAvailable) {
     if (mySelection != null) {
       Pair<Point, Point> points = mySelection.pointsForRun(myTermSize.getColumns());
-      copySelection(points.first, points.second, useSystemSelectionClipboardIfAvailable);
+      copySelection(points.getFirst(), points.getSecond(), useSystemSelectionClipboardIfAvailable);
       if (unselect) {
         mySelection = null;
         repaint();

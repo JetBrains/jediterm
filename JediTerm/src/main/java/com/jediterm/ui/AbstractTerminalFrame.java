@@ -4,7 +4,6 @@ import com.jediterm.app.JediTerm;
 import com.jediterm.core.compatibility.Point;
 import com.jediterm.terminal.Terminal;
 import com.jediterm.terminal.TtyConnector;
-import com.jediterm.ui.debug.TerminalDebugView;
 import com.jediterm.terminal.model.SelectionUtil;
 import com.jediterm.terminal.model.TerminalSelection;
 import com.jediterm.terminal.ui.JediTermWidget;
@@ -12,7 +11,8 @@ import com.jediterm.terminal.ui.TerminalPanel;
 import com.jediterm.terminal.ui.TerminalWidget;
 import com.jediterm.terminal.ui.settings.DefaultTabbedSettingsProvider;
 import com.jediterm.terminal.ui.settings.TabbedSettingsProvider;
-import com.jediterm.terminal.util.Pair;
+import com.jediterm.ui.debug.TerminalDebugView;
+import kotlin.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -20,7 +20,10 @@ import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.logging.Level;
 
 public abstract class AbstractTerminalFrame {
@@ -57,7 +60,7 @@ public abstract class AbstractTerminalFrame {
       if (selection != null) {
         Pair<Point, Point> points = selection.pointsForRun(widget.getTerminal().getTerminalWidth());
         LOG.info(selection + " : '"
-          + SelectionUtil.getSelectionText(points.first, points.second, terminalPanel.getTerminalTextBuffer()) + "'");
+          + SelectionUtil.getSelectionText(points.getFirst(), points.getSecond(), terminalPanel.getTerminalTextBuffer()) + "'");
       }
       else {
         LOG.info("No selection");

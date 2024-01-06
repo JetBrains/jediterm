@@ -3,7 +3,7 @@ package com.jediterm.terminal;
 import com.jediterm.core.compatibility.Point;
 import com.jediterm.terminal.model.CharBuffer;
 import com.jediterm.terminal.model.SubCharBuffer;
-import com.jediterm.terminal.util.Pair;
+import kotlin.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -110,7 +110,7 @@ public class SubstringFinder {
           for (Pair<Integer, Integer> pair : pairs) {
             Pair<Integer, Integer> intersected = intersect(pair, subCharBuffer.getOffset(), subCharBuffer.getOffset() + subCharBuffer.length());
             if (intersected != null) {
-              filtered.add(Pair.create(intersected.first - subCharBuffer.getOffset(), intersected.second - subCharBuffer.getOffset()));
+              filtered.add(new Pair<>(intersected.getFirst() - subCharBuffer.getOffset(), intersected.getSecond() - subCharBuffer.getOffset()));
             }
           }
           return filtered;
@@ -121,9 +121,9 @@ public class SubstringFinder {
     }
 
     private @Nullable Pair<Integer, Integer> intersect(@NotNull Pair<Integer, Integer> interval, int a, int b) {
-      int start = Math.max(interval.first, a);
-      int end = Math.min(interval.second, b);
-      return start < end ? Pair.create(start, end) : null;
+      int start = Math.max(interval.getFirst(), a);
+      int end = Math.min(interval.getSecond(), b);
+      return start < end ? new Pair<>(start, end) : null;
     }
 
     public static class FindItem {
@@ -146,10 +146,10 @@ public class SubstringFinder {
         StringBuilder b = new StringBuilder();
 
         if (tokens.size() > 1) {
-          Pair<Integer, Integer> range = Pair.create(firstIndex, tokens.get(0).buf.length());
+          Pair<Integer, Integer> range = new Pair<>(firstIndex, tokens.get(0).buf.length());
           b.append(tokens.get(0).buf.subBuffer(range));
         } else {
-          Pair<Integer, Integer> range = Pair.create(firstIndex, lastIndex + 1);
+          Pair<Integer, Integer> range = new Pair<>(firstIndex, lastIndex + 1);
           b.append(tokens.get(0).buf.subBuffer(range));
         }
 
@@ -158,7 +158,7 @@ public class SubstringFinder {
         }
 
         if (tokens.size() > 1) {
-          Pair<Integer, Integer> range = Pair.create(0, lastIndex + 1);
+          Pair<Integer, Integer> range = new Pair<>(0, lastIndex + 1);
           b.append(tokens.get(tokens.size() - 1).buf.subBuffer(range));
         }
 
@@ -186,19 +186,19 @@ public class SubstringFinder {
 
     public void patternMatched(ArrayList<TextToken> tokens, int firstIndex, int lastIndex) {
       if (tokens.size() > 1) {
-        Pair<Integer, Integer> range = Pair.create(firstIndex, tokens.get(0).buf.length());
+        Pair<Integer, Integer> range = new Pair<>(firstIndex, tokens.get(0).buf.length());
         put(tokens.get(0).buf, range);
       } else {
-        Pair<Integer, Integer> range = Pair.create(firstIndex, lastIndex + 1);
+        Pair<Integer, Integer> range = new Pair<>(firstIndex, lastIndex + 1);
         put(tokens.get(0).buf, range);
       }
 
       for (int i = 1; i < tokens.size() - 1; i++) {
-        put(tokens.get(i).buf, Pair.create(0, tokens.get(i).buf.length()));
+        put(tokens.get(i).buf, new Pair<>(0, tokens.get(i).buf.length()));
       }
 
       if (tokens.size() > 1) {
-        Pair<Integer, Integer> range = Pair.create(0, lastIndex + 1);
+        Pair<Integer, Integer> range = new Pair<>(0, lastIndex + 1);
         put(tokens.get(tokens.size() - 1).buf, range);
       }
 

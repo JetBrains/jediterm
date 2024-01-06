@@ -1,7 +1,7 @@
 package com.jediterm.terminal.model;
 
 import com.jediterm.terminal.util.CharUtils;
-import com.jediterm.terminal.util.Pair;
+import kotlin.Pair;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
@@ -85,7 +85,7 @@ public class CharBuffer implements Iterable<Character>, CharSequence {
   }
 
   public CharBuffer subBuffer(Pair<Integer, Integer> range) {
-    return new CharBuffer(myBuf, getStart() + range.first, range.second - range.first);
+    return new CharBuffer(myBuf, getStart() + range.getFirst(), range.getSecond() - range.getFirst());
   }
 
   public boolean isNul() {

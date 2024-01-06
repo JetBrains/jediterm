@@ -1,9 +1,9 @@
 package com.jediterm.example;
 
+import com.jediterm.core.Platform;
 import com.jediterm.pty.PtyProcessTtyConnector;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.ui.JediTermWidget;
-import com.jediterm.terminal.ui.UIUtil;
 import com.jediterm.terminal.ui.settings.DefaultSettingsProvider;
 import com.pty4j.PtyProcess;
 import com.pty4j.PtyProcessBuilder;
@@ -29,7 +29,7 @@ public class BasicTerminalShellExample {
     try {
       Map<String, String> envs = System.getenv();
       String[] command;
-      if (UIUtil.isWindows) {
+      if (Platform.isWindows()) {
         command = new String[]{"cmd.exe"};
       } else {
         command = new String[]{"/bin/bash", "--login"};

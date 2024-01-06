@@ -1,6 +1,6 @@
 package com.jediterm.terminal;
 
-import com.jediterm.terminal.ui.UIUtil;
+import com.jediterm.core.Platform;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -95,7 +95,7 @@ public class DefaultTerminalCopyPasteHandler implements TerminalCopyPasteHandler
   }
 
   private static void logException(@NotNull String message, @NotNull Exception e) {
-    if (UIUtil.isWindows && e instanceof IllegalStateException) {
+    if (Platform.isWindows() && e instanceof IllegalStateException) {
       LOG.debug(message, e);
     }
     else {

@@ -3,7 +3,7 @@ package com.jediterm.terminal.model;
 import com.jediterm.terminal.StyledTextConsumer;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.util.CharUtils;
-import com.jediterm.terminal.util.Pair;
+import kotlin.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -113,36 +113,36 @@ public final class TerminalLine {
     Pair<char[], TextStyle[]> pair = toBuf(myTextEntries, length + characters.length());
 
     for (int i = length - 1; i >= x; i--) {
-      pair.first[i + characters.length()] = pair.first[i];
-      pair.second[i + characters.length()] = pair.second[i];
+      pair.getFirst()[i + characters.length()] = pair.getFirst()[i];
+      pair.getSecond()[i + characters.length()] = pair.getSecond()[i];
     }
     for (int i = 0; i < characters.length(); i++) {
-      pair.first[i + x] = characters.charAt(i);
-      pair.second[i + x] = style;
+      pair.getFirst()[i + x] = characters.charAt(i);
+      pair.getSecond()[i + x] = style;
     }
-    myTextEntries = collectFromBuffer(pair.first, pair.second);
+    myTextEntries = collectFromBuffer(pair.getFirst(), pair.getSecond());
   }
 
   private static TextEntries merge(int x, @NotNull CharBuffer str, @NotNull TextStyle style, @NotNull TextEntries entries, int lineLength) {
     Pair<char[], TextStyle[]> pair = toBuf(entries, lineLength);
 
     for (int i = 0; i < str.length(); i++) {
-      pair.first[i + x] = str.charAt(i);
-      pair.second[i + x] = style;
+      pair.getFirst()[i + x] = str.charAt(i);
+      pair.getSecond()[i + x] = style;
     }
 
-    return collectFromBuffer(pair.first, pair.second);
+    return collectFromBuffer(pair.getFirst(), pair.getSecond());
   }
 
   private static Pair<char[], TextStyle[]> toBuf(TextEntries entries, int lineLength) {
-    Pair<char[], TextStyle[]> pair = Pair.create(new char[lineLength], new TextStyle[lineLength]);
+    Pair<char[], TextStyle[]> pair = new Pair<>(new char[lineLength], new TextStyle[lineLength]);
 
 
     int p = 0;
     for (TextEntry entry : entries) {
       for (int i = 0; i < entry.getLength(); i++) {
-        pair.first[p + i] = entry.getText().charAt(i);
-        pair.second[p + i] = entry.getStyle();
+        pair.getFirst()[p + i] = entry.getText().charAt(i);
+        pair.getSecond()[p + i] = entry.getStyle();
       }
       p += entry.getLength();
     }

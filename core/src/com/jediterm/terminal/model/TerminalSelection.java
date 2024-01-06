@@ -1,7 +1,7 @@
 package com.jediterm.terminal.model;
 
 import com.jediterm.core.compatibility.Point;
-import com.jediterm.terminal.util.Pair;
+import kotlin.Pair;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -35,7 +35,7 @@ public class TerminalSelection {
 
   public Pair<Point, Point> pointsForRun(int width) {
     Pair<Point, Point> p = SelectionUtil.sortPoints(new Point(myStart), new Point(myEnd));
-    p.second.x = Math.min(p.second.x + 1, width);
+    p.getSecond().x = Math.min(p.getSecond().x + 1, width);
     return p;
   }
 
@@ -59,20 +59,20 @@ public class TerminalSelection {
 
     Pair<Point, Point> p = SelectionUtil.sortPoints(new Point(myStart), new Point(myEnd));
 
-    if (p.first.y == row) {
-      newX = Math.max(x, p.first.x);
+    if (p.getFirst().y == row) {
+      newX = Math.max(x, p.getFirst().x);
     }
 
-    if (p.second.y == row) {
-      newLength = Math.min(p.second.x, x + length - 1) - newX + 1;
+    if (p.getSecond().y == row) {
+      newLength = Math.min(p.getSecond().x, x + length - 1) - newX + 1;
     } else {
       newLength = length - newX + x;
     }
 
-    if (newLength<=0 || row < p.first.y || row > p.second.y) {
+    if (newLength<=0 || row < p.getFirst().y || row > p.getSecond().y) {
       return null;
     } else
-      return Pair.create(newX, newLength);
+      return new Pair<>(newX, newLength);
   }
 
   @Override

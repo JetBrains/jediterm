@@ -2,10 +2,8 @@ package com.jediterm.terminal.model;
 
 import com.jediterm.core.compatibility.Point;
 import com.jediterm.terminal.util.CharUtils;
-import com.jediterm.terminal.util.Pair;
+import kotlin.Pair;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,9 +12,8 @@ import java.util.List;
  * @author traff
  */
 public class SelectionUtil {
-  private static final Logger LOG = LoggerFactory.getLogger(SelectionUtil.class);
-  
-  private static final List<Character> SEPARATORS = new ArrayList<Character>();
+
+  private static final List<Character> SEPARATORS = new ArrayList<>();
   static {
     SEPARATORS.add(' ');
     SEPARATORS.add('\u00A0'); // NO-BREAK SPACE
@@ -34,16 +31,12 @@ public class SelectionUtil {
     SEPARATORS.add('>');
   }
 
-  public static List<Character> getDefaultSeparators() {
-    return new ArrayList<Character>(SEPARATORS);
-  }
-  
-  public static Pair<Point, Point> sortPoints(Point a, Point b) {
+  public static kotlin.Pair<Point, Point> sortPoints(Point a, Point b) {
     if (a.y == b.y) { /* same line */
-      return Pair.create(a.x <= b.x ? a : b, a.x > b.x ? a : b);
+      return new Pair<>(a.x <= b.x ? a : b, a.x > b.x ? a : b);
     }
     else {
-      return Pair.create(a.y < b.y ? a : b, a.y > b.y ? a : b);
+      return new Pair<>(a.y < b.y ? a : b, a.y > b.y ? a : b);
     }
   }
 
@@ -57,11 +50,11 @@ public class SelectionUtil {
                                         @NotNull TerminalTextBuffer terminalTextBuffer) {
 
     Pair<Point, Point> pair = sortPoints(selectionStart, selectionEnd);
-    pair.first.y = Math.max(pair.first.y, - terminalTextBuffer.getHistoryLinesCount());
-    pair = sortPoints(pair.first, pair.second); // previous line may have change the order
+    pair.getFirst().y = Math.max(pair.getFirst().y, - terminalTextBuffer.getHistoryLinesCount());
+    pair = sortPoints(pair.getFirst(), pair.getSecond()); // previous line may have changed the order
 
-    Point top = pair.first;
-    Point bottom = pair.second;
+    Point top = pair.getFirst();
+    Point bottom = pair.getSecond();
 
     final StringBuilder selectionText = new StringBuilder();
 

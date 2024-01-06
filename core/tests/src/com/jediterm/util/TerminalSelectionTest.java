@@ -2,8 +2,8 @@ package com.jediterm.util;
 
 import com.jediterm.core.compatibility.Point;
 import com.jediterm.terminal.model.TerminalSelection;
-import com.jediterm.terminal.util.Pair;
 import junit.framework.TestCase;
+import kotlin.Pair;
 
 /**
  * @author traff
@@ -72,6 +72,6 @@ public class TerminalSelectionTest extends TestCase {
 
 
   private void doTest(Pair<Integer, Integer> intersection, int x, int len) {
-    assertTrue(intersection.toString() + " instead of " + x + ", " + len, x == intersection.first && len == intersection.second);
+    assertTrue(intersection.toString() + " instead of " + x + ", " + len, x == intersection.getFirst() && len == intersection.getSecond());
   }
 }

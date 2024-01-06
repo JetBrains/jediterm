@@ -1,6 +1,7 @@
 package com.jediterm.terminal.ui;
 
 import com.jediterm.core.Color;
+import com.jediterm.core.Platform;
 import com.jediterm.core.TerminalCoordinates;
 import com.jediterm.core.compatibility.Point;
 import com.jediterm.core.typeahead.TerminalTypeAheadManager;
@@ -599,7 +600,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     try {
       // Sanitize clipboard text to use CR as the line separator.
       // See https://github.com/JetBrains/jediterm/issues/136.
-      if (!UIUtil.isWindows) {
+      if (!Platform.isWindows()) {
         // On Windows, Java automatically does this CRLF->LF sanitization, but
         // other terminals on Unix typically also do this sanitization, so
         // maybe JediTerm also should.

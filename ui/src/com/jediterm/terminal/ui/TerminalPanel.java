@@ -5,7 +5,6 @@ import com.jediterm.core.Platform;
 import com.jediterm.core.TerminalCoordinates;
 import com.jediterm.core.compatibility.Point;
 import com.jediterm.core.typeahead.TerminalTypeAheadManager;
-import com.jediterm.core.util.Ascii;
 import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.*;
 import com.jediterm.terminal.SubstringFinder.FindResult.FindItem;
@@ -1801,6 +1800,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     myNextActionProvider = provider;
   }
 
+  private static final byte ASCII_NUL = 0;
+  private static final byte ASCII_ESC = 27;
+
   private boolean processTerminalKeyPressed(KeyEvent e) {
     if (hasUncommittedChars()) {
       return false;
@@ -1818,7 +1820,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       }
       // CTRL + Space is not handled in KeyEvent; handle it manually
       if (keychar == ' ' && (e.getModifiersEx() & InputEvent.CTRL_DOWN_MASK) != 0) {
-        myTerminalStarter.sendBytes(new byte[]{Ascii.NUL}, true);
+        myTerminalStarter.sendBytes(new byte[]{ASCII_NUL}, true);
         return true;
       }
 
@@ -1834,7 +1836,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
         // Cannot use e.getKeyChar() on macOS:
         //  Option+f produces e.getKeyChar()='ƒ' (402), but 'f' (102) is needed.
         //  Option+b produces e.getKeyChar()='∫' (8747), but 'b' (98) is needed.
-        myTerminalStarter.sendString(new String(new char[]{Ascii.ESC, simpleMapKeyCodeToChar(e)}), true);
+        myTerminalStarter.sendString(new String(new char[]{ASCII_ESC, simpleMapKeyCodeToChar(e)}), true);
         return true;
       }
       if (Character.isISOControl(keychar)) { // keys filtered out here will be processed in processTerminalKeyTyped

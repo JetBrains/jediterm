@@ -667,6 +667,10 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         case 2004:
           setModeEnabled(TerminalMode.BracketedPasteMode, enabled);
           return true;
+        case 9001:
+          // suppress warnings about `win32-input-mode`
+          // https://github.com/microsoft/terminal/blob/main/doc/specs/%234999%20-%20Improved%20keyboard%20handling%20in%20Conpty.md
+          return true;
         default:
           return false;
       }

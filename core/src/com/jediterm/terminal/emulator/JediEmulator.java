@@ -633,6 +633,10 @@ public class JediEmulator extends DataStreamIteratingEmulator {
             setMouseMode(MouseMode.MOUSE_REPORTING_NONE);
           }
           return true;
+        case 1004:
+          // stub focus gained/lost events for now
+          // https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
+          return true;
         case 1005:
           if (enabled) {
             myTerminal.setMouseFormat(MouseFormat.MOUSE_FORMAT_XTERM_EXT);

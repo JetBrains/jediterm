@@ -54,6 +54,7 @@ public class TerminalTextBuffer {
 
   private final List<TerminalModelListener> myListeners = new CopyOnWriteArrayList<>();
   private final List<TerminalModelListener> myTypeAheadListeners = new CopyOnWriteArrayList<>();
+  private final List<TerminalHistoryBufferListener> myHistoryBufferListeners = new CopyOnWriteArrayList<>();
 
   @Nullable
   private final TextProcessing myTextProcessing;
@@ -165,12 +166,20 @@ public class TerminalTextBuffer {
     myListeners.add(listener);
   }
 
-  public void addTypeAheadModelListener(TerminalModelListener listener) {
-    myTypeAheadListeners.add(listener);
-  }
-
   public void removeModelListener(TerminalModelListener listener) {
     myListeners.remove(listener);
+  }
+
+  public void addHistoryBufferListener(@NotNull TerminalHistoryBufferListener listener) {
+    myHistoryBufferListeners.add(listener);
+  }
+
+  public void removeHistoryBufferListener(@NotNull TerminalHistoryBufferListener listener) {
+    myHistoryBufferListeners.remove(listener);
+  }
+
+  public void addTypeAheadModelListener(TerminalModelListener listener) {
+    myTypeAheadListeners.add(listener);
   }
 
   public void removeTypeAheadModelListener(TerminalModelListener listener) {
@@ -469,11 +478,17 @@ public class TerminalTextBuffer {
   }
 
   public void clearHistory() {
-    myHistoryBuffer.clearAll();
+    modify(() -> {
+      int lineCount = myHistoryBuffer.getLineCount();
+      myHistoryBuffer.clearAll();
+      if (lineCount > 0) {
+        fireHistoryBufferLineCountChanged();
+      }
+    });
     fireModelChangeEvent();
   }
 
-  int moveScreenLinesToHistory() {
+  void moveScreenLinesToHistory() {
     myLock.lock();
     try {
       myScreenBuffer.removeBottomEmptyLines(myScreenBuffer.getLineCount() - 1, myScreenBuffer.getLineCount());
@@ -481,10 +496,18 @@ public class TerminalTextBuffer {
       if (myHistoryBuffer.getLineCount() > 0) {
         myHistoryBuffer.getLine(myHistoryBuffer.getLineCount() - 1).setWrapped(false);
       }
-      return movedToHistoryLineCount;
+      if (movedToHistoryLineCount > 0) {
+        fireHistoryBufferLineCountChanged();
+      }
     }
     finally {
       myLock.unlock();
+    }
+  }
+
+  private void fireHistoryBufferLineCountChanged() {
+    for (TerminalHistoryBufferListener historyBufferListener : myHistoryBufferListeners) {
+      historyBufferListener.historyBufferLineCountChanged();
     }
   }
 

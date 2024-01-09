@@ -396,10 +396,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
         case 2:
           beginY = 0;
           endY = myTerminalHeight - 1;
-          int movedToHistoryLineCount = myTerminalTextBuffer.moveScreenLinesToHistory();
-          if (movedToHistoryLineCount > 0) {
-            myDisplay.historyBufferLineCountChanged();
-          }
+          myTerminalTextBuffer.moveScreenLinesToHistory();
           break;
         case 3:
           // Clear entire screen and delete all lines saved in the scrollback buffer (xterm).

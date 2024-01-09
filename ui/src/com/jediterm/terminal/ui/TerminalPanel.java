@@ -133,6 +133,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
     terminalTextBuffer.addModelListener(this::repaint);
     terminalTextBuffer.addTypeAheadModelListener(this::repaint);
+    terminalTextBuffer.addHistoryBufferListener(() -> myHistoryBufferLineCountChanged.set(true));
   }
 
   void setTypeAheadManager(@NotNull TerminalTypeAheadManager typeAheadManager) {
@@ -1442,11 +1443,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   public void scrollArea(final int scrollRegionTop, final int scrollRegionSize, int dy) {
     scrollDy.addAndGet(dy);
     mySelection = null;
-  }
-
-  @Override
-  public void historyBufferLineCountChanged() {
-    myHistoryBufferLineCountChanged.set(true);
   }
 
   // should be called on EDT

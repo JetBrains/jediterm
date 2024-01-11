@@ -1,45 +1,31 @@
-package com.jediterm.core;
+package com.jediterm.core
 
-import org.jetbrains.annotations.NotNull;
-
-import java.util.Locale;
-
-public enum Platform {
+internal enum class Platform {
   Windows,
-  OS2,
-  Mac,
+
+  @Suppress("EnumEntryName")
+  macOS,
   Linux,
   Other;
 
-  private static Platform cachedPlatform;
+  companion object {
+    private var CURRENT: Platform = detectCurrent()
 
-  public static @NotNull Platform current() {
-    Platform current = cachedPlatform;
-    if (current == null) {
-      current = detectCurrent();
-      cachedPlatform = current;
+    @JvmStatic
+    fun current(): Platform = CURRENT
+
+    @JvmStatic
+    fun isWindows(): Boolean = CURRENT == Windows
+
+    @JvmStatic
+    fun isMacOS(): Boolean = CURRENT == macOS
+
+    private fun detectCurrent(): Platform {
+      val osName = System.getProperty("os.name").lowercase()
+      if (osName.startsWith("windows")) return Windows
+      if (osName.startsWith("mac")) return macOS
+      if (osName.startsWith("linux")) return Linux
+      return Other
     }
-    return current;
-  }
-
-  public static boolean isWindows() {
-    return Platform.current() == Platform.Windows;
-  }
-
-  public static boolean isMac() {
-    return Platform.current() == Platform.Mac;
-  }
-
-  private static @NotNull Platform detectCurrent() {
-    String osName = getOsNameLowerCase();
-    if (osName.startsWith("windows")) return Platform.Windows;
-    if (osName.startsWith("os/2") || osName.startsWith("os2")) return Platform.OS2;
-    if (osName.startsWith("mac")) return Platform.Mac;
-    if (osName.startsWith("linux")) return Platform.Linux;
-    return Platform.Other;
-  }
-
-  private static @NotNull String getOsNameLowerCase() {
-    return System.getProperty("os.name").toLowerCase(Locale.ENGLISH);
   }
 }

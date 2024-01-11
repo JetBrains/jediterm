@@ -17,7 +17,7 @@ class TerminalKeyEncoderTest {
 
   @Test
   fun `Alt Left`() {
-    val expected = if (Platform.isMac()) prependEsc("b") else prependEsc("[1;3D")
+    val expected = if (Platform.isMacOS()) prependEsc("b") else prependEsc("[1;3D")
     assertKeyCode(KeyEvent.VK_LEFT, InputEvent.ALT_MASK, expected)
   }
 

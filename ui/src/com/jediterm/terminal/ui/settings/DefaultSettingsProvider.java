@@ -27,7 +27,7 @@ public class DefaultSettingsProvider implements SettingsProvider {
 
   @Override
   public @NotNull TerminalActionPresentation getCopyActionPresentation() {
-    KeyStroke keyStroke = Platform.isMac()
+    KeyStroke keyStroke = Platform.isMacOS()
       ? KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.META_DOWN_MASK)
       // CTRL + C is used for signal; use CTRL + SHIFT + C instead
       : KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK);
@@ -36,7 +36,7 @@ public class DefaultSettingsProvider implements SettingsProvider {
 
   @Override
   public @NotNull TerminalActionPresentation getPasteActionPresentation() {
-    KeyStroke keyStroke = Platform.isMac()
+    KeyStroke keyStroke = Platform.isMacOS()
       ? KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.META_DOWN_MASK)
       // CTRL + V is used for signal; use CTRL + SHIFT + V instead
       : KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK);
@@ -45,7 +45,7 @@ public class DefaultSettingsProvider implements SettingsProvider {
 
   @Override
   public @NotNull TerminalActionPresentation getClearBufferActionPresentation() {
-    return new TerminalActionPresentation("Clear Buffer", Platform.isMac()
+    return new TerminalActionPresentation("Clear Buffer", Platform.isMacOS()
       ? KeyStroke.getKeyStroke(KeyEvent.VK_K, InputEvent.META_DOWN_MASK)
       : KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK));
   }
@@ -64,21 +64,21 @@ public class DefaultSettingsProvider implements SettingsProvider {
 
   @Override
   public @NotNull TerminalActionPresentation getLineUpActionPresentation() {
-    return new TerminalActionPresentation("Line Up", Platform.isMac()
+    return new TerminalActionPresentation("Line Up", Platform.isMacOS()
       ? KeyStroke.getKeyStroke(KeyEvent.VK_UP, InputEvent.META_DOWN_MASK)
       : KeyStroke.getKeyStroke(KeyEvent.VK_UP, InputEvent.CTRL_DOWN_MASK));
   }
 
   @Override
   public @NotNull TerminalActionPresentation getLineDownActionPresentation() {
-    return new TerminalActionPresentation("Line Down", Platform.isMac()
+    return new TerminalActionPresentation("Line Down", Platform.isMacOS()
       ? KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, InputEvent.META_DOWN_MASK)
       : KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, InputEvent.CTRL_DOWN_MASK));
   }
 
   @Override
   public @NotNull TerminalActionPresentation getFindActionPresentation() {
-    return new TerminalActionPresentation("Find", Platform.isMac()
+    return new TerminalActionPresentation("Find", Platform.isMacOS()
       ? KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.META_DOWN_MASK)
       : KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK));
   }
@@ -98,7 +98,7 @@ public class DefaultSettingsProvider implements SettingsProvider {
     String fontName;
     if (Platform.isWindows()) {
       fontName = "Consolas";
-    } else if (Platform.isMac()) {
+    } else if (Platform.isMacOS()) {
       fontName = "Menlo";
     } else {
       fontName = "Monospaced";

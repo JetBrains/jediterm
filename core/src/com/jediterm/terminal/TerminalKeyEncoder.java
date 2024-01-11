@@ -75,7 +75,7 @@ public class TerminalKeyEncoder {
   }
 
   private void configureLeftRight() {
-    if (myPlatform == Platform.Mac) {
+    if (myPlatform == Platform.macOS) {
       putCode(new KeyCodeAndModifier(VK_RIGHT, InputEvent.ALT_MASK), ESC, 'f'); // ^[f
       putCode(new KeyCodeAndModifier(VK_LEFT, InputEvent.ALT_MASK), ESC, 'b'); // ^[b
     }

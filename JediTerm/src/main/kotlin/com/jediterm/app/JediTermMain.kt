@@ -1,6 +1,5 @@
 package com.jediterm.app
 
-import com.jediterm.core.Platform
 import com.jediterm.pty.PtyProcessTtyConnector
 import com.jediterm.terminal.LoggingTtyConnector
 import com.jediterm.terminal.LoggingTtyConnector.TerminalState
@@ -63,12 +62,12 @@ class JediTerm : AbstractTerminalFrame() {
   override fun createTtyConnector(): TtyConnector {
     try {
       val envs: Map<String, String> = configureEnvironmentVariables()
-      val command: Array<String> = if (Platform.current() == Platform.Windows) {
+      val command: Array<String> = if (isWindows()) {
         arrayOf("powershell.exe")
       }
       else {
         val shell = envs["SHELL"] ?: "/bin/bash"
-        if (Platform.current() == Platform.Mac) arrayOf(shell, "--login") else arrayOf(shell)
+        if (isMacOS()) arrayOf(shell, "--login") else arrayOf(shell)
       }
       val workingDirectory = Path.of(".").toAbsolutePath().normalize().pathString
 
@@ -93,10 +92,10 @@ class JediTerm : AbstractTerminalFrame() {
 
   private fun configureEnvironmentVariables(): Map<String, String> {
     val envs = HashMap(System.getenv())
-    if (Platform.current() == Platform.Mac) {
+    if (isMacOS()) {
       envs["LC_CTYPE"] = Charsets.UTF_8.name()
     }
-    if (Platform.current() != Platform.Windows) {
+    if (isWindows()) {
       envs["TERM"] = "xterm-256color"
     }
     return envs

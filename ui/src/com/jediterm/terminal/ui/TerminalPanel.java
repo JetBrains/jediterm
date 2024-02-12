@@ -183,7 +183,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     addMouseMotionListener(new MouseMotionAdapter() {
       @Override
       public void mouseMoved(MouseEvent e) {
-        handleHyperlinks(e.getPoint(), e.isControlDown());
+        handleHyperlinks(e.getPoint());
       }
 
       @Override
@@ -229,6 +229,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
           myLinkHoverConsumer.onMouseExited();
           myLinkHoverConsumer = null;
         }
+        updateHoveredHyperlink(null);
       }
 
       @Override
@@ -331,7 +332,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       public void focusLost(FocusEvent e) {
         myCursor.cursorChanged();
 
-        handleHyperlinks(e.getComponent(), false);
+        handleHyperlinks(e.getComponent());
       }
     });
 
@@ -355,7 +356,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     e.consume();
   }
 
-  private void handleHyperlinks(@NotNull java.awt.Point panelPoint, boolean isControlDown) {
+  private void handleHyperlinks(@NotNull java.awt.Point panelPoint) {
     Cell cell = panelPointToCell(panelPoint);
     HyperlinkStyle linkStyle = findHyperlink(cell);
     LinkInfo linkInfo = linkStyle != null ? linkStyle.getLinkInfo() : null;
@@ -370,17 +371,18 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       }
     }
     myLinkHoverConsumer = linkHoverConsumer;
-    if (linkStyle != null) {
-      if (linkStyle.getHighlightMode() == HyperlinkStyle.HighlightMode.ALWAYS || (linkStyle.getHighlightMode() == HyperlinkStyle.HighlightMode.HOVER && isControlDown)) {
-        updateCursor(Cursor.HAND_CURSOR);
-        myHoveredHyperlink = linkStyle.getLinkInfo();
-        return;
-      }
+    if (linkStyle != null && linkStyle.getHighlightMode() != HyperlinkStyle.HighlightMode.NEVER) {
+      updateHoveredHyperlink(linkStyle.getLinkInfo());
     }
+    else {
+      updateHoveredHyperlink(null);
+    }
+  }
 
-    myHoveredHyperlink = null;
-    if (myCursorType != Cursor.DEFAULT_CURSOR) {
-      updateCursor(Cursor.DEFAULT_CURSOR);
+  private void updateHoveredHyperlink(@Nullable LinkInfo hoveredHyperlink) {
+    if (myHoveredHyperlink != hoveredHyperlink) {
+      updateCursor(hoveredHyperlink != null ? Cursor.HAND_CURSOR : Cursor.DEFAULT_CURSOR);
+      myHoveredHyperlink = hoveredHyperlink;
       repaint();
     }
   }
@@ -397,12 +399,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     return new LineCellInterval(initialCell.getLine(), startColumn, endColumn);
   }
 
-  private void handleHyperlinks(Component component, boolean controlDown) {
+  private void handleHyperlinks(Component component) {
     PointerInfo a = MouseInfo.getPointerInfo();
     if (a != null) {
       java.awt.Point b = a.getLocation();
       SwingUtilities.convertPointFromScreen(b, component);
-      handleHyperlinks(b, controlDown);
+      handleHyperlinks(b);
     }
   }
 
@@ -946,7 +948,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   @Override
   public void processKeyEvent(final KeyEvent e) {
     handleKeyEvent(e);
-    handleHyperlinks(e.getComponent(), e.isControlDown());
   }
 
   // also called from com.intellij.terminal.JBTerminalPanel

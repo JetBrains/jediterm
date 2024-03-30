@@ -89,37 +89,59 @@ public class ControlSequence {
     myUnhandledChars.add(b);
   }
 
+
   public boolean pushBackReordered(final TerminalDataStream channel) throws IOException {
     if (myUnhandledChars == null) return false;
     final char[] bytes = new char[1024]; // can't be more than the whole buffer...
-    int i = 0;
+
+    int length = 0;
+
+    length = copyUnhandledCharacters(bytes, length);
+    length = appendSpecialCharacters(bytes, length);
+    length = appendArguments(bytes, length);
+
+    bytes[length++] = myFinalChar;
+
+    channel.pushBackBuffer(bytes, length);
+    return true;
+  }
+
+  private int copyUnhandledCharacters(char[] bytes, int length) {
     for (final char b : myUnhandledChars) {
-      bytes[i++] = b;
+      bytes[length++] = b;
     }
-    bytes[i++] = (byte)Ascii.ESC;
-    bytes[i++] = (byte)'[';
+
+    return length;
+  }
+
+  private int appendSpecialCharacters(char[] bytes, int length) {
+    bytes[length++] = (byte)Ascii.ESC;
+    bytes[length++] = (byte)'[';
 
     if (myStartsWithExclamationMark) {
-      bytes[i++] = (byte)'!';
+      bytes[length++] = (byte)'!';
     }
     if (myStartsWithQuestionMark) {
-      bytes[i++] = (byte)'?';
-    }
-    
-    if (myStartsWithMoreMark) {
-      bytes[i++] = (byte)'>';
+      bytes[length++] = (byte)'?';
     }
 
+    if (myStartsWithMoreMark) {
+      bytes[length++] = (byte)'>';
+    }
+
+    return length;
+  }
+
+  private int appendArguments(char[] bytes, int length) {
     for (int argi = 0; argi < myArgc; argi++) {
-      if (argi != 0) bytes[i++] = ';';
+      if (argi != 0) bytes[length++] = ';';
       String s = Integer.toString(myArgv[argi]);
       for (int j = 0; j < s.length(); j++) {
-        bytes[i++] = s.charAt(j);
+        bytes[length++] = s.charAt(j);
       }
     }
-    bytes[i++] = myFinalChar;
-    channel.pushBackBuffer(bytes, i);
-    return true;
+
+    return length;
   }
 
   int getCount() {

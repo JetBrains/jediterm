@@ -13,8 +13,8 @@ public class DefaultTerminalCopyPasteHandler implements TerminalCopyPasteHandler
   private static final Logger LOG = LoggerFactory.getLogger(DefaultTerminalCopyPasteHandler.class);
 
   @Override
-  public void setContents(@NotNull String text, boolean useSystemSelectionClipboardIfAvailable) {
-    if (useSystemSelectionClipboardIfAvailable) {
+  public void setContents(@NotNull String text, boolean useSystemSelectionClipboard) {
+    if (useSystemSelectionClipboard) {
       Clipboard systemSelectionClipboard = getSystemSelectionClipboard();
       if (systemSelectionClipboard != null) {
         setClipboardContents(new StringSelection(text), systemSelectionClipboard);

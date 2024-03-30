@@ -125,13 +125,17 @@ public class TerminalKeyEncoder {
       return null;
     }
 
-    if ((myAltSendsEscape || alwaysSendEsc(key)) && (modifiers & InputEvent.ALT_MASK) != 0) {
-      return insertCodeAt(bytes, CharUtils.makeCode(ESC), 0);
+    boolean shouldSendEscape = myAltSendsEscape || alwaysSendEsc(key);
+    boolean isAltPressed = ((modifiers & InputEvent.ALT_MASK) != 0);
+    boolean isMetaPressed = ((modifiers & InputEvent.META_MASK) != 0);
+
+
+    if(shouldSendEscape) {
+      if(isAltPressed || isMetaPressed) {
+        return insertCodeAt(bytes, CharUtils.makeCode(ESC), 0);
+      }
     }
 
-    if ((myMetaSendsEscape || alwaysSendEsc(key)) && (modifiers & InputEvent.META_MASK) != 0) {
-      return insertCodeAt(bytes, CharUtils.makeCode(ESC), 0);
-    }
 
     if (isCursorKey(key) || isFunctionKey(key)) {
       return getCodeWithModifiers(bytes, modifiers);
@@ -145,11 +149,26 @@ public class TerminalKeyEncoder {
   }
 
   private boolean isCursorKey(int key) {
-    return key == VK_DOWN || key == VK_UP || key == VK_LEFT || key == VK_RIGHT || key == VK_HOME || key == VK_END;
+
+    boolean isKeyDown = key == VK_DOWN;
+    boolean isKeyUp = key == VK_UP;
+    boolean isKeyLeft = key == VK_LEFT;
+    boolean isKeyRight = key == VK_RIGHT;
+    boolean isKeyHome = key == VK_HOME;
+    boolean isKeyEnd = key == VK_END;
+
+    return isKeyDown || isKeyUp || isKeyLeft || isKeyRight || isKeyHome || isKeyEnd;
   }
 
   private boolean isFunctionKey(int key) {
-    return key >= VK_F1 && key <= VK_F12 || key == VK_INSERT || key == VK_DELETE || key == VK_PAGE_UP || key == VK_PAGE_DOWN;
+
+    boolean isFunctionKey = key >= VK_F1 && key <= VK_F12;
+    boolean isKeyInsert = key == VK_INSERT;
+    boolean isKeyDelete = key == VK_DELETE;
+    boolean isKeyPageUp = key == VK_PAGE_UP;
+    boolean isKeyPageDown = key == VK_PAGE_DOWN;
+
+    return isFunctionKey || isKeyInsert || isKeyDelete || isKeyPageUp || isKeyPageDown;
   }
 
   /**

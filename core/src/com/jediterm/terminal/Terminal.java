@@ -1,7 +1,6 @@
 package com.jediterm.terminal;
 
 import com.jediterm.core.Color;
-import com.jediterm.core.util.CellPosition;
 import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.emulator.mouse.MouseFormat;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
@@ -19,7 +18,7 @@ import java.util.List;
  *
  * @author traff
  */
-public interface Terminal {
+public interface Terminal extends TerminalCursor {
   void resize(@NotNull TermSize newTermSize, @NotNull RequestOrigin origin);
 
   void beep();
@@ -74,18 +73,6 @@ public interface Terminal {
 
   void linePositionAbsolute(int y);
 
-  void cursorPosition(int x, int y);
-
-  void cursorUp(int countY);
-
-  void cursorDown(int dY);
-
-  void cursorForward(int dX);
-
-  void cursorBackward(int dX);
-
-  void cursorShape(@NotNull CursorShape shape);
-
   void eraseInLine(int arg);
 
   void deleteCharacters(int count);
@@ -101,12 +88,6 @@ public interface Terminal {
   void setModeEnabled(TerminalMode mode, boolean enabled);
 
   void disconnected();
-
-  int getCursorX();
-
-  int getCursorY();
-
-  @NotNull CellPosition getCursorPosition();
 
   void singleShiftSelect(int num);
 

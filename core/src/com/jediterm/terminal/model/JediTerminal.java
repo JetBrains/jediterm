@@ -250,7 +250,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     if (level == 1 || level == 2) {
       myGraphicSetState.designateGraphicSet(0, CharacterSet.ASCII); //ASCII designated as G0
       myGraphicSetState
-              .designateGraphicSet(1, CharacterSet.DEC_SUPPLEMENTAL); //TODO: not DEC supplemental, but ISO Latin-1 supplemental designated as G1
+        .designateGraphicSet(1, CharacterSet.DEC_SUPPLEMENTAL); //TODO: not DEC supplemental, but ISO Latin-1 supplemental designated as G1
       mapCharsetToGL(0);
       mapCharsetToGR(1);
     } else if (level == 3) {
@@ -422,12 +422,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   public void clearLines(final int beginY, final int endY) {
-    myTerminalTextBuffer.lock();
-    try {
-      myTerminalTextBuffer.clearLines(beginY, endY);
-    } finally {
-      myTerminalTextBuffer.unlock();
-    }
+    myTerminalTextBuffer.clear(beginY, endY);
   }
 
   @Override
@@ -784,7 +779,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
   private StoredCursor createCursorState() {
     return new StoredCursor(myCursorX, myCursorY, myStyleState.getCurrent(),
-            isAutoWrap(), isOriginMode(), myGraphicSetState);
+      isAutoWrap(), isOriginMode(), myGraphicSetState);
   }
 
   @Override
@@ -886,9 +881,9 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     switch (myMouseFormat) {
       case MOUSE_FORMAT_XTERM_EXT:
         sb.append(String.format("\033[M%c%c%c",
-                (char) (32 + button),
-                (char) (32 + x),
-                (char) (32 + y)));
+          (char) (32 + button),
+          (char) (32 + x),
+          (char) (32 + y)));
         break;
       case MOUSE_FORMAT_URXVT:
         sb.append(String.format("\033[%d;%d;%dM", 32 + button, x, y));
@@ -897,9 +892,9 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
         if ((button & MouseButtonModifierFlags.MOUSE_BUTTON_SGR_RELEASE_FLAG) != 0) {
           // for mouse release event
           sb.append(String.format("\033[<%d;%d;%dm",
-                  button ^ MouseButtonModifierFlags.MOUSE_BUTTON_SGR_RELEASE_FLAG,
-                  x,
-                  y));
+            button ^ MouseButtonModifierFlags.MOUSE_BUTTON_SGR_RELEASE_FLAG,
+            x,
+            y));
         } else {
           // for mouse press/motion event
           sb.append(String.format("\033[<%d;%d;%dM", button, x, y));
@@ -1085,7 +1080,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
   private void adjustXY(int dirX) {
     if (myCursorY > -myTerminalTextBuffer.getHistoryLinesCount() &&
-        Character.isLowSurrogate(myTerminalTextBuffer.getCharAt(myCursorX, myCursorY - 1))) {
+      Character.isLowSurrogate(myTerminalTextBuffer.getCharAt(myCursorX, myCursorY - 1))) {
       // we don't want to place cursor on the second part of surrogate pair
       if (dirX > 0) { // so we move it into the predefined direction
         if (myCursorX == myTerminalWidth) { //if it is the last in the line we return where we were

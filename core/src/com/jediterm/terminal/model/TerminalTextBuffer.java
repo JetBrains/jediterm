@@ -286,6 +286,16 @@ public class TerminalTextBuffer {
     }
   }
 
+  public void clear(final int beginY, final int endY) {
+    this.lock();
+
+    try {
+      this.clearLines(beginY, endY);
+    } finally {
+      this.unlock();
+    }
+  }
+
   public String getScreenLines() {
     myLock.lock();
     try {

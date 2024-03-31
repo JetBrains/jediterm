@@ -32,7 +32,7 @@ import java.util.function.Consumer;
  * JediTerm terminal widget with UI implemented in Swing.
  * <p/>
  */
-public class JediTermWidget extends JPanel implements TerminalSession, TerminalWidget, TerminalActionProvider {
+public class JediTermWidget extends JPanel implements TerminalSession, JediTerminalWidget, TerminalActionProvider {
   private static final Logger LOG = LoggerFactory.getLogger(JediTermWidget.class);
 
   protected final TerminalPanel myTerminalPanel;

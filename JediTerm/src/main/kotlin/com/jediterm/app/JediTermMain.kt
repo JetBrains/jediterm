@@ -5,9 +5,7 @@ import com.jediterm.terminal.LoggingTtyConnector
 import com.jediterm.terminal.LoggingTtyConnector.TerminalState
 import com.jediterm.terminal.TtyConnector
 import com.jediterm.terminal.ui.JediTermWidget
-import com.jediterm.terminal.ui.TerminalWidget
-import com.jediterm.terminal.ui.settings.DefaultTabbedSettingsProvider
-import com.jediterm.terminal.ui.settings.TabbedSettingsProvider
+import com.jediterm.terminal.ui.settings.SettingsProvider
 import com.jediterm.ui.AbstractTerminalFrame
 import com.jediterm.ui.debug.TerminalDebugUtil
 import com.pty4j.PtyProcess
@@ -17,7 +15,6 @@ import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import java.util.*
-import java.util.function.Function
 import java.util.logging.ConsoleHandler
 import java.util.logging.Level
 import java.util.logging.LogManager
@@ -48,17 +45,6 @@ object JediTermMain {
 }
 
 class JediTerm : AbstractTerminalFrame() {
-  override fun createTabbedTerminalWidget(): JediTabbedTerminalWidget {
-    return object : JediTabbedTerminalWidget(
-      DefaultTabbedSettingsProvider(),
-      Function<Pair<TerminalWidget, String>, JediTerminalWidget> { pair -> openSession(pair?.first) as JediTerminalWidget },
-    ) {
-      override fun createInnerTerminalWidget(): JediTerminalWidget {
-        return createTerminalWidget(settingsProvider)
-      }
-    }
-  }
-
   override fun createTtyConnector(): TtyConnector {
     try {
       val envs: Map<String, String> = configureEnvironmentVariables()
@@ -101,8 +87,8 @@ class JediTerm : AbstractTerminalFrame() {
     return envs
   }
 
-  override fun createTerminalWidget(settingsProvider: TabbedSettingsProvider): JediTerminalWidget {
-    val widget = JediTerminalWidget(settingsProvider)
+  override fun createTerminalWidget(settingsProvider: SettingsProvider): JediTermWidget {
+    val widget = JediTermWidget(settingsProvider)
     widget.addHyperlinkFilter(UrlFilter())
     return widget
   }

@@ -31,7 +31,7 @@ public abstract class AbstractTerminalFrame {
   public static final Logger LOG = LoggerFactory.getLogger(AbstractTerminalFrame.class);
   private JFrame myBufferFrame;
 
-  private final JediTermWidget myTerminal;
+  private final JediTermWidget myWidget;
 
   private final AbstractAction myShowBuffersAction = new AbstractAction("Show buffers") {
     public void actionPerformed(final ActionEvent e) {
@@ -41,14 +41,14 @@ public abstract class AbstractTerminalFrame {
 
   private final AbstractAction myDumpDimension = new AbstractAction("Dump terminal dimension") {
     public void actionPerformed(final ActionEvent e) {
-      Terminal terminal = myTerminal.getTerminal();
+      Terminal terminal = myWidget.getTerminal();
       LOG.info(terminal.getTerminalWidth() + "x" + terminal.getTerminalHeight());
     }
   };
 
   private final AbstractAction myDumpSelection = new AbstractAction("Dump selection") {
     public void actionPerformed(final ActionEvent e) {
-      JediTermWidget widget = myTerminal;
+      JediTermWidget widget = myWidget;
       TerminalPanel terminalPanel = widget.getTerminalPanel();
       TerminalSelection selection = terminalPanel.getSelection();
       if (selection != null) {
@@ -64,26 +64,26 @@ public abstract class AbstractTerminalFrame {
 
   private final AbstractAction myDumpCursorPosition = new AbstractAction("Dump cursor position") {
     public void actionPerformed(final ActionEvent e) {
-      LOG.info(myTerminal.getTerminal().getCursorX() +
-        "x" + myTerminal.getTerminal().getCursorY());
+      LOG.info(myWidget.getTerminal().getCursorX() +
+        "x" + myWidget.getTerminal().getCursorY());
     }
   };
 
   private final AbstractAction myCursor0x0 = new AbstractAction("1x1") {
     public void actionPerformed(final ActionEvent e) {
-      myTerminal.getTerminal().cursorPosition(1, 1);
+      myWidget.getTerminal().cursorPosition(1, 1);
     }
   };
 
   private final AbstractAction myCursor10x10 = new AbstractAction("10x10") {
     public void actionPerformed(final ActionEvent e) {
-      myTerminal.getTerminal().cursorPosition(10, 10);
+      myWidget.getTerminal().cursorPosition(10, 10);
     }
   };
 
   private final AbstractAction myCursor80x24 = new AbstractAction("80x24") {
     public void actionPerformed(final ActionEvent e) {
-      myTerminal.getTerminal().cursorPosition(80, 24);
+      myWidget.getTerminal().cursorPosition(80, 24);
     }
   };
 
@@ -137,7 +137,7 @@ public abstract class AbstractTerminalFrame {
   public abstract TtyConnector createTtyConnector();
 
   protected AbstractTerminalFrame() {
-    myTerminal = createTerminalWidget(new DefaultSettingsProvider());
+    myWidget = createTerminalWidget(new DefaultSettingsProvider());
 
     final JFrame frame = new JFrame("JediTerm");
 
@@ -151,7 +151,7 @@ public abstract class AbstractTerminalFrame {
     final JMenuBar mb = getJMenuBar();
     frame.setJMenuBar(mb);
     sizeFrameForTerm(frame);
-    frame.getContentPane().add("Center", myTerminal.getComponent());
+    frame.getContentPane().add("Center", myWidget.getComponent());
 
     frame.pack();
     frame.setLocationByPlatform(true);
@@ -159,11 +159,11 @@ public abstract class AbstractTerminalFrame {
 
     frame.setResizable(true);
 
-    myTerminal.getTerminal().addApplicationTitleListener(frame::setTitle);
+    myWidget.getTerminal().addApplicationTitleListener(frame::setTitle);
 
-    openSession(myTerminal);
-    onTermination(myTerminal, exitCode -> {
-      myTerminal.close();
+    openSession(myWidget);
+    onTermination(myWidget, exitCode -> {
+      myWidget.close();
       frame.dispose();
       System.exit(exitCode); // unneeded, but speeds up the JVM termination
     });
@@ -181,7 +181,7 @@ public abstract class AbstractTerminalFrame {
 
   private void sizeFrameForTerm(final JFrame frame) {
     SwingUtilities.invokeLater(() -> {
-      Dimension d = myTerminal.getPreferredSize();
+      Dimension d = myWidget.getPreferredSize();
 
       d.width += frame.getWidth() - frame.getContentPane().getWidth();
       d.height += frame.getHeight() - frame.getContentPane().getHeight();
@@ -195,7 +195,7 @@ public abstract class AbstractTerminalFrame {
       return;
     }
     myBufferFrame = new JFrame("buffers");
-    TerminalDebugView debugView = new TerminalDebugView(myTerminal);
+    TerminalDebugView debugView = new TerminalDebugView(myWidget);
     myBufferFrame.getContentPane().add(debugView.getComponent());
     myBufferFrame.pack();
     myBufferFrame.setLocationByPlatform(true);

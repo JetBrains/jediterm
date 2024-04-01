@@ -1,6 +1,7 @@
 package com.jediterm.ui;
 
 import com.jediterm.app.JediTerm;
+import com.jediterm.app.TtyConnectorWaitFor;
 import com.jediterm.core.compatibility.Point;
 import com.jediterm.terminal.Terminal;
 import com.jediterm.terminal.TtyConnector;
@@ -9,12 +10,11 @@ import com.jediterm.terminal.model.TerminalSelection;
 import com.jediterm.terminal.ui.JediTermWidget;
 import com.jediterm.terminal.ui.TerminalPanel;
 import com.jediterm.terminal.ui.TerminalWidget;
-import com.jediterm.terminal.ui.settings.DefaultTabbedSettingsProvider;
-import com.jediterm.terminal.ui.settings.TabbedSettingsProvider;
+import com.jediterm.terminal.ui.settings.DefaultSettingsProvider;
+import com.jediterm.terminal.ui.settings.SettingsProvider;
 import com.jediterm.ui.debug.TerminalDebugView;
 import kotlin.Pair;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,20 +24,14 @@ import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.function.IntConsumer;
 import java.util.logging.Level;
 
 public abstract class AbstractTerminalFrame {
   public static final Logger LOG = LoggerFactory.getLogger(AbstractTerminalFrame.class);
   private JFrame myBufferFrame;
 
-  private final AbstractTabbedTerminalWidget<JediTermWidget> myTerminal;
-  private final JFrame myFrame;
-
-  private final AbstractAction myOpenAction = new AbstractAction("New Session") {
-    public void actionPerformed(final ActionEvent e) {
-      openSession(myTerminal);
-    }
-  };
+  private final JediTermWidget myTerminal;
 
   private final AbstractAction myShowBuffersAction = new AbstractAction("Show buffers") {
     public void actionPerformed(final ActionEvent e) {
@@ -47,14 +41,14 @@ public abstract class AbstractTerminalFrame {
 
   private final AbstractAction myDumpDimension = new AbstractAction("Dump terminal dimension") {
     public void actionPerformed(final ActionEvent e) {
-      Terminal terminal = myTerminal.getCurrentSession().getTerminal();
+      Terminal terminal = myTerminal.getTerminal();
       LOG.info(terminal.getTerminalWidth() + "x" + terminal.getTerminalHeight());
     }
   };
 
   private final AbstractAction myDumpSelection = new AbstractAction("Dump selection") {
     public void actionPerformed(final ActionEvent e) {
-      JediTermWidget widget = myTerminal.getCurrentSession();
+      JediTermWidget widget = myTerminal;
       TerminalPanel terminalPanel = widget.getTerminalPanel();
       TerminalSelection selection = terminalPanel.getSelection();
       if (selection != null) {
@@ -70,35 +64,31 @@ public abstract class AbstractTerminalFrame {
 
   private final AbstractAction myDumpCursorPosition = new AbstractAction("Dump cursor position") {
     public void actionPerformed(final ActionEvent e) {
-      LOG.info(myTerminal.getCurrentSession().getTerminal().getCursorX() +
-        "x" + myTerminal.getCurrentSession().getTerminal().getCursorY());
+      LOG.info(myTerminal.getTerminal().getCursorX() +
+        "x" + myTerminal.getTerminal().getCursorY());
     }
   };
 
   private final AbstractAction myCursor0x0 = new AbstractAction("1x1") {
     public void actionPerformed(final ActionEvent e) {
-      myTerminal.getCurrentSession().getTerminal().cursorPosition(1, 1);
+      myTerminal.getTerminal().cursorPosition(1, 1);
     }
   };
 
   private final AbstractAction myCursor10x10 = new AbstractAction("10x10") {
     public void actionPerformed(final ActionEvent e) {
-      myTerminal.getCurrentSession().getTerminal().cursorPosition(10, 10);
+      myTerminal.getTerminal().cursorPosition(10, 10);
     }
   };
 
   private final AbstractAction myCursor80x24 = new AbstractAction("80x24") {
     public void actionPerformed(final ActionEvent e) {
-      myTerminal.getCurrentSession().getTerminal().cursorPosition(80, 24);
+      myTerminal.getTerminal().cursorPosition(80, 24);
     }
   };
 
   private JMenuBar getJMenuBar() {
     final JMenuBar mb = new JMenuBar();
-    final JMenu m = new JMenu("File");
-
-    m.add(myOpenAction);
-    mb.add(m);
     final JMenu dm = new JMenu("Debug");
 
     JMenu logLevel = new JMenu("Set log level ...");
@@ -130,32 +120,26 @@ public abstract class AbstractTerminalFrame {
     return mb;
   }
 
-  @Nullable
-  protected JediTermWidget openSession(TerminalWidget terminal) {
+  protected void openSession(TerminalWidget terminal) {
     if (terminal.canOpenSession()) {
-      return openSession(terminal, createTtyConnector());
+      openSession(terminal, createTtyConnector());
     }
-    return null;
   }
 
-  public JediTermWidget openSession(TerminalWidget terminal, TtyConnector ttyConnector) {
+  public void openSession(TerminalWidget terminal, TtyConnector ttyConnector) {
     JediTermWidget session = terminal.createTerminalSession(ttyConnector);
     if (ttyConnector instanceof JediTerm.LoggingPtyProcessTtyConnector) {
       ((JediTerm.LoggingPtyProcessTtyConnector) ttyConnector).setWidget(session);
     }
     session.start();
-    return session;
   }
 
   public abstract TtyConnector createTtyConnector();
 
   protected AbstractTerminalFrame() {
-    AbstractTabbedTerminalWidget<? extends JediTermWidget> tabbedTerminalWidget = createTabbedTerminalWidget();
-    //noinspection unchecked
-    myTerminal = (AbstractTabbedTerminalWidget<JediTermWidget>) tabbedTerminalWidget;
+    myTerminal = createTerminalWidget(new DefaultSettingsProvider());
 
     final JFrame frame = new JFrame("JediTerm");
-    myFrame = frame;
 
     frame.addWindowListener(new WindowAdapter() {
       @Override
@@ -175,23 +159,23 @@ public abstract class AbstractTerminalFrame {
 
     frame.setResizable(true);
 
-    tabbedTerminalWidget.addTabListener(new MyTabListener<>());
-    myTerminal.setTerminalTitleListener(frame::setTitle);
+    myTerminal.getTerminal().addApplicationTitleListener(frame::setTitle);
 
     openSession(myTerminal);
+    onTermination(myTerminal, exitCode -> {
+      myTerminal.close();
+      frame.dispose();
+      System.exit(exitCode); // unneeded, but speeds up the JVM termination
+    });
   }
 
-  @NotNull
-  protected AbstractTabbedTerminalWidget<? extends JediTermWidget> createTabbedTerminalWidget() {
-    return new TabbedTerminalWidget(new DefaultTabbedSettingsProvider(), this::openSession) {
-      @Override
-      public JediTermWidget createInnerTerminalWidget() {
-        return createTerminalWidget(getSettingsProvider());
-      }
-    };
+  private static void onTermination(@NotNull JediTermWidget widget, @NotNull IntConsumer terminationCallback) {
+    new TtyConnectorWaitFor(widget.getTtyConnector(),
+      widget.getExecutorServiceManager().getUnboundedExecutorService(),
+      terminationCallback);
   }
 
-  protected JediTermWidget createTerminalWidget(@NotNull TabbedSettingsProvider settingsProvider) {
+  protected JediTermWidget createTerminalWidget(@NotNull SettingsProvider settingsProvider) {
     return new JediTermWidget(settingsProvider);
   }
 
@@ -211,7 +195,7 @@ public abstract class AbstractTerminalFrame {
       return;
     }
     myBufferFrame = new JFrame("buffers");
-    TerminalDebugView debugView = new TerminalDebugView(myTerminal.getCurrentSession());
+    TerminalDebugView debugView = new TerminalDebugView(myTerminal);
     myBufferFrame.getContentPane().add(debugView.getComponent());
     myBufferFrame.pack();
     myBufferFrame.setLocationByPlatform(true);
@@ -237,20 +221,5 @@ public abstract class AbstractTerminalFrame {
         frame.dispose();
       }
     });
-  }
-
-  private class MyTabListener<T extends JediTermWidget> implements AbstractTabbedTerminalWidget.TabListener<T> {
-    @Override
-    public void tabClosed(@NotNull T terminal) {
-      AbstractTabs<?> tabs = myTerminal.getTerminalTabs();
-      if (tabs == null || tabs.getTabCount() == 0) {
-        System.exit(0);
-      }
-    }
-
-    @Override
-    public void onSelectedTabChanged(@NotNull T terminal) {
-      myFrame.setTitle(myTerminal.getTabName(terminal));
-    }
   }
 }

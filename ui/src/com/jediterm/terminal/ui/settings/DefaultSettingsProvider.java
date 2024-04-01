@@ -1,6 +1,5 @@
 package com.jediterm.terminal.ui.settings;
 
-import com.jediterm.core.Platform;
 import com.jediterm.terminal.HyperlinkStyle;
 import com.jediterm.terminal.TerminalColor;
 import com.jediterm.terminal.TextStyle;
@@ -18,6 +17,8 @@ import java.awt.event.KeyEvent;
 import java.util.Collections;
 
 import static com.jediterm.terminal.ui.AwtTransformers.fromAwtToTerminalColor;
+import static com.jediterm.terminal.ui.UtilKt.isMacOS;
+import static com.jediterm.terminal.ui.UtilKt.isWindows;
 
 public class DefaultSettingsProvider implements SettingsProvider {
   @Override
@@ -27,7 +28,7 @@ public class DefaultSettingsProvider implements SettingsProvider {
 
   @Override
   public @NotNull TerminalActionPresentation getCopyActionPresentation() {
-    KeyStroke keyStroke = Platform.isMacOS()
+    KeyStroke keyStroke = isMacOS()
       ? KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.META_DOWN_MASK)
       // CTRL + C is used for signal; use CTRL + SHIFT + C instead
       : KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK);
@@ -36,7 +37,7 @@ public class DefaultSettingsProvider implements SettingsProvider {
 
   @Override
   public @NotNull TerminalActionPresentation getPasteActionPresentation() {
-    KeyStroke keyStroke = Platform.isMacOS()
+    KeyStroke keyStroke = isMacOS()
       ? KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.META_DOWN_MASK)
       // CTRL + V is used for signal; use CTRL + SHIFT + V instead
       : KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK);
@@ -45,7 +46,7 @@ public class DefaultSettingsProvider implements SettingsProvider {
 
   @Override
   public @NotNull TerminalActionPresentation getClearBufferActionPresentation() {
-    return new TerminalActionPresentation("Clear Buffer", Platform.isMacOS()
+    return new TerminalActionPresentation("Clear Buffer", isMacOS()
       ? KeyStroke.getKeyStroke(KeyEvent.VK_K, InputEvent.META_DOWN_MASK)
       : KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK));
   }
@@ -64,21 +65,21 @@ public class DefaultSettingsProvider implements SettingsProvider {
 
   @Override
   public @NotNull TerminalActionPresentation getLineUpActionPresentation() {
-    return new TerminalActionPresentation("Line Up", Platform.isMacOS()
+    return new TerminalActionPresentation("Line Up", isMacOS()
       ? KeyStroke.getKeyStroke(KeyEvent.VK_UP, InputEvent.META_DOWN_MASK)
       : KeyStroke.getKeyStroke(KeyEvent.VK_UP, InputEvent.CTRL_DOWN_MASK));
   }
 
   @Override
   public @NotNull TerminalActionPresentation getLineDownActionPresentation() {
-    return new TerminalActionPresentation("Line Down", Platform.isMacOS()
+    return new TerminalActionPresentation("Line Down", isMacOS()
       ? KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, InputEvent.META_DOWN_MASK)
       : KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, InputEvent.CTRL_DOWN_MASK));
   }
 
   @Override
   public @NotNull TerminalActionPresentation getFindActionPresentation() {
-    return new TerminalActionPresentation("Find", Platform.isMacOS()
+    return new TerminalActionPresentation("Find", isMacOS()
       ? KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.META_DOWN_MASK)
       : KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK));
   }
@@ -90,15 +91,15 @@ public class DefaultSettingsProvider implements SettingsProvider {
 
   @Override
   public ColorPalette getTerminalColorPalette() {
-    return Platform.isWindows() ? ColorPaletteImpl.WINDOWS_PALETTE : ColorPaletteImpl.XTERM_PALETTE;
+    return isWindows() ? ColorPaletteImpl.WINDOWS_PALETTE : ColorPaletteImpl.XTERM_PALETTE;
   }
 
   @Override
   public Font getTerminalFont() {
     String fontName;
-    if (Platform.isWindows()) {
+    if (isWindows()) {
       fontName = "Consolas";
-    } else if (Platform.isMacOS()) {
+    } else if (isMacOS()) {
       fontName = "Menlo";
     } else {
       fontName = "Monospaced";

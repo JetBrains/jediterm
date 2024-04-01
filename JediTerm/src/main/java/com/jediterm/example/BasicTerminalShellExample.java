@@ -1,6 +1,5 @@
 package com.jediterm.example;
 
-import com.jediterm.core.Platform;
 import com.jediterm.pty.PtyProcessTtyConnector;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.ui.JediTermWidget;
@@ -16,6 +15,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.jediterm.app.PlatformUtilKt.isWindows;
+
 public class BasicTerminalShellExample {
 
   private static @NotNull JediTermWidget createTerminalWidget() {
@@ -29,7 +30,7 @@ public class BasicTerminalShellExample {
     try {
       Map<String, String> envs = System.getenv();
       String[] command;
-      if (Platform.isWindows()) {
+      if (isWindows()) {
         command = new String[]{"cmd.exe"};
       } else {
         command = new String[]{"/bin/bash", "--login"};

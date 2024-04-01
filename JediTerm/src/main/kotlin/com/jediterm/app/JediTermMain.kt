@@ -95,7 +95,7 @@ class JediTerm : AbstractTerminalFrame() {
     if (isMacOS()) {
       envs["LC_CTYPE"] = Charsets.UTF_8.name()
     }
-    if (isWindows()) {
+    if (!isWindows()) {
       envs["TERM"] = "xterm-256color"
     }
     return envs

@@ -169,6 +169,7 @@ public class LinesBuffer {
     }
   }
 
+
   // used for reset, style not needed here (reset as well)
   public void clearAll() {
     myLines.clear();

@@ -422,12 +422,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   public void clearLines(final int beginY, final int endY) {
-    myTerminalTextBuffer.lock();
-    try {
-      myTerminalTextBuffer.clearLines(beginY, endY);
-    } finally {
-      myTerminalTextBuffer.unlock();
-    }
+    myTerminalTextBuffer.clear(beginY, endY);
   }
 
   @Override

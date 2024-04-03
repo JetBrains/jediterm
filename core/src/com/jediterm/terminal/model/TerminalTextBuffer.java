@@ -415,9 +415,19 @@ public class TerminalTextBuffer {
     return linesBuffer;
   }
 
-  public void clearLines(int startRow, int endRow) {
+  private void clearLines(int startRow, int endRow) {
     myScreenBuffer.clearLines(startRow, endRow, createFillerEntry());
     fireModelChangeEvent();
+  }
+
+  public void clear(int beginY, int endY) {
+
+    this.lock();
+    try {
+      this.clearLines(beginY, endY);
+    } finally {
+      this.unlock();
+    }
   }
 
   public void eraseCharacters(int leftX, int rightX, int y) {

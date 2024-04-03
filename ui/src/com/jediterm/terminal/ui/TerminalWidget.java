@@ -24,7 +24,5 @@ public interface TerminalWidget extends JediTerminalWidget {
 
   TerminalDisplay getTerminalDisplay();
 
-  void addListener(TerminalWidgetListener listener);
 
-  void removeListener(TerminalWidgetListener listener);
 }

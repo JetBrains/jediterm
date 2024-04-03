@@ -174,7 +174,8 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     if (ttyConnector instanceof ProcessTtyConnector) {
       List<String> commandLine = ((ProcessTtyConnector) myTtyConnector).getCommandLine();
       shellType = TypeAheadTerminalModel.commandLineToShellType(commandLine);
-    } else {
+    }
+    else {
       shellType = TypeAheadTerminalModel.ShellType.Unknown;
     }
     myTypeAheadTerminalModel.setShellType(shellType);
@@ -336,7 +337,8 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
           }
         }
       });
-    } else {
+    }
+    else {
       myFindComponent.getComponent().requestFocus();
     }
   }
@@ -473,11 +475,14 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
     public void addLayoutComponent(String name, Component comp) {
       if (TERMINAL.equals(name)) {
         terminal = comp;
-      } else if (FIND.equals(name)) {
+      }
+      else if (FIND.equals(name)) {
         find = comp;
-      } else if (SCROLL.equals(name)) {
+      }
+      else if (SCROLL.equals(name)) {
         scroll = comp;
-      } else throw new IllegalArgumentException("unknown component name " + name);
+      }
+      else throw new IllegalArgumentException("unknown component name " + name);
     }
 
     @Override

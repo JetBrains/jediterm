@@ -11,9 +11,7 @@ import java.awt.*;
 /**
  * @author traff
  */
-public interface TerminalWidget {
-  JediTermWidget createTerminalSession(TtyConnector ttyConnector);
-
+public interface TerminalWidget extends JediTerminalWidget {
   JComponent getComponent();
 
   default JComponent getPreferredFocusableComponent() {
@@ -27,5 +25,6 @@ public interface TerminalWidget {
   TerminalDisplay getTerminalDisplay();
 
   void addListener(TerminalWidgetListener listener);
+
   void removeListener(TerminalWidgetListener listener);
 }

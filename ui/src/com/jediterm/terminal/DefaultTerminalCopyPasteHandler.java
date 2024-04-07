@@ -1,6 +1,5 @@
 package com.jediterm.terminal;
 
-import com.jediterm.core.Platform;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -8,6 +7,8 @@ import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.awt.datatransfer.*;
+
+import static com.jediterm.terminal.ui.UtilKt.isWindows;
 
 public class DefaultTerminalCopyPasteHandler implements TerminalCopyPasteHandler, ClipboardOwner {
   private static final Logger LOG = LoggerFactory.getLogger(DefaultTerminalCopyPasteHandler.class);
@@ -95,7 +96,7 @@ public class DefaultTerminalCopyPasteHandler implements TerminalCopyPasteHandler
   }
 
   private static void logException(@NotNull String message, @NotNull Exception e) {
-    if (Platform.isWindows() && e instanceof IllegalStateException) {
+    if (isWindows() && e instanceof IllegalStateException) {
       LOG.debug(message, e);
     }
     else {

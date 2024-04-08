@@ -62,14 +62,6 @@ public class TextStyle {
     return Objects.hash(myForeground, myBackground, myOptions);
   }
 
-  public TerminalColor getBackgroundForRun() {
-    return myOptions.contains(Option.INVERSE) ? myForeground : myBackground;
-  }
-
-  public TerminalColor getForegroundForRun() {
-    return myOptions.contains(Option.INVERSE) ? myBackground : myForeground;
-  }
-
   @NotNull
   public Builder toBuilder() {
     return new Builder(this);

@@ -754,20 +754,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
   @Override
   public @NotNull java.awt.Color getBackground() {
-    return getPaletteBackground(myStyleState.getBackground());
-  }
-
-  private @NotNull java.awt.Color getPaletteBackground(@NotNull TerminalColor color) {
-    return AwtTransformers.toAwtColor(getPalette().getBackground(color));
+    return AwtTransformers.toAwtColor(getWindowBackground());
   }
 
   @Override
   public @NotNull java.awt.Color getForeground() {
-    return getPaletteForeground(myStyleState.getForeground());
-  }
-
-  private @NotNull java.awt.Color getPaletteForeground(@NotNull TerminalColor color) {
-    return AwtTransformers.toAwtColor(getPalette().getForeground(color));
+    return AwtTransformers.toAwtColor(getWindowForeground());
   }
 
   @Override
@@ -986,14 +978,47 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   }
 
   @Override
-  public @Nullable Color getWindowForeground() {
-    return AwtTransformers.fromAwtColor(getForeground());
+  public @NotNull Color getWindowForeground() {
+    return toForeground(mySettingsProvider.getDefaultForeground());
   }
 
   @Override
-  public @Nullable Color getWindowBackground() {
-    // Return RGB color because we don't have palette information outside TerminalPanel.
-    return AwtTransformers.fromAwtColor(getBackground());
+  public @NotNull Color getWindowBackground() {
+    return toBackground(mySettingsProvider.getDefaultBackground());
+  }
+
+  private @NotNull java.awt.Color getEffectiveForeground(@NotNull TextStyle style) {
+    Color color = style.hasOption(Option.INVERSE) ? getBackground(style) : getForeground(style);
+    return AwtTransformers.toAwtColor(color);
+  }
+
+  private @NotNull java.awt.Color getEffectiveBackground(@NotNull TextStyle style) {
+    Color color = style.hasOption(Option.INVERSE) ? getForeground(style) : getBackground(style);
+    return AwtTransformers.toAwtColor(color);
+  }
+
+  private @NotNull Color getForeground(@NotNull TextStyle style) {
+    TerminalColor foreground = style.getForeground();
+    return foreground != null ? toForeground(foreground) : getWindowForeground();
+  }
+
+  private @NotNull Color toForeground(@NotNull TerminalColor terminalColor) {
+    if (terminalColor.isIndexed()) {
+      return getPalette().getForeground(terminalColor);
+    }
+    return terminalColor.toColor();
+  }
+
+  private @NotNull Color getBackground(@NotNull TextStyle style) {
+    TerminalColor background = style.getBackground();
+    return background != null ? toBackground(background) : getWindowBackground();
+  }
+
+  private @NotNull Color toBackground(@NotNull TerminalColor terminalColor) {
+    if (terminalColor.isIndexed()) {
+      return getPalette().getBackground(terminalColor);
+    }
+    return terminalColor.toColor();
   }
 
   protected int getInsetX() {
@@ -1179,9 +1204,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       int width = Math.min(textLength * TerminalPanel.this.myCharSize.width, TerminalPanel.this.getWidth() - xCoord);
       int lineStrokeSize = 2;
 
-      java.awt.Color fgColor = getPaletteForeground(myStyleState.getForeground(style.getForegroundForRun()));
+      java.awt.Color fgColor = getEffectiveForeground(style);
       TextStyle inversedStyle = getInversedStyle(style);
-      java.awt.Color inverseBg = getPaletteBackground(myStyleState.getBackground(inversedStyle.getBackgroundForRun()));
+      java.awt.Color inverseBg = getEffectiveBackground(inversedStyle);
 
       switch (myShape) {
         case BLINK_BLOCK:
@@ -1270,7 +1295,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       }
     }
 
-    java.awt.Color backgroundColor = getPaletteBackground(myStyleState.getBackground(style.getBackgroundForRun()));
+    java.awt.Color backgroundColor = getEffectiveBackground(style);
     gfx.setColor(backgroundColor);
     gfx.fillRect(xCoord,
             yCoord,
@@ -1409,9 +1434,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   }
 
   private @NotNull java.awt.Color getStyleForeground(@NotNull TextStyle style) {
-    java.awt.Color foreground = getPaletteForeground(myStyleState.getForeground(style.getForegroundForRun()));
+    java.awt.Color foreground = getEffectiveForeground(style);
     if (style.hasOption(Option.DIM)) {
-      java.awt.Color background = getPaletteBackground(myStyleState.getBackground(style.getBackgroundForRun()));
+      java.awt.Color background = getEffectiveBackground(style);
       foreground = new java.awt.Color((foreground.getRed() + background.getRed()) / 2,
                              (foreground.getGreen() + background.getGreen()) / 2,
                              (foreground.getBlue() + background.getBlue()) / 2,

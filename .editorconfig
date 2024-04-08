@@ -13,3 +13,5 @@ ij_any_catch_on_new_line = true
 ij_any_finally_on_new_line = true
 ij_any_block_comment_at_first_column = false
 ij_any_line_comment_at_first_column = false
+
+ij_any_align_multiline_parameters_in_calls = true

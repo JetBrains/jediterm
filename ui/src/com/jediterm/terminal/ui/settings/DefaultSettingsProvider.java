@@ -113,12 +113,6 @@ public class DefaultSettingsProvider implements SettingsProvider {
   }
 
   @Override
-  public TextStyle getDefaultStyle() {
-    return new TextStyle(TerminalColor.BLACK, TerminalColor.WHITE);
-    // return new TextStyle(TerminalColor.WHITE, TerminalColor.rgb(24, 24, 24));
-  }
-
-  @Override
   public @NotNull TextStyle getSelectionColor() {
     return new TextStyle(TerminalColor.WHITE, TerminalColor.rgb(82, 109, 165));
   }

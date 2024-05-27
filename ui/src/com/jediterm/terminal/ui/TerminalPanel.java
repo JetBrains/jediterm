@@ -1668,11 +1668,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     });
   }
 
-  @Override
-  public void setBlinkingCursor(boolean isCursorBlinking) {
-    myCursor.setBlinking(isCursorBlinking);
-  }
-
   public TerminalOutputStream getTerminalOutputStream() {
     return myTerminalStarter;
   }

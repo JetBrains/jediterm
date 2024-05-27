@@ -65,14 +65,8 @@ public enum TerminalMode {
         terminal.restoreCursor();
       }
     }
-  }, 
-  CursorBlinking {
-    @Override
-    public void setEnabled(Terminal terminal, boolean enabled) {
-      terminal.setBlinkingCursor(enabled);
-    }
-  }, 
-  AllowWideColumn, 
+  },
+  AllowWideColumn,
   ReverseWrapAround, 
   AutoNewLine {
     @Override

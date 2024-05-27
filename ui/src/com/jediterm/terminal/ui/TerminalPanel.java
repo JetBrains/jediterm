@@ -42,6 +42,7 @@ import java.text.BreakIterator;
 import java.text.CharacterIterator;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -1099,11 +1100,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     // cursor state
     private boolean myCursorIsShown; // blinking state
     private final Point myCursorCoordinates = new Point();
-    private CursorShape myShape = CursorShape.BLINK_BLOCK;
+    private @Nullable CursorShape myShape;
 
     // terminal modes
     private boolean myShouldDrawCursor = true;
-    private boolean myBlinking = true;
 
     private long myLastCursorChange;
     private boolean myCursorHasChanged;
@@ -1133,12 +1133,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       myShouldDrawCursor = shouldDrawCursor;
     }
 
-    public void setBlinking(boolean blinking) {
-      myBlinking = blinking;
-    }
-
     public boolean isBlinking() {
-      return myBlinking && (getBlinkingPeriod() > 0);
+      return getEffectiveShape().isBlinking() && (getBlinkingPeriod() > 0);
     }
 
     public void cursorChanged() {
@@ -1208,7 +1204,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       TextStyle inversedStyle = getInversedStyle(style);
       java.awt.Color inverseBg = getEffectiveBackground(inversedStyle);
 
-      switch (myShape) {
+      switch (getEffectiveShape()) {
         case BLINK_BLOCK:
         case STEADY_BLOCK:
           if (state == TerminalCursorState.SHOWING) {
@@ -1235,8 +1231,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       }
     }
 
-    void setShape(CursorShape shape) {
-      this.myShape = shape;
+    void setShape(@Nullable CursorShape shape) {
+      myShape = shape;
+    }
+
+    @NotNull CursorShape getEffectiveShape() {
+      return Objects.requireNonNullElse(myShape, CursorShape.BLINK_BLOCK);
     }
   }
 
@@ -1544,20 +1544,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   }
 
   @Override
-  public void setCursorShape(@NotNull CursorShape cursorShape) {
+  public void setCursorShape(@Nullable CursorShape cursorShape) {
     myCursor.setShape(cursorShape);
-    switch (cursorShape) {
-      case STEADY_BLOCK:
-      case STEADY_UNDERLINE:
-      case STEADY_VERTICAL_BAR:
-        myCursor.setBlinking(false);
-        break;
-      case BLINK_BLOCK:
-      case BLINK_UNDERLINE:
-      case BLINK_VERTICAL_BAR:
-        myCursor.setBlinking(true);
-        break;
-    }
   }
 
   public void beep() {

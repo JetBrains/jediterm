@@ -684,7 +684,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   @Override
-  public void cursorShape(@NotNull CursorShape shape) {
+  public void cursorShape(@Nullable CursorShape shape) {
     myDisplay.setCursorShape(shape);
   }
 
@@ -844,7 +844,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     initMouseModes();
 
     cursorPosition(1, 1);
-    cursorShape(CursorShape.BLINK_BLOCK);
+    cursorShape(null);
   }
 
   private void initMouseModes() {

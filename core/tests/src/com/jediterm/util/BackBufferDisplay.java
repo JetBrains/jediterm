@@ -29,7 +29,7 @@ public class BackBufferDisplay implements TerminalDisplay {
   }
 
   @Override
-  public void setCursorShape(@NotNull CursorShape cursorShape) {
+  public void setCursorShape(@Nullable CursorShape cursorShape) {
   }
 
   @Override

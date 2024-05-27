@@ -11,7 +11,10 @@ import org.jetbrains.annotations.Nullable;
 public interface TerminalDisplay {
   void setCursor(int x, int y);
 
-  void setCursorShape(@NotNull CursorShape cursorShape);
+  /**
+   * Sets cursor shape, null means default.
+   */
+  void setCursorShape(@Nullable CursorShape cursorShape);
 
   void beep();
 

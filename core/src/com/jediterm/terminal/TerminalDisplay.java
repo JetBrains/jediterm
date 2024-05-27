@@ -23,8 +23,6 @@ public interface TerminalDisplay {
 
   void useAlternateScreenBuffer(boolean useAlternateScreenBuffer);
 
-  void setBlinkingCursor(boolean isCursorBlinking);
-
   String getWindowTitle();
 
   void setWindowTitle(@NotNull String windowTitle);

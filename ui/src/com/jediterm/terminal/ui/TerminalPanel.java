@@ -1256,10 +1256,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     TextStyle.Builder builder = new TextStyle.Builder(style);
     builder.setOption(Option.INVERSE, !style.hasOption(Option.INVERSE));
     if (style.getForeground() == null) {
-      builder.setForeground(myStyleState.getForeground());
+      builder.setForeground(myStyleState.getDefaultForeground());
     }
     if (style.getBackground() == null) {
-      builder.setBackground(myStyleState.getBackground());
+      builder.setBackground(myStyleState.getDefaultBackground());
     }
     return builder.build();
   }

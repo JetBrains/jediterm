@@ -4,6 +4,8 @@ import com.jediterm.terminal.TerminalColor;
 import com.jediterm.terminal.TextStyle;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
+
 public class StyleState {
   private volatile TextStyle myCurrentStyle = TextStyle.EMPTY;
   private volatile TextStyle myDefaultStyle = TextStyle.EMPTY;
@@ -19,31 +21,19 @@ public class StyleState {
     myCurrentStyle = myDefaultStyle;
   }
 
-  public void set(StyleState styleState) {
-    setCurrent(styleState.getCurrent());
-  }
-
-  public void setDefaultStyle(TextStyle defaultStyle) {
+  public void setDefaultStyle(@NotNull TextStyle defaultStyle) {
     myDefaultStyle = defaultStyle;
   }
 
-  public TerminalColor getBackground() {
-    return getBackground(null);
+  public @NotNull TerminalColor getDefaultBackground() {
+    return Objects.requireNonNull(myDefaultStyle.getBackground());
   }
 
-  public TerminalColor getBackground(TerminalColor color) {
-    return color != null ? color : myDefaultStyle.getBackground();
+  public @NotNull TerminalColor getDefaultForeground() {
+    return Objects.requireNonNull(myDefaultStyle.getForeground());
   }
 
-  public TerminalColor getForeground() {
-    return getForeground(null);
-  }
-
-  public TerminalColor getForeground(TerminalColor color) {
-    return color != null ? color : myDefaultStyle.getForeground();
-  }
-
-  public void setCurrent(TextStyle current) {
+  public void setCurrent(@NotNull TextStyle current) {
     myCurrentStyle = current;
   }
 }

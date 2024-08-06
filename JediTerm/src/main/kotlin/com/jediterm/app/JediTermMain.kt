@@ -4,6 +4,7 @@ import com.jediterm.pty.PtyProcessTtyConnector
 import com.jediterm.terminal.LoggingTtyConnector
 import com.jediterm.terminal.LoggingTtyConnector.TerminalState
 import com.jediterm.terminal.TtyConnector
+import com.jediterm.terminal.model.getLinesAsString
 import com.jediterm.terminal.ui.JediTermWidget
 import com.jediterm.terminal.ui.settings.SettingsProvider
 import com.jediterm.ui.AbstractTerminalFrame
@@ -117,7 +118,7 @@ class JediTerm : AbstractTerminalFrame() {
         val terminalState = TerminalState(
           terminalTextBuffer.getScreenLines(),
           TerminalDebugUtil.getStyleLines(terminalTextBuffer),
-          terminalTextBuffer.historyBuffer.lines
+          terminalTextBuffer.historyLinesStorage.getLinesAsString()
         )
         myStates.add(terminalState)
 

@@ -5,7 +5,7 @@ import com.jediterm.terminal.TerminalColor;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.emulator.ColorPalette;
 import com.jediterm.terminal.emulator.ColorPaletteImpl;
-import com.jediterm.terminal.model.LinesBuffer;
+import com.jediterm.terminal.model.LinesStorage;
 import com.jediterm.terminal.model.TerminalTypeAheadSettings;
 import com.jediterm.terminal.ui.TerminalActionPresentation;
 import org.jetbrains.annotations.NotNull;
@@ -194,7 +194,7 @@ public class DefaultSettingsProvider implements SettingsProvider {
 
   @Override
   public int getBufferMaxLinesCount() {
-    return LinesBuffer.DEFAULT_MAX_LINES_COUNT;
+    return LinesStorage.DEFAULT_MAX_LINES_COUNT;
   }
 
   @Override

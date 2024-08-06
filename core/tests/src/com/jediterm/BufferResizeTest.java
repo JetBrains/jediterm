@@ -5,7 +5,6 @@ import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.model.*;
 import com.jediterm.util.BackBufferDisplay;
-import com.jediterm.util.CharBufferUtil;
 import com.jediterm.util.TestSession;
 import junit.framework.TestCase;
 
@@ -34,7 +33,7 @@ public class BufferResizeTest extends TestCase {
     session.assertCursorPosition(3, 4);
     terminal.resize(new TermSize(10, 10), RequestOrigin.User);
 
-    assertEquals(0, textBuffer.getHistoryBuffer().getLineCount());
+    assertEquals(0, textBuffer.getHistoryLinesCount());
 
     assertEquals("line      \n" +
         "line2     \n" +
@@ -70,7 +69,7 @@ public class BufferResizeTest extends TestCase {
 
 
     assertEquals("line\n" +
-        "line2", textBuffer.getHistoryBuffer().getLines());
+                   "line2", LinesStorageKt.getLinesAsString(textBuffer.getHistoryLinesStorage()));
 
     assertEquals("line3     \n" +
         "li        \n", textBuffer.getScreenLines());
@@ -105,7 +104,7 @@ public class BufferResizeTest extends TestCase {
 
     assertEquals("line\n" +
       "line2\n" +
-      "line3", textBuffer.getHistoryBuffer().getLines());
+                   "line3", LinesStorageKt.getLinesAsString(textBuffer.getHistoryLinesStorage()));
 
     assertEquals("line4     \n" +
       "li        \n", textBuffer.getScreenLines());
@@ -114,7 +113,7 @@ public class BufferResizeTest extends TestCase {
 
     terminal.resize(new TermSize(5, 5), RequestOrigin.User);
 
-    assertEquals(0, textBuffer.getHistoryBuffer().getLineCount());
+    assertEquals(0, textBuffer.getHistoryLinesCount());
 
     assertEquals("line \n" +
         "line2\n" +
@@ -140,8 +139,8 @@ public class BufferResizeTest extends TestCase {
     session.assertCursorPosition(1, 4);
 
     terminal.resize(new TermSize(10, 3), RequestOrigin.User);
-    assertEquals(List.of("line1"), textBuffer.getHistoryBuffer().getLineTexts());
-    assertEquals(List.of("line2", "line3"), textBuffer.getScreenBuffer().getLineTexts());
+    assertEquals(List.of("line1"), TerminalLinesUtilKt.getLineTexts(textBuffer.getHistoryLinesStorage()));
+    assertEquals(List.of("line2", "line3"), TerminalLinesUtilKt.getLineTexts(textBuffer.getScreenLinesStorage()));
     session.assertCursorPosition(1, 3);
   }
 
@@ -149,10 +148,10 @@ public class BufferResizeTest extends TestCase {
     TestSession session = new TestSession(5, 2);
     JediTerminal terminal = session.getTerminal();
     TerminalTextBuffer textBuffer = session.getTerminalTextBuffer();
-    LinesBuffer scrollBuffer = textBuffer.getHistoryBuffer();
+    LinesStorage scrollBuffer = textBuffer.getHistoryLinesStorage();
 
-    scrollBuffer.addNewLine(session.getCurrentStyle(), CharBufferUtil.create("line"));
-    scrollBuffer.addNewLine(session.getCurrentStyle(), CharBufferUtil.create("line2"));
+    scrollBuffer.addToBottom(TerminalLinesUtilKt.terminalLine("line", session.getCurrentStyle()));
+    scrollBuffer.addToBottom(TerminalLinesUtilKt.terminalLine("line2", session.getCurrentStyle()));
 
     terminal.writeString("line3");
     terminal.newLine();
@@ -162,7 +161,7 @@ public class BufferResizeTest extends TestCase {
     session.assertCursorPosition(3, 2);
     terminal.resize(new TermSize(10, 5), RequestOrigin.User);
 
-    assertEquals(0, scrollBuffer.getLineCount());
+    assertEquals(0, scrollBuffer.getSize());
 
     assertEquals("line      \n" +
                  "line2     \n" +
@@ -196,7 +195,7 @@ public class BufferResizeTest extends TestCase {
     terminal.carriageReturn();
     terminal.writeString(">");
 
-    assertEquals(">line1", textBuffer.getHistoryBuffer().getLines());
+    assertEquals(">line1", LinesStorageKt.getLinesAsString(textBuffer.getHistoryLinesStorage()));
     assertEquals(
         ">line2\n" +
         ">line3\n" +
@@ -213,7 +212,7 @@ public class BufferResizeTest extends TestCase {
         ">line\n" +
         "2\n" +
         ">line\n" +
-        "3", textBuffer.getHistoryBuffer().getLines());
+          "3", LinesStorageKt.getLinesAsString(textBuffer.getHistoryLinesStorage()));
     assertEquals(
         ">line\n" +
         "4    \n" +
@@ -225,7 +224,7 @@ public class BufferResizeTest extends TestCase {
 
     terminal.resize(new TermSize(6, 5), RequestOrigin.User);
 
-    assertEquals(">line1", textBuffer.getHistoryBuffer().getLines());
+    assertEquals(">line1", LinesStorageKt.getLinesAsString(textBuffer.getHistoryLinesStorage()));
     assertEquals(
         ">line2\n" +
         ">line3\n" +
@@ -299,7 +298,7 @@ public class BufferResizeTest extends TestCase {
     terminal.resize(new TermSize(10, 3), RequestOrigin.User);
 
 
-    assertEquals("", terminalTextBuffer.getHistoryBuffer().getLines());
+    assertEquals("", LinesStorageKt.getLinesAsString(terminalTextBuffer.getHistoryLinesStorage()));
     assertEquals("hi3>      \n" +
                  "          \n" +
                  "          \n", terminalTextBuffer.getScreenLines());
@@ -320,7 +319,7 @@ public class BufferResizeTest extends TestCase {
     terminal.resize(new TermSize(10, 3), RequestOrigin.User);
 
 
-    assertEquals("", terminalTextBuffer.getHistoryBuffer().getLines());
+    assertEquals("", LinesStorageKt.getLinesAsString(terminalTextBuffer.getHistoryLinesStorage()));
     assertEquals("hi>       \n" +
                  "          \n" +
                  "          \n", terminalTextBuffer.getScreenLines());
@@ -343,10 +342,10 @@ public class BufferResizeTest extends TestCase {
     terminal.crnl();
     terminal.writeString("$ ");
     session.assertCursorPosition(3, 7);
-    assertEquals("", textBuffer.getHistoryBuffer().getLines());
+    assertEquals("", LinesStorageKt.getLinesAsString(textBuffer.getHistoryLinesStorage()));
     terminal.resize(new TermSize(20, 7), RequestOrigin.User);
 
-    assertEquals("", textBuffer.getHistoryBuffer().getLines());
+    assertEquals("", LinesStorageKt.getLinesAsString(textBuffer.getHistoryLinesStorage()));
     assertEquals("$ cat long.txt      \n" +
                  "1_2_3_4_5_6_7_8_9_10\n" +
                  "_11_12_13_14_15_16_1\n" +
@@ -369,7 +368,7 @@ public class BufferResizeTest extends TestCase {
     terminal.crnl();
     terminal.writeString("$ ");
     session.assertCursorPosition(3, 4);
-    assertEquals("", textBuffer.getHistoryBuffer().getLines());
+    assertEquals("", LinesStorageKt.getLinesAsString(textBuffer.getHistoryLinesStorage()));
     terminal.resize(new TermSize(6, 4), RequestOrigin.User);
 
     assertEquals(
@@ -386,7 +385,7 @@ public class BufferResizeTest extends TestCase {
         "18_19_\n" +
         "20_21_\n" +
         "22_23_\n" +
-        "24_25_", textBuffer.getHistoryBuffer().getLines());
+          "24_25_", LinesStorageKt.getLinesAsString(textBuffer.getHistoryLinesStorage()));
     assertEquals(
       "26_27_\n" +
         "28_30 \n" +
@@ -414,9 +413,9 @@ public class BufferResizeTest extends TestCase {
     session.assertCursorPosition(6, 4);
     terminal.resize(new TermSize(5, 4), RequestOrigin.User);
 
-    LinesBuffer historyBuffer = textBuffer.getHistoryBuffer();
-    assertEquals(1, historyBuffer.getLineCount());
-    assertEquals("line1", historyBuffer.getLine(0).getText());
+    LinesStorage historyBuffer = textBuffer.getHistoryLinesStorage();
+    assertEquals(1, historyBuffer.getSize());
+    assertEquals("line1", historyBuffer.get(0).getText());
 
     assertEquals(
       "line2\n" +

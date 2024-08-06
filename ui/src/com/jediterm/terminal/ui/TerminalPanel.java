@@ -276,7 +276,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
             // select line
             final Point charCoords = panelToCharCoords(e.getPoint());
             int startLine = charCoords.y;
-            while (startLine > -getScrollBuffer().getLineCount()
+            while (startLine > -getScrollLinesStorage().getSize()
                     && myTerminalTextBuffer.getLine(startLine - 1).isWrapped()) {
               startLine--;
             }
@@ -1609,8 +1609,15 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     myBracketedPasteMode = bracketedPasteModeEnabled;
   }
 
+  // Use getScrollLinesStorage instead
+  @SuppressWarnings("removal")
+  @Deprecated(forRemoval = true)
   public LinesBuffer getScrollBuffer() {
     return myTerminalTextBuffer.getHistoryBuffer();
+  }
+
+  public LinesStorage getScrollLinesStorage() {
+    return myTerminalTextBuffer.getHistoryLinesStorage();
   }
 
   @Override

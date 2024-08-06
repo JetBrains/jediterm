@@ -3,7 +3,7 @@ package com.jediterm.terminal.model.hyperlinks;
 import com.jediterm.terminal.HyperlinkStyle;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.model.CharBuffer;
-import com.jediterm.terminal.model.LinesBuffer;
+import com.jediterm.terminal.model.LinesStorage;
 import com.jediterm.terminal.model.TerminalLine;
 import com.jediterm.terminal.model.TerminalTextBuffer;
 import com.jediterm.terminal.util.CharUtils;
@@ -37,29 +37,29 @@ public class TextProcessing {
     myTerminalTextBuffer = terminalTextBuffer;
   }
 
-  public void processHyperlinks(@NotNull LinesBuffer buffer, @NotNull TerminalLine updatedLine) {
+  public void processHyperlinks(@NotNull LinesStorage linesStorage, @NotNull TerminalLine updatedLine) {
     if (myHyperlinkFilter.isEmpty()) return;
-    doProcessHyperlinks(buffer, updatedLine);
+    doProcessHyperlinks(linesStorage, updatedLine);
   }
 
-  private void doProcessHyperlinks(@NotNull LinesBuffer buffer, @NotNull TerminalLine updatedLine) {
+  private void doProcessHyperlinks(@NotNull LinesStorage linesStorage, @NotNull TerminalLine updatedLine) {
     myTerminalTextBuffer.lock();
     try {
-      int updatedLineInd = findLineInd(buffer, updatedLine);
+      int updatedLineInd = findLineInd(linesStorage, updatedLine);
       if (updatedLineInd == -1) {
         // When lines arrive fast enough, the line might be pushed to the history buffer already.
-        updatedLineInd = findHistoryLineInd(myTerminalTextBuffer.getHistoryBuffer(), updatedLine);
+        updatedLineInd = findHistoryLineInd(myTerminalTextBuffer.getHistoryLinesStorage(), updatedLine);
         if (updatedLineInd == -1) {
           LOG.debug("Cannot find line for links processing");
           return;
         }
-        buffer = myTerminalTextBuffer.getHistoryBuffer();
+        linesStorage = myTerminalTextBuffer.getHistoryLinesStorage();
       }
       int startLineInd = updatedLineInd;
-      while (startLineInd > 0 && buffer.getLine(startLineInd - 1).isWrapped()) {
+      while (startLineInd > 0 && linesStorage.get(startLineInd - 1).isWrapped()) {
         startLineInd--;
       }
-      String lineStr = joinLines(buffer, startLineInd, updatedLineInd);
+      String lineStr = joinLines(linesStorage, startLineInd, updatedLineInd);
       for (HyperlinkFilter filter : myHyperlinkFilter) {
         LinkResult result = filter.apply(lineStr);
         if (result != null) {
@@ -73,7 +73,7 @@ public class TextProcessing {
               int startLineOffset = Math.max(prevLinesLength, item.getStartOffset());
               int endLineOffset = Math.min(prevLinesLength + myTerminalTextBuffer.getWidth(), item.getEndOffset());
               if (startLineOffset < endLineOffset) {
-                buffer.getLine(lineInd).writeString(startLineOffset - prevLinesLength, new CharBuffer(lineStr.substring(startLineOffset, endLineOffset)), style);
+                linesStorage.get(lineInd).writeString(startLineOffset - prevLinesLength, new CharBuffer(lineStr.substring(startLineOffset, endLineOffset)), style);
               }
               prevLinesLength += myTerminalTextBuffer.getWidth();
             }
@@ -86,19 +86,19 @@ public class TextProcessing {
     }
   }
 
-  private int findHistoryLineInd(@NotNull LinesBuffer historyBuffer, @NotNull TerminalLine line) {
-    int lastLineInd = Math.max(0, historyBuffer.getLineCount() - 200); // check only last lines in history buffer
-    for (int i = historyBuffer.getLineCount() - 1; i >= lastLineInd; i--) {
-      if (historyBuffer.getLine(i) == line) {
+  private int findHistoryLineInd(@NotNull LinesStorage historyLinesStorage, @NotNull TerminalLine line) {
+    int lastLineInd = Math.max(0, historyLinesStorage.getSize() - 200); // check only last lines in history buffer
+    for (int i = historyLinesStorage.getSize() - 1; i >= lastLineInd; i--) {
+      if (historyLinesStorage.get(i) == line) {
         return i;
       }
     }
     return -1;
   }
 
-  private static int findLineInd(@NotNull LinesBuffer buffer, @NotNull TerminalLine line) {
-    for (int i = 0; i < buffer.getLineCount(); i++) {
-      TerminalLine l = buffer.getLine(i);
+  private static int findLineInd(@NotNull LinesStorage linesStorage, @NotNull TerminalLine line) {
+    for (int i = 0; i < linesStorage.getSize(); i++) {
+      TerminalLine l = linesStorage.get(i);
       if (l == line) {
         return i;
       }
@@ -107,10 +107,10 @@ public class TextProcessing {
   }
 
   @NotNull
-  private String joinLines(@NotNull LinesBuffer buffer, int startLineInd, int updatedLineInd) {
+  private String joinLines(@NotNull LinesStorage linesStorage, int startLineInd, int updatedLineInd) {
     StringBuilder result = new StringBuilder();
     for (int i = startLineInd; i <= updatedLineInd; i++) {
-      String text = buffer.getLine(i).getText();
+      String text = linesStorage.get(i).getText();
       if (i < updatedLineInd && text.length() < myTerminalTextBuffer.getWidth()) {
         text = text + new CharBuffer(CharUtils.NUL_CHAR, myTerminalTextBuffer.getWidth() - text.length());
       }

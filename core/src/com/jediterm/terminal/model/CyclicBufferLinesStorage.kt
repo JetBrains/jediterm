@@ -13,7 +13,19 @@ internal class CyclicBufferLinesStorage(private val maxCapacity: Int) : LinesSto
     get() = lines.size
 
   /** O(1) */
-  override fun get(index: Int): TerminalLine = lines[index]
+  override fun get(index: Int): TerminalLine {
+    if (index < 0) {
+      throw IndexOutOfBoundsException("Negative index: $index")
+    }
+
+    if (index >= size) {
+      repeat(index - size + 1) {
+        addToBottom(TerminalLine.createEmpty())
+      }
+    }
+
+    return lines[index]
+  }
 
   /** O(size) */
   override fun indexOf(line: TerminalLine): Int = lines.indexOf(line)

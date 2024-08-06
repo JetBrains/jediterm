@@ -13,3 +13,11 @@ fun terminalLine(text: String, style: TextStyle = TextStyle()): TerminalLine {
 fun createFillerEntry(width: Int): TextEntry {
   return TextEntry(TextStyle(), CharBuffer(CharUtils.NUL_CHAR, width))
 }
+
+fun LinesStorage.getLineTexts(): List<String> {
+  val lines = ArrayList<String>(size)
+  for (line in this) {
+    lines.add(line.text)
+  }
+  return lines
+}

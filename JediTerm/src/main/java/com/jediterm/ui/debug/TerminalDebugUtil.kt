@@ -4,6 +4,7 @@ import com.jediterm.terminal.StyledTextConsumerAdapter
 import com.jediterm.terminal.TextStyle
 import com.jediterm.terminal.model.CharBuffer
 import com.jediterm.terminal.model.TerminalTextBuffer
+import com.jediterm.terminal.model.processLines
 
 object TerminalDebugUtil {
 
@@ -13,7 +14,7 @@ object TerminalDebugUtil {
     textBuffer.lock()
     try {
       val sb = StringBuilder()
-      textBuffer.screenBuffer.processLines(0, textBuffer.height, object : StyledTextConsumerAdapter() {
+      textBuffer.screenLinesStorage.processLines(0, textBuffer.height, object : StyledTextConsumerAdapter() {
         var count: Int = 0
 
         override fun consume(x: Int, y: Int, style: TextStyle, characters: CharBuffer, startRow: Int) {

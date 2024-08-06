@@ -1,5 +1,6 @@
 package com.jediterm.terminal.model
 
+import com.jediterm.terminal.StyledTextConsumer
 import kotlin.math.min
 
 /**
@@ -8,11 +9,14 @@ import kotlin.math.min
  * Supports adding/removing lines from the top and bottom.
  * Also, accessing lines by index.
  */
-internal interface LinesStorage : Iterable<TerminalLine> {
+interface LinesStorage : Iterable<TerminalLine> {
   /** Count of the available lines in the storage */
   val size: Int
 
-  /** [index] must be in the range [0, size) */
+  /**
+   * Throws [IndexOutOfBoundsException] of index is negative.
+   * If index is grater than [size], storage should be filled with empty lines until [index] line.
+   */
   operator fun get(index: Int): TerminalLine
 
   /** @return -1 if there is no such line */
@@ -45,27 +49,31 @@ internal interface LinesStorage : Iterable<TerminalLine> {
   fun removeFromBottom(): TerminalLine
 
   fun clear()
+
+  companion object {
+    const val DEFAULT_MAX_LINES_COUNT: Int = 5000
+  }
 }
 
-internal fun LinesStorage.addAllToTop(lines: List<TerminalLine>) {
+fun LinesStorage.addAllToTop(lines: List<TerminalLine>) {
   for (ind in lines.lastIndex downTo 0) {
     addToTop(lines[ind])
   }
 }
 
-internal fun LinesStorage.addAllToBottom(lines: List<TerminalLine>) {
+fun LinesStorage.addAllToBottom(lines: List<TerminalLine>) {
   for (line in lines) {
     addToBottom(line)
   }
 }
 
-internal fun LinesStorage.removeFromTop(count: Int): List<TerminalLine> {
+fun LinesStorage.removeFromTop(count: Int): List<TerminalLine> {
   return perform(count, false) {
     removeFromTop()
   }
 }
 
-internal fun LinesStorage.removeFromBottom(count: Int): List<TerminalLine> {
+fun LinesStorage.removeFromBottom(count: Int): List<TerminalLine> {
   return perform(count, true) {
     removeFromBottom()
   }
@@ -92,4 +100,87 @@ private inline fun LinesStorage.perform(count: Int, reverse: Boolean, operation:
       result
     }
   }
+}
+
+fun LinesStorage.removeBottomEmptyLines(maxCount: Int): Int {
+  var removedCount = 0
+  var ind: Int = size - 1
+  while (removedCount < maxCount && ind >= 0 && this[ind].isNulOrEmpty) {
+    ind--
+    removedCount++
+  }
+  removeFromBottom(removedCount)
+  return removedCount
+}
+
+/**
+ * @param startRow value passed as a corresponding parameter of the [StyledTextConsumer] methods.
+ */
+fun LinesStorage.processLines(yStart: Int, count: Int, consumer: StyledTextConsumer, startRow: Int = -size) {
+  require(yStart >= 0) { "yStart is $yStart, should be >0" }
+  val maxY = min(yStart + count, size)
+  for (y in yStart until maxY) {
+    this[y].process(y, consumer, startRow)
+  }
+}
+
+/**
+ * Performs a cyclic shift:
+ * adds [count] of lines at the position [y], then removes [count] of lines from the end of [y, lastLine] range.
+ *
+ * @param y        index of the insertion point, the operation does not affect all lines before this line.
+ * @param count    number of lines to insert.
+ * @param lastLine the operation does not affect all lines after this line.
+ */
+fun LinesStorage.insertLines(y: Int, count: Int, lastLine: Int, filler: TerminalLine.TextEntry) {
+  val tailLinesCount = size - lastLine - 1
+  val tail = if (tailLinesCount > 0) removeFromBottom(tailLinesCount) else emptyList()
+
+  val head = if (y > 0) removeFromTop(y) else emptyList()
+
+  for (i in 0 until count) {
+    addToTop(TerminalLine(filler))
+  }
+  addAllToTop(head)
+  removeFromBottom(count)
+  addAllToBottom(tail)
+}
+
+/**
+ * Performs a cyclic shift:
+ * removes [count] of lines after the position [y], then adds [count] of lines after the [lastLine].
+ *
+ * @param y        first index if the line to delete, the operation does not affect all lines before this line.
+ * @param count    number of lines to delete.
+ * @param lastLine the operation does not affect all lines after this line.
+ */
+fun LinesStorage.deleteLines(y: Int, count: Int, lastLine: Int, filler: TerminalLine.TextEntry): List<TerminalLine> {
+  val tailLinesCount: Int = size - lastLine - 1
+  val tail = if (tailLinesCount > 0) removeFromBottom(tailLinesCount) else emptyList()
+
+  val head = if (y > 0) removeFromTop(y) else emptyList()
+
+  val removed: List<TerminalLine> = removeFromTop(count)
+  addAllToTop(head)
+
+  repeat(removed.size) {
+    addToBottom(TerminalLine(filler))
+  }
+
+  addAllToBottom(tail)
+  return removed
+}
+
+/**
+ * @return a string where the line separator divides each terminal line text.
+ */
+fun LinesStorage.getLinesAsString(): String {
+  val sb = StringBuilder()
+  for (index in 0 until size) {
+    sb.append(this[index].text)
+    if (index != size - 1) {
+      sb.append("\n")
+    }
+  }
+  return sb.toString()
 }

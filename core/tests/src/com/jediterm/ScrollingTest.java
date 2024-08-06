@@ -3,6 +3,7 @@ package com.jediterm;
 import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.model.JediTerminal;
+import com.jediterm.terminal.model.LinesStorageKt;
 import com.jediterm.terminal.model.StyleState;
 import com.jediterm.terminal.model.TerminalTextBuffer;
 import com.jediterm.util.ArrayBasedTextConsumer;
@@ -33,7 +34,7 @@ public class ScrollingTest extends TestCase {
     terminal.carriageReturn();
     terminal.writeString("line4");
 
-    assertEquals(1, terminalTextBuffer.getHistoryBuffer().getLineCount());
+    assertEquals(1, terminalTextBuffer.getHistoryLinesCount());
 
     assertEquals("line2\n" +
             "line3\n" +
@@ -63,7 +64,7 @@ public class ScrollingTest extends TestCase {
     terminal.writeString("4");
     terminal.writeString("4");
 
-    assertEquals(2, terminalTextBuffer.getHistoryBuffer().getLineCount());
+    assertEquals(2, terminalTextBuffer.getHistoryLinesCount());
 
     assertEquals("line3\n" +
             "line4\n" +
@@ -86,7 +87,7 @@ public class ScrollingTest extends TestCase {
 
     terminal.resize(new TermSize(7, 4), RequestOrigin.User);
 
-    assertEquals("1234567", textBuffer.getHistoryBuffer().getLines());
+    assertEquals("1234567", LinesStorageKt.getLinesAsString(textBuffer.getHistoryLinesStorage()));
 
     assertEquals(
         "890    \n" +
@@ -100,7 +101,7 @@ public class ScrollingTest extends TestCase {
 
     assertEquals(
       "1234567\n" +
-        "890", textBuffer.getHistoryBuffer().getLines());
+        "890", LinesStorageKt.getLinesAsString(textBuffer.getHistoryLinesStorage()));
 
     assertEquals(
         "2345678\n" +
@@ -139,7 +140,7 @@ public class ScrollingTest extends TestCase {
             "4 \n" +
             "  \n", terminalTextBuffer.getScreenLines());
 
-    assertEquals("1\n2", terminalTextBuffer.getHistoryBuffer().getLines());
+    assertEquals("1\n2", LinesStorageKt.getLinesAsString(terminalTextBuffer.getHistoryLinesStorage()));
 
     ArrayBasedTextConsumer textConsumer = new ArrayBasedTextConsumer(terminalTextBuffer.getHeight(), terminalTextBuffer.getWidth());
     terminalTextBuffer.processHistoryAndScreenLines(0, terminalTextBuffer.getHeight(), textConsumer);

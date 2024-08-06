@@ -24,6 +24,7 @@ import kotlin.math.min
  * stores lines that are shown currently on the screen, and they have there (in TextBuffer) their initial length (even if
  * it doesn't fit to screen width).
  */
+@Suppress("DEPRECATION", "removal")
 class TerminalTextBuffer(
   initialWidth: Int,
   initialHeight: Int,
@@ -36,24 +37,35 @@ class TerminalTextBuffer(
   var height: Int = initialHeight
     private set
 
-  var historyBuffer: LinesBuffer = createHistoryBuffer()
+  var historyLinesStorage: LinesStorage = createHistoryLinesStorage()
     private set
-  var screenBuffer: LinesBuffer = createScreenBuffer()
+  var screenLinesStorage: LinesStorage = createScreenLinesStorage()
     private set
 
-  internal val historyBufferOrBackup: LinesBuffer
-    get() = if (isUsingAlternateBuffer) historyBufferBackup!! else historyBuffer
+  @Deprecated("Use historyLinesStorage instead", replaceWith = ReplaceWith("historyLinesStorage"))
+  var historyBuffer: LinesBuffer = createLinesBuffer(historyLinesStorage)
+    private set
 
-  internal val screenBufferOrBackup: LinesBuffer
-    get() = if (isUsingAlternateBuffer) screenBufferBackup!! else screenBuffer
+  @Deprecated("Use screenLinesStorage instead", replaceWith = ReplaceWith("screenLinesStorage"))
+  var screenBuffer: LinesBuffer = createLinesBuffer(screenLinesStorage)
+    private set
+
+  internal val historyLinesStorageOrBackup: LinesStorage
+    get() = if (isUsingAlternateBuffer) historyLinesStorageBackup!! else historyLinesStorage
+
+  internal val screenLinesStorageOrBackup: LinesStorage
+    get() = if (isUsingAlternateBuffer) screenLinesStorageBackup!! else screenLinesStorage
 
   val historyLinesCount: Int
-    get() = historyBuffer.lineCount
+    get() = historyLinesStorage.size
 
   val screenLinesCount: Int
-    get() = screenBuffer.lineCount
+    get() = screenLinesStorage.size
 
   private val myLock: Lock = ReentrantLock()
+
+  private var historyLinesStorageBackup: LinesStorage? = null
+  private var screenLinesStorageBackup: LinesStorage? = null
 
   private var historyBufferBackup: LinesBuffer? = null
   private var screenBufferBackup: LinesBuffer? = null // to store textBuffer after switching to alternate buffer
@@ -72,16 +84,20 @@ class TerminalTextBuffer(
     width,
     height,
     styleState,
-    LinesBuffer.DEFAULT_MAX_LINES_COUNT,
+    LinesStorage.DEFAULT_MAX_LINES_COUNT,
     textProcessing
   )
 
-  private fun createScreenBuffer(): LinesBuffer {
-    return LinesBuffer(-1, textProcessing)
+  private fun createScreenLinesStorage(): LinesStorage {
+    return CyclicBufferLinesStorage(-1)
   }
 
-  private fun createHistoryBuffer(): LinesBuffer {
-    return LinesBuffer(maxHistoryLinesCount, textProcessing)
+  private fun createHistoryLinesStorage(): LinesStorage {
+    return CyclicBufferLinesStorage(maxHistoryLinesCount)
+  }
+
+  private fun createLinesBuffer(delegate: LinesStorage): LinesBuffer {
+    return LinesBuffer(delegate, textProcessing)
   }
 
   fun resize(newTermSize: TermSize, oldCursor: CellPosition, selection: TerminalSelection?): TerminalResizeResult {
@@ -122,14 +138,15 @@ class TerminalTextBuffer(
         // Number of lines to remove until the new height or cursor if it is located below the new height.
         val maxBottomLinesToRemove = min(lineDiffCount, max(0, oldHeight - oldCursorY))
         // Number of already empty lines on the screen (but not greater than required count to remove)
-        val emptyLinesCount = min(maxBottomLinesToRemove, oldHeight - screenBuffer.lineCount)
+        val emptyLinesCount = min(maxBottomLinesToRemove, oldHeight - screenLinesStorage.size)
         // Count of lines to remove from the screen buffer (TerminalLine objects are created for those lines)
         val actualLinesToRemove = maxBottomLinesToRemove - emptyLinesCount
         // Total count of already empty lines and removed empty lines
-        val emptyLinesDeleted = emptyLinesCount + screenBuffer.removeBottomEmptyLines(actualLinesToRemove)
+        val emptyLinesDeleted = emptyLinesCount + screenLinesStorage.removeBottomEmptyLines(actualLinesToRemove)
 
         val screenLinesToMove = lineDiffCount - emptyLinesDeleted
-        screenBuffer.moveTopLinesTo(screenLinesToMove, historyBuffer)
+        val removedLines = screenLinesStorage.removeFromTop(screenLinesToMove)
+        historyLinesStorage.addAllToBottom(removedLines)
         newCursorY = oldCursorY - screenLinesToMove
         selection?.shiftY(-screenLinesToMove)
       }
@@ -145,8 +162,9 @@ class TerminalTextBuffer(
       else {
         if (!alternateBuffer) {
           //we need to move lines from scroll buffer to the text buffer
-          val historyLinesCount = min(newHeight - oldHeight, historyBuffer.lineCount)
-          historyBuffer.moveBottomLinesTo(historyLinesCount, screenBuffer)
+          val historyLinesCount = min(newHeight - oldHeight, historyLinesStorage.size)
+          val removedLines = historyLinesStorage.removeFromBottom(historyLinesCount)
+          screenLinesStorage.addAllToTop(removedLines)
           newCursorY = oldCursorY + historyLinesCount
           selection?.shiftY(historyLinesCount)
         }
@@ -216,7 +234,7 @@ class TerminalTextBuffer(
       LOG.error("Attempt to delete negative chars number: count: $count")
     }
     else if (count > 0) {
-      screenBuffer.deleteCharacters(x, y, count, createEmptyStyleWithCurrentColor())
+      screenLinesStorage[y].deleteCharacters(x, count, createEmptyStyleWithCurrentColor())
       fireModelChangeEvent()
     }
   }
@@ -229,7 +247,7 @@ class TerminalTextBuffer(
       LOG.error("Attempt to insert negative blank chars number: count:$count")
     }
     else if (count > 0) { // nothing to do
-      screenBuffer.insertBlankCharacters(x, y, count, width, createEmptyStyleWithCurrentColor())
+      screenLinesStorage[y].insertBlankCharacters(x, count, width, createEmptyStyleWithCurrentColor())
       fireModelChangeEvent()
     }
   }
@@ -239,13 +257,15 @@ class TerminalTextBuffer(
   }
 
   fun addLine(line: TerminalLine) {
-    screenBuffer.addLines(listOf(line))
+    screenLinesStorage.addToBottom(line)
     fireModelChangeEvent()
   }
 
   private fun writeString(x: Int, y: Int, str: CharBuffer, style: TextStyle) {
-    screenBuffer.writeString(x, y - 1, str, style)
+    val line = screenLinesStorage[y - 1]
+    line.writeString(x, str, style)
 
+    textProcessing?.processHyperlinks(screenLinesStorage, line)
     fireModelChangeEvent()
   }
 
@@ -259,7 +279,7 @@ class TerminalTextBuffer(
     else {
       val deletedLines = deleteLines(scrollRegionTop - 1, -dy, scrollRegionBottom)
       if (scrollRegionTop == 1) {
-        historyBuffer.addLines(deletedLines)
+        historyLinesStorage.addAllToBottom(deletedLines)
       }
       fireModelChangeEvent()
     }
@@ -277,14 +297,14 @@ class TerminalTextBuffer(
         LOG.error("Attempt to get line out of bounds: $index >= $height")
         return TerminalLine.createEmpty()
       }
-      return screenBuffer.getLine(index)
+      return screenLinesStorage[index]
     }
     else {
       if (index < -historyLinesCount) {
         LOG.error("Attempt to get line out of bounds: $index < ${-historyLinesCount}")
         return TerminalLine.createEmpty()
       }
-      return historyBuffer.getLine(historyLinesCount + index)
+      return historyLinesStorage[historyLinesCount + index]
     }
   }
 
@@ -293,7 +313,7 @@ class TerminalTextBuffer(
     try {
       val sb = StringBuilder()
       for (row in 0 until height) {
-        val line = StringBuilder(screenBuffer.getLine(row).text)
+        val line = StringBuilder(screenLinesStorage[row].text)
 
         for (i in line.length until width) {
           line.append(' ')
@@ -313,7 +333,7 @@ class TerminalTextBuffer(
   }
 
   fun processScreenLines(yStart: Int, yCount: Int, consumer: StyledTextConsumer) {
-    screenBuffer.processLines(yStart, yCount, consumer)
+    screenLinesStorage.processLines(yStart, yCount, consumer)
   }
 
   fun lock() {
@@ -363,19 +383,29 @@ class TerminalTextBuffer(
     alternateBuffer = enabled
     if (enabled) {
       if (!isUsingAlternateBuffer) {
+        screenLinesStorageBackup = screenLinesStorage
+        historyLinesStorageBackup = historyLinesStorage
+        screenLinesStorage = createScreenLinesStorage()
+        historyLinesStorage = createHistoryLinesStorage()
+
         screenBufferBackup = screenBuffer
         historyBufferBackup = historyBuffer
-        screenBuffer = createScreenBuffer()
-        historyBuffer = createHistoryBuffer()
+        screenBuffer = createLinesBuffer(screenLinesStorage)
+        historyBuffer = createLinesBuffer(historyLinesStorage)
         isUsingAlternateBuffer = true
       }
     }
     else {
       if (isUsingAlternateBuffer) {
+        screenLinesStorage = screenLinesStorageBackup!!
+        historyLinesStorage = historyLinesStorageBackup!!
+        screenLinesStorageBackup = createScreenLinesStorage()
+        historyLinesStorageBackup = createHistoryLinesStorage()
+
         screenBuffer = screenBufferBackup!!
         historyBuffer = historyBufferBackup!!
-        screenBufferBackup = createScreenBuffer()
-        historyBufferBackup = createHistoryBuffer()
+        screenBufferBackup = createLinesBuffer(screenLinesStorageBackup!!)
+        historyBufferBackup = createLinesBuffer(historyLinesStorageBackup!!)
         isUsingAlternateBuffer = false
       }
     }
@@ -383,29 +413,32 @@ class TerminalTextBuffer(
   }
 
   fun insertLines(y: Int, count: Int, scrollRegionBottom: Int) {
-    screenBuffer.insertLines(y, count, scrollRegionBottom - 1, createFillerEntry())
+    screenLinesStorage.insertLines(y, count, scrollRegionBottom - 1, createFillerEntry())
     fireModelChangeEvent()
   }
 
   // returns deleted lines
   fun deleteLines(y: Int, count: Int, scrollRegionBottom: Int): List<TerminalLine> {
-    val deletedLines = screenBuffer.deleteLines(y, count, scrollRegionBottom - 1, createFillerEntry())
+    val deletedLines = screenLinesStorage.deleteLines(y, count, scrollRegionBottom - 1, createFillerEntry())
     fireModelChangeEvent()
     return deletedLines
   }
 
   fun clearLines(startRow: Int, endRow: Int) {
-    screenBuffer.clearLines(startRow, endRow, createFillerEntry())
+    val filler = createFillerEntry()
+    for (ind in startRow..endRow) {
+      screenLinesStorage[ind].clear(filler)
+    }
     fireModelChangeEvent()
   }
 
   fun eraseCharacters(leftX: Int, rightX: Int, y: Int) {
     val style = createEmptyStyleWithCurrentColor()
     if (y >= 0) {
-      screenBuffer.clearArea(leftX, y, rightX, y + 1, style)
+      screenLinesStorage[y].clearArea(leftX, rightX, style)
       fireModelChangeEvent()
       if (textProcessing != null && y < height) {
-        textProcessing.processHyperlinks(screenBuffer, getLine(y))
+        textProcessing.processHyperlinks(screenLinesStorage, getLine(y))
       }
     }
     else {
@@ -414,19 +447,19 @@ class TerminalTextBuffer(
   }
 
   fun clearScreenAndHistoryBuffers() {
-    screenBuffer.clearAll()
-    historyBuffer.clearAll()
+    screenLinesStorage.clear()
+    historyLinesStorage.clear()
     fireModelChangeEvent()
   }
 
   fun clearScreenBuffer() {
-    screenBuffer.clearAll()
+    screenLinesStorage.clear()
     fireModelChangeEvent()
   }
 
   @Deprecated("use {@link #clearScreenAndHistoryBuffers()} instead")
   fun clearAll() {
-    screenBuffer.clearAll()
+    screenLinesStorage.clear()
     fireModelChangeEvent()
   }
 
@@ -436,28 +469,28 @@ class TerminalTextBuffer(
   fun processHistoryAndScreenLines(scrollOrigin: Int, maximalLinesToProcess: Int, consumer: StyledTextConsumer) {
     val linesToProcess = if (maximalLinesToProcess < 0) {
       //Process all lines in this case
-      historyBuffer.lineCount + screenBuffer.lineCount
+      historyLinesStorage.size + screenLinesStorage.size
     }
     else maximalLinesToProcess
 
     val linesFromHistory = min(-scrollOrigin, linesToProcess)
 
-    var y = historyBuffer.lineCount + scrollOrigin
+    var y = historyLinesStorage.size + scrollOrigin
     if (y < 0) { // it seems that lower bound of scrolling can get out of sync with history buffer lines count
       y = 0 // to avoid exception, we start with the first line in this case
     }
-    historyBuffer.processLines(y, linesFromHistory, consumer, y)
+    historyLinesStorage.processLines(y, linesFromHistory, consumer, y)
 
     if (linesFromHistory < linesToProcess) {
       // we can show lines from screen buffer
-      screenBuffer.processLines(0, linesToProcess - linesFromHistory, consumer, -linesFromHistory)
+      screenLinesStorage.processLines(0, linesToProcess - linesFromHistory, consumer, -linesFromHistory)
     }
   }
 
   fun clearHistory() {
     modify {
-      val lineCount = historyBuffer.lineCount
-      historyBuffer.clearAll()
+      val lineCount = historyLinesStorage.size
+      historyLinesStorage.clear()
       if (lineCount > 0) {
         fireHistoryBufferLineCountChanged()
       }
@@ -467,12 +500,13 @@ class TerminalTextBuffer(
 
   fun moveScreenLinesToHistory() {
     modify {
-      screenBuffer.removeBottomEmptyLines(screenBuffer.lineCount)
-      val movedToHistoryLineCount = screenBuffer.moveTopLinesTo(screenBuffer.lineCount, historyBuffer)
-      if (historyBuffer.lineCount > 0) {
-        historyBuffer.getLine(historyBuffer.lineCount - 1).isWrapped = false
+      screenLinesStorage.removeBottomEmptyLines(screenLinesStorage.size)
+      val removedScreenLines = screenLinesStorage.removeFromTop(screenLinesStorage.size)
+      historyLinesStorage.addAllToBottom(removedScreenLines)
+      if (historyLinesStorage.size > 0) {
+        historyLinesStorage[historyLinesStorage.size - 1].isWrapped = false
       }
-      if (movedToHistoryLineCount > 0) {
+      if (removedScreenLines.isNotEmpty()) {
         fireHistoryBufferLineCountChanged()
       }
     }
@@ -485,13 +519,19 @@ class TerminalTextBuffer(
   }
 
   fun findScreenLineIndex(line: TerminalLine): Int {
-    return screenBuffer.findLineIndex(line)
+    return screenLinesStorage.indexOf(line)
   }
 
   fun clearTypeAheadPredictions() {
-    screenBuffer.clearTypeAheadPredictions()
-    historyBuffer.clearTypeAheadPredictions()
+    clearTypeAheadPredictions(screenLinesStorage)
+    clearTypeAheadPredictions(historyLinesStorage)
     fireModelChangeEvent()
+  }
+
+  private fun clearTypeAheadPredictions(storage: LinesStorage) {
+    for (line in storage) {
+      line.myTypeAheadLine = null
+    }
   }
 
   companion object {

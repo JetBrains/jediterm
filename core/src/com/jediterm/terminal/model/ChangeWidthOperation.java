@@ -48,9 +48,9 @@ class ChangeWidthOperation {
   }
 
   void run() {
-    LinesBuffer historyBuffer = myTextBuffer.getHistoryBufferOrBackup$core();
-    for (int i = 0; i < historyBuffer.getLineCount(); i++) {
-      TerminalLine line = historyBuffer.getLine(i);
+    LinesStorage historyLinesStorage = myTextBuffer.getHistoryLinesStorageOrBackup$core();
+    for (int i = 0; i < historyLinesStorage.getSize(); i++) {
+      TerminalLine line = historyLinesStorage.get(i);
       addLine(line);
     }
     int screenStartInd = myAllLines.size() - 1;
@@ -60,11 +60,11 @@ class ChangeWidthOperation {
     if (screenStartInd < 0) {
       throw new IndexOutOfBoundsException("screenStartInd < 0: " + screenStartInd);
     }
-    LinesBuffer screenBuffer = myTextBuffer.getScreenBufferOrBackup$core();
-    if (screenBuffer.getLineCount() > myTextBuffer.getHeight()) {
-      LOG.warn("Terminal height < screen buffer line count: " + myTextBuffer.getHeight() + " < " + screenBuffer.getLineCount());
+    LinesStorage screenLinesStorage = myTextBuffer.getScreenLinesStorageOrBackup$core();
+    if (screenLinesStorage.getSize() > myTextBuffer.getHeight()) {
+      LOG.warn("Terminal height < screen buffer line count: " + myTextBuffer.getHeight() + " < " + screenLinesStorage.getSize());
     }
-    int oldScreenLineCount = Math.min(screenBuffer.getLineCount(), myTextBuffer.getHeight());
+    int oldScreenLineCount = Math.min(screenLinesStorage.getSize(), myTextBuffer.getHeight());
     for (int i = 0; i < oldScreenLineCount; i++) {
       List<TrackingPoint> points = findPointsAtY(i);
       for (TrackingPoint point : points) {
@@ -75,7 +75,7 @@ class ChangeWidthOperation {
         }
         myTrackingPoints.put(point, new Point(newX, newY));
       }
-      addLine(screenBuffer.getLine(i));
+      addLine(screenLinesStorage.get(i));
     }
     for (int i = oldScreenLineCount; i < myTextBuffer.getHeight(); i++) {
       List<TrackingPoint> points = findPointsAtY(i);
@@ -98,10 +98,10 @@ class ChangeWidthOperation {
     screenStartInd = Math.max(screenStartInd, myAllLines.size() - Math.min(myAllLines.size(), myNewHeight) - emptyBottomLineCount);
     screenStartInd = Math.min(screenStartInd, myAllLines.size() - Math.min(myAllLines.size(), myNewHeight));
     screenStartInd = Math.max(screenStartInd, bottomMostPointY - myNewHeight + 1);
-    historyBuffer.clearAll();
-    historyBuffer.addLines(myAllLines.subList(0, screenStartInd));
-    screenBuffer.clearAll();
-    screenBuffer.addLines(myAllLines.subList(screenStartInd, Math.min(screenStartInd + myNewHeight, myAllLines.size())));
+    historyLinesStorage.clear();
+    LinesStorageKt.addAllToBottom(historyLinesStorage, myAllLines.subList(0, screenStartInd));
+    screenLinesStorage.clear();
+    LinesStorageKt.addAllToBottom(screenLinesStorage, myAllLines.subList(screenStartInd, Math.min(screenStartInd + myNewHeight, myAllLines.size())));
     for (Map.Entry<TrackingPoint, Point> entry : myTrackingPoints.entrySet()) {
       Point p = entry.getValue();
       if (p != null) {

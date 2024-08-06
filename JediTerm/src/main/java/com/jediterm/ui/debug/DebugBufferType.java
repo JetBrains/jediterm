@@ -2,6 +2,7 @@ package com.jediterm.ui.debug;
 
 import com.jediterm.terminal.LoggingTtyConnector;
 import com.jediterm.terminal.LoggingTtyConnector.TerminalState;
+import com.jediterm.terminal.model.LinesStorageKt;
 import com.jediterm.terminal.ui.TerminalSession;
 import org.jetbrains.annotations.NotNull;
 
@@ -35,7 +36,7 @@ public enum DebugBufferType {
     public @NotNull String getValue(TerminalSession session, int stateIndex) {
       List<TerminalState> states = ((LoggingTtyConnector) session.getTtyConnector()).getStates();
       if (stateIndex == states.size()) {
-        return session.getTerminalTextBuffer().getHistoryBuffer().getLines();
+        return LinesStorageKt.getLinesAsString(session.getTerminalTextBuffer().getHistoryLinesStorage());
       } else {
         return states.get(stateIndex).myHistoryLines;
       }

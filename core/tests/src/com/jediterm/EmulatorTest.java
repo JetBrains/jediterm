@@ -2,6 +2,7 @@ package com.jediterm;
 
 import com.jediterm.core.Color;
 import com.jediterm.terminal.emulator.ColorPalette;
+import com.jediterm.terminal.model.TerminalLinesUtilKt;
 import com.jediterm.terminal.model.TerminalTextBuffer;
 import com.jediterm.util.TestSession;
 import org.jetbrains.annotations.NotNull;
@@ -132,11 +133,11 @@ public class EmulatorTest extends EmulatorTestAbstract {
   }
 
   private void assertScreenLines(@NotNull TestSession session, @NotNull List<String> expectedScreenLines) {
-    Assert.assertEquals(expectedScreenLines, session.getTerminalTextBuffer().getScreenBuffer().getLineTexts());
+    Assert.assertEquals(expectedScreenLines, TerminalLinesUtilKt.getLineTexts(session.getTerminalTextBuffer().getScreenLinesStorage()));
   }
 
   private void assertHistoryLines(@NotNull TestSession session, @NotNull List<String> expectedHistoryLines) {
-    Assert.assertEquals(expectedHistoryLines, session.getTerminalTextBuffer().getHistoryBuffer().getLineTexts());
+    Assert.assertEquals(expectedHistoryLines, TerminalLinesUtilKt.getLineTexts(session.getTerminalTextBuffer().getHistoryLinesStorage()));
   }
 
   @SuppressWarnings("SameParameterValue")

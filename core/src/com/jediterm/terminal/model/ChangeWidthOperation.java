@@ -48,7 +48,7 @@ class ChangeWidthOperation {
   }
 
   void run() {
-    LinesBuffer historyBuffer = myTextBuffer.getHistoryBufferOrBackup();
+    LinesBuffer historyBuffer = myTextBuffer.getHistoryBufferOrBackup$core();
     for (int i = 0; i < historyBuffer.getLineCount(); i++) {
       TerminalLine line = historyBuffer.getLine(i);
       addLine(line);
@@ -60,7 +60,7 @@ class ChangeWidthOperation {
     if (screenStartInd < 0) {
       throw new IndexOutOfBoundsException("screenStartInd < 0: " + screenStartInd);
     }
-    LinesBuffer screenBuffer = myTextBuffer.getScreenBufferOrBackup();
+    LinesBuffer screenBuffer = myTextBuffer.getScreenBufferOrBackup$core();
     if (screenBuffer.getLineCount() > myTextBuffer.getHeight()) {
       LOG.warn("Terminal height < screen buffer line count: " + myTextBuffer.getHeight() + " < " + screenBuffer.getLineCount());
     }

@@ -115,7 +115,7 @@ class JediTerm : AbstractTerminalFrame() {
 
         val terminalTextBuffer = myWidget!!.terminalTextBuffer
         val terminalState = TerminalState(
-          terminalTextBuffer.screenLines,
+          terminalTextBuffer.getScreenLines(),
           TerminalDebugUtil.getStyleLines(terminalTextBuffer),
           terminalTextBuffer.historyBuffer.lines
         )

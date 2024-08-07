@@ -255,9 +255,9 @@ public class TerminalTextBuffer {
     if (dy > 0) {
       insertLines(scrollRegionTop - 1, dy, scrollRegionBottom);
     } else {
-      LinesBuffer removed = deleteLines(scrollRegionTop - 1, -dy, scrollRegionBottom);
+      List<TerminalLine> deletedLines = deleteLines(scrollRegionTop - 1, -dy, scrollRegionBottom);
       if (scrollRegionTop == 1) {
-        removed.moveTopLinesTo(removed.getLineCount(), myHistoryBuffer);
+        myHistoryBuffer.addLines(deletedLines);
       }
 
       fireModelChangeEvent();
@@ -409,10 +409,10 @@ public class TerminalTextBuffer {
   }
 
   // returns deleted lines
-  public LinesBuffer deleteLines(int y, int count, int scrollRegionBottom) {
-    LinesBuffer linesBuffer = myScreenBuffer.deleteLines(y, count, scrollRegionBottom - 1, createFillerEntry());
+  public List<TerminalLine> deleteLines(int y, int count, int scrollRegionBottom) {
+    List<TerminalLine> deletedLines = myScreenBuffer.deleteLines(y, count, scrollRegionBottom - 1, createFillerEntry());
     fireModelChangeEvent();
-    return linesBuffer;
+    return deletedLines;
   }
 
   public void clearLines(int startRow, int endRow) {

@@ -20,20 +20,17 @@ public class LinesBuffer {
 
   public static final int DEFAULT_MAX_LINES_COUNT = 5000;
 
-  // negative number means no limit
-  private int myBufferMaxLinesCount = DEFAULT_MAX_LINES_COUNT;
-
-  private ArrayList<TerminalLine> myLines = new ArrayList<>();
+  private final LinesStorage myLines;
 
   @Nullable
   private final TextProcessing myTextProcessing;
 
   public LinesBuffer(@Nullable TextProcessing textProcessing) {
-    myTextProcessing = textProcessing;
+    this(-1, textProcessing);
   }
 
   public LinesBuffer(int bufferMaxLinesCount, @Nullable TextProcessing textProcessing) {
-    myBufferMaxLinesCount = bufferMaxLinesCount;
+    myLines = new CyclicBufferLinesStorage(bufferMaxLinesCount);
     myTextProcessing = textProcessing;
   }
 
@@ -76,24 +73,16 @@ public class LinesBuffer {
     addLine(new TerminalLine(entry));
   }
 
-  private void addLine(@NotNull TerminalLine line) {
-    if (myBufferMaxLinesCount > 0 && myLines.size() >= myBufferMaxLinesCount) {
-      removeTopLines(1);
-    }
-
-    myLines.add(line);
+  void addLine(@NotNull TerminalLine line) {
+    myLines.addToBottom(line);
   }
 
   public int getLineCount() {
-    return myLines.size();
+    return myLines.getSize();
   }
 
   public void removeTopLines(int count) {
-    if (count >= myLines.size()) { // remove all lines
-      myLines = new ArrayList<>();
-    } else {
-      myLines = new ArrayList<>(myLines.subList(count, myLines.size()));
-    }
+    LinesStorageKt.removeFromTop(myLines, count);
   }
 
   public String getLineText(int row) {
@@ -103,53 +92,33 @@ public class LinesBuffer {
   }
 
   public void insertLines(int y, int count, int lastLine, @NotNull TextEntry filler) {
-    LinesBuffer tail = new LinesBuffer(myTextProcessing);
+    int tailLinesCount = getLineCount() - lastLine - 1;
+    List<TerminalLine> tail = tailLinesCount > 0 ? LinesStorageKt.removeFromBottom(myLines, tailLinesCount) : List.of();
 
-    if (lastLine < getLineCount() - 1) {
-      moveBottomLinesTo(getLineCount() - lastLine - 1, tail);
-    }
-
-    LinesBuffer head = new LinesBuffer(myTextProcessing);
-    if (y > 0) {
-      moveTopLinesTo(y, head);
-    }
+    List<TerminalLine> head = y > 0 ? LinesStorageKt.removeFromTop(myLines, y) : List.of();
 
     for (int i = 0; i < count; i++) {
-      head.addNewLine(filler);
+      myLines.addToTop(new TerminalLine(filler));
     }
-
-    head.moveBottomLinesTo(head.getLineCount(), this);
-
-    removeBottomLines(count);
-
-    tail.moveTopLinesTo(tail.getLineCount(), this);
+    LinesStorageKt.addAllToTop(myLines, head);
+    LinesStorageKt.removeFromBottom(myLines, count);
+    LinesStorageKt.addAllToBottom(myLines, tail);
   }
 
-  public LinesBuffer deleteLines(int y, int count, int lastLine, @NotNull TextEntry filler) {
-    LinesBuffer tail = new LinesBuffer(myTextProcessing);
+  public @NotNull List<TerminalLine> deleteLines(int y, int count, int lastLine, @NotNull TextEntry filler) {
+    int tailLinesCount = getLineCount() - lastLine - 1;
+    List<TerminalLine> tail = tailLinesCount > 0 ? LinesStorageKt.removeFromBottom(myLines, tailLinesCount) : List.of();
 
-    if (lastLine < getLineCount() - 1) {
-      moveBottomLinesTo(getLineCount() - lastLine - 1, tail);
-    }
+    List<TerminalLine> head = y > 0 ? LinesStorageKt.removeFromTop(myLines, y) : List.of();
 
-    LinesBuffer head = new LinesBuffer(myTextProcessing);
-    if (y > 0) {
-      moveTopLinesTo(y, head);
-    }
+    List<TerminalLine> removed = LinesStorageKt.removeFromTop(myLines, count);
+    LinesStorageKt.addAllToTop(myLines, head);
 
-    int toRemove = Math.min(count, getLineCount());
-
-    LinesBuffer removed = new LinesBuffer(myTextProcessing);
-    moveTopLinesTo(toRemove, removed);
-
-    head.moveBottomLinesTo(head.getLineCount(), this);
-
-    for (int i = 0; i < toRemove; i++) {
+    for (int i = 0; i < removed.size(); i++) {
       addNewLine(filler);
     }
 
-    tail.moveTopLinesTo(tail.getLineCount(), this);
-
+    LinesStorageKt.addAllToBottom(myLines, tail);
     return removed;
   }
 
@@ -202,7 +171,7 @@ public class LinesBuffer {
     if (firstLine < 0) {
       throw new IllegalArgumentException("firstLine=" + firstLine + ", should be >0");
     }
-    for (int y = firstLine; y < Math.min(firstLine + count, myLines.size()); y++) {
+    for (int y = firstLine; y < Math.min(firstLine + count, myLines.getSize()); y++) {
       myLines.get(y).process(y, consumer, startRow);
     }
   }
@@ -211,28 +180,13 @@ public class LinesBuffer {
     if (count < 0) {
       throw new AssertionError("Moving negative line count: " + count);
     }
-    count = Math.min(count, getLineCount());
-    buffer.addLines(myLines.subList(0, count));
-    removeTopLines(count);
-    return count;
+    List<TerminalLine> lines = LinesStorageKt.removeFromTop(myLines, count);
+    buffer.addLines(lines);
+    return lines.size();
   }
 
   public void addLines(@NotNull List<TerminalLine> lines) {
-    if (myBufferMaxLinesCount > 0) {
-      // adding more lines than max size
-      if (lines.size() >= myBufferMaxLinesCount) {
-        int index = lines.size() - myBufferMaxLinesCount;
-        myLines = new ArrayList<>(lines.subList(index, lines.size()));
-        return;
-      }
-
-      int count = myLines.size() + lines.size();
-      if (count >= myBufferMaxLinesCount) {
-        removeTopLines(count - myBufferMaxLinesCount);
-      }
-    }
-
-    myLines.addAll(lines);
+    LinesStorageKt.addAllToBottom(myLines, lines);
   }
 
   public @NotNull TerminalLine getLine(int row) {
@@ -250,27 +204,25 @@ public class LinesBuffer {
 
   public void moveBottomLinesTo(int count, @NotNull LinesBuffer buffer) {
     count = Math.min(count, getLineCount());
-    buffer.addLinesFirst(myLines.subList(getLineCount() - count, getLineCount()));
-
-    removeBottomLines(count);
+    List<TerminalLine> lines = LinesStorageKt.removeFromBottom(myLines, count);
+    buffer.addLinesFirst(lines);
   }
 
   private void addLinesFirst(@NotNull List<TerminalLine> lines) {
-    List<TerminalLine> list = new ArrayList<>(lines);
-    list.addAll(myLines);
-    myLines = new ArrayList<>(list);
+    LinesStorageKt.addAllToTop(myLines, lines);
   }
 
   private void removeBottomLines(int count) {
-    myLines = new ArrayList<>(myLines.subList(0, getLineCount() - count));
+    LinesStorageKt.removeFromBottom(myLines, count);
   }
 
+  // It is intended that bottomMostLineInd is not less than the index of the last available line in myLines.
   public int removeBottomEmptyLines(int bottomMostLineInd, int maxCount) {
     int removedCount = 0;
     int ind = bottomMostLineInd;
-    while (removedCount < maxCount && ind >= 0 && (ind >= myLines.size() || myLines.get(ind).isNulOrEmpty())) {
-      if (ind < myLines.size()) {
-        myLines.remove(ind);
+    while (removedCount < maxCount && ind >= 0 && (ind >= myLines.getSize() || myLines.get(ind).isNulOrEmpty())) {
+      if (ind < myLines.getSize()) {
+        myLines.removeFromBottom();
       }
       ind--;
       removedCount++;

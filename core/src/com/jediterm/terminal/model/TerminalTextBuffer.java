@@ -121,10 +121,18 @@ public class TerminalTextBuffer {
     if (newHeight < oldHeight) {
       if (!myAlternateBuffer) {
         int lineDiffCount = oldHeight - newHeight;
-        //we need to move lines from text buffer to the scroll buffer
-        //but empty bottom lines up to the cursor can be collapsed
+        // We need to move lines from text buffer to the scroll buffer,
+        // but empty bottom lines up to the cursor can be collapsed
+
+        // Number of lines to remove until the new height or cursor if it is located below the new height.
         int maxBottomLinesToRemove = Math.min(lineDiffCount, Math.max(0, oldHeight - oldCursorY));
-        int emptyLinesDeleted = myScreenBuffer.removeBottomEmptyLines(oldHeight - 1, maxBottomLinesToRemove);
+        // Number of already empty lines on the screen (but not greater than required count to remove)
+        int emptyLinesCount = Math.min(maxBottomLinesToRemove, oldHeight - myScreenBuffer.getLineCount());
+        // Count of lines to remove from the screen buffer (TerminalLine objects are created for those lines)
+        int actualLinesToRemove = maxBottomLinesToRemove - emptyLinesCount;
+        // Total count of already empty lines and removed empty lines
+        int emptyLinesDeleted = emptyLinesCount + myScreenBuffer.removeBottomEmptyLines(actualLinesToRemove);
+
         int screenLinesToMove = lineDiffCount - emptyLinesDeleted;
         myScreenBuffer.moveTopLinesTo(screenLinesToMove, myHistoryBuffer);
         newCursorY = oldCursorY - screenLinesToMove;
@@ -491,7 +499,7 @@ public class TerminalTextBuffer {
   void moveScreenLinesToHistory() {
     myLock.lock();
     try {
-      myScreenBuffer.removeBottomEmptyLines(myScreenBuffer.getLineCount() - 1, myScreenBuffer.getLineCount());
+      myScreenBuffer.removeBottomEmptyLines(myScreenBuffer.getLineCount());
       int movedToHistoryLineCount = myScreenBuffer.moveTopLinesTo(myScreenBuffer.getLineCount(), myHistoryBuffer);
       if (myHistoryBuffer.getLineCount() > 0) {
         myHistoryBuffer.getLine(myHistoryBuffer.getLineCount() - 1).setWrapped(false);

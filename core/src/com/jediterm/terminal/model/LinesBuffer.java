@@ -216,17 +216,14 @@ public class LinesBuffer {
     LinesStorageKt.removeFromBottom(myLines, count);
   }
 
-  // It is intended that bottomMostLineInd is not less than the index of the last available line in myLines.
-  public int removeBottomEmptyLines(int bottomMostLineInd, int maxCount) {
+  public int removeBottomEmptyLines(int maxCount) {
     int removedCount = 0;
-    int ind = bottomMostLineInd;
-    while (removedCount < maxCount && ind >= 0 && (ind >= myLines.getSize() || myLines.get(ind).isNulOrEmpty())) {
-      if (ind < myLines.getSize()) {
-        myLines.removeFromBottom();
-      }
+    int ind = getLineCount() - 1;
+    while (removedCount < maxCount && ind >= 0 && myLines.get(ind).isNulOrEmpty()) {
       ind--;
       removedCount++;
     }
+    LinesStorageKt.removeFromBottom(myLines, removedCount);
     return removedCount;
   }
 

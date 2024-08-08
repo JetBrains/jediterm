@@ -66,6 +66,13 @@ public final class TerminalLine {
     return x < text.length() ? text.charAt(x) : CharUtils.EMPTY_CHAR;
   }
 
+  /**
+   * @return total length of text entries.
+   */
+  public int length() {
+    return myTextEntries.length();
+  }
+
   public boolean isWrapped() {
     return myWrapped;
   }

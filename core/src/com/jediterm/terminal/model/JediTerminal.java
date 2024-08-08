@@ -167,12 +167,11 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
 
   private char[] decodeUsingGraphicalState(String string) {
-    StringBuilder result = new StringBuilder();
-    for (char c : string.toCharArray()) {
-      result.append(myGraphicSetState.map(c));
+    char[] chars = string.toCharArray();
+    for (int i = 0; i < chars.length; i++) {
+      chars[i] = myGraphicSetState.map(chars[i]);
     }
-
-    return result.toString().toCharArray();
+    return chars;
   }
 
   public void writeUnwrappedString(String string) {

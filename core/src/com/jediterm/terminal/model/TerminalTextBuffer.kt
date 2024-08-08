@@ -308,6 +308,13 @@ class TerminalTextBuffer(
     }
   }
 
+  /**
+   * Negative indexes are for history buffer. Non-negative for screen buffer.
+   */
+  fun setLineWrapped(index: Int, isWrapped: Boolean) {
+    getLine(index).isWrapped = isWrapped
+  }
+
   fun getScreenLines(): String {
     myLock.lock()
     try {
@@ -428,6 +435,7 @@ class TerminalTextBuffer(
     val filler = createFillerEntry()
     for (ind in startRow..endRow) {
       screenLinesStorage[ind].clear(filler)
+      setLineWrapped(ind, false)
     }
     fireModelChangeEvent()
   }
@@ -498,7 +506,7 @@ class TerminalTextBuffer(
       val removedScreenLines = screenLinesStorage.removeFromTop(screenLinesStorage.size)
       historyLinesStorage.addAllToBottom(removedScreenLines)
       if (historyLinesStorage.size > 0) {
-        historyLinesStorage[historyLinesStorage.size - 1].isWrapped = false
+        setLineWrapped(-1, false)
       }
       if (removedScreenLines.isNotEmpty()) {
         fireHistoryBufferLineCountChanged()

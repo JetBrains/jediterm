@@ -118,8 +118,9 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
       myCursorX = 0;
       // clear the end of the line in the text buffer 
       myTerminalTextBuffer.getLine(myCursorY - 1).deleteCharacters(myTerminalWidth);
+      myTerminalTextBuffer.setLineWrapped(myCursorY - 1, false);
       if (isAutoWrap()) {
-        myTerminalTextBuffer.getLine(myCursorY - 1).setWrapped(true);
+        myTerminalTextBuffer.setLineWrapped(myCursorY - 1, true);
         myCursorY += 1;
       }
     }
@@ -142,7 +143,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
       if (myCursorYChanged && string.length > 0) {
         myCursorYChanged = false;
         if (myCursorY > 1) {
-          myTerminalTextBuffer.getLine(myCursorY - 2).setWrapped(false);
+          myTerminalTextBuffer.setLineWrapped(myCursorY - 2, false);
         }
       }
       wrapLines();
@@ -482,7 +483,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
             myTerminalTextBuffer.eraseCharacters(myCursorX, -1, myCursorY - 1);
           }
           // delete to the end of line : line is no more wrapped
-          myTerminalTextBuffer.getLine(myCursorY - 1).setWrapped(false);
+          myTerminalTextBuffer.setLineWrapped(myCursorY - 1, false);
           break;
         case 1:
           final int extent = Math.min(myCursorX + 1, myTerminalWidth);

@@ -99,8 +99,60 @@ public final class TerminalLine {
       myTextEntries.add(new TextEntry(style, characters));
     } else {
       len = Math.max(len, x + characters.length());
-      myTextEntries = merge(x, characters, style, myTextEntries, len);
+      if (!tryAppend(x, new TextEntry(style, trimTrailingNul(characters)), len)) {
+        myTextEntries = merge(x, characters, style, myTextEntries, len);
+      }
     }
+  }
+
+  private static @NotNull CharBuffer trimTrailingNul(@NotNull CharBuffer buffer) {
+    int trailingNulCount = countTrailingNul(buffer);
+    if (trailingNulCount > 0) {
+      return buffer.subBuffer(0, buffer.length() - trailingNulCount);
+    }
+    return buffer;
+  }
+
+  private static int countTrailingNul(@NotNull CharBuffer str) {
+    int count = 0;
+    for (int i = str.length() - 1; i >= 0; i--) {
+      if (str.charAt(i) == CharUtils.NUL_CHAR) {
+        count++;
+      }
+      else {
+        break;
+      }
+    }
+    return count;
+  }
+
+  private boolean tryAppend(int startInd, @NotNull TextEntry entry, int resultTotalLength) {
+    int strLen = myTextEntries.length();
+    TextEntry lastNulEntry = myTextEntries.getLastNulEntry();
+    if (lastNulEntry != null) {
+      strLen -= lastNulEntry.getLength();
+    }
+    if (startInd < strLen) {
+      return false;
+    }
+    if (lastNulEntry != null) {
+      myTextEntries.removeLastEntry();
+    }
+    int mergeStartEntryInd = Math.max(0, myTextEntries.myTextEntries.size() - 1);
+    TextStyle nulStyle = lastNulEntry != null ? lastNulEntry.getStyle() : TextStyle.EMPTY;
+    if (strLen < startInd) {
+      myTextEntries.add(entryOfChar(nulStyle, CharUtils.EMPTY_CHAR, startInd - strLen));
+    }
+    myTextEntries.add(entry);
+    myTextEntries.mergeFrom(mergeStartEntryInd);
+    if (myTextEntries.length() < resultTotalLength && lastNulEntry != null) {
+      myTextEntries.add(entryOfChar(nulStyle, CharUtils.NUL_CHAR, resultTotalLength - myTextEntries.length()));
+    }
+    return true;
+  }
+
+  private static @NotNull TextEntry entryOfChar(@NotNull TextStyle style, char ch, int length) {
+    return new TextEntry(style, new CharBuffer(ch, length));
   }
 
   private void insertCharacters(int x, @NotNull TextStyle style, @NotNull CharBuffer characters) {
@@ -456,6 +508,48 @@ public final class TerminalLine {
     public void clear() {
       myTextEntries.clear();
       myLength = 0;
+    }
+
+    private @Nullable TextEntry getLastNulEntry() {
+      TextEntry lastEntry = !myTextEntries.isEmpty() ? myTextEntries.get(myTextEntries.size() - 1) : null;
+      return lastEntry != null && lastEntry.isNul() ? lastEntry : null;
+    }
+
+    private void removeLastEntry() {
+      TextEntry removedEntry = myTextEntries.remove(myTextEntries.size() - 1);
+      myLength -= removedEntry.getLength();
+    }
+
+    private void mergeFrom(int fromEntryInd) {
+      int startInd = fromEntryInd;
+      TextStyle style = myTextEntries.get(startInd).getStyle();
+      int i = startInd + 1;
+      while (i < myTextEntries.size()) {
+        TextEntry entry = myTextEntries.get(i);
+        if (!Objects.equals(entry.getStyle(), style)) {
+          doMergeRange(startInd, i, style);
+          style = entry.getStyle();
+          startInd++;
+          i = startInd;
+        }
+        i++;
+      }
+      doMergeRange(startInd, myTextEntries.size(), style);
+    }
+
+    private void doMergeRange(int fromInd, int toInd, @NotNull TextStyle style) {
+      if (fromInd < toInd - 1) {
+        int len = 0;
+        for (int i = fromInd; i < toInd; i++) {
+          len += myTextEntries.get(i).getLength();
+        }
+        StringBuilder buf = new StringBuilder(len);
+        for (int i = fromInd; i < toInd; i++) {
+          buf.append(myTextEntries.get(i).getText());
+        }
+        myTextEntries.subList(fromInd, toInd).clear();
+        myTextEntries.add(fromInd, new TextEntry(style, new CharBuffer(buf.toString())));
+      }
     }
   }
 }

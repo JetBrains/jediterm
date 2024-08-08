@@ -1,6 +1,7 @@
 package com.jediterm.terminal.emulator.charset;
 
 import com.jediterm.terminal.util.CharUtils;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Provides the (graphical) character sets.
@@ -177,9 +178,7 @@ public final class CharacterSets {
    * @return the mapped character.
    */
   public static char getChar(char original, GraphicSet gl, GraphicSet gr) {
-    Object[] mapping = getMapping(original, gl, gr);
-
-    int ch = (Integer) mapping[0];
+    int ch = getMappedChar(original, gl, gr);
     if (ch > 0) {
       return (char)ch;
     }
@@ -197,14 +196,8 @@ public final class CharacterSets {
    * @return the character name.
    */
   public static String getCharName(char original, GraphicSet gl, GraphicSet gr) {
-    Object[] mapping = getMapping(original, gl, gr);
-
-    String name = (String)mapping[1];
-    if (name == null) {
-      name = String.format("<%d>", (int)original);
-    }
-
-    return name;
+    Object[] cMapping = getCMapping(original);
+    return cMapping != null ? (String) cMapping[1] : String.format("<%d>", (int) original);
   }
 
   /**
@@ -216,8 +209,28 @@ public final class CharacterSets {
    * @param gr       the GR graphic set, cannot be <code>null</code>.
    * @return the mapped character.
    */
-  private static Object[] getMapping(char original, GraphicSet gl, GraphicSet gr) {
-    int mappedChar = original;
+  private static int getMappedChar(char original, GraphicSet gl, GraphicSet gr) {
+    Object[] cMapping = getCMapping(original);
+    if (cMapping != null) {
+      return (int) cMapping[0];
+    }
+    else if (original >= GL_START && original <= GL_END) {
+      int idx = original - GL_START;
+      return gl.map(original, idx);
+    }
+    //To support UTF-8 we don't use GR table
+    //TODO: verify that approach
+
+    //else if (original >= GR_START && original <= GR_END) {
+    //  int idx = original - GR_START;
+    //  return gr.map(original, idx);
+    //}
+    else {
+      return original;
+    }
+  }
+
+  private static @Nullable Object[] getCMapping(char original) {
     if (original >= C0_START && original <= C0_END) {
       int idx = original - C0_START;
       return C0_CHARS[idx];
@@ -226,19 +239,7 @@ public final class CharacterSets {
       int idx = original - C1_START;
       return C1_CHARS[idx];
     }
-    else if (original >= GL_START && original <= GL_END) {
-      int idx = original - GL_START;
-      mappedChar = gl.map(original, idx);
-    } 
-    //To support UTF-8 we don't use GR table
-    //TODO: verify that approach
-    
-    //else if (original >= GR_START && original <= GR_END) {
-    //  int idx = original - GR_START;
-    //  mappedChar = gr.map(original, idx);
-    //}
-
-    return new Object[]{mappedChar, null};
+    return null;
   }
 }
 

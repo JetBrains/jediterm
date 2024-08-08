@@ -6,7 +6,7 @@ import kotlin.math.min
  * Base interface for storing terminal lines.
  * For the first line of the storage, we use the term top, for the last line - bottom.
  * Supports adding/removing lines from the top and bottom.
- * Also accessing lines by index.
+ * Also, accessing lines by index.
  */
 internal interface LinesStorage : Iterable<TerminalLine> {
   /** Count of the available lines in the storage */
@@ -27,7 +27,7 @@ internal interface LinesStorage : Iterable<TerminalLine> {
 
   /**
    * Adds a new line to the end of the storage.
-   * If the implementation limits the max capacity of the storage,
+   * If the implementation limits the max capacity of the storage
    * and storage is full, the first line from the top should be removed.
    */
   fun addToBottom(line: TerminalLine)
@@ -60,32 +60,36 @@ internal fun LinesStorage.addAllToBottom(lines: List<TerminalLine>) {
 }
 
 internal fun LinesStorage.removeFromTop(count: Int): List<TerminalLine> {
-  if (count < 0) {
-    throw IllegalArgumentException("Count must be >= 0")
+  return perform(count, false) {
+    removeFromTop()
   }
-  if (count == 0) {
-    return emptyList()
-  }
-  val countToRemove = min(count, size)
-  val result = ArrayList<TerminalLine>(countToRemove)
-  repeat(countToRemove) {
-    result.add(removeFromTop())
-  }
-  return result
 }
 
 internal fun LinesStorage.removeFromBottom(count: Int): List<TerminalLine> {
+  return perform(count, true) {
+    removeFromBottom()
+  }
+}
+
+private inline fun LinesStorage.perform(count: Int, reverse: Boolean, operation: (() -> TerminalLine)): List<TerminalLine> {
   if (count < 0) {
     throw IllegalArgumentException("Count must be >= 0")
   }
   if (count == 0) {
     return emptyList()
   }
-  val countToRemove = min(count, size)
-  val result = ArrayList<TerminalLine>(countToRemove)
-  repeat(countToRemove) {
-    result.add(removeFromBottom())
+  return when (val actualCount = min(count, size)) {
+    0 -> emptyList()
+    1 -> listOf(operation())
+    else -> {
+      val result = ArrayList<TerminalLine>(actualCount)
+      repeat(actualCount) {
+        result.add(operation())
+      }
+      if (reverse) {
+        result.reverse()
+      }
+      result
+    }
   }
-  result.reverse()
-  return result
 }

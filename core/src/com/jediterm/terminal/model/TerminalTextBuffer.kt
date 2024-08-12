@@ -457,12 +457,6 @@ class TerminalTextBuffer(
     fireModelChangeEvent()
   }
 
-  @Deprecated("use {@link #clearScreenAndHistoryBuffers()} instead")
-  fun clearAll() {
-    screenLinesStorage.clear()
-    fireModelChangeEvent()
-  }
-
   /**
    * @param scrollOrigin row where a scrolling window starts, should be in the range [-history_lines_count, 0]
    */

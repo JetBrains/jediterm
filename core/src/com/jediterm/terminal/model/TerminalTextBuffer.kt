@@ -78,6 +78,7 @@ class TerminalTextBuffer(
   private val listeners: MutableList<TerminalModelListener> = CopyOnWriteArrayList()
   private val typeAheadListeners: MutableList<TerminalModelListener> = CopyOnWriteArrayList()
   private val historyBufferListeners: MutableList<TerminalHistoryBufferListener> = CopyOnWriteArrayList()
+  private val changesMulticaster: TextBufferChangesMulticaster = TextBufferChangesMulticaster()
 
   @JvmOverloads
   constructor(width: Int, height: Int, styleState: StyleState, textProcessing: TextProcessing? = null) : this(
@@ -187,6 +188,14 @@ class TerminalTextBuffer(
 
   fun removeModelListener(listener: TerminalModelListener) {
     listeners.remove(listener)
+  }
+
+  fun addChangesListener(listener: TextBufferChangesListener) {
+    changesMulticaster.addListener(listener)
+  }
+
+  fun removeChangesListener(listener: TextBufferChangesListener) {
+    changesMulticaster.removeListener(listener)
   }
 
   fun addHistoryBufferListener(listener: TerminalHistoryBufferListener) {

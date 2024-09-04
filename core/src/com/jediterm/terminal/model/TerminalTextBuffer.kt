@@ -147,7 +147,7 @@ class TerminalTextBuffer(
 
         val screenLinesToMove = lineDiffCount - emptyLinesDeleted
         val removedLines = screenLinesStorage.removeFromTop(screenLinesToMove)
-        historyLinesStorage.addAllToBottom(removedLines)
+        addLinesToHistory(removedLines)
         newCursorY = oldCursorY - screenLinesToMove
         selection?.shiftY(-screenLinesToMove)
       }
@@ -292,7 +292,7 @@ class TerminalTextBuffer(
     else {
       val deletedLines = deleteLines(scrollRegionTop - 1, -dy, scrollRegionBottom)
       if (scrollRegionTop == 1) {
-        historyLinesStorage.addAllToBottom(deletedLines)
+        addLinesToHistory(deletedLines)
       }
       fireModelChangeEvent()
     }
@@ -525,7 +525,7 @@ class TerminalTextBuffer(
     modify {
       removeBottomEmptyLines(screenLinesStorage.size)
       val removedScreenLines = screenLinesStorage.removeFromTop(screenLinesStorage.size)
-      historyLinesStorage.addAllToBottom(removedScreenLines)
+      addLinesToHistory(removedScreenLines)
       if (historyLinesStorage.size > 0) {
         setLineWrapped(-1, false)
       }
@@ -541,6 +541,36 @@ class TerminalTextBuffer(
       changesMulticaster.linesChanged(fromIndex = screenLinesStorage.size)
     }
     return removedLinesCount
+  }
+
+  private fun addLinesToHistory(linesToAdd: List<TerminalLine>) {
+    // If size of the buffer exceeds the limit in a result of adding new lines,
+    // collect the lines we have to discard.
+    val linesToDiscard = if (historyLinesStorage.size + linesToAdd.size > maxHistoryLinesCount) {
+      val discardedLinesCount = historyLinesStorage.size + linesToAdd.size - maxHistoryLinesCount
+      if (discardedLinesCount == 1) {
+        val line = if (historyLinesStorage.size > 0) historyLinesStorage[0] else linesToAdd[0]
+        listOf(line)
+      }
+      else {
+        val linesToDiscard = ArrayList<TerminalLine>(discardedLinesCount)
+        val countOfLinesFromHistory = min(discardedLinesCount, historyLinesStorage.size)
+        for (ind in 0 until countOfLinesFromHistory) {
+          linesToDiscard.add(historyLinesStorage[ind])
+        }
+        if (countOfLinesFromHistory < discardedLinesCount) {
+          linesToDiscard.addAll(linesToAdd.subList(0, discardedLinesCount - countOfLinesFromHistory))
+        }
+        linesToDiscard
+      }
+    }
+    else emptyList()
+
+    historyLinesStorage.addAllToBottom(linesToAdd)
+
+    if (linesToDiscard.isNotEmpty()) {
+      changesMulticaster.linesDiscardedFromHistory(linesToDiscard)
+    }
   }
 
   private fun fireHistoryBufferLineCountChanged() {

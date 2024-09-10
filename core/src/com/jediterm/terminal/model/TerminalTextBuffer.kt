@@ -126,6 +126,7 @@ class TerminalTextBuffer(
         selection.start.setLocation(changeWidthOperation.getTrackedPoint(selection.start))
         selection.end.setLocation(changeWidthOperation.getTrackedPoint(selection.end))
       }
+      changesMulticaster.widthResized()
     }
 
     val oldHeight = height

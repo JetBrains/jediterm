@@ -1,6 +1,7 @@
 package com.jediterm.example;
 
 import com.jediterm.pty.PtyProcessTtyConnector;
+import com.jediterm.terminal.CursorShape;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.ui.JediTermWidget;
 import com.jediterm.terminal.ui.settings.DefaultSettingsProvider;
@@ -21,6 +22,7 @@ public class BasicTerminalShellExample {
 
   private static @NotNull JediTermWidget createTerminalWidget() {
     JediTermWidget widget = new JediTermWidget(80, 24, new DefaultSettingsProvider());
+    widget.getTerminalPanel().setDefaultCursorShape(CursorShape.BLINK_UNDERLINE);
     widget.setTtyConnector(createTtyConnector());
     widget.start();
     return widget;

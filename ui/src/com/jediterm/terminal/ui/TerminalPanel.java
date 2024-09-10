@@ -1100,6 +1100,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     // cursor state
     private boolean myCursorIsShown; // blinking state
     private final Point myCursorCoordinates = new Point();
+    private @NotNull CursorShape myDefaultCursorShape = CursorShape.BLINK_BLOCK;
     private @Nullable CursorShape myShape;
 
     // terminal modes
@@ -1236,7 +1237,11 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     }
 
     @NotNull CursorShape getEffectiveShape() {
-      return Objects.requireNonNullElse(myShape, CursorShape.BLINK_BLOCK);
+      return Objects.requireNonNullElse(myShape, myDefaultCursorShape);
+    }
+
+    private void setDefaultShape(@NotNull CursorShape defaultShape) {
+      myDefaultCursorShape = defaultShape;
     }
   }
 
@@ -1546,6 +1551,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   @Override
   public void setCursorShape(@Nullable CursorShape cursorShape) {
     myCursor.setShape(cursorShape);
+  }
+
+  public void setDefaultCursorShape(@NotNull CursorShape defaultCursorShape) {
+    myCursor.setDefaultShape(defaultCursorShape);
   }
 
   public void beep() {

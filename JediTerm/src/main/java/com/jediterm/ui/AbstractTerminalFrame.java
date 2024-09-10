@@ -3,6 +3,7 @@ package com.jediterm.ui;
 import com.jediterm.app.JediTerm;
 import com.jediterm.app.TtyConnectorWaitFor;
 import com.jediterm.core.compatibility.Point;
+import com.jediterm.terminal.CursorShape;
 import com.jediterm.terminal.Terminal;
 import com.jediterm.terminal.TtyConnector;
 import com.jediterm.terminal.model.SelectionUtil;
@@ -176,7 +177,9 @@ public abstract class AbstractTerminalFrame {
   }
 
   protected JediTermWidget createTerminalWidget(@NotNull SettingsProvider settingsProvider) {
-    return new JediTermWidget(settingsProvider);
+    JediTermWidget widget = new JediTermWidget(settingsProvider);
+    widget.getTerminalPanel().setDefaultCursorShape(CursorShape.BLINK_VERTICAL_BAR);
+    return widget;
   }
 
   private void sizeFrameForTerm(final JFrame frame) {

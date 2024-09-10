@@ -88,7 +88,7 @@ class JediTerm : AbstractTerminalFrame() {
   }
 
   override fun createTerminalWidget(settingsProvider: SettingsProvider): JediTermWidget {
-    val widget = JediTermWidget(settingsProvider)
+    val widget = super.createTerminalWidget(settingsProvider)
     widget.addHyperlinkFilter(UrlFilter())
     return widget
   }

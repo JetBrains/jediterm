@@ -134,7 +134,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     enableInputMethods(true);
 
     terminalTextBuffer.addModelListener(this::repaint);
-    terminalTextBuffer.addTypeAheadModelListener(this::repaint);
     terminalTextBuffer.addHistoryBufferListener(() -> myHistoryBufferLineCountChanged.set(true));
   }
 

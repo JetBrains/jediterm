@@ -81,6 +81,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
       new JediTermDebouncerImpl(myTypeAheadManager::debounce, TerminalTypeAheadManager.MAX_TERMINAL_DELAY, getExecutorServiceManager());
     myTypeAheadManager.setClearPredictionsDebouncer(typeAheadDebouncer);
     myTerminalPanel.setTypeAheadManager(myTypeAheadManager);
+    myTypeAheadTerminalModel.addTypeAheadModelListener(myTerminalPanel::repaint);
 
     myTerminal.setModeEnabled(TerminalMode.AltSendsEscape, mySettingsProvider.altSendsEscape());
 

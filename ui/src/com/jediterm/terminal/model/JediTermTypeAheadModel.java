@@ -6,11 +6,15 @@ import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 public class JediTermTypeAheadModel implements TypeAheadTerminalModel {
   private final @NotNull Terminal myTerminal;
   private final @NotNull TerminalTextBuffer myTerminalTextBuffer;
   private final @NotNull SettingsProvider mySettingsProvider;
   private @NotNull TypeAheadTerminalModel.ShellType myShellType = ShellType.Unknown;
+  private final List<TerminalModelListener> myTypeAheadListeners = new CopyOnWriteArrayList<>();
 
   private boolean isPredictionsApplied = false;
 
@@ -44,7 +48,7 @@ public class JediTermTypeAheadModel implements TypeAheadTerminalModel {
   }
 
   public void forceRedraw() {
-    myTerminalTextBuffer.fireTypeAheadModelChangeEvent();
+    fireTypeAheadModelChangeEvent();
   }
 
   @Override
@@ -114,5 +118,19 @@ public class JediTermTypeAheadModel implements TypeAheadTerminalModel {
   private void setTypeAheadLine(@NotNull TerminalLine typeAheadTerminalLine) {
     TerminalLine terminalLine = myTerminalTextBuffer.getLine(myTerminal.getCursorY() - 1);
     terminalLine.myTypeAheadLine = typeAheadTerminalLine;
+  }
+
+  public void addTypeAheadModelListener(@NotNull TerminalModelListener listener) {
+    myTypeAheadListeners.add(listener);
+  }
+
+  public void removeTypeAheadModelListener(@NotNull TerminalModelListener listener) {
+    myTypeAheadListeners.remove(listener);
+  }
+
+  private void fireTypeAheadModelChangeEvent() {
+    for (TerminalModelListener typeAheadListener : myTypeAheadListeners) {
+      typeAheadListener.modelChanged();
+    }
   }
 }

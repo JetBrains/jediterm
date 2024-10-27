@@ -8,7 +8,6 @@ import com.jediterm.terminal.TextStyle
 import com.jediterm.terminal.model.TerminalLine.TextEntry
 import com.jediterm.terminal.model.hyperlinks.TextProcessing
 import com.jediterm.terminal.util.CharUtils
-import org.jetbrains.annotations.ApiStatus
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.util.concurrent.CopyOnWriteArrayList
@@ -76,7 +75,6 @@ class TerminalTextBuffer internal constructor(
     private set
 
   private val listeners: MutableList<TerminalModelListener> = CopyOnWriteArrayList()
-  private val typeAheadListeners: MutableList<TerminalModelListener> = CopyOnWriteArrayList()
   private val historyBufferListeners: MutableList<TerminalHistoryBufferListener> = CopyOnWriteArrayList()
   private val changesMulticaster: TextBufferChangesMulticaster = TextBufferChangesMulticaster()
 
@@ -207,23 +205,8 @@ class TerminalTextBuffer internal constructor(
     historyBufferListeners.remove(listener)
   }
 
-  fun addTypeAheadModelListener(listener: TerminalModelListener) {
-    typeAheadListeners.add(listener)
-  }
-
-  fun removeTypeAheadModelListener(listener: TerminalModelListener) {
-    typeAheadListeners.remove(listener)
-  }
-
   private fun fireModelChangeEvent() {
     for (modelListener in listeners) {
-      modelListener.modelChanged()
-    }
-  }
-
-  @ApiStatus.Internal
-  fun fireTypeAheadModelChangeEvent() {
-    for (modelListener in typeAheadListeners) {
       modelListener.modelChanged()
     }
   }

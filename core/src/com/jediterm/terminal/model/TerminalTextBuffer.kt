@@ -25,7 +25,7 @@ import kotlin.math.min
  * it doesn't fit to screen width).
  */
 @Suppress("DEPRECATION", "removal")
-class TerminalTextBuffer(
+class TerminalTextBuffer internal constructor(
   initialWidth: Int,
   initialHeight: Int,
   private val styleState: StyleState,

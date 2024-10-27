@@ -30,7 +30,7 @@ class TerminalTextBuffer(
   initialHeight: Int,
   private val styleState: StyleState,
   private val maxHistoryLinesCount: Int,
-  val textProcessing: TextProcessing?
+  internal val textProcessing: TextProcessing?
 ) {
   var width: Int = initialWidth
     private set

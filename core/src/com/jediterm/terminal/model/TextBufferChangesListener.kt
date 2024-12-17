@@ -23,6 +23,12 @@ interface TextBufferChangesListener {
   fun linesDiscardedFromHistory(lines: List<TerminalLine>) {}
 
   /**
+   * All lines were removed from the history buffer.
+   * For example, in a result of `clear` (ED - Erase in Display), or RIS (Reset to the Initial State) escape sequence.
+   */
+  fun historyCleared() {}
+
+  /**
    * Text Buffer width was changed.
    */
   fun widthResized() {}

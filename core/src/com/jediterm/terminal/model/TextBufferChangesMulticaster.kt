@@ -25,6 +25,12 @@ internal class TextBufferChangesMulticaster : TextBufferChangesListener {
     }
   }
 
+  override fun historyCleared() {
+    forEachListeners {
+      it.historyCleared()
+    }
+  }
+
   override fun widthResized() {
     forEachListeners {
       it.widthResized()

@@ -460,6 +460,7 @@ class TerminalTextBuffer internal constructor(
     screenLinesStorage.clear()
     historyLinesStorage.clear()
     fireModelChangeEvent()
+    changesMulticaster.historyCleared()
     changesMulticaster.linesChanged(fromIndex = 0)
   }
 
@@ -500,9 +501,10 @@ class TerminalTextBuffer internal constructor(
       if (lineCount > 0) {
         fireHistoryBufferLineCountChanged()
       }
+      fireModelChangeEvent()
+      changesMulticaster.historyCleared()
+      changesMulticaster.linesChanged(fromIndex = 0)
     }
-    fireModelChangeEvent()
-    changesMulticaster.linesChanged(fromIndex = 0)
   }
 
   fun moveScreenLinesToHistory() {

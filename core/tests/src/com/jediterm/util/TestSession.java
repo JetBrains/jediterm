@@ -7,6 +7,7 @@ import com.jediterm.terminal.TerminalColor;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.emulator.Emulator;
 import com.jediterm.terminal.emulator.JediEmulator;
+import com.jediterm.terminal.model.LinesStorage;
 import com.jediterm.terminal.model.StyleState;
 import com.jediterm.terminal.model.TerminalTextBuffer;
 import com.jediterm.terminal.model.hyperlinks.TextProcessing;
@@ -28,7 +29,7 @@ public class TestSession {
     myStyleState = new StyleState();
     TextStyle hyperlinkTextStyle = new TextStyle(TerminalColor.fromColor(BLUE), TerminalColor.WHITE);
     myTextProcessing = new TextProcessing(hyperlinkTextStyle, HyperlinkStyle.HighlightMode.ALWAYS);
-    myTerminalTextBuffer = new TerminalTextBuffer(width, height, myStyleState, myTextProcessing);
+    myTerminalTextBuffer = new TerminalTextBuffer(width, height, myStyleState, LinesStorage.DEFAULT_MAX_LINES_COUNT, myTextProcessing);
     myTextProcessing.setTerminalTextBuffer(myTerminalTextBuffer);
     myTerminal = new BackBufferTerminal(myTerminalTextBuffer, myStyleState);
   }

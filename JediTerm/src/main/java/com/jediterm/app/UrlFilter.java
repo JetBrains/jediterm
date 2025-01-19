@@ -33,8 +33,7 @@ import java.util.regex.Pattern;
  * @author yole
  */
 public class UrlFilter implements HyperlinkFilter {
-
-  private static final Pattern URL_PATTERN = Pattern.compile("\\b(mailto:|(news|(ht|f)tp(s?))://|((?<![\\p{L}0-9_.])(www\\.)))[-A-Za-z0-9+$&@#/%?=~_|!:,.;]*[-A-Za-z0-9+$&@#/%=~_|]");
+  private static final Pattern URL_PATTERN = Pattern.compile("\b(?:mailto:|(?:news|(?:ht|f)tp(?:s?))://|(?:(?:<![p{L}0-9_.])(?:www.)))[-A-Za-z0-9+$&@#/%?=~_|!:,.;]*[-A-Za-z0-9+$&@#/%=~_|]");
 
   /**
    * @return if false, then the line contains no URL; if true, then more heavy {@link #URL_PATTERN} check should be used.
@@ -46,12 +45,13 @@ public class UrlFilter implements HyperlinkFilter {
   @Nullable
   @Override
   public LinkResult apply(String line) {
-    if (!canContainUrl(line)) return null;
+    //if (!canContainUrl(line)) return null;
 
-    int textStartOffset = 0;
+
     Matcher m = URL_PATTERN.matcher(line);
     LinkResultItem item = null;
     List<LinkResultItem> items = null;
+    int textStartOffset = 0;
     while (m.find()) {
       if (item != null) {
         if (items == null) {

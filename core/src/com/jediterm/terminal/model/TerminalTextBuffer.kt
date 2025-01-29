@@ -294,7 +294,14 @@ class TerminalTextBuffer internal constructor(
         LOG.error("Attempt to get line out of bounds: $index >= $height")
         return TerminalLine.createEmpty()
       }
-      return screenLinesStorage[index]
+      val sizeBefore = screenLinesStorage.size
+      val line = screenLinesStorage[index]
+      if (index >= sizeBefore) {
+        // Lines Storage creates lines up to the requested index if there were no lines.
+        // So we need to report it in this case.
+        changesMulticaster.linesChanged(index)
+      }
+      return line
     }
     else {
       if (index < -historyLinesCount) {

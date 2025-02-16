@@ -1046,9 +1046,9 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
   @Override
   public void setLinkUriStarted(@NotNull String uri) {
-    TextStyle style = myStyleState.getCurrent();
     TextProcessing textProcessing = myTerminalTextBuffer.getTextProcessing$core();
     if (textProcessing != null) {
+      TextStyle style = myStyleState.getCurrent();
       List<LinkResultItem> linkResultItems = textProcessing.applyFilter(uri);
       linkResultItems.stream()
         .filter(item -> item.getStartOffset() == 0 && item.getEndOffset() == uri.length())

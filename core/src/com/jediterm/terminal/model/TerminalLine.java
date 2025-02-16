@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -23,6 +24,7 @@ public final class TerminalLine {
   private TextEntries myTextEntries = new TextEntries();
   private boolean myWrapped = false;
   private final List<TerminalLineIntervalHighlighting> myCustomHighlightings = new CopyOnWriteArrayList<>();
+  private final AtomicInteger myModificationCount = new AtomicInteger(0);
   TerminalLine myTypeAheadLine;
 
   public TerminalLine() {
@@ -371,6 +373,14 @@ public final class TerminalLine {
 
   void appendEntry(@NotNull TextEntry entry) {
     myTextEntries.add(entry);
+  }
+
+  int getModificationCount() {
+    return myModificationCount.get();
+  }
+
+  void incrementAndGetModificationCount() {
+    myModificationCount.incrementAndGet();
   }
 
   @SuppressWarnings("unused") // used by IntelliJ

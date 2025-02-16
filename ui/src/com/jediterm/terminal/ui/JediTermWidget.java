@@ -7,6 +7,7 @@ import com.jediterm.terminal.*;
 import com.jediterm.terminal.SubstringFinder.FindResult;
 import com.jediterm.terminal.SubstringFinder.FindResult.FindItem;
 import com.jediterm.terminal.model.*;
+import com.jediterm.terminal.model.hyperlinks.AsyncHyperlinkFilter;
 import com.jediterm.terminal.model.hyperlinks.HyperlinkFilter;
 import com.jediterm.terminal.model.hyperlinks.TextProcessing;
 import com.jediterm.terminal.ui.settings.SettingsProvider;
@@ -586,6 +587,10 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
 
   public void addHyperlinkFilter(HyperlinkFilter filter) {
     myTextProcessing.addHyperlinkFilter(filter);
+  }
+
+  public void addAsyncHyperlinkFilter(@NotNull AsyncHyperlinkFilter filter) {
+    myTextProcessing.addAsyncHyperlinkFilter(filter);
   }
 
   @Override

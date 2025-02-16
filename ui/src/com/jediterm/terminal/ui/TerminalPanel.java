@@ -15,6 +15,7 @@ import com.jediterm.terminal.emulator.mouse.MouseMode;
 import com.jediterm.terminal.emulator.mouse.TerminalMouseListener;
 import com.jediterm.terminal.model.*;
 import com.jediterm.terminal.model.hyperlinks.LinkInfo;
+import com.jediterm.terminal.model.hyperlinks.TextProcessing;
 import com.jediterm.terminal.ui.hyperlinks.LinkInfoEx;
 import com.jediterm.terminal.ui.input.AwtMouseEvent;
 import com.jediterm.terminal.ui.input.AwtMouseWheelEvent;
@@ -135,6 +136,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
     terminalTextBuffer.addModelListener(this::repaint);
     terminalTextBuffer.addHistoryBufferListener(() -> myHistoryBufferLineCountChanged.set(true));
+    TextProcessing textProcessing = terminalTextBuffer.getTextProcessing$core();
+    if (textProcessing != null) {
+      textProcessing.addHyperlinkListener(this::repaint);
+    }
   }
 
   void setTypeAheadManager(@NotNull TerminalTypeAheadManager typeAheadManager) {

@@ -8,9 +8,11 @@ interface AsyncHyperlinkFilter {
      *
      * @param lineInfo The information about a line of text to apply the filter to.
      *
-     * @return A CompletableFuture resolved asynchronously when a link is found.
+     * @return A [CompletableFuture] instance resolved asynchronously when a link is found.
+     *         If no link is found, it can be completed with `null` or exception.
+     *         Also, it can never be completed.
      */
-    fun apply(lineInfo: LineInfo): CompletableFuture<LinkResult?>?
+    fun apply(lineInfo: LineInfo): CompletableFuture<LinkResult?>
 
     interface LineInfo {
         /**

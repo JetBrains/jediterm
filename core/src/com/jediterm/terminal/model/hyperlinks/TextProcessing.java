@@ -24,7 +24,7 @@ public class TextProcessing {
 
   private static final Logger LOG = LoggerFactory.getLogger(TextProcessing.class);
 
-  private final List<AsyncHyperlinkFilter> myHyperlinkFilters;
+  private final List<AsyncHyperlinkFilter> myHyperlinkFilters = new CopyOnWriteArrayList<>();
   private final TextStyle myHyperlinkColor;
   private final HyperlinkStyle.HighlightMode myHighlightMode;
   private TerminalTextBuffer myTerminalTextBuffer;
@@ -34,7 +34,6 @@ public class TextProcessing {
                         @NotNull HyperlinkStyle.HighlightMode highlightMode) {
     myHyperlinkColor = hyperlinkColor;
     myHighlightMode = highlightMode;
-    myHyperlinkFilters = new ArrayList<>();
   }
 
   public void setTerminalTextBuffer(@NotNull TerminalTextBuffer terminalTextBuffer) {

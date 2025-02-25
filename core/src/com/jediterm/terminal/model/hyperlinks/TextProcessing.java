@@ -69,13 +69,11 @@ public class TextProcessing {
     if (lineInfo == null) return;
     for (AsyncHyperlinkFilter filter : myHyperlinkFilters) {
       CompletableFuture<LinkResult> resultFuture = filter.apply(lineInfo);
-      if (resultFuture != null) {
-        resultFuture.whenComplete((result, error) -> {
-          if (result != null && !result.getItems().isEmpty()) {
-            applyLinkResults(result.getItems(), lineInfo);
-          }
-        });
-      }
+      resultFuture.whenComplete((result, error) -> {
+        if (result != null && !result.getItems().isEmpty()) {
+          applyLinkResults(result.getItems(), lineInfo);
+        }
+      });
     }
   }
 
@@ -181,9 +179,9 @@ public class TextProcessing {
   public void addHyperlinkFilter(@NotNull HyperlinkFilter filter) {
     addAsyncHyperlinkFilter(new AsyncHyperlinkFilter() {
       @Override
-      public @Nullable CompletableFuture<@Nullable LinkResult> apply(@NotNull LineInfo lineInfo) {
+      public @NotNull CompletableFuture<@Nullable LinkResult> apply(@NotNull LineInfo lineInfo) {
         LinkResult result = filter.apply(lineInfo.getLine());
-        return result == null ? null : CompletableFuture.completedFuture(result);
+        return CompletableFuture.completedFuture(result);
       }
     });
   }
@@ -200,7 +198,6 @@ public class TextProcessing {
             return line;
           }
         });
-        if (resultFuture == null) return null;
         try {
           return resultFuture.get(2, TimeUnit.SECONDS);
         }

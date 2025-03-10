@@ -1,6 +1,8 @@
 package com.jediterm.terminal.model.hyperlinks;
 
+import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.HyperlinkStyle;
+import com.jediterm.terminal.RequestOrigin;
 import com.jediterm.terminal.TerminalColor;
 import com.jediterm.terminal.TextStyle;
 import com.jediterm.terminal.model.CharBuffer;
@@ -28,7 +30,6 @@ public class TextProcessingTest extends TestCase {
     mySession = new TestSession(100, 5);
     TextStyle hyperlinkTextStyle = new TextStyle(TerminalColor.fromColor(TestSession.BLUE), TerminalColor.WHITE);
     myHyperlinkStyle = new HyperlinkStyle(hyperlinkTextStyle, new LinkInfo(() -> {}));
-    mySession.getTextProcessing().addHyperlinkFilter(new TestFilter());
   }
 
   private @NotNull JediTerminal getTerminal() {
@@ -40,6 +41,7 @@ public class TextProcessingTest extends TestCase {
   }
 
   public void testBasic() throws IOException {
+    mySession.getTextProcessing().addAsyncHyperlinkFilter(new TestFilter(true));
     String link = TestFilter.formatLink("hello");
     mySession.process(link);
     assertEquals(
@@ -49,6 +51,7 @@ public class TextProcessingTest extends TestCase {
   }
 
   public void testErase() throws IOException {
+    mySession.getTextProcessing().addAsyncHyperlinkFilter(new TestFilter(true));
     String str = "<[-------- PROGRESS 1ms";
     mySession.process(str);
     assertEquals(
@@ -76,6 +79,7 @@ public class TextProcessingTest extends TestCase {
   }
 
   public void testOscLink() throws IOException {
+    mySession.getTextProcessing().addAsyncHyperlinkFilter(new TestFilter(true));
     mySession.process("\u001B]8;;" + TestFilter.formatLink("foo") + "\u001B\\Foo link\u001B]8;;\u001B\\ Some text 1");
     assertEquals(
       Arrays.asList(
@@ -92,6 +96,78 @@ public class TextProcessingTest extends TestCase {
         new TerminalLine.TextEntry(mySession.getCurrentStyle(), new CharBuffer(" Some text 2"))
       ),
       getTextBuffer().getLine(1).getEntries()
+    );
+  }
+
+  public void testLinkAfterHorizontalResize() throws IOException {
+    TestFilter testFilter = new TestFilter(false);
+    mySession.getTextProcessing().addAsyncHyperlinkFilter(testFilter);
+    mySession.process("1_2_3_4_5_6_7_8_9 1_2_3_4_5_6_7_8_9 " + TestFilter.formatLink("foo"));
+    mySession.getTerminal().resize(new TermSize(10, 5), RequestOrigin.User);
+    testFilter.completeAll(); // produce links before the resize (as width has changed, hyperlinks will be rescheduled)
+    testFilter.completeAll(); // produce links after the resize 
+
+/*
+1_2_3_4_5_
+6_7_8_9 1_
+2_3_4_5_6_
+7_8_9 my_l
+ink:foo   
+*/
+
+    assertEquals(
+      List.of(
+        new TerminalLine.TextEntry(mySession.getCurrentStyle(), new CharBuffer("7_8_9 ")),
+        new TerminalLine.TextEntry(myHyperlinkStyle, new CharBuffer("my_l"))
+      ),
+      getTextBuffer().getLine(3).getEntries()
+    );
+    assertEquals(
+      List.of(new TerminalLine.TextEntry(myHyperlinkStyle, new CharBuffer("ink:foo"))),
+      getTextBuffer().getLine(4).getEntries()
+    );
+  }
+
+  public void testLinkAfterHorizontalResizeAndMoveToHistoryBuffer() throws IOException {
+    TestFilter testFilter = new TestFilter(false);
+    mySession.getTextProcessing().addAsyncHyperlinkFilter(testFilter);
+    mySession.process("1_2_3_4_5_6_7_8_9 " + TestFilter.formatLink("foo") + " a-b-c-d-e-f-g-h-i-j-k-l-m-n-o");
+    mySession.getTerminal().resize(new TermSize(5, 5), RequestOrigin.User);
+    testFilter.completeAll(); // produce links before the resize
+    testFilter.completeAll(); // produce links after the resize 
+
+/*
+1_2_3
+_4_5_
+6_7_8
+_9 my
+_link
+:foo 
+a-b-c
+-d-e-
+f-g-h
+-i-j-
+k-l-m
+-n-o  
+*/
+
+    assertEquals(
+      List.of(
+        new TerminalLine.TextEntry(mySession.getCurrentStyle(), new CharBuffer("_9 ")),
+        new TerminalLine.TextEntry(myHyperlinkStyle, new CharBuffer("my"))
+      ),
+      getTextBuffer().getLine(-4).getEntries()
+    );
+    assertEquals(
+      List.of(new TerminalLine.TextEntry(myHyperlinkStyle, new CharBuffer("_link"))),
+      getTextBuffer().getLine(-3).getEntries()
+    );
+    assertEquals(
+      List.of(
+        new TerminalLine.TextEntry(myHyperlinkStyle, new CharBuffer(":foo")),
+        new TerminalLine.TextEntry(mySession.getCurrentStyle(), new CharBuffer(" "))
+      ),
+      getTextBuffer().getLine(-2).getEntries()
     );
   }
 

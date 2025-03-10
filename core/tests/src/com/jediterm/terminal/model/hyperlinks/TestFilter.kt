@@ -13,38 +13,55 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.jediterm.terminal.model.hyperlinks;
+package com.jediterm.terminal.model.hyperlinks
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.regex.Pattern
 
-public class TestFilter implements HyperlinkFilter {
+class TestFilter(private val completeImmediately: Boolean) : AsyncHyperlinkFilter {
+  private val futures: MutableList<FutureWithResult> = CopyOnWriteArrayList<FutureWithResult>()
 
-  public static final String PREFIX = "my_link:";
-
-  @Nullable
-  @Override
-  public LinkResult apply(@NotNull String line) {
-    int startInd = line.indexOf(PREFIX);
-    if (startInd >= 0) {
-      int endInd = startInd;
-      while (endInd < line.length()) {
-        char ch = line.charAt(endInd);
-        if (!Character.isLetterOrDigit(ch) && "_:".indexOf(ch) < 0) {
-          break;
-        }
-        endInd++;
+  override fun apply(lineInfo: AsyncHyperlinkFilter.LineInfo): CompletableFuture<LinkResult?> {
+    val line = lineInfo.line ?: return CompletableFuture.completedFuture(null)
+    val matcher = PATTERN.matcher(line)
+    if (matcher.find()) {
+      val startInd = matcher.start(0)
+      val endInd = matcher.end(0)
+      val linkResult = LinkResult(LinkResultItem(startInd, endInd, LinkInfo {}))
+      val futureWithResult = FutureWithResult(linkResult)
+      futures.add(futureWithResult)
+      if (completeImmediately) {
+        futureWithResult.complete()
       }
-      if (endInd > 0) {
-        return new LinkResult(new LinkResultItem(startInd, endInd, new LinkInfo(() -> {
-        })));
-      }
+      return futureWithResult.future
     }
-    return null;
+    return CompletableFuture.completedFuture(null)
   }
 
-  @NotNull
-  public static String formatLink(@NotNull String text) {
-    return PREFIX + text;
+  fun completeAll() {
+    futures.forEach {
+      it.complete()
+      futures.remove(it)
+    }
+  }
+
+  private class FutureWithResult(private val linkResult: LinkResult) {
+
+    val future: CompletableFuture<LinkResult?> = CompletableFuture()
+
+    fun complete() {
+      future.complete(linkResult)
+    }
+  }
+
+  companion object {
+    private const val PREFIX = "my_link:"
+    private val PATTERN : Pattern = Pattern.compile("my_link:\\p{Alnum}*") 
+
+    @JvmStatic
+    fun formatLink(text: String): String {
+      return PREFIX + text
+    }
   }
 }

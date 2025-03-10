@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 public class TextProcessing {
 
   private static final Logger LOG = LoggerFactory.getLogger(TextProcessing.class);
+  private static final int MAX_RESCHEDULING_ATTEMPTS = 5;
 
   private final List<AsyncHyperlinkFilter> myHyperlinkFilters = new CopyOnWriteArrayList<>();
   private final TextStyle myHyperlinkColor;
@@ -64,16 +65,50 @@ public class TextProcessing {
   }
 
   private void doProcessHyperlinks(@NotNull LinesStorage linesStorage, @NotNull TerminalLine updatedLine) {
-    TerminalLineUtil.INSTANCE.incModificationCount$core(updatedLine);
     LineInfoImpl lineInfo = buildLineInfo(linesStorage, updatedLine);
-    if (lineInfo == null) return;
+    if (lineInfo != null) {
+      doProcessHyperlinks(linesStorage, lineInfo, 1);
+    }
+  }
+
+  private void doProcessHyperlinks(@NotNull LinesStorage linesStorage, @NotNull LineInfoImpl lineInfo, int attemptNumber) {
     for (AsyncHyperlinkFilter filter : myHyperlinkFilters) {
       CompletableFuture<LinkResult> resultFuture = filter.apply(lineInfo);
       resultFuture.whenComplete((result, error) -> {
-        if (result != null && !result.getItems().isEmpty()) {
-          applyLinkResults(result.getItems(), lineInfo);
+        if (result != null) {
+          applyLinkResultsOrReschedule(linesStorage, lineInfo, result.getItems(), attemptNumber);
         }
       });
+    }
+  }
+
+  private void applyLinkResultsOrReschedule(@NotNull LinesStorage linesStorage,
+                                            @NotNull LineInfoImpl lineInfo,
+                                            @NotNull List<LinkResultItem> resultItems,
+                                            int attemptNumber) {
+    if (resultItems.isEmpty()) return;
+    myTerminalTextBuffer.lock();
+    try {
+      String lineStr = lineInfo.getLine();
+      if (lineStr == null) return;
+      int terminalWidth = myTerminalTextBuffer.getWidth();
+      if (lineInfo.myTerminalWidth == terminalWidth) {
+        applyLinkResults(resultItems, lineInfo, lineStr);
+      }
+      else if (attemptNumber < MAX_RESCHEDULING_ATTEMPTS) {
+        // All `TerminalLine` instances are re-created by `ChangeWidthOperation`.
+        // Therefore, `TerminalLine` instances referenced by the `lineInfo` are not in the text buffer,
+        // and we need to find new lines and reschedule hyperlinks highlighting.
+        List<List<TerminalLine>> matchedWrappedLines = new TerminalLineFinder(myTerminalTextBuffer, lineStr)
+          .findMatchedLines(200 /* a line might be pushed to the history buffer */);
+        for (List<TerminalLine> wrappedLine : matchedWrappedLines) {
+          LineInfoImpl newLineInfo = new LineInfoImpl(wrappedLine, terminalWidth);
+          doProcessHyperlinks(linesStorage, newLineInfo, attemptNumber + 1);
+        }
+      }
+    }
+    finally {
+      myTerminalTextBuffer.unlock();
     }
   }
 
@@ -119,37 +154,30 @@ public class TextProcessing {
     return startLineInd;
   }
 
-  private void applyLinkResults(@NotNull List<LinkResultItem> linkResultItems, @NotNull TextProcessing.LineInfoImpl lineInfo) {
-    myTerminalTextBuffer.lock();
+  private void applyLinkResults(@NotNull List<LinkResultItem> linkResultItems,
+                                @NotNull TextProcessing.LineInfoImpl lineInfo,
+                                @NotNull String lineStr) {
     boolean linkAdded = false;
-    try {
-      int terminalWidth = myTerminalTextBuffer.getWidth();
-      if (lineInfo.myTerminalWidth != terminalWidth) return;
-      String lineStr = lineInfo.getLine();
-      if (lineStr == null) return;
-      String actualLineStr = joinLines(lineInfo.myLinesToProcess, terminalWidth);
-      if (!actualLineStr.equals(lineStr)) {
-        LOG.warn("Outdated lines when applying hyperlinks");
-        return;
-      }
-      for (LinkResultItem item : linkResultItems) {
-        if (item.getStartOffset() < 0 || item.getEndOffset() > lineStr.length()) continue;
-        TextStyle style = new HyperlinkStyle(myHyperlinkColor.getForeground(), myHyperlinkColor.getBackground(),
-                                             item.getLinkInfo(), myHighlightMode, null);
-        int prevLinesLength = 0;
-        for (TerminalLine line : lineInfo.myLinesToProcess) {
-          int startLineOffset = Math.max(prevLinesLength, item.getStartOffset());
-          int endLineOffset = Math.min(prevLinesLength + lineInfo.myTerminalWidth, item.getEndOffset());
-          if (startLineOffset < endLineOffset) {
-            line.writeString(startLineOffset - prevLinesLength, new CharBuffer(lineStr.substring(startLineOffset, endLineOffset)), style);
-            linkAdded = true;
-          }
-          prevLinesLength += terminalWidth;
-        }
-      }
+    int terminalWidth = lineInfo.myTerminalWidth;
+    String actualLineStr = joinLines(lineInfo.myLinesToProcess, terminalWidth);
+    if (!actualLineStr.equals(lineStr)) {
+      LOG.warn("Outdated lines when applying hyperlinks");
+      return;
     }
-    finally {
-      myTerminalTextBuffer.unlock();
+    for (LinkResultItem item : linkResultItems) {
+      if (item.getStartOffset() < 0 || item.getEndOffset() > lineStr.length()) continue;
+      TextStyle style = new HyperlinkStyle(myHyperlinkColor.getForeground(), myHyperlinkColor.getBackground(),
+                                           item.getLinkInfo(), myHighlightMode, null);
+      int prevLinesLength = 0;
+      for (TerminalLine line : lineInfo.myLinesToProcess) {
+        int startLineOffset = Math.max(prevLinesLength, item.getStartOffset());
+        int endLineOffset = Math.min(prevLinesLength + lineInfo.myTerminalWidth, item.getEndOffset());
+        if (startLineOffset < endLineOffset) {
+          line.writeString(startLineOffset - prevLinesLength, new CharBuffer(lineStr.substring(startLineOffset, endLineOffset)), style);
+          linkAdded = true;
+        }
+        prevLinesLength += terminalWidth;
+      }
     }
     if (linkAdded) {
       fireHyperlinksChanged();
@@ -237,6 +265,7 @@ public class TextProcessing {
       initialModificationCounts = new int[linesToProcess.size()];
       int i = 0;
       for (TerminalLine line : linesToProcess) {
+        TerminalLineUtil.INSTANCE.incModificationCount$core(line);
         initialModificationCounts[i++] = TerminalLineUtil.INSTANCE.getModificationCount$core(line);
       }
       myTerminalWidth = terminalWidth;
@@ -276,4 +305,36 @@ public class TextProcessing {
       return myCachedLineStr;
     }
   }
+
+  private static class TerminalLineFinder {
+
+    private final List<TerminalLine> myCurrentLine = new ArrayList<>();
+    private final List<List<TerminalLine>> myMatchedLines = new ArrayList<>();
+    private final TerminalTextBuffer myTextBuffer;
+    private final String myLineToFind;
+
+    public TerminalLineFinder(@NotNull TerminalTextBuffer textBuffer, @NotNull String lineToFind) {
+      myTextBuffer = textBuffer;
+      myLineToFind = lineToFind;
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    @NotNull List<List<TerminalLine>> findMatchedLines(int topHistoryCount) {
+      for (int i = -Math.min(topHistoryCount, myTextBuffer.getHistoryLinesCount()); i < myTextBuffer.getScreenLinesCount(); i++) {
+        add(myTextBuffer.getLine(i));
+      }
+      return myMatchedLines;
+    }
+
+    private void add(@NotNull TerminalLine line) {
+      myCurrentLine.add(line);
+      if (!line.isWrapped()) {
+        String lineStr = joinLines(myCurrentLine, myTextBuffer.getWidth());
+        if (lineStr.equals(myLineToFind)) {
+          myMatchedLines.add(new ArrayList<>(myCurrentLine));
+        }
+        myCurrentLine.clear();
+      }
+    }
+ }
 }

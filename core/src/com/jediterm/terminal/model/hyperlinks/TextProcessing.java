@@ -180,7 +180,9 @@ public class TextProcessing {
     addAsyncHyperlinkFilter(new AsyncHyperlinkFilter() {
       @Override
       public @NotNull CompletableFuture<@Nullable LinkResult> apply(@NotNull LineInfo lineInfo) {
-        LinkResult result = filter.apply(lineInfo.getLine());
+        String lineStr = lineInfo.getLine();
+        if (lineStr == null) return CompletableFuture.completedFuture(null);
+        LinkResult result = filter.apply(lineStr);
         return CompletableFuture.completedFuture(result);
       }
     });

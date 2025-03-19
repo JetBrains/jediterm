@@ -119,12 +119,14 @@ public class CharUtils {
     return result;
   }
 
+  private static final Icu4jProvider provider = new Icu4jProvider();
+
   public static boolean isDoubleWidthCharacter(int c, boolean ambiguousIsDWC) {
-    if (c == DWC || c <= 0xa0 || (c > 0x452 && c < 0x1100)) {
+    if (c == DWC || c <= 0xa0) {
       return false;
     }
 
-    return mk_wcwidth(c, ambiguousIsDWC) == 2;
+    return provider.isDoubleWidth(c, ambiguousIsDWC);
   }
 
 

@@ -207,11 +207,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
           if (mySelectionStartPoint == null) {
             mySelectionStartPoint = charCoords;
           }
-          mySelection = new TerminalSelection(new Point(mySelectionStartPoint));
+          updateSelection(new TerminalSelection(new Point(mySelectionStartPoint)));
         }
         repaint();
-        mySelection.updateEnd(charCoords);
-        notifySelectionChanged(mySelection);
+        updateSelectionEnd(charCoords);
         if (mySettingsProvider.copyOnSelect()) {
           handleCopyOnSelect();
         }
@@ -246,8 +245,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
         if (e.getButton() == MouseEvent.BUTTON1) {
           if (e.getClickCount() == 1) {
             mySelectionStartPoint = panelToCharCoords(e.getPoint());
-            mySelection = null;
-            notifySelectionChanged(null);
+            updateSelection(null);
             repaint();
           }
         }
@@ -274,9 +272,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
             final Point charCoords = panelToCharCoords(e.getPoint());
             Point start = SelectionUtil.getPreviousSeparator(charCoords, myTerminalTextBuffer);
             Point stop = SelectionUtil.getNextSeparator(charCoords, myTerminalTextBuffer);
-            mySelection = new TerminalSelection(start);
-            mySelection.updateEnd(stop);
-            notifySelectionChanged(mySelection);
+            updateSelection(new TerminalSelection(start));
+            updateSelectionEnd(stop);
             if (mySettingsProvider.copyOnSelect()) {
               handleCopyOnSelect();
             }
@@ -293,10 +290,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
                     && myTerminalTextBuffer.getLine(endLine).isWrapped()) {
               endLine++;
             }
-            mySelection = new TerminalSelection(new Point(0, startLine));
-            mySelection.updateEnd(new Point(myTermSize.getColumns(), endLine));
-            notifySelectionChanged(mySelection);
-
+            updateSelection(new TerminalSelection(new Point(0, startLine)));
+            updateSelectionEnd(new Point(myTermSize.getColumns(), endLine));
             if (mySettingsProvider.copyOnSelect()) {
               handleCopyOnSelect();
             }
@@ -485,9 +480,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   protected @Nullable SubstringFinder.FindResult selectPrevOrNextFindResultItem(boolean next) {
     if (myFindResult != null && !myFindResult.getItems().isEmpty()) {
       FindItem item = next ? myFindResult.nextFindItem() : myFindResult.prevFindItem();
-      mySelection = new TerminalSelection(new Point(item.getStart().x, item.getStart().y - myTerminalTextBuffer.getHistoryLinesCount()),
-        new Point(item.getEnd().x, item.getEnd().y - myTerminalTextBuffer.getHistoryLinesCount()));
-      notifySelectionChanged(mySelection);
+      updateSelection(new TerminalSelection(new Point(item.getStart().x, item.getStart().y - myTerminalTextBuffer.getHistoryLinesCount()),
+        new Point(item.getEnd().x, item.getEnd().y - myTerminalTextBuffer.getHistoryLinesCount())));
       if (mySelection.getStart().y < getTerminalTextBuffer().getHeight() / 2) {
         myBoundedRangeModel.setValue(mySelection.getStart().y - getTerminalTextBuffer().getHeight() / 2);
       }
@@ -976,7 +970,13 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     }
   }
 
-  private void notifySelectionChanged(@Nullable TerminalSelection selection) {
+  private void updateSelectionEnd(Point selectionEnd) {
+    mySelection.updateEnd(selectionEnd);
+    updateSelection(mySelection);
+  }
+
+  private void updateSelection(@Nullable TerminalSelection selection) {
+    mySelection = selection;
     for (TerminalSelectionChangesListener selectionListener : selectionChangesListeners) {
       selectionListener.selectionChanged(selection);
     }
@@ -1071,8 +1071,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
     addMouseWheelListener(e -> {
       if (mySettingsProvider.enableMouseReporting() && isRemoteMouseAction(e)) {
-        mySelection = null;
-        notifySelectionChanged(null);
+        updateSelection(null);
         Point p = panelToCharCoords(e.getPoint());
         listener.mouseWheelMoved(p.x, p.y, new AwtMouseWheelEvent(e));
       }
@@ -1499,8 +1498,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   // Called in a background thread with myTerminalTextBuffer.lock() acquired
   public void scrollArea(final int scrollRegionTop, final int scrollRegionSize, int dy) {
     scrollDy.addAndGet(dy);
-    mySelection = null;
-    notifySelectionChanged(null);
+    updateSelection(null);
   }
 
   // should be called on EDT
@@ -1750,9 +1748,8 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
   }
 
   public void selectAll() {
-    mySelection = new TerminalSelection(new Point(0, -myTerminalTextBuffer.getHistoryLinesCount()),
-      new Point(myTermSize.getColumns(), myTerminalTextBuffer.getScreenLinesCount()));
-    notifySelectionChanged(mySelection);
+    updateSelection(new TerminalSelection(new Point(0, -myTerminalTextBuffer.getHistoryLinesCount()),
+                                          new Point(myTermSize.getColumns(), myTerminalTextBuffer.getScreenLinesCount())));
   }
 
   @NotNull
@@ -2012,8 +2009,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       Pair<Point, Point> points = mySelection.pointsForRun(myTermSize.getColumns());
       copySelection(points.getFirst(), points.getSecond(), useSystemSelectionClipboardIfAvailable);
       if (unselect) {
-        mySelection = null;
-        notifySelectionChanged(null);
+        updateSelection(null);
         repaint();
       }
     }

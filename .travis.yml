@@ -2,4 +2,4 @@ language: java
 jdk:
   - oraclejdk11
 install: true
-script: ./gradlew --settings-file travis-settings.gradle test
+script: ./gradlew clean build test

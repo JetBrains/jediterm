@@ -1199,6 +1199,11 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     return new CharBuffer(buf, 0, buf.length);
   }
 
+  @Override
+  public boolean ambiguousCharsAreDoubleWidth() {
+    return myDisplay.ambiguousCharsAreDoubleWidth();
+  }
+
   public @NotNull TerminalTextBuffer getTerminalTextBuffer() {
     return myTerminalTextBuffer;
   }

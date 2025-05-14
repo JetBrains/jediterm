@@ -86,6 +86,10 @@ public class VtEmulatorTest extends EmulatorTestAbstract {
     doVtTest();
   }
 
+  public void testCustom_Test_2() throws IOException {
+    doVtTest();
+  }
+
   private void doVtTest() throws IOException {
     doTest();
   }

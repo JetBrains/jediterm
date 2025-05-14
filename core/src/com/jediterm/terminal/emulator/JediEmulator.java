@@ -114,11 +114,17 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         break; // 3) found less on the previous iteration, but now it's too many (1 char of space left, but a DWC is found)
       }
     }
+    boolean nextIsDWC = false;
     if (end < result.length()) {
       var pushBack = new char[result.length() - end];
       result.getChars(end, result.length(), pushBack, 0);
+      nextIsDWC = CharUtils.isDoubleWidthCharacter(pushBack[0], ambiguousAreDWC);
       myDataStream.pushBackBuffer(pushBack, pushBack.length);
     }
+    // A special case: if the next char is DWC, but it doesn't fit on this line (case 3 above),
+    // then we must fill the line with an additional space to trigger line wrapping.
+    // Otherwise, it'll be an endless loop: read, realize it doesn't fit, push back, read again...
+    if (end == maxChars - 1 && nextIsDWC) return result.substring(0, end) + " ";
     return result.substring(0, end);
   }
 

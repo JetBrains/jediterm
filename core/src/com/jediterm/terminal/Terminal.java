@@ -90,6 +90,8 @@ public interface Terminal {
 
   void deleteCharacters(int count);
 
+  boolean ambiguousCharsAreDoubleWidth();
+
   int getTerminalWidth();
 
   int getTerminalHeight();

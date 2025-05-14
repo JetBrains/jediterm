@@ -85,12 +85,41 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           unhandledLogThrottler(sb.toString());
         } else { // Plain characters
           myDataStream.pushChar(ch);
-          String nonControlCharacters = myDataStream.readNonControlCharacters(terminal.distanceToLineEnd());
+          String nonControlCharacters = readNonControlCharacters(terminal.distanceToLineEnd(), terminal.ambiguousCharsAreDoubleWidth());
 
           terminal.writeCharacters(nonControlCharacters);
         }
         break;
     }
+  }
+
+  private String readNonControlCharacters(int maxChars, boolean ambiguousAreDWC) throws IOException {
+    var result = myDataStream.readNonControlCharacters(maxChars);
+    var visualLength = 0;
+    var end = 0;
+    for (int i = 0; i < result.length(); ++i) {
+      // TODO surrogate pair support missing, but it must be implemented in the entire library at once
+      var c = result.charAt(i);
+      var sourceLength = i + 1;
+      visualLength += CharUtils.isDoubleWidthCharacter(c, ambiguousAreDWC) ? 2 : 1;
+      // Three cases:
+      if (visualLength == maxChars) {
+        end = sourceLength; // 1) found exactly maxChars
+        break;
+      }
+      else if (visualLength < maxChars) {
+        end = sourceLength; // 2) found less, continue searching
+      }
+      else { // visualLength > maxChars
+        break; // 3) found less on the previous iteration, but now it's too many (1 char of space left, but a DWC is found)
+      }
+    }
+    if (end < result.length()) {
+      var pushBack = new char[result.length() - end];
+      result.getChars(end, result.length(), pushBack, 0);
+      myDataStream.pushBackBuffer(pushBack, pushBack.length);
+    }
+    return result.substring(0, end);
   }
 
   private void processEscapeSequence(char ch, Terminal terminal) throws IOException {

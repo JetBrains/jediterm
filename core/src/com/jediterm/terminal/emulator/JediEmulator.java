@@ -524,7 +524,14 @@ public class JediEmulator extends DataStreamIteratingEmulator {
 
   private boolean windowManipulation(ControlSequence args) {
     // CSI Ps ; Ps ; Ps t
+    // https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h4-Functions-using-CSI-_-ordered-by-the-final-character-lparen-s-rparen:CSI-Ps;Ps;Ps-t.1EB0
     switch (args.getArg(0, -1)) {
+      case 1:
+        // Do not process "De-iconify window", restoring/unminimizing IDE can be unexpected.
+        return true;
+      case 2:
+        // Do no process "Iconify window", minimizing IDE can be unexpected.
+        return true;
       case 8:
 //        Ps = 8  ;  height ;  width -> Resize the text area to given
 //        height and width in characters.  Omitted parameters reuse the

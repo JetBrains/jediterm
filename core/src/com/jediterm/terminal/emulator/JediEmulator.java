@@ -1079,7 +1079,9 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           builder.setBackground(ColorPalette.getIndexedTerminalColor(arg - 92));
           break;
         default:
-          LOG.warn("Unknown character attribute:" + arg);
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Unknown character attribute:{}", arg);
+          }
       }
       i = i + step;
     }

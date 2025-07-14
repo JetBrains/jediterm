@@ -1090,7 +1090,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
           myCursorX += 1;
         }
       } else {
-        myCursorX -= 1; //low surrogate character can't be the first character in the line
+        if (myCursorX > 0) myCursorX -= 1; //low surrogate character can't be the first character in the line
       }
     }
   }

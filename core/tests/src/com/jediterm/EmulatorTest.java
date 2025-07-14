@@ -132,6 +132,20 @@ public class EmulatorTest extends EmulatorTestAbstract {
     assertHistoryLines(session, List.of());
   }
 
+  public void testSplitSurrogatePair() throws IOException {
+    TestSession session = new TestSession(6, 3);
+    // \uD83D (high surrogate) + \uDE00 (low surrogate) = 😀
+    session.process("Hello\uD83D\uDE00\b, World!");
+    // Hello<high surrogate>
+    // , Worl
+    // d!
+    assertScreenLines(session, List.of(
+      "Hello\uD83D",
+      ", Worl",
+      "d!"
+    ));
+  }
+
   private void assertScreenLines(@NotNull TestSession session, @NotNull List<String> expectedScreenLines) {
     Assert.assertEquals(expectedScreenLines, TerminalLinesUtilKt.getLineTexts(session.getTerminalTextBuffer().getScreenLinesStorage()));
   }

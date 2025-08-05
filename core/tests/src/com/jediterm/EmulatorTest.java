@@ -146,6 +146,32 @@ public class EmulatorTest extends EmulatorTestAbstract {
     ));
   }
 
+  public void testClear() throws IOException {
+    TestSession session = new TestSession(10, 5);
+    session.process(String.join("", List.of(
+      // position the cursor at the bottom of the screen
+      "\u001b[" + session.getTerminalTextBuffer().getHeight() + ";1H",
+
+      "foo\r\nbar\r\nbaz",
+
+      // move the cursor up
+      "\u001b[A",
+
+      // move the cursor to the beginning of the line
+      "\r",
+
+      // clear the screen from the cursor position to the end of the screen
+      "\u001b[0J"
+    )));
+    assertScreenLines(session, List.of(
+      "",
+      "",
+      "foo",
+      "",
+      ""
+    ));
+  }
+
   private void assertScreenLines(@NotNull TestSession session, @NotNull List<String> expectedScreenLines) {
     Assert.assertEquals(expectedScreenLines, TerminalLinesUtilKt.getLineTexts(session.getTerminalTextBuffer().getScreenLinesStorage()));
   }

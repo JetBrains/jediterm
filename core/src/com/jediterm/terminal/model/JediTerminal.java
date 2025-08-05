@@ -414,9 +414,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
           break;
       }
       // Rest of lines
-      if (beginY != endY) {
-        clearLines(beginY, endY);
-      }
+      clearLines(beginY, endY);
     } finally {
       myTerminalTextBuffer.unlock();
     }

@@ -46,6 +46,7 @@ internal object ControlSequenceVisualizer {
       }
       lastInd = endInd
     }
+    builder.append(escSeq.substring(lastInd, escSeq.length))
     return builder.toString()
   }
 

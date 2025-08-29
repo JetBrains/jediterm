@@ -17,6 +17,8 @@ public class ControlSequence {
 
   private ArrayList<Character> myUnhandledChars;
 
+  private StringBuilder myIntermediateChars;
+
   private boolean myStartsWithExclamationMark = false; // true when CSI !
   private boolean myStartsWithQuestionMark = false; // true when CSI ?
   private boolean myStartsWithMoreMark = false; // true when CSI >
@@ -68,6 +70,10 @@ public class ControlSequence {
         digit++;
         seenDigit = 1;
       }
+      else if (0x20 <= b && b <= 0x2F) {
+        // Intermediate bytes - valid inside CSI but not parameters.
+        addIntermediate(b);
+      }
       else if (':' <= b && b <= '?') {
         addUnhandled(b);
       }
@@ -87,6 +93,13 @@ public class ControlSequence {
       myUnhandledChars = new ArrayList<>();
     }
     myUnhandledChars.add(b);
+  }
+
+  private void addIntermediate(final char b) {
+    if (myIntermediateChars == null) {
+      myIntermediateChars = new StringBuilder();
+    }
+    myIntermediateChars.append(b);
   }
 
   public boolean pushBackReordered(final TerminalDataStream channel) throws IOException {
@@ -151,6 +164,9 @@ public class ControlSequence {
       sb.append(sep);
       sb.append(myArgv[i]);
       sep = ";";
+    }
+    if (myIntermediateChars != null) {
+      sb.append(myIntermediateChars);
     }
     sb.append(myFinalChar);
 

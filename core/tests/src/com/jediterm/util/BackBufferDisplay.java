@@ -19,6 +19,7 @@ public class BackBufferDisplay implements TerminalDisplay {
   private String myWindowTitle;
   private @Nullable Color myForegroundColor;
   private @Nullable Color myBackgroundColor;
+  private @Nullable CursorShape myCursorShape;
 
   public BackBufferDisplay(TerminalTextBuffer terminalTextBuffer) {
     myTerminalTextBuffer = terminalTextBuffer;
@@ -30,6 +31,11 @@ public class BackBufferDisplay implements TerminalDisplay {
 
   @Override
   public void setCursorShape(@Nullable CursorShape cursorShape) {
+    myCursorShape = cursorShape;
+  }
+
+  public @Nullable CursorShape getCursorShape() {
+    return myCursorShape;
   }
 
   @Override

@@ -29,10 +29,13 @@ public final class AwtMouseEvent extends MouseEvent {
     } else if (SwingUtilities.isRightMouseButton(awtMouseEvent)) {
       return MouseButtonCodes.NONE; //we don't handle right mouse button as it used for the context menu invocation
     } else if (awtMouseEvent instanceof java.awt.event.MouseWheelEvent) {
-      if (((java.awt.event.MouseWheelEvent) awtMouseEvent).getWheelRotation() > 0) {
+      int rotation = ((java.awt.event.MouseWheelEvent) awtMouseEvent).getWheelRotation();
+      if (rotation > 0) {
         return MouseButtonCodes.SCROLLUP;
-      } else {
+      } else if (rotation < 0) {
         return MouseButtonCodes.SCROLLDOWN;
+      } else {
+        return MouseButtonCodes.NONE; // Ignore rotation=0 events
       }
     }
     return MouseButtonCodes.NONE;

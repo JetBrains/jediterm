@@ -7,6 +7,13 @@ internal object Ascii {
      */
     const val NUL: Byte = 0
 
+  /**
+   * Start of Heading: A communication control character used at the beginning of a sequence of
+   * characters which constitute a machine-sensible address or routing information. Such a sequence
+   * is referred to as the "heading".
+   */
+  const val SOH: Byte = 1
+
     /**
      * Enquiry: A communication control character used in data communication systems as a request for
      * a response from a remote station. It may be used as a "Who Are You" (WRU) to obtain

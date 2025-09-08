@@ -60,6 +60,10 @@ public class TerminalKeyEncoder {
     putCode(new KeyCodeAndModifier(VK_TAB, InputEvent.SHIFT_MASK), ESC, '[', 'Z');
 
     putCode(new KeyCodeAndModifier(VK_BACK_SPACE, InputEvent.CTRL_MASK), VK_BACK_SPACE);
+    if (Platform.isMacOS()) {
+      putCode(new KeyCodeAndModifier(VK_LEFT, InputEvent.META_MASK), Ascii.SOH);
+      putCode(new KeyCodeAndModifier(VK_RIGHT, InputEvent.META_MASK), Ascii.ENQ);
+    }
   }
 
   public void arrowKeysApplicationSequences() {

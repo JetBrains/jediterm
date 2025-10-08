@@ -2,3 +2,4 @@ out/**
 .gradle
 .gradleBuild
 .idea/
+.kotlin/

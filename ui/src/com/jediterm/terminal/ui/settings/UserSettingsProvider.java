@@ -95,5 +95,5 @@ public interface UserSettingsProvider {
 
   @NotNull TerminalTypeAheadSettings getTypeAheadSettings();
 
-  boolean sendArrowKeysInAlternativeMode();
+  boolean simulateMouseScrollWithArrowKeysInAlternativeScreen();
 }

@@ -213,7 +213,7 @@ public class DefaultSettingsProvider implements SettingsProvider {
   }
 
   @Override
-  public boolean sendArrowKeysInAlternativeMode() {
+  public boolean simulateMouseScrollWithArrowKeysInAlternativeScreen() {
     return true;
   }
 }

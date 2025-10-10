@@ -496,6 +496,10 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           // the modifiers pressed with a given key
           return false;
         }
+        if (args.startsWithQuestionMark()) {
+          // `CSI ? Pp m` Query key modifier options (XTQMODKEYS), xterm.
+          return false;
+        }
         return characterAttributes(args); //Character Attributes (SGR)
       case 'n':
         return deviceStatusReport(args); //DSR

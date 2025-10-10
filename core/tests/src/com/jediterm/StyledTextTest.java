@@ -9,10 +9,13 @@ import com.jediterm.terminal.model.JediTerminal;
 import com.jediterm.terminal.model.StyleState;
 import com.jediterm.terminal.model.TerminalTextBuffer;
 import com.jediterm.util.BackBufferDisplay;
+import com.jediterm.util.TestSession;
 import junit.framework.TestCase;
 import org.jetbrains.annotations.NotNull;
+import org.junit.Assert;
 
 import java.io.IOException;
+import java.util.EnumSet;
 
 /**
  * @author traff
@@ -93,6 +96,28 @@ public class StyledTextTest extends TestCase {
     assertEquals(new TerminalColor(0, 255, 0), style.getForeground());
     assertEquals(new TerminalColor(255, 0, 0), style.getBackground());
     assertTrue(style.hasOption(TextStyle.Option.BOLD));
+  }
+
+  public void testQueryKeyModifierNotChangingStyle() throws IOException {
+    TestSession session = new TestSession(10, 3);
+    TextStyle initialStyle = new TextStyle(null, null);
+    session.process("foo\r\n");
+    Assert.assertEquals(session.getCurrentStyle(), initialStyle);
+    session.process("\u001B[?4m");
+    Assert.assertEquals(session.getCurrentStyle(), initialStyle);
+    session.process("bar\r\n");
+    Assert.assertEquals(session.getCurrentStyle(), initialStyle);
+
+    TextStyle boldStyle = new TextStyle(null, null, EnumSet.of(TextStyle.Option.BOLD));
+    session.process("\u001B[1m");
+    Assert.assertEquals(session.getCurrentStyle(), boldStyle);
+    session.process("baz");
+    Assert.assertEquals(session.getCurrentStyle(), boldStyle);
+
+    TerminalTextBuffer textBuffer = session.getTerminalTextBuffer();
+    Assert.assertEquals(initialStyle, textBuffer.getStyleAt(0, 0)); // foo
+    Assert.assertEquals(initialStyle, textBuffer.getStyleAt(0, 1)); // bar
+    Assert.assertEquals(boldStyle, textBuffer.getStyleAt(0, 2)); // baz
   }
 
   private @NotNull TerminalTextBuffer getBufferFor(int width, int height, String content) throws IOException {

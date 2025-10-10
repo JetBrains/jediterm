@@ -95,5 +95,14 @@ public interface UserSettingsProvider {
 
   @NotNull TerminalTypeAheadSettings getTypeAheadSettings();
 
-  boolean simulateMouseScrollWithArrowKeysInAlternativeScreen();
+  default boolean simulateMouseScrollWithArrowKeysInAlternativeScreen() {
+    return sendArrowKeysInAlternativeMode();
+  }
+
+  @SuppressWarnings("DeprecatedIsStillUsed")
+  @Deprecated(forRemoval = true)
+  default boolean sendArrowKeysInAlternativeMode() {
+    return true;
+  }
+
 }

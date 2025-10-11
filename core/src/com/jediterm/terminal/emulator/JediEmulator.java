@@ -132,13 +132,20 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     switch (ch) {
       case '[': // Control Sequence Introducer (CSI)
         ControlSequence args = new ControlSequence(myDataStream);
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Control Sequence (" + args.getDebugInfo() + ")");
-        }
         if (!args.pushBackReordered(myDataStream)) {
-          boolean result = processControlSequence(args);
-          if (!result) {
-            LOG.warn("Unhandled Control Sequence (" + args.getDebugInfo() + ")");
+          try {
+            boolean result = processControlSequence(args);
+            if (LOG.isDebugEnabled()) {
+              if (result) {
+                LOG.debug("Control Sequence ({})", args.getDebugInfo());
+              }
+              else {
+                LOG.warn("Unhandled Control Sequence ({})", args.getDebugInfo());
+              }
+            }
+          }
+          catch (Exception e) {
+            LOG.error("Error processing Control Sequence ({})", args.getDebugInfo(), e);
           }
         }
         break;

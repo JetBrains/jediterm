@@ -188,6 +188,19 @@ public class EmulatorTest extends EmulatorTestAbstract {
     assertEquals(new CellPosition(10, 1), session.getTerminal().getCursorPosition());
   }
 
+  public void testCharactersFromUnsupportedCsiAreNotPrinted() throws IOException {
+    TestSession session = new TestSession(10, 2);
+    session.process(String.join("", List.of(
+      "foo",
+      "\u001b[=5u", // https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement
+      " bar",
+      "\u001b[=0u"
+    )));
+    assertScreenLines(session, List.of(
+      "foo bar"
+    ));
+  }
+
   private void assertScreenLines(@NotNull TestSession session, @NotNull List<String> expectedScreenLines) {
     Assert.assertEquals(expectedScreenLines, TerminalLinesUtilKt.getLineTexts(session.getTerminalTextBuffer().getScreenLinesStorage()));
   }

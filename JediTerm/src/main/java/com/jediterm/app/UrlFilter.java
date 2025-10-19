@@ -29,18 +29,23 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * @author yole
- */
 public class UrlFilter implements HyperlinkFilter {
 
-  private static final Pattern URL_PATTERN = Pattern.compile("\\b(mailto:|(news|(ht|f)tp(s?))://|((?<![\\p{L}0-9_.])(www\\.)))[-A-Za-z0-9+$&@#/%?=~_|!:,.;]*[-A-Za-z0-9+$&@#/%=~_|]");
+  private static final String FILE_MINIMAL_PROTOCOL_PREFIX = "file:/";
+
+  private static final Pattern FILE_URL_PATTERN = Pattern.compile(
+    "\\bfile:(?:///|/)[-A-Za-z0-9+$&@#/%?=~_|!:,.;]*[-A-Za-z0-9+$&@#/%=~_|]"
+  );
+
+  private static final Pattern URL_PATTERN = Pattern.compile(
+    "\\b(?:mailto:|(?:news|(?:ht|f)tps?)://|(?<![\\p{L}0-9_.])www\\.)[-A-Za-z0-9+$&@#/%?=~_|!:,.;]*[-A-Za-z0-9+$&@#/%=~_|]"
+  );
 
   /**
    * @return if false, then the line contains no URL; if true, then more heavy {@link #URL_PATTERN} check should be used.
    */
   public static boolean canContainUrl(@NotNull String line) {
-    return line.contains("mailto:") || line.contains("://") || line.contains("www.");
+    return line.contains("mailto:") || line.contains("://") || line.contains("www.") || line.contains("file:/");
   }
 
   @Nullable
@@ -48,33 +53,41 @@ public class UrlFilter implements HyperlinkFilter {
   public LinkResult apply(String line) {
     if (!canContainUrl(line)) return null;
 
-    int textStartOffset = 0;
-    Matcher m = URL_PATTERN.matcher(line);
-    LinkResultItem item = null;
-    List<LinkResultItem> items = null;
-    while (m.find()) {
-      if (item != null) {
-        if (items == null) {
-          items = new ArrayList<>(2);
-          items.add(item);
-        }
-      }
+    List<LinkResultItem> resultList = new ArrayList<>();
+    if (line.contains(FILE_MINIMAL_PROTOCOL_PREFIX)) {
+      addMatchingItems(line, FILE_URL_PATTERN, resultList);
+    }
+    if (isPotentialUrl(line)) {
+      addMatchingItems(line, URL_PATTERN, resultList);
+    }
+    return resultList.isEmpty() ? null : new LinkResult(resultList);
+  }
 
-      String url = m.group();
-      item = new LinkResultItem(textStartOffset + m.start(), textStartOffset + m.end(), new LinkInfo(() -> {
+  private static boolean isPotentialUrl(@NotNull String input) {
+    return input.contains("www") ||
+      input.contains("http") ||
+      input.contains("mailto") ||
+      input.contains("ftp") ||
+      input.contains("news");
+  }
+
+  private void addMatchingItems(
+    @NotNull String line,
+    @NotNull Pattern pattern,
+    @NotNull List<LinkResultItem> resultList
+  ) {
+    Matcher matcher = pattern.matcher(line);
+    while (matcher.find()) {
+      String url = matcher.group();
+      resultList.add(new LinkResultItem(matcher.start(), matcher.end(), new LinkInfo(() -> {
         try {
           Desktop.getDesktop().browse(new URI(url));
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
           //pass
         }
-      }));
-
-      if (items != null) {
-        items.add(item);
-      }
+      })));
     }
-    return items != null ? new LinkResult(items)
-            : item != null ? new LinkResult(item)
-            : null;
   }
+
 }

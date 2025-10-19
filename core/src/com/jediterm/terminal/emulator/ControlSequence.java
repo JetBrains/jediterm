@@ -22,6 +22,8 @@ public class ControlSequence {
   private boolean myStartsWithExclamationMark = false; // true when CSI !
   private boolean myStartsWithQuestionMark = false; // true when CSI ?
   private boolean myStartsWithMoreMark = false; // true when CSI >
+  @SuppressWarnings({"FieldCanBeLocal", "unused"})
+  private boolean myStartsWithEqualsMark = false; // true when CSI =
 
   private final StringBuilder mySequenceString = new StringBuilder();
 
@@ -52,6 +54,9 @@ public class ControlSequence {
       }
       else if (b == '>' && pos == 0) {
         myStartsWithMoreMark = true;
+      }
+      else if (b == '=' && pos == 0) {
+        myStartsWithEqualsMark = true;
       }
       else if (b == ';') {
         if (digit > 0) {

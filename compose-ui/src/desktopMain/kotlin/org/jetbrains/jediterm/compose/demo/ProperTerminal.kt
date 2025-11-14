@@ -96,9 +96,24 @@ fun ProperTerminal(
     // This matches iTerm2's font configuration for proper symbol rendering
     val nerdFont = remember {
         try {
+            // Try loading font from classpath resources using File approach
+            // This is more reliable than the resource string approach in some Skiko versions
+            val fontStream = object {}.javaClass.classLoader?.getResourceAsStream("fonts/MesloLGSNF-Regular.ttf")
+                ?: throw IllegalStateException("Font resource not found: fonts/MesloLGSNF-Regular.ttf")
+
+            // Create temp file from InputStream
+            val tempFile = java.io.File.createTempFile("MesloLGSNF", ".ttf")
+            tempFile.deleteOnExit()
+            fontStream.use { input ->
+                tempFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+
+            println("INFO: Loaded MesloLGSNF font from: ${tempFile.absolutePath}")
             FontFamily(
                 androidx.compose.ui.text.platform.Font(
-                    resource = "fonts/MesloLGSNF-Regular.ttf",
+                    file = tempFile,
                     weight = FontWeight.Normal
                 )
             )

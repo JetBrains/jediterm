@@ -1,0 +1,712 @@
+package org.jetbrains.jediterm.compose.demo
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.input.key.*
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.onPointerEvent
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.jetbrains.jediterm.compose.ComposeTerminalDisplay
+import org.jetbrains.jediterm.compose.PlatformServices
+import org.jetbrains.jediterm.compose.getPlatformServices
+import com.jediterm.terminal.ArrayTerminalDataStream
+import com.jediterm.terminal.emulator.JediEmulator
+import com.jediterm.terminal.model.JediTerminal
+import com.jediterm.terminal.model.StyleState
+import com.jediterm.terminal.model.TerminalTextBuffer
+import com.jediterm.terminal.TextStyle as JediTextStyle
+import com.jediterm.terminal.TerminalColor
+import com.jediterm.terminal.util.CharUtils
+import com.jediterm.terminal.CursorShape
+import com.jediterm.terminal.emulator.ColorPaletteImpl
+
+/**
+ * Proper terminal implementation using JediTerm's emulator.
+ * This uses the real JediTerminal, JediEmulator, and TerminalTextBuffer from the core module.
+ */
+@OptIn(
+    androidx.compose.ui.ExperimentalComposeUiApi::class,
+    androidx.compose.ui.text.ExperimentalTextApi::class
+)
+@Composable
+fun ProperTerminal(
+    command: String = System.getenv("SHELL") ?: "/bin/bash",
+    arguments: List<String> = listOf("--login"),
+    modifier: Modifier = Modifier
+) {
+    var processHandle by remember { mutableStateOf<PlatformServices.ProcessService.ProcessHandle?>(null) }
+    var isFocused by remember { mutableStateOf(false) }
+    var scrollOffset by remember { mutableStateOf(0) }  // 0 = at bottom, positive = scrolled up into history
+    val scope = rememberCoroutineScope()
+    val focusRequester = remember { FocusRequester() }
+    val textMeasurer = rememberTextMeasurer()
+    val clipboardManager = LocalClipboardManager.current
+
+    // Create JediTerm components
+    val styleState = remember { StyleState() }
+    val textBuffer = remember { TerminalTextBuffer(80, 24, styleState) }
+    val display = remember { ComposeTerminalDisplay() }
+    val terminal = remember { JediTerminal(display, textBuffer, styleState) }
+
+    // Watch redraw trigger to force recomposition
+    val redrawTrigger = display.redrawTrigger.value
+    val cursorX = display.cursorX.value
+    val cursorY = display.cursorY.value
+    val cursorVisible = display.cursorVisible.value
+    val cursorShape = display.cursorShape.value
+
+    // Blink state for SLOW_BLINK and RAPID_BLINK text attributes
+    var slowBlinkVisible by remember { mutableStateOf(true) }
+    var rapidBlinkVisible by remember { mutableStateOf(true) }
+
+    // Text selection state
+    var selectionStart by remember { mutableStateOf<Pair<Int, Int>?>(null) }  // (col, row)
+    var selectionEnd by remember { mutableStateOf<Pair<Int, Int>?>(null) }    // (col, row)
+    var isDragging by remember { mutableStateOf(false) }
+
+    // Cursor blink state for BLINK_* cursor shapes
+    var cursorBlinkVisible by remember { mutableStateOf(true) }
+
+    // Cache measurement style for performance (avoid recreating on every draw)
+    // Load MesloLGS NF (Nerd Font) from resources - includes powerline glyphs and symbols
+    // This matches iTerm2's font configuration for proper symbol rendering
+    val nerdFont = remember {
+        try {
+            FontFamily(
+                androidx.compose.ui.text.platform.Font(
+                    resource = "fonts/MesloLGSNF-Regular.ttf",
+                    weight = FontWeight.Normal
+                )
+            )
+        } catch (e: Exception) {
+            println("ERROR: Failed to load MesloLGSNF font: ${e.message}")
+            e.printStackTrace()
+            FontFamily.Monospace  // Fallback to system monospace
+        }
+    }
+
+    val measurementStyle = remember(nerdFont) {
+        TextStyle(
+            fontFamily = nerdFont,
+            fontSize = 16.sp,  // Match iTerm2 font size
+            fontWeight = FontWeight.Normal
+        )
+    }
+
+    // Cache cell dimensions (calculated once, reused for all rendering)
+    val cellDimensions = remember(measurementStyle) {
+        val measurement = textMeasurer.measure("W", measurementStyle)
+        Pair(measurement.size.width.toFloat(), measurement.size.height.toFloat())
+    }
+    val cellWidth = cellDimensions.first
+    val cellHeight = cellDimensions.second
+
+    // Auto-scroll to bottom on new output if already at bottom
+    LaunchedEffect(redrawTrigger) {
+        if (scrollOffset == 0) {
+            // Already at bottom, stay there (no action needed)
+        }
+    }
+
+    // SLOW_BLINK animation timer (500ms intervals)
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(500)
+            slowBlinkVisible = !slowBlinkVisible
+        }
+    }
+
+    // RAPID_BLINK animation timer (250ms intervals)
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(250)
+            rapidBlinkVisible = !rapidBlinkVisible
+        }
+    }
+
+    // Cursor blink animation timer (500ms intervals)
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(500)
+            cursorBlinkVisible = !cursorBlinkVisible
+        }
+    }
+
+    // Initialize process
+    LaunchedEffect(Unit) {
+        val services = getPlatformServices()
+        val config = PlatformServices.ProcessService.ProcessConfig(
+            command = command,
+            arguments = arguments,
+            environment = filterEnvironmentVariables(System.getenv()),
+            workingDirectory = System.getProperty("user.home")
+        )
+
+        val handle = services.getProcessService().spawnProcess(config)
+        processHandle = handle
+
+        // Read output in background and feed to emulator
+        launch {
+            val maxChunkSize = 64 * 1024  // 64KB per read operation to prevent memory exhaustion
+
+            while (handle != null && handle.isAlive()) {
+                val output = withContext(Dispatchers.IO) {
+                    handle.read()
+                }
+                if (output != null) {
+                    // Limit chunk size to prevent memory exhaustion from malicious/huge output
+                    val processedOutput = if (output.length > maxChunkSize) {
+                        println("WARNING: Process output chunk (${output.length} chars) exceeds $maxChunkSize limit, truncating")
+                        output.substring(0, maxChunkSize)
+                    } else {
+                        output
+                    }
+
+                    // Convert String to char array and feed to emulator
+                    val chars = processedOutput.toCharArray()
+                    val dataStream = ArrayTerminalDataStream(chars)
+                    val emulator = JediEmulator(dataStream, terminal)
+
+                    try {
+                        // Process all characters through the emulator
+                        while (!dataStream.isEmpty) {
+                            emulator.processChar(dataStream.getChar(), terminal)
+                        }
+                        // Trigger redraw after processing
+                        display.requestRedraw()
+                    } catch (e: java.io.EOFException) {
+                        // Expected when stream ends
+                    } catch (e: java.io.IOException) {
+                        println("WARNING: I/O error processing terminal output: ${e.message}")
+                    } catch (e: Exception) {
+                        println("ERROR: Unexpected exception processing terminal output: ${e.message}")
+                        e.printStackTrace()
+                    }
+                }
+            }
+        }
+
+        // Send test emoji command on startup for debugging
+        launch {
+            kotlinx.coroutines.delay(200)  // Wait for shell to be ready
+            val testCommand = "echo 'Emoji test: ☁️ ❯ ▶ 😀 🌟 ★ ✓ ♥ → ←'\n"
+            handle?.write(testCommand)
+        }
+
+        focusRequester.requestFocus()
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .onPointerEvent(PointerEventType.Press) { event ->
+                val change = event.changes.first()
+                if (change.pressed && change.previousPressed.not()) {
+                    // Start selection on left mouse button press
+                    val col = (change.position.x / cellWidth).toInt()
+                    val row = (change.position.y / cellHeight).toInt()
+
+                    selectionStart = Pair(col, row)
+                    selectionEnd = Pair(col, row)
+                    isDragging = true
+                }
+            }
+            .onPointerEvent(PointerEventType.Move) { event ->
+                if (isDragging) {
+                    // Update selection end point while dragging
+                    val change = event.changes.first()
+                    val col = (change.position.x / cellWidth).toInt()
+                    val row = (change.position.y / cellHeight).toInt()
+
+                    selectionEnd = Pair(col, row)
+                }
+            }
+            .onPointerEvent(PointerEventType.Release) { event ->
+                // End selection on mouse release
+                isDragging = false
+            }
+            .onPointerEvent(PointerEventType.Scroll) { event ->
+                val delta = event.changes.first().scrollDelta.y
+                val historySize = textBuffer.historyLinesCount
+                scrollOffset = (scrollOffset + delta.toInt()).coerceIn(0, historySize)
+            }
+            .onKeyEvent { keyEvent ->
+                if (keyEvent.type == KeyEventType.KeyDown) {
+                    // Handle Ctrl+C / Cmd+C for copy
+                    if ((keyEvent.isCtrlPressed || keyEvent.isMetaPressed) && keyEvent.key == Key.C) {
+                        if (selectionStart != null && selectionEnd != null) {
+                            val selectedText = extractSelectedText(textBuffer, selectionStart!!, selectionEnd!!)
+                            if (selectedText.isNotEmpty()) {
+                                clipboardManager.setText(AnnotatedString(selectedText))
+                            }
+                        }
+                        return@onKeyEvent true
+                    }
+
+                    scope.launch {
+                        val text = when (keyEvent.key) {
+                            Key.Enter -> "\r"
+                            Key.Backspace -> "\u007F"  // DEL character
+                            Key.Tab -> "\t"
+                            Key.Escape -> "\u001B"
+                            Key.DirectionUp -> "\u001B[A"
+                            Key.DirectionDown -> "\u001B[B"
+                            Key.DirectionRight -> "\u001B[C"
+                            Key.DirectionLeft -> "\u001B[D"
+                            else -> {
+                                val code = keyEvent.utf16CodePoint
+                                if (code > 0) {
+                                    code.toChar().toString()
+                                } else ""
+                            }
+                        }
+                        if (text.isNotEmpty()) {
+                            processHandle?.write(text)
+                        }
+                    }
+                    true
+                } else false
+            }
+            .focusRequester(focusRequester)
+            .focusable()
+            .onFocusChanged { focusState ->
+                isFocused = focusState.isFocused
+            }
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            // Render terminal content from TerminalTextBuffer
+            // Cell dimensions are cached outside Canvas for performance
+            textBuffer.lock()
+            try {
+                val height = textBuffer.height
+                val width = textBuffer.width
+
+                for (row in 0 until height) {
+                    // Calculate actual line index based on scroll offset
+                    // scrollOffset = 0 means showing screen lines 0..height-1
+                    // scrollOffset > 0 means showing some history lines
+                    val lineIndex = row - scrollOffset
+                    val line = textBuffer.getLine(lineIndex)
+                    if (line != null) {
+                        var col = 0
+                        while (col < width) {
+                            val char = line.charAt(col)
+                            val style = line.getStyleAt(col)
+
+                            // Skip double-width character continuation markers
+                            if (char == CharUtils.DWC) {
+                                col++
+                                continue
+                            }
+
+                            val x = col * cellWidth
+                            val y = row * cellHeight
+
+                            // Check if this is a double-width character according to wcwidth
+                            val isWcwidthDoubleWidth = char != ' ' && char != '\u0000' &&
+                                    CharUtils.isDoubleWidthCharacter(char.code, display.ambiguousCharsAreDoubleWidth())
+
+                            // For emoji and symbols, we'll render them with slight scaling for better visibility
+                            // These are Unicode blocks containing symbols that render poorly at normal size
+                            val isEmojiOrWideSymbol = when (char.code) {
+                                in 0x2600..0x26FF -> true  // Miscellaneous Symbols (☁️, ☀️, ★, etc.)
+                                in 0x2700..0x27BF -> true  // Dingbats (✂, ✈, ❯, etc.)
+                                in 0x1F300..0x1F9FF -> true  // Emoji & Pictographs
+                                in 0x1F600..0x1F64F -> true  // Emoticons
+                                in 0x1F680..0x1F6FF -> true  // Transport & Map Symbols
+                                else -> false
+                            }
+
+                            val isDoubleWidth = isWcwidthDoubleWidth
+
+                            // Skip rendering variation selectors - they're combining characters
+                            if (char.code == 0xFE0F || char.code == 0xFE0E) {
+                                col++
+                                continue
+                            }
+
+                            // Check text attributes (use false if style is null)
+                            val isBold = style?.hasOption(JediTextStyle.Option.BOLD) ?: false
+                            val isItalic = style?.hasOption(JediTextStyle.Option.ITALIC) ?: false
+                            val isInverse = style?.hasOption(JediTextStyle.Option.INVERSE) ?: false
+                            val isDim = style?.hasOption(JediTextStyle.Option.DIM) ?: false
+                            val isUnderline = style?.hasOption(JediTextStyle.Option.UNDERLINED) ?: false
+                            val isHidden = style?.hasOption(JediTextStyle.Option.HIDDEN) ?: false
+                            val isSlowBlink = style?.hasOption(JediTextStyle.Option.SLOW_BLINK) ?: false
+                            val isRapidBlink = style?.hasOption(JediTextStyle.Option.RAPID_BLINK) ?: false
+
+                            // Get colors (swap if INVERSE)
+                            // Handle null style or null colors with defaults: white foreground, black background
+                            val rawFg = if (isInverse) style?.background else style?.foreground
+                            val rawBg = if (isInverse) style?.foreground else style?.background
+
+                            var fgColor = if (rawFg != null) {
+                                convertTerminalColor(rawFg)
+                            } else {
+                                Color.White  // Default foreground when color is null
+                            }
+                            var bgColor = if (rawBg != null) {
+                                convertTerminalColor(rawBg)
+                            } else {
+                                Color.Black  // Default background when color is null
+                            }
+
+                            // Apply DIM to foreground color (reduce brightness to 50%)
+                            if (isDim) {
+                                fgColor = applyDimColor(fgColor)
+                            }
+
+                            // Draw background (single or double width)
+                            val bgWidth = if (isDoubleWidth) cellWidth * 2 else cellWidth
+                            drawRect(
+                                color = bgColor,
+                                topLeft = Offset(x, y),
+                                size = Size(bgWidth, cellHeight)
+                            )
+
+                            // Determine if text should be visible based on blink state
+                            val isBlinkVisible = when {
+                                isSlowBlink -> slowBlinkVisible
+                                isRapidBlink -> rapidBlinkVisible
+                                else -> true
+                            }
+
+                            // Only draw glyph if it's printable (not space or null), not HIDDEN, and visible in blink cycle
+                            if (char != ' ' && char != '\u0000' && !isHidden && isBlinkVisible) {
+                                // Create text style using cached font family (Menlo on macOS for better Unicode support)
+                                val textStyle = TextStyle(
+                                    color = fgColor,
+                                    fontFamily = measurementStyle.fontFamily,
+                                    fontSize = 14.sp,
+                                    fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
+                                    fontStyle = if (isItalic) androidx.compose.ui.text.font.FontStyle.Italic
+                                               else androidx.compose.ui.text.font.FontStyle.Normal
+                                )
+
+                                // For double-width characters: hybrid approach
+                                // - If font provides proper double-width glyphs (CJK), center them
+                                // - If font doesn't (emoji in monospace), scale them to fill space
+                                if (isDoubleWidth) {
+                                    // Measure the actual glyph width at natural font size
+                                    val measurement = textMeasurer.measure(char.toString(), textStyle)
+                                    val glyphWidth = measurement.size.width.toFloat()
+
+                                    // Calculate available space (2 cells)
+                                    val allocatedWidth = cellWidth * 2
+
+                                    // Decide whether to scale or center based on glyph width
+                                    // If glyph is less than 1.5 cells, assume font doesn't support DWC properly - scale it
+                                    // If glyph is >= 1.5 cells, assume it's proper DWC (like CJK) - center it
+                                    if (glyphWidth < cellWidth * 1.5f) {
+                                        // Font doesn't provide proper double-width glyph - scale it
+                                        val scaleX = allocatedWidth / glyphWidth.coerceAtLeast(1f)
+                                        scale(scaleX = scaleX, scaleY = 1f, pivot = Offset(x, y + cellWidth)) {
+                                            drawText(
+                                                textMeasurer = textMeasurer,
+                                                text = char.toString(),
+                                                topLeft = Offset(x, y),
+                                                style = textStyle
+                                            )
+                                        }
+                                    } else {
+                                        // Font provides proper double-width glyph - center it
+                                        val emptySpace = (allocatedWidth - glyphWidth).coerceAtLeast(0f)
+                                        val centeringOffset = emptySpace / 2f
+                                        drawText(
+                                            textMeasurer = textMeasurer,
+                                            text = char.toString(),
+                                            topLeft = Offset(x + centeringOffset, y),
+                                            style = textStyle
+                                        )
+                                    }
+                                } else if (isEmojiOrWideSymbol) {
+                                    // For emoji/symbols that aren't recognized as double-width by wcwidth,
+                                    // render normally - Nerd Font has proper glyphs for these symbols
+                                    drawText(
+                                        textMeasurer = textMeasurer,
+                                        text = char.toString(),
+                                        topLeft = Offset(x, y),
+                                        style = textStyle
+                                    )
+                                } else {
+                                    // Normal single-width rendering
+                                    drawText(
+                                        textMeasurer = textMeasurer,
+                                        text = char.toString(),
+                                        topLeft = Offset(x, y),
+                                        style = textStyle
+                                    )
+                                }
+
+                                // Draw underline if UNDERLINE attribute is set
+                                if (isUnderline) {
+                                    val underlineY = y + cellHeight - 2f  // 2 pixels from bottom
+                                    val underlineWidth = if (isDoubleWidth) cellWidth * 2 else cellWidth
+                                    drawLine(
+                                        color = fgColor,
+                                        start = Offset(x, underlineY),
+                                        end = Offset(x + underlineWidth, underlineY),
+                                        strokeWidth = 1f
+                                    )
+                                }
+                            }
+
+                            // If true double-width (wcwidth), skip the next column (contains DWC marker)
+                            // For emoji/symbols, don't skip - they're single-width in the buffer but render wider
+                            if (isWcwidthDoubleWidth) {
+                                col++
+                            }
+
+                            col++
+                        }
+                    }
+                }
+
+                // Draw selection highlight
+                if (selectionStart != null && selectionEnd != null) {
+                    val start = selectionStart!!
+                    val end = selectionEnd!!
+
+                    // Normalize selection to handle backwards dragging
+                    val (startCol, startRow) = start
+                    val (endCol, endRow) = end
+
+                    val (minRow, maxRow) = if (startRow < endRow) {
+                        startRow to endRow
+                    } else {
+                        endRow to startRow
+                    }
+
+                    val (minCol, maxCol) = if (startCol < endCol) {
+                        startCol to endCol
+                    } else {
+                        endCol to startCol
+                    }
+
+                    // Draw selection highlight rectangles
+                    for (row in minRow..maxRow) {
+                        if (row in 0 until height) {
+                            val colStart = if (row == minRow) minCol else 0
+                            val colEnd = if (row == maxRow) maxCol else (width - 1)
+
+                            for (col in colStart..colEnd) {
+                                if (col in 0 until width) {
+                                    val x = col * cellWidth
+                                    val y = row * cellHeight
+                                    drawRect(
+                                        color = Color.Blue.copy(alpha = 0.3f),
+                                        topLeft = Offset(x, y),
+                                        size = Size(cellWidth, cellHeight)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Draw cursor
+                if (cursorVisible && isFocused) {
+                    // Check if cursor should be visible based on blink state
+                    val shouldShowCursor = when (cursorShape) {
+                        CursorShape.BLINK_BLOCK, CursorShape.BLINK_UNDERLINE, CursorShape.BLINK_VERTICAL_BAR -> cursorBlinkVisible
+                        else -> true  // STEADY_* shapes are always visible
+                    }
+
+                    if (shouldShowCursor) {
+                        val x = cursorX * cellWidth
+                        val y = cursorY * cellHeight
+                        val cursorColor = Color.White.copy(alpha = 0.7f)
+
+                        when (cursorShape) {
+                            CursorShape.BLINK_BLOCK, CursorShape.STEADY_BLOCK, null -> {
+                            // Block cursor - fill entire cell
+                            drawRect(
+                                color = cursorColor,
+                                topLeft = Offset(x, y),
+                                size = Size(cellWidth, cellHeight)
+                            )
+                        }
+                        CursorShape.BLINK_UNDERLINE, CursorShape.STEADY_UNDERLINE -> {
+                            // Underline cursor - draw line at bottom of cell
+                            val underlineHeight = cellHeight * 0.2f  // 20% of cell height
+                            drawRect(
+                                color = cursorColor,
+                                topLeft = Offset(x, y + cellHeight - underlineHeight),
+                                size = Size(cellWidth, underlineHeight)
+                            )
+                        }
+                        CursorShape.BLINK_VERTICAL_BAR, CursorShape.STEADY_VERTICAL_BAR -> {
+                            // Vertical bar cursor - draw thin line on left side
+                            val barWidth = cellWidth * 0.15f  // 15% of cell width
+                            drawRect(
+                                color = cursorColor,
+                                topLeft = Offset(x, y),
+                                size = Size(barWidth, cellHeight)
+                            )
+                        }
+                    }
+                    }
+                }
+            } finally {
+                textBuffer.unlock()
+            }
+
+            // Show focus indicator at bottom
+            if (!isFocused) {
+                drawText(
+                    textMeasurer = textMeasurer,
+                    text = "[Click to focus terminal]",
+                    topLeft = Offset(0f, size.height - 30f),
+                    style = TextStyle(
+                        color = Color.Gray,
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 12.sp
+                    )
+                )
+            }
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            scope.launch {
+                processHandle?.kill()
+            }
+        }
+    }
+}
+
+/**
+ * Extract selected text from the terminal text buffer.
+ * Handles multi-line selection and normalizes coordinates.
+ */
+private fun extractSelectedText(
+    textBuffer: TerminalTextBuffer,
+    start: Pair<Int, Int>,
+    end: Pair<Int, Int>
+): String {
+    val (startCol, startRow) = start
+    val (endCol, endRow) = end
+
+    // Normalize selection to handle backwards dragging
+    val (minRow, maxRow) = if (startRow < endRow) {
+        startRow to endRow
+    } else {
+        endRow to startRow
+    }
+
+    val (minCol, maxCol) = if (startRow == endRow) {
+        // Same row - compare columns
+        if (startCol < endCol) startCol to endCol else endCol to startCol
+    } else {
+        // Different rows - use natural order
+        if (startRow < endRow) startCol to endCol else endCol to startCol
+    }
+
+    textBuffer.lock()
+    return try {
+        val result = StringBuilder()
+
+        for (row in minRow..maxRow) {
+            val line = textBuffer.getLine(row) ?: continue
+
+            val colStart = if (row == minRow) minCol else 0
+            val colEnd = if (row == maxRow) maxCol else (textBuffer.width - 1)
+
+            for (col in colStart..colEnd) {
+                if (col < textBuffer.width) {
+                    val char = line.charAt(col)
+                    // Skip DWC markers
+                    if (char != CharUtils.DWC) {
+                        result.append(char)
+                    }
+                }
+            }
+
+            // Add newline between rows (except after last row)
+            if (row < maxRow) {
+                result.append('\n')
+            }
+        }
+
+        result.toString()
+    } finally {
+        textBuffer.unlock()
+    }
+}
+
+/**
+ * Filter environment variables to remove sensitive data before passing to spawned process.
+ * Removes variables that likely contain passwords, tokens, API keys, or other credentials.
+ */
+private fun filterEnvironmentVariables(env: Map<String, String>): Map<String, String> {
+    val sensitiveKeywords = listOf(
+        "PASSWORD", "TOKEN", "KEY", "SECRET", "CREDENTIAL", "AUTH",
+        "API", "PRIVATE", "CERT", "OAUTH"
+    )
+
+    return env.filterKeys { key ->
+        val upperKey = key.uppercase()
+        !sensitiveKeywords.any { upperKey.contains(it) }
+    }
+}
+
+// Use XTerm color palette for consistency with original JediTerm
+private val colorPalette = ColorPaletteImpl.XTERM_PALETTE
+
+/**
+ * Convert JediTerm TerminalColor to Compose Color using the official ColorPalette
+ */
+private fun convertTerminalColor(terminalColor: TerminalColor?): Color {
+    if (terminalColor == null) return Color.Black
+
+    // Use ColorPalette for colors 0-15 to support themes, otherwise use toColor()
+    val jediColor = if (terminalColor.isIndexed && terminalColor.colorIndex < 16) {
+        colorPalette.getForeground(terminalColor)
+    } else {
+        terminalColor.toColor()
+    }
+
+    return Color(
+        red = jediColor.red / 255f,
+        green = jediColor.green / 255f,
+        blue = jediColor.blue / 255f
+    )
+}
+
+/**
+ * Apply DIM attribute by reducing color brightness to 50%
+ */
+private fun applyDimColor(color: Color): Color {
+    return Color(
+        red = color.red * 0.5f,
+        green = color.green * 0.5f,
+        blue = color.blue * 0.5f,
+        alpha = color.alpha
+    )
+}

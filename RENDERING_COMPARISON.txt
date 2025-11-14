@@ -1,0 +1,566 @@
+# ProperTerminal Rendering Implementation - Comprehensive Comparison
+
+## EXECUTIVE SUMMARY
+
+The ProperTerminal.kt Compose implementation has SEVERE gaps compared to the production Swing-based 
+TerminalPanel.java. Missing are:
+- 5 of 8 text styling attributes (blinking, underline, dim, hidden)
+- 256-color palette support (colors 16-255 all render as WHITE)
+- Proper color handling (ignores ColorPalette entirely)
+- Advanced cursor shapes (only block, no underline/bar)
+- Selection rendering
+- Text decoration rendering
+
+This document details every missing feature and shows exactly how each should be implemented.
+
+================================================================================
+CRITICAL ISSUE #1: 256-COLOR PALETTE COMPLETELY BROKEN
+================================================================================
+
+TEXTYLE.OPTION ENUMERATION (from core/src/com/jediterm/terminal/TextStyle.java):
+  - BOLD ..................... ✓ Implemented
+  - ITALIC ................... ✓ Implemented
+  - SLOW_BLINK ............... ✗ MISSING
+  - RAPID_BLINK .............. ✗ MISSING
+  - DIM ...................... ✗ MISSING
+  - INVERSE .................. ~ INCOMPLETE
+  - UNDERLINED ............... ✗ MISSING
+  - HIDDEN ................... ✗ MISSING
+
+ORIGINAL TERMINALCOLOR.JAVA COLOR HANDLING:
+  - Indexed colors (0-15): ANSI colors
+  - Indexed colors (16-231): 216-color xterm palette
+  - Indexed colors (232-255): 24 grayscale colors
+  - RGB colors: Full 24-bit support
+
+PROPER TERMINAL COLOR CONVERSION (lines 318-354):
+  ```
+  terminalColor.colorIndex HARDCODED for 0-15:
+    0→Black, 1→Red, 2→Green, 3→Yellow, 4→Blue, 5→Magenta, 6→Cyan, 7→White
+    8-15→Bright variants
+  
+  colorIndex 16-255: ALL RETURN WHITE ← THIS IS BROKEN
+  
+  Default (null color): Returns Color.White ← IGNORES StyleState defaults
+  ```
+
+TERMINALPOINT.JAVA CORRECT IMPLEMENTATION (lines 1025-1047):
+  ```
+  private Color getForeground(TextStyle style) {
+    TerminalColor foreground = style.getForeground();
+    return foreground != null ? toForeground(foreground) : getWindowForeground();
+  }
+
+  private Color toForeground(TerminalColor terminalColor) {
+    if (terminalColor.isIndexed()) {
+      return getPalette().getForeground(terminalColor);  ← Uses actual palette
+    }
+    return terminalColor.toColor();  ← 24-bit RGB
+  }
+  ```
+
+RESULT:
+  - Color codes like CSI 38;5;196 (bright red) render as WHITE
+  - Xterm 256 color palette completely broken
+  - Grayscale (232-255) completely broken
+  - Color themes/configuration ignored
+
+WHAT SHOULD BE DONE:
+  1. Use ColorPalette instead of hardcoded colors
+  2. For indexed colors, call palette.getForeground(color)
+  3. For null colors, get defaults from StyleState
+  4. Respect user color configuration
+
+================================================================================
+CRITICAL ISSUE #2: BLINKING TEXT NOT IMPLEMENTED
+================================================================================
+
+TEXTBLINKINGTRACKER.JAVA (complete implementation):
+  ```
+  class BlinkingTextTracker {
+    private final BlinkTracker slowBlinkTracker = new BlinkTracker();
+    private final BlinkTracker rapidBlinkTracker = new BlinkTracker();
+
+    void updateState(SettingsProvider settingsProvider, TerminalPanel panel) {
+      if (settingsProvider.enableTextBlinking()) {
+        long currentTime = System.currentTimeMillis();
+        boolean slowBlinkStateChanged = slowBlinkTracker.update(
+          currentTime, settingsProvider.slowTextBlinkMs());  // Usually 500ms
+        boolean rapidBlinkStateChanged = rapidBlinkTracker.update(
+          currentTime, settingsProvider.rapidTextBlinkMs());  // Usually 200ms
+        if (slowBlinkStateChanged || rapidBlinkStateChanged) {
+          panel.repaint();
+        }
+      }
+    }
+
+    boolean shouldBlinkNow(TextStyle style) {
+      return (style.hasOption(TextStyle.Option.SLOW_BLINK) && slowBlinkTracker.inverse) ||
+        (style.hasOption(TextStyle.Option.RAPID_BLINK) && rapidBlinkTracker.inverse);
+    }
+  }
+  ```
+
+HOWBLINKING IS RENDERED (TerminalPanel.java line 1311-1313):
+  ```
+  if (myTextBlinkingTracker.shouldBlinkNow(style)) {
+    style = getInversedStyle(style);  ← When blinking "off", invert style to hide
+  }
+  ```
+
+PROPTERMINAL.KT:
+  - NO BlinkingTextTracker
+  - NO time tracking
+  - NO state management
+  - Text with SLOW_BLINK or RAPID_BLINK attributes displays as normal text
+
+WHAT SHOULD BE DONE:
+  1. Create a LaunchedEffect that tracks time like BlinkTracker
+  2. Toggle a MutableState between ON/OFF every 200-500ms based on option
+  3. When OFF, invert style (swap foreground/background)
+  4. Trigger recomposition on state changes
+
+================================================================================
+CRITICAL ISSUE #3: UNDERLINE NOT DRAWN
+================================================================================
+
+TERMINALPOINT.JAVA UNDERLINE RENDERING (lines 1351-1355):
+  ```
+  if (style.hasOption(TextStyle.Option.UNDERLINED)) {
+    int baseLine = (y + 1) * myCharSize.height - mySpaceBetweenLines / 2 - myDescent;
+    int lineY = baseLine + 3;
+    gfx.drawLine(xCoord, lineY, (x + textLength) * myCharSize.width + getInsetX(), lineY);
+  }
+  ```
+
+HOW IT WORKS:
+  - Gets baseline of text (bottom of character)
+  - Positions line 3 pixels below baseline
+  - Draws horizontal line across entire text run width
+
+PROPTERMINAL.KT:
+  - Doesn't check UNDERLINED option
+  - Doesn't draw any underline
+  - TerminalRenderer interface has isUnderline field but it's never used
+
+RESULT: Underlined text renders without underline
+
+WHAT SHOULD BE DONE:
+  ```
+  if (style.hasOption(JediTextStyle.Option.UNDERLINED)) {
+    val lineY = y + cellHeight - 2  // 2-3 pixels from bottom
+    drawLine(
+      color = fgColor,
+      start = Offset(x * cellWidth, lineY),
+      end = Offset((x + charCount) * cellWidth, lineY),
+      strokeWidth = 1f
+    )
+  }
+  ```
+
+================================================================================
+CRITICAL ISSUE #4: DIM TEXT NOT HANDLED
+================================================================================
+
+TERMINALPOINT.JAVA DIM IMPLEMENTATION (lines 1474-1484):
+  ```
+  private Color getStyleForeground(TextStyle style) {
+    Color foreground = getEffectiveForeground(style);
+    if (style.hasOption(Option.DIM)) {
+      Color background = getEffectiveBackground(style);
+      foreground = new Color(
+        (foreground.getRed() + background.getRed()) / 2,
+        (foreground.getGreen() + background.getGreen()) / 2,
+        (foreground.getBlue() + background.getBlue()) / 2,
+        foreground.getAlpha()
+      );
+    }
+    return foreground;
+  }
+  ```
+
+HOW IT WORKS:
+  - Takes average of foreground and background RGB values
+  - Creates muted, less-saturated appearance
+  - Effect: text appears dimmer/grayed out
+
+PROPTERMINAL.KT:
+  - Doesn't check DIM option
+  - Text appears at full brightness
+
+RESULT: DIM text (often used for status text) appears at wrong intensity
+
+WHAT SHOULD BE DONE:
+  ```
+  if (style.hasOption(JediTextStyle.Option.DIM)) {
+    fgColor = Color(
+      red = (fgColor.red + bgColor.red) / 2,
+      green = (fgColor.green + bgColor.green) / 2,
+      blue = (fgColor.blue + bgColor.blue) / 2,
+      alpha = fgColor.alpha
+    )
+  }
+  ```
+
+================================================================================
+CRITICAL ISSUE #5: INVERSE VIDEO INCOMPLETE
+================================================================================
+
+TERMINALPOINT.JAVA INVERSE IMPLEMENTATION (lines 1015-1023):
+  ```
+  private Color getEffectiveForeground(TextStyle style) {
+    Color color = style.hasOption(Option.INVERSE) 
+      ? getBackground(style)      ← Use background color for foreground
+      : getForeground(style);
+    return AwtTransformers.toAwtColor(color);
+  }
+
+  private Color getEffectiveBackground(TextStyle style) {
+    Color color = style.hasOption(Option.INVERSE) 
+      ? getForeground(style)      ← Use foreground color for background
+      : getBackground(style);
+    return AwtTransformers.toAwtColor(color);
+  }
+  ```
+
+ADDITIONAL HANDLING (lines 1293-1303):
+  ```
+  private TextStyle getInversedStyle(TextStyle style) {
+    TextStyle.Builder builder = new TextStyle.Builder(style);
+    builder.setOption(Option.INVERSE, !style.hasOption(Option.INVERSE));
+    if (style.getForeground() == null) {
+      builder.setForeground(myStyleState.getDefaultForeground());  ← Supply defaults
+    }
+    if (style.getBackground() == null) {
+      builder.setBackground(myStyleState.getDefaultBackground());  ← Supply defaults
+    }
+    return builder.build();
+  }
+  ```
+
+PROPTERMINAL.KT (lines 222-231):
+  ```
+  val bgColor = convertTerminalColor(style.background)
+  drawRect(color = bgColor, ...)
+
+  if (char != ' ' && char != '\u0000') {
+    val fgColor = convertTerminalColor(style.foreground)
+    drawText(..., style = TextStyle(color = fgColor, ...))
+  }
+  ```
+
+PROBLEM: INVERSE option is NEVER checked!
+
+RESULT:
+  - Selected text doesn't have inverted colors
+  - Cursor rendering misses inverse state
+  - Special UI elements with INVERSE won't render correctly
+
+WHAT SHOULD BE DONE:
+  1. Check if style.hasOption(JediTextStyle.Option.INVERSE)
+  2. If inverse:
+     - Use background color for foreground
+     - Use foreground color for background
+  3. Handle null defaults by getting from StyleState
+
+================================================================================
+CRITICAL ISSUE #6: HIDDEN TEXT VISIBLE (SECURITY ISSUE)
+================================================================================
+
+HOW HIDDEN IS SUPPOSED TO WORK:
+  - Text with HIDDEN attribute should not be visible
+  - Common use: password fields in terminal UIs
+  - Typically implemented as: hide when blinking "off" state
+
+TERMINALPOINT.JAVA APPROACH:
+  When shouldBlinkNow() returns true (during blinking OFF phase):
+    style = getInversedStyle(style);
+  
+  For HIDDEN text, inverting with invisible background makes it disappear.
+
+PROPTERMINAL.KT:
+  - Doesn't check HIDDEN option
+  - Doesn't do any blinking
+  - Hidden text displays normally ← SECURITY ISSUE
+
+RESULT: Any terminal app that tries to hide sensitive text (passwords, tokens) 
+will have that text visible in ProperTerminal.
+
+WHAT SHOULD BE DONE:
+  1. Implement blinking mechanism (as described above)
+  2. Check if style.hasOption(JediTextStyle.Option.HIDDEN)
+  3. When hidden + blinking is off, don't draw the character glyph
+  4. Or: invert style to make text invisible against background
+
+================================================================================
+ISSUE #7: CURSOR RENDERING - ONLY BLOCK SUPPORTED
+================================================================================
+
+TERMINALPOINT.JAVA CURSOR SHAPES (lines 1241-1265):
+  ```
+  switch (getEffectiveShape()) {
+    case BLINK_BLOCK:
+    case STEADY_BLOCK:
+      if (state == TerminalCursorState.SHOWING) {
+        gfx.setColor(inverseBg);
+        gfx.fillRect(xCoord, yCoord, width, height);   ← Filled block
+        drawCharacters(x, y, inversedStyle, buf, gfx);
+      } else {
+        gfx.setColor(fgColor);
+        gfx.drawRect(xCoord, yCoord, width, height);   ← Hollow outline
+      }
+      break;
+
+    case BLINK_UNDERLINE:
+    case STEADY_UNDERLINE:
+      gfx.setColor(fgColor);
+      gfx.fillRect(xCoord, yCoord + height, width, lineStrokeSize);  ← Line at bottom
+      break;
+
+    case BLINK_VERTICAL_BAR:
+    case STEADY_VERTICAL_BAR:
+      gfx.setColor(fgColor);
+      gfx.fillRect(xCoord, yCoord, lineStrokeSize, height);  ← Line at left
+      break;
+  }
+  ```
+
+CURSOR STATES:
+  - SHOWING: Cursor visible (solid or underline)
+  - HIDDEN: Cursor invisible/outline (for blinking off phase)
+
+PROPTERMINAL.KT (lines 261-269):
+  ```
+  if (cursorVisible && isFocused) {
+    val x = cursorX * cellWidth
+    val y = cursorY * cellHeight
+    drawRect(
+      color = Color.White.copy(alpha = 0.5f),  ← HARDCODED WHITE
+      topLeft = Offset(x, y),
+      size = Size(cellWidth, cellHeight)
+    )
+  }
+  ```
+
+LIMITATIONS:
+  - ONLY block cursor
+  - HARDCODED white color (should use cursor color from style)
+  - NO underline shape
+  - NO vertical bar shape
+  - NO blinking animation
+  - NO distinction between showing/outline states
+
+RESULT: 
+  - Users can't configure cursor style
+  - Cursor always white (doesn't match terminal theme)
+  - Terminal compatibility issue
+
+WHAT SHOULD BE DONE:
+  1. Implement cursor shape detection (get from display settings)
+  2. Track cursor visibility state (SHOWING vs HIDDEN vs NO_FOCUS)
+  3. For BLOCK: draw filled rectangle or outline based on state
+  4. For UNDERLINE: draw line at bottom of cell
+  5. For VERTICAL_BAR: draw line at left of cell
+  6. Use actual cursor color from style, not white
+
+================================================================================
+ISSUE #8: SELECTION RENDERING MISSING
+================================================================================
+
+TERMINALPOINT.JAVA SELECTION (lines 812-820):
+  ```
+  if (mySelection != null) {
+    Pair<Integer, Integer> interval = mySelection.intersect(
+      x, row + myClientScrollOrigin, characters.length());
+    if (interval != null) {
+      TextStyle selectionStyle = getSelectionStyle(style);
+      CharBuffer selectionChars = characters.subBuffer(interval.getFirst() - x, interval.getSecond());
+      drawCharacters(interval.getFirst(), row, selectionStyle, selectionChars, gfx);
+    }
+  }
+  ```
+
+SELECTION STYLE (lines 878-891):
+  ```
+  private TextStyle getSelectionStyle(TextStyle style) {
+    if (mySettingsProvider.useInverseSelectionColor()) {
+      return getInversedStyle(style);  ← Option 1: Invert colors
+    }
+    TextStyle.Builder builder = style.toBuilder();
+    TextStyle selectionStyle = getSelectionColor();
+    builder.setBackground(selectionStyle.getBackground());  ← Option 2: Use configured colors
+    builder.setForeground(selectionStyle.getForeground());
+    if (builder instanceof HyperlinkStyle.Builder) {
+      return ((HyperlinkStyle.Builder)builder).build(true);
+    }
+    return builder.build();
+  }
+  ```
+
+PROPTERMINAL.KT:
+  - No selection rendering at all
+  - No visual feedback for selected text
+
+RESULT: Users can't see what they've selected
+
+================================================================================
+ISSUE #9: COLOR PALETTE CONFIGURATION IGNORED
+================================================================================
+
+TERMINALPOINT.JAVA:
+  Uses getPalette() → obtains ConfiguredColorPalette from SettingsProvider
+  Palette contains all 256 colors configured by user
+
+PROPTERMINAL.KT:
+  Hardcoded 16-color palette
+  Ignores ALL color configuration
+  
+RESULT:
+  - Color themes don't work
+  - User color customization ignored
+  - Always uses same 16 colors
+
+================================================================================
+MISSING FEATURES - DEFAULT COLORS
+================================================================================
+
+WHEN COLORS ARE NULL:
+  TextStyle can have null foreground or background, meaning "use default"
+
+TERMINALPOINT.JAVA (lines 1025-1040):
+  ```
+  private Color getForeground(TextStyle style) {
+    TerminalColor foreground = style.getForeground();
+    return foreground != null ? toForeground(foreground) : getWindowForeground();
+    //                                                      └─ Returns configured default
+  }
+
+  private Color getBackground(TextStyle style) {
+    TerminalColor background = style.getBackground();
+    return background != null ? toBackground(background) : getWindowBackground();
+    //                                                      └─ Returns configured default
+  }
+  ```
+
+PROPTERMINAL.KT (lines 318-319):
+  ```
+  private fun convertTerminalColor(terminalColor: TerminalColor?): Color {
+    if (terminalColor == null) return Color.White  ← HARDCODED
+  ```
+
+RESULT: Always uses white for defaults, ignoring actual default colors
+
+================================================================================
+ISSUE #10: HYPERLINK STYLING MISSING
+================================================================================
+
+TERMINALPOINT.JAVA (lines 1326-1334):
+  ```
+  if (style instanceof HyperlinkStyle) {
+    HyperlinkStyle hyperlinkStyle = (HyperlinkStyle) style;
+    
+    if (hyperlinkStyle.getHighlightMode() == HyperlinkStyle.HighlightMode.ALWAYS ||
+        (isHoveredHyperlink(hyperlinkStyle) && 
+         hyperlinkStyle.getHighlightMode() == HyperlinkStyle.HighlightMode.HOVER)) {
+      style = hyperlinkStyle.getHighlightStyle();  ← Apply hyperlink styling
+    }
+  }
+  ```
+
+FEATURES:
+  - Detects hyperlinks (URLs) in terminal output
+  - Highlights on hover or always
+  - Uses distinct colors/styling for links
+
+PROPTERMINAL.KT:
+  - No hyperlink detection
+  - No hyperlink highlighting
+
+RESULT: Links in terminal output aren't visually distinct
+
+================================================================================
+COMPLETE FEATURE COMPARISON TABLE
+================================================================================
+
+FEATURE                      | ProperTerminal | TerminalPanel | Implementation Notes
+─────────────────────────────┼────────────────┼───────────────┼──────────────────────
+BOLD                         | ✓              | ✓             | Implemented
+ITALIC                       | ✓              | ✓             | Implemented
+UNDERLINE                    | ✗              | ✓             | Missing - not drawn
+STRIKETHROUGH                | ✗              | ✗             | Not in TextStyle.Option
+DIM                          | ✗              | ✓             | Missing - color averaging
+INVERSE                      | ✗              | ✓             | Missing - no color swap
+SLOW_BLINK                   | ✗              | ✓             | Missing - no blinking
+RAPID_BLINK                  | ✗              | ✓             | Missing - no blinking
+HIDDEN                       | ✗              | ✓             | Missing - text visible
+16 ANSI Colors (0-15)        | ~ (hardcoded)  | ✓             | Hardcoded, not from palette
+256-Color Xterm (16-231)     | ✗              | ✓             | All render as WHITE
+Grayscale Colors (232-255)   | ✗              | ✓             | All render as WHITE
+24-bit RGB Colors            | ✓              | ✓             | Implemented
+Null Foreground (default)    | ✗              | ✓             | Hardcoded to white
+Null Background (default)    | ✗              | ✓             | Hardcoded to white
+ColorPalette Integration     | ✗              | ✓             | Completely bypassed
+Block Cursor                 | ✓ (basic)      | ✓ (advanced) | No state/blinking
+Underline Cursor             | ✗              | ✓             | Missing
+Vertical Bar Cursor          | ✗              | ✓             | Missing
+Cursor Blinking              | ✗              | ✓             | Missing
+Cursor Color                 | ✗ (hardcoded)  | ✓             | Hardcoded white
+Selection Rendering          | ✗              | ✓             | Missing
+Selection Style Options      | ✗              | ✓             | Missing
+Hyperlink Styling            | ✗              | ✓             | Missing
+Double-Width Characters      | ✓              | ✓             | Implemented
+Ambiguous Width Handling     | ✓              | ✓             | Implemented
+
+================================================================================
+IMPLEMENTATION PRIORITY
+================================================================================
+
+CRITICAL (Breaks visibility):
+  1. Fix 256-color palette (colors 16-255 → WHITE)
+  2. Implement INVERSE color swapping
+  3. Implement underline rendering
+  4. Implement DIM color averaging
+  5. Implement text blinking
+
+HIGH (Missing features):
+  6. Implement HIDDEN text support
+  7. Implement cursor blinking animation
+  8. Implement underline/bar cursor shapes
+  9. Fix default color handling
+
+MEDIUM (Enhancement):
+  10. Implement selection rendering
+  11. Implement hyperlink styling
+  12. Use ColorPalette configuration
+
+================================================================================
+LINES OF CODE REFERENCE
+================================================================================
+
+ProperTerminal.kt locations:
+  - Line 20: Imports TextStyle (Compose)
+  - Line 38: Imports TextStyle (JediTerm)
+  - Lines 179-247: Character rendering loop
+  - Lines 222-231: Background drawing (does check DOUBLE-WIDTH)
+  - Lines 232-233: Only checks BOLD/ITALIC
+  - Lines 261-269: Cursor rendering (block only)
+  - Lines 318-354: Color conversion function
+
+TerminalPanel.java locations:
+  - Line 10: TextStyle.Option enum
+  - Lines 779-871: paintComponent method
+  - Lines 1015-1047: Color handling methods
+  - Lines 1025-1047: Foreground/background with palette
+  - Lines 1214-1266: Cursor rendering (3 shapes, blinking)
+  - Lines 1305-1356: Character drawing with all attributes
+  - Lines 1351-1355: Underline rendering
+  - Lines 1366-1409: Font and character layout
+  - Lines 1474-1484: DIM color averaging
+  - Line 1497: ColorPalette integration
+
+TextStyle.java:
+  - Lines 70-78: Option enum definition
+
+BlinkingTextTracker.java:
+  - Complete file: Blinking implementation
+

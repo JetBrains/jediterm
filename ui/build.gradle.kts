@@ -5,7 +5,7 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 plugins {
-  kotlin("jvm") version "2.1.21"
+  kotlin("jvm")
   `java-library`
   `maven-publish`
 }
@@ -31,7 +31,7 @@ dependencies {
 }
 
 tasks {
-  val jvmTarget = JvmTarget.JVM_11
+  val jvmTarget = JvmTarget.JVM_17
   compileJava {
     sourceCompatibility = jvmTarget.target
     targetCompatibility = jvmTarget.target

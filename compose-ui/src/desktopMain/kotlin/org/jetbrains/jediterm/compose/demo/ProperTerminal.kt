@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontFamily
@@ -33,11 +34,13 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.jediterm.compose.ComposeTerminalDisplay
 import org.jetbrains.jediterm.compose.PlatformServices
 import org.jetbrains.jediterm.compose.getPlatformServices
+import com.jediterm.core.util.TermSize
 import com.jediterm.terminal.ArrayTerminalDataStream
 import com.jediterm.terminal.emulator.JediEmulator
 import com.jediterm.terminal.model.JediTerminal
 import com.jediterm.terminal.model.StyleState
 import com.jediterm.terminal.model.TerminalTextBuffer
+import com.jediterm.terminal.RequestOrigin
 import com.jediterm.terminal.TextStyle as JediTextStyle
 import com.jediterm.terminal.TerminalColor
 import com.jediterm.terminal.util.CharUtils
@@ -249,6 +252,29 @@ fun ProperTerminal(
 
     Box(
         modifier = modifier
+            .onGloballyPositioned { coordinates ->
+                // Detect window size changes and resize terminal accordingly
+                val newWidth = coordinates.size.width
+                val newHeight = coordinates.size.height
+
+                if (newWidth > 0 && newHeight > 0 && cellWidth > 0f && cellHeight > 0f) {
+                    val newCols = (newWidth / cellWidth).toInt().coerceAtLeast(1)
+                    val newRows = (newHeight / cellHeight).toInt().coerceAtLeast(1)
+                    val currentCols = textBuffer.width
+                    val currentRows = textBuffer.height
+
+                    // Only resize if dimensions actually changed
+                    if (currentCols != newCols || currentRows != newRows) {
+                        val newTermSize = TermSize(newCols, newRows)
+                        // Resize terminal buffer and notify PTY process (sends SIGWINCH)
+                        terminal.resize(newTermSize, RequestOrigin.User)
+                        // Also notify the process handle if available (must be launched in coroutine)
+                        scope.launch {
+                            processHandle?.resize(newCols, newRows)
+                        }
+                    }
+                }
+            }
             .fillMaxSize()
             .background(Color.Black)
             .onPointerEvent(PointerEventType.Press) { event ->

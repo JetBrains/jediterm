@@ -4,6 +4,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.State
 import com.jediterm.core.util.TermSize
 import com.jediterm.terminal.CursorShape
+import com.jediterm.terminal.RequestOrigin
 import com.jediterm.terminal.TerminalDisplay
 import com.jediterm.terminal.emulator.mouse.MouseFormat
 import com.jediterm.terminal.emulator.mouse.MouseMode
@@ -88,6 +89,13 @@ class ComposeTerminalDisplay : TerminalDisplay {
 
     override fun setBracketedPasteMode(enabled: Boolean) {
         _bracketedPasteMode.value = enabled
+    }
+
+    override fun onResize(newTermSize: TermSize, origin: RequestOrigin) {
+        // Update terminal size state when resize happens (from user window resize or remote app request)
+        _termSize.value = newTermSize
+        // Trigger redraw to reflect new dimensions
+        requestRedraw()
     }
 
     /**

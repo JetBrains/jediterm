@@ -18,7 +18,7 @@ import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
-import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontFamily
@@ -29,6 +29,8 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.jediterm.compose.ComposeTerminalDisplay
@@ -65,6 +67,7 @@ fun ProperTerminal(
     var isFocused by remember { mutableStateOf(false) }
     var scrollOffset by remember { mutableStateOf(0) }  // 0 = at bottom, positive = scrolled up into history
     val scope = rememberCoroutineScope()
+    var resizeJob by remember { mutableStateOf<Job?>(null) }  // For debouncing resize operations
     val focusRequester = remember { FocusRequester() }
     val textMeasurer = rememberTextMeasurer()
     val clipboardManager = LocalClipboardManager.current
@@ -252,24 +255,30 @@ fun ProperTerminal(
 
     Box(
         modifier = modifier
-            .onGloballyPositioned { coordinates ->
-                // Detect window size changes and resize terminal accordingly
-                val newWidth = coordinates.size.width
-                val newHeight = coordinates.size.height
+            .onSizeChanged { size ->
+                // Debounced resize: only fires when size actually changes, with 150ms delay
+                // This prevents rapid-fire resize operations during window dragging which
+                // can cause CSI query responses from nvim to appear on screen
+                if (size.width > 0 && size.height > 0 && cellWidth > 0f && cellHeight > 0f) {
+                    val newCols = (size.width / cellWidth).toInt().coerceAtLeast(1)
+                    val newRows = (size.height / cellHeight).toInt().coerceAtLeast(1)
 
-                if (newWidth > 0 && newHeight > 0 && cellWidth > 0f && cellHeight > 0f) {
-                    val newCols = (newWidth / cellWidth).toInt().coerceAtLeast(1)
-                    val newRows = (newHeight / cellHeight).toInt().coerceAtLeast(1)
-                    val currentCols = textBuffer.width
-                    val currentRows = textBuffer.height
+                    // Cancel any pending resize operation
+                    resizeJob?.cancel()
 
-                    // Only resize if dimensions actually changed
-                    if (currentCols != newCols || currentRows != newRows) {
-                        val newTermSize = TermSize(newCols, newRows)
-                        // Resize terminal buffer and notify PTY process (sends SIGWINCH)
-                        terminal.resize(newTermSize, RequestOrigin.User)
-                        // Also notify the process handle if available (must be launched in coroutine)
-                        scope.launch {
+                    // Start new debounced resize operation (150ms follows standard terminal emulator practice)
+                    resizeJob = scope.launch {
+                        delay(150)  // Wait for resize to "settle"
+
+                        val currentCols = textBuffer.width
+                        val currentRows = textBuffer.height
+
+                        // Only resize if dimensions actually changed
+                        if (currentCols != newCols || currentRows != newRows) {
+                            val newTermSize = TermSize(newCols, newRows)
+                            // Resize terminal buffer and notify PTY process (sends SIGWINCH)
+                            terminal.resize(newTermSize, RequestOrigin.User)
+                            // Both operations in same coroutine for proper sequencing
                             processHandle?.resize(newCols, newRows)
                         }
                     }

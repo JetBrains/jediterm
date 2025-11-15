@@ -821,9 +821,10 @@ public class JediEmulator extends DataStreamIteratingEmulator {
 
   private boolean sendDeviceAttributes() {
     if (LOG.isDebugEnabled()) {
-      LOG.debug("Identifying to remote system as VT102");
+      LOG.debug("Identifying to remote system as VT220");
     }
-    myTerminal.deviceAttributes(CharUtils.VT102_RESPONSE);
+    // Use VT220 instead of VT102 for better TUI app compatibility (Neovim, vim, less, etc.)
+    myTerminal.deviceAttributes(CharUtils.VT220_RESPONSE);
 
     return true;
   }

@@ -132,13 +132,18 @@ fun ProperTerminal(
         )
     }
 
-    // Cache cell dimensions (calculated once, reused for all rendering)
-    val cellDimensions = remember(measurementStyle) {
+    // Cache cell dimensions and baseline offset (calculated once, reused for all rendering)
+    val cellMetrics = remember(measurementStyle) {
         val measurement = textMeasurer.measure("W", measurementStyle)
-        Pair(measurement.size.width.toFloat(), measurement.size.height.toFloat())
+        val width = measurement.size.width.toFloat()
+        val height = measurement.size.height.toFloat()
+        // Get baseline offset from top of text bounds
+        val baseline = measurement.firstBaseline
+        Triple(width, height, baseline)
     }
-    val cellWidth = cellDimensions.first
-    val cellHeight = cellDimensions.second
+    val cellWidth = cellMetrics.first
+    val cellHeight = cellMetrics.second
+    val baselineOffset = cellMetrics.third
 
     // Auto-scroll to bottom on new output if already at bottom
     LaunchedEffect(redrawTrigger) {
@@ -174,10 +179,22 @@ fun ProperTerminal(
     // Initialize process
     LaunchedEffect(Unit) {
         val services = getPlatformServices()
+
+        // Set proper TERM environment variables for TUI app compatibility (Neovim, vim, less, etc.)
+        // TERM=xterm-256color tells apps we support xterm escape sequences and 256 colors
+        // COLORTERM=truecolor advertises 24-bit color support
+        // TERM_PROGRAM=JediTerm identifies this terminal for app-specific workarounds
+        val terminalEnvironment = buildMap {
+            putAll(filterEnvironmentVariables(System.getenv()))
+            put("TERM", "xterm-256color")
+            put("COLORTERM", "truecolor")
+            put("TERM_PROGRAM", "JediTerm")
+        }
+
         val config = PlatformServices.ProcessService.ProcessConfig(
             command = command,
             arguments = arguments,
-            environment = filterEnvironmentVariables(System.getenv()),
+            environment = terminalEnvironment,
             workingDirectory = System.getProperty("user.home")
         )
 
@@ -225,13 +242,8 @@ fun ProperTerminal(
             }
         }
 
-        // Send test emoji command on startup for debugging
-        launch {
-            kotlinx.coroutines.delay(200)  // Wait for shell to be ready
-            val testCommand = "echo 'Emoji test: ☁️ ❯ ▶ 😀 🌟 ★ ✓ ♥ → ←'\n"
-            handle?.write(testCommand)
-        }
-
+        // Request focus after a short delay to ensure window is ready
+        kotlinx.coroutines.delay(100)
         focusRequester.requestFocus()
     }
 
@@ -272,15 +284,28 @@ fun ProperTerminal(
             }
             .onKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown) {
-                    // Handle Ctrl+C / Cmd+C for copy
+                    // Handle Ctrl+V / Cmd+V for paste
+                    if ((keyEvent.isCtrlPressed || keyEvent.isMetaPressed) && keyEvent.key == Key.V) {
+                        val text = clipboardManager.getText()?.text
+                        if (!text.isNullOrEmpty()) {
+                            scope.launch {
+                                processHandle?.write(text)
+                            }
+                        }
+                        return@onKeyEvent true
+                    }
+
+                    // Handle Ctrl+C / Cmd+C for copy (only when selection exists)
                     if ((keyEvent.isCtrlPressed || keyEvent.isMetaPressed) && keyEvent.key == Key.C) {
                         if (selectionStart != null && selectionEnd != null) {
                             val selectedText = extractSelectedText(textBuffer, selectionStart!!, selectionEnd!!)
                             if (selectedText.isNotEmpty()) {
                                 clipboardManager.setText(AnnotatedString(selectedText))
+                                return@onKeyEvent true  // Consume event only if we copied
                             }
                         }
-                        return@onKeyEvent true
+                        // No selection - let Ctrl+C pass through to terminal (for process interrupt)
+                        return@onKeyEvent false
                     }
 
                     scope.launch {
@@ -293,9 +318,15 @@ fun ProperTerminal(
                             Key.DirectionDown -> "\u001B[B"
                             Key.DirectionRight -> "\u001B[C"
                             Key.DirectionLeft -> "\u001B[D"
+                            // Filter out modifier-only keys
+                            Key.ShiftLeft, Key.ShiftRight,
+                            Key.CtrlLeft, Key.CtrlRight,
+                            Key.AltLeft, Key.AltRight,
+                            Key.MetaLeft, Key.MetaRight -> ""
                             else -> {
                                 val code = keyEvent.utf16CodePoint
-                                if (code > 0) {
+                                // Filter out invalid characters (0xFFFF) and Unicode special ranges
+                                if (code > 0 && code != 0xFFFF && code < 0xFFF0) {
                                     code.toChar().toString()
                                 } else ""
                             }
@@ -314,192 +345,360 @@ fun ProperTerminal(
             }
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            // Render terminal content from TerminalTextBuffer
-            // Cell dimensions are cached outside Canvas for performance
+            // Two-pass rendering to fix z-index issue:
+            // Pass 1: Draw all backgrounds first
+            // Pass 2: Draw all text on top
+            // This prevents backgrounds from overlapping emoji that extend beyond cell boundaries
+
             textBuffer.lock()
             try {
                 val height = textBuffer.height
                 val width = textBuffer.width
 
+                // ===== PASS 1: DRAW ALL BACKGROUNDS =====
+                for (row in 0 until height) {
+                    val lineIndex = row - scrollOffset
+                    val line = textBuffer.getLine(lineIndex)
+
+                    var col = 0
+                    while (col < width) {
+                        val char = line.charAt(col)
+                        val style = line.getStyleAt(col)
+
+                        // Skip DWC markers
+                        if (char == CharUtils.DWC) {
+                            col++
+                            continue
+                        }
+
+                        val x = col * cellWidth
+                        val y = row * cellHeight
+
+                        // Check if double-width
+                        val isWcwidthDoubleWidth = char != ' ' && char != '\u0000' &&
+                                CharUtils.isDoubleWidthCharacter(char.code, display.ambiguousCharsAreDoubleWidth())
+
+                        // Skip variation selectors
+                        if (char.code == 0xFE0F || char.code == 0xFE0E) {
+                            col++
+                            continue
+                        }
+
+                        // Get attributes
+                        val isInverse = style?.hasOption(JediTextStyle.Option.INVERSE) ?: false
+                        val isDim = style?.hasOption(JediTextStyle.Option.DIM) ?: false
+
+                        // Get colors (swap if INVERSE)
+                        val rawFg = if (isInverse) style?.background else style?.foreground
+                        val rawBg = if (isInverse) style?.foreground else style?.background
+
+                        var fgColor = if (rawFg != null) {
+                            convertTerminalColor(rawFg)
+                        } else {
+                            Color.White
+                        }
+                        var bgColor = if (rawBg != null) {
+                            convertTerminalColor(rawBg)
+                        } else {
+                            Color.Black
+                        }
+
+                        // Apply DIM to foreground
+                        if (isDim) {
+                            fgColor = applyDimColor(fgColor)
+                        }
+
+                        // Draw background (single or double width)
+                        val bgWidth = if (isWcwidthDoubleWidth) cellWidth * 2 else cellWidth
+                        drawRect(
+                            color = bgColor,
+                            topLeft = Offset(x, y),
+                            size = Size(bgWidth, cellHeight)
+                        )
+
+                        // Skip next column if double-width
+                        if (isWcwidthDoubleWidth) {
+                            col++
+                        }
+
+                        col++
+                    }
+                }
+
+                // ===== PASS 2: DRAW ALL TEXT =====
                 for (row in 0 until height) {
                     // Calculate actual line index based on scroll offset
                     // scrollOffset = 0 means showing screen lines 0..height-1
                     // scrollOffset > 0 means showing some history lines
                     val lineIndex = row - scrollOffset
                     val line = textBuffer.getLine(lineIndex)
-                    if (line != null) {
-                        var col = 0
-                        while (col < width) {
-                            val char = line.charAt(col)
-                            val style = line.getStyleAt(col)
 
-                            // Skip double-width character continuation markers
-                            if (char == CharUtils.DWC) {
-                                col++
-                                continue
-                            }
+                  // Text batching: accumulate consecutive characters with same style
+                  val batchText = StringBuilder()
+                  var batchStartCol = 0
+                  var batchFgColor: Color? = null
+                  var batchIsBold = false
+                  var batchIsItalic = false
+                  var batchIsUnderline = false
 
-                            val x = col * cellWidth
-                            val y = row * cellHeight
+                  // Helper function to flush accumulated batch
+                  fun flushBatch() {
+                      if (batchText.isNotEmpty()) {
+                          val x = batchStartCol * cellWidth
+                          val y = row * cellHeight
 
-                            // Check if this is a double-width character according to wcwidth
-                            val isWcwidthDoubleWidth = char != ' ' && char != '\u0000' &&
-                                    CharUtils.isDoubleWidthCharacter(char.code, display.ambiguousCharsAreDoubleWidth())
+                          val textStyle = TextStyle(
+                              color = batchFgColor ?: Color.White,
+                              fontFamily = measurementStyle.fontFamily,
+                              fontSize = 16.sp,
+                              fontWeight = if (batchIsBold) FontWeight.Bold else FontWeight.Normal,
+                              fontStyle = if (batchIsItalic) androidx.compose.ui.text.font.FontStyle.Italic
+                                         else androidx.compose.ui.text.font.FontStyle.Normal
+                          )
 
-                            // For emoji and symbols, we'll render them with slight scaling for better visibility
-                            // These are Unicode blocks containing symbols that render poorly at normal size
-                            val isEmojiOrWideSymbol = when (char.code) {
-                                in 0x2600..0x26FF -> true  // Miscellaneous Symbols (☁️, ☀️, ★, etc.)
-                                in 0x2700..0x27BF -> true  // Dingbats (✂, ✈, ❯, etc.)
-                                in 0x1F300..0x1F9FF -> true  // Emoji & Pictographs
-                                in 0x1F600..0x1F64F -> true  // Emoticons
-                                in 0x1F680..0x1F6FF -> true  // Transport & Map Symbols
-                                else -> false
-                            }
+                          drawText(
+                              textMeasurer = textMeasurer,
+                              text = batchText.toString(),
+                              topLeft = Offset(x, y),
+                              style = textStyle
+                          )
 
-                            val isDoubleWidth = isWcwidthDoubleWidth
+                          // Draw underline for entire batch if needed
+                          if (batchIsUnderline) {
+                              val underlineY = y + cellHeight - 2f
+                              val underlineWidth = batchText.length * cellWidth
+                              drawLine(
+                                  color = batchFgColor ?: Color.White,
+                                  start = Offset(x, underlineY),
+                                  end = Offset(x + underlineWidth, underlineY),
+                                  strokeWidth = 1f
+                              )
+                          }
 
-                            // Skip rendering variation selectors - they're combining characters
-                            if (char.code == 0xFE0F || char.code == 0xFE0E) {
-                                col++
-                                continue
-                            }
+                          batchText.clear()
+                      }
+                  }
 
-                            // Check text attributes (use false if style is null)
-                            val isBold = style?.hasOption(JediTextStyle.Option.BOLD) ?: false
-                            val isItalic = style?.hasOption(JediTextStyle.Option.ITALIC) ?: false
-                            val isInverse = style?.hasOption(JediTextStyle.Option.INVERSE) ?: false
-                            val isDim = style?.hasOption(JediTextStyle.Option.DIM) ?: false
-                            val isUnderline = style?.hasOption(JediTextStyle.Option.UNDERLINED) ?: false
-                            val isHidden = style?.hasOption(JediTextStyle.Option.HIDDEN) ?: false
-                            val isSlowBlink = style?.hasOption(JediTextStyle.Option.SLOW_BLINK) ?: false
-                            val isRapidBlink = style?.hasOption(JediTextStyle.Option.RAPID_BLINK) ?: false
+                  var col = 0
+                  while (col < width) {
+                      val char = line.charAt(col)
+                      val style = line.getStyleAt(col)
 
-                            // Get colors (swap if INVERSE)
-                            // Handle null style or null colors with defaults: white foreground, black background
-                            val rawFg = if (isInverse) style?.background else style?.foreground
-                            val rawBg = if (isInverse) style?.foreground else style?.background
+                      // Skip double-width character continuation markers
+                      if (char == CharUtils.DWC) {
+                          col++
+                          continue
+                      }
 
-                            var fgColor = if (rawFg != null) {
-                                convertTerminalColor(rawFg)
-                            } else {
-                                Color.White  // Default foreground when color is null
-                            }
-                            var bgColor = if (rawBg != null) {
-                                convertTerminalColor(rawBg)
-                            } else {
-                                Color.Black  // Default background when color is null
-                            }
+                      val x = col * cellWidth
+                      val y = row * cellHeight
 
-                            // Apply DIM to foreground color (reduce brightness to 50%)
-                            if (isDim) {
-                                fgColor = applyDimColor(fgColor)
-                            }
+                      // Check if this is a double-width character according to wcwidth
+                      val isWcwidthDoubleWidth = char != ' ' && char != '\u0000' &&
+                              CharUtils.isDoubleWidthCharacter(char.code, display.ambiguousCharsAreDoubleWidth())
 
-                            // Draw background (single or double width)
-                            val bgWidth = if (isDoubleWidth) cellWidth * 2 else cellWidth
-                            drawRect(
-                                color = bgColor,
-                                topLeft = Offset(x, y),
-                                size = Size(bgWidth, cellHeight)
-                            )
+                      // For emoji and symbols, we'll render them with slight scaling for better visibility
+                      // These are Unicode blocks containing symbols that render poorly at normal size
+                      val isEmojiOrWideSymbol = when (char.code) {
+                          in 0x2600..0x26FF -> true  // Miscellaneous Symbols (☁️, ☀️, ★, etc.)
+                          in 0x2700..0x27BF -> true  // Dingbats (✂, ✈, ❯, etc.)
+                          in 0x1F300..0x1F9FF -> true  // Emoji & Pictographs
+                          in 0x1F600..0x1F64F -> true  // Emoticons
+                          in 0x1F680..0x1F6FF -> true  // Transport & Map Symbols
+                          else -> false
+                      }
 
-                            // Determine if text should be visible based on blink state
-                            val isBlinkVisible = when {
-                                isSlowBlink -> slowBlinkVisible
-                                isRapidBlink -> rapidBlinkVisible
-                                else -> true
-                            }
+                      val isDoubleWidth = isWcwidthDoubleWidth
 
-                            // Only draw glyph if it's printable (not space or null), not HIDDEN, and visible in blink cycle
-                            if (char != ' ' && char != '\u0000' && !isHidden && isBlinkVisible) {
-                                // Create text style using cached font family (Menlo on macOS for better Unicode support)
-                                val textStyle = TextStyle(
-                                    color = fgColor,
-                                    fontFamily = measurementStyle.fontFamily,
-                                    fontSize = 14.sp,
-                                    fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
-                                    fontStyle = if (isItalic) androidx.compose.ui.text.font.FontStyle.Italic
-                                               else androidx.compose.ui.text.font.FontStyle.Normal
-                                )
+                      // Skip rendering variation selectors - they're combining characters
+                      if (char.code == 0xFE0F || char.code == 0xFE0E) {
+                          col++
+                          continue
+                      }
 
-                                // For double-width characters: hybrid approach
-                                // - If font provides proper double-width glyphs (CJK), center them
-                                // - If font doesn't (emoji in monospace), scale them to fill space
-                                if (isDoubleWidth) {
-                                    // Measure the actual glyph width at natural font size
-                                    val measurement = textMeasurer.measure(char.toString(), textStyle)
-                                    val glyphWidth = measurement.size.width.toFloat()
+                      // Check text attributes (use false if style is null)
+                      val isBold = style?.hasOption(JediTextStyle.Option.BOLD) ?: false
+                      val isItalic = style?.hasOption(JediTextStyle.Option.ITALIC) ?: false
+                      val isInverse = style?.hasOption(JediTextStyle.Option.INVERSE) ?: false
+                      val isDim = style?.hasOption(JediTextStyle.Option.DIM) ?: false
+                      val isUnderline = style?.hasOption(JediTextStyle.Option.UNDERLINED) ?: false
+                      val isHidden = style?.hasOption(JediTextStyle.Option.HIDDEN) ?: false
+                      val isSlowBlink = style?.hasOption(JediTextStyle.Option.SLOW_BLINK) ?: false
+                      val isRapidBlink = style?.hasOption(JediTextStyle.Option.RAPID_BLINK) ?: false
 
-                                    // Calculate available space (2 cells)
-                                    val allocatedWidth = cellWidth * 2
+                      // Get colors (swap if INVERSE)
+                      // Handle null style or null colors with defaults: white foreground, black background
+                      val rawFg = if (isInverse) style?.background else style?.foreground
+                      val rawBg = if (isInverse) style?.foreground else style?.background
 
-                                    // Decide whether to scale or center based on glyph width
-                                    // If glyph is less than 1.5 cells, assume font doesn't support DWC properly - scale it
-                                    // If glyph is >= 1.5 cells, assume it's proper DWC (like CJK) - center it
-                                    if (glyphWidth < cellWidth * 1.5f) {
-                                        // Font doesn't provide proper double-width glyph - scale it
-                                        val scaleX = allocatedWidth / glyphWidth.coerceAtLeast(1f)
-                                        scale(scaleX = scaleX, scaleY = 1f, pivot = Offset(x, y + cellWidth)) {
-                                            drawText(
-                                                textMeasurer = textMeasurer,
-                                                text = char.toString(),
-                                                topLeft = Offset(x, y),
-                                                style = textStyle
-                                            )
-                                        }
-                                    } else {
-                                        // Font provides proper double-width glyph - center it
-                                        val emptySpace = (allocatedWidth - glyphWidth).coerceAtLeast(0f)
-                                        val centeringOffset = emptySpace / 2f
-                                        drawText(
-                                            textMeasurer = textMeasurer,
-                                            text = char.toString(),
-                                            topLeft = Offset(x + centeringOffset, y),
-                                            style = textStyle
-                                        )
-                                    }
-                                } else if (isEmojiOrWideSymbol) {
-                                    // For emoji/symbols that aren't recognized as double-width by wcwidth,
-                                    // render normally - Nerd Font has proper glyphs for these symbols
-                                    drawText(
-                                        textMeasurer = textMeasurer,
-                                        text = char.toString(),
-                                        topLeft = Offset(x, y),
-                                        style = textStyle
-                                    )
-                                } else {
-                                    // Normal single-width rendering
-                                    drawText(
-                                        textMeasurer = textMeasurer,
-                                        text = char.toString(),
-                                        topLeft = Offset(x, y),
-                                        style = textStyle
-                                    )
-                                }
+                      var fgColor = if (rawFg != null) {
+                          convertTerminalColor(rawFg)
+                      } else {
+                          Color.White  // Default foreground when color is null
+                      }
+                      var bgColor = if (rawBg != null) {
+                          convertTerminalColor(rawBg)
+                      } else {
+                          Color.Black  // Default background when color is null
+                      }
 
-                                // Draw underline if UNDERLINE attribute is set
-                                if (isUnderline) {
-                                    val underlineY = y + cellHeight - 2f  // 2 pixels from bottom
-                                    val underlineWidth = if (isDoubleWidth) cellWidth * 2 else cellWidth
-                                    drawLine(
-                                        color = fgColor,
-                                        start = Offset(x, underlineY),
-                                        end = Offset(x + underlineWidth, underlineY),
-                                        strokeWidth = 1f
-                                    )
-                                }
-                            }
+                      // Apply DIM to foreground color (reduce brightness to 50%)
+                      if (isDim) {
+                          fgColor = applyDimColor(fgColor)
+                      }
 
-                            // If true double-width (wcwidth), skip the next column (contains DWC marker)
-                            // For emoji/symbols, don't skip - they're single-width in the buffer but render wider
-                            if (isWcwidthDoubleWidth) {
-                                col++
-                            }
+                      // Note: Backgrounds are already drawn in Pass 1
 
-                            col++
-                        }
-                    }
+                      // Determine if text should be visible based on blink state
+                      val isBlinkVisible = when {
+                          isSlowBlink -> slowBlinkVisible
+                          isRapidBlink -> rapidBlinkVisible
+                          else -> true
+                      }
+
+                      // Decide if this character can be batched or needs individual rendering
+                      val canBatch = !isDoubleWidth && !isEmojiOrWideSymbol &&
+                                     !isHidden && isBlinkVisible &&
+                                     char != ' ' && char != '\u0000'
+
+                      // Check if style matches current batch
+                      val styleMatches = batchText.isNotEmpty() &&
+                                        batchFgColor == fgColor &&
+                                        batchIsBold == isBold &&
+                                        batchIsItalic == isItalic &&
+                                        batchIsUnderline == isUnderline
+
+                      if (canBatch && (batchText.isEmpty() || styleMatches)) {
+                          // Add to batch
+                          if (batchText.isEmpty()) {
+                              batchStartCol = col
+                              batchFgColor = fgColor
+                              batchIsBold = isBold
+                              batchIsItalic = isItalic
+                              batchIsUnderline = isUnderline
+                          }
+                          batchText.append(char)
+                      } else {
+                          // Flush current batch before rendering this character
+                          flushBatch()
+
+                      // Only draw glyph if it's printable (not space or null), not HIDDEN, and visible in blink cycle
+                      if (char != ' ' && char != '\u0000' && !isHidden && isBlinkVisible) {
+                          // Create text style using cached font family (Menlo on macOS for better Unicode support)
+                          val textStyle = TextStyle(
+                              color = fgColor,
+                              fontFamily = measurementStyle.fontFamily,
+                              fontSize = 16.sp,
+                              fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
+                              fontStyle = if (isItalic) androidx.compose.ui.text.font.FontStyle.Italic
+                                         else androidx.compose.ui.text.font.FontStyle.Normal
+                          )
+
+                          // For double-width characters: hybrid approach
+                          // - If font provides proper double-width glyphs (CJK), center them
+                          // - If font doesn't (emoji in monospace), scale them to fill space
+                          if (isDoubleWidth) {
+                              // Measure the actual glyph width at natural font size
+                              val measurement = textMeasurer.measure(char.toString(), textStyle)
+                              val glyphWidth = measurement.size.width.toFloat()
+
+                              // Calculate available space (2 cells)
+                              val allocatedWidth = cellWidth * 2
+
+                              // Decide whether to scale or center based on glyph width
+                              // If glyph is less than 1.5 cells, assume font doesn't support DWC properly - scale it
+                              // If glyph is >= 1.5 cells, assume it's proper DWC (like CJK) - center it
+                              if (glyphWidth < cellWidth * 1.5f) {
+                                  // Font doesn't provide proper double-width glyph - scale it
+                                  val scaleX = allocatedWidth / glyphWidth.coerceAtLeast(1f)
+                                  scale(scaleX = scaleX, scaleY = 1f, pivot = Offset(x, y + cellWidth)) {
+                                      drawText(
+                                          textMeasurer = textMeasurer,
+                                          text = char.toString(),
+                                          topLeft = Offset(x, y),
+                                          style = textStyle
+                                      )
+                                  }
+                              } else {
+                                  // Font provides proper double-width glyph - center it
+                                  val emptySpace = (allocatedWidth - glyphWidth).coerceAtLeast(0f)
+                                  val centeringOffset = emptySpace / 2f
+                                  drawText(
+                                      textMeasurer = textMeasurer,
+                                      text = char.toString(),
+                                      topLeft = Offset(x + centeringOffset, y),
+                                      style = textStyle
+                                  )
+                              }
+                          } else if (isEmojiOrWideSymbol) {
+                              // For emoji/symbols: measure and scale to fit cell better
+                              val measurement = textMeasurer.measure(char.toString(), textStyle)
+                              val glyphWidth = measurement.size.width.toFloat()
+                              val glyphHeight = measurement.size.height.toFloat()
+
+                              // Calculate scale based on BOTH dimensions to prevent clipping
+                              // Target size: fill cell but leave small margin
+                              val targetWidth = cellWidth * 0.95f
+                              val targetHeight = cellHeight * 0.9f
+
+                              // Calculate scales for both dimensions
+                              val widthScale = if (glyphWidth > 0) targetWidth / glyphWidth else 1.0f
+                              val heightScale = if (glyphHeight > 0) targetHeight / glyphHeight else 1.0f
+
+                              // Use minimum scale to ensure emoji fits in BOTH dimensions
+                              // No minimum scale - let height constraint prevent clipping
+                              // For small glyphs like cloud, we accept smaller size to avoid clipping tall emoji
+                              val scale = minOf(widthScale, heightScale).coerceIn(0.8f, 2.5f)
+
+                              // Center emoji in cell with calculated scale
+                              val scaledWidth = glyphWidth * scale
+                              val scaledHeight = glyphHeight * scale
+                              val xOffset = (cellWidth - scaledWidth) / 2f
+                              val yOffset = (cellHeight - scaledHeight) / 2f
+
+                              scale(scaleX = scale, scaleY = scale, pivot = Offset(x + cellWidth/2, y + cellHeight/2)) {
+                                  drawText(
+                                      textMeasurer = textMeasurer,
+                                      text = char.toString(),
+                                      topLeft = Offset(x + xOffset, y + yOffset),
+                                      style = textStyle
+                                  )
+                              }
+                          } else {
+                              // Normal single-width rendering
+                              drawText(
+                                  textMeasurer = textMeasurer,
+                                  text = char.toString(),
+                                  topLeft = Offset(x, y),
+                                  style = textStyle
+                              )
+                          }
+
+                          // Draw underline if UNDERLINE attribute is set
+                          if (isUnderline) {
+                              val underlineY = y + cellHeight - 2f  // 2 pixels from bottom
+                              val underlineWidth = if (isDoubleWidth) cellWidth * 2 else cellWidth
+                              drawLine(
+                                  color = fgColor,
+                                  start = Offset(x, underlineY),
+                                  end = Offset(x + underlineWidth, underlineY),
+                                  strokeWidth = 1f
+                              )
+                          }
+                      }
+                      }  // Close else block
+
+                      // If true double-width (wcwidth), skip the next column (contains DWC marker)
+                      // For emoji/symbols, don't skip - they're single-width in the buffer but render wider
+                      if (isWcwidthDoubleWidth) {
+                          col++
+                      }
+
+                      col++
+                  }
+
+                  // Flush any remaining batch at end of line
+                  flushBatch()
                 }
 
                 // Draw selection highlight
@@ -544,8 +743,8 @@ fun ProperTerminal(
                     }
                 }
 
-                // Draw cursor
-                if (cursorVisible && isFocused) {
+                // Draw cursor (visible even when unfocused, but dimmed)
+                if (cursorVisible) {
                     // Check if cursor should be visible based on blink state
                     val shouldShowCursor = when (cursorShape) {
                         CursorShape.BLINK_BLOCK, CursorShape.BLINK_UNDERLINE, CursorShape.BLINK_VERTICAL_BAR -> cursorBlinkVisible
@@ -553,9 +752,19 @@ fun ProperTerminal(
                     }
 
                     if (shouldShowCursor) {
+                        // Debug: Log cursor position to understand the offset issue
+                        if (cursorX == 0 || cursorY == 0) {
+                            println("DEBUG Cursor: X=$cursorX Y=$cursorY, scrollOffset=$scrollOffset, height=$height")
+                        }
+
                         val x = cursorX * cellWidth
-                        val y = cursorY * cellHeight
-                        val cursorColor = Color.White.copy(alpha = 0.7f)
+                        // Adjust cursor Y position: JediTerm reports cursor in 1-indexed coordinates
+                        // but our rendering is 0-indexed, so we need to subtract 1
+                        val adjustedCursorY = (cursorY - 1).coerceAtLeast(0)
+                        val y = adjustedCursorY * cellHeight
+                        // Dimmed cursor when unfocused for better UX
+                        val cursorAlpha = if (isFocused) 0.7f else 0.3f
+                        val cursorColor = Color.White.copy(alpha = cursorAlpha)
 
                         when (cursorShape) {
                             CursorShape.BLINK_BLOCK, CursorShape.STEADY_BLOCK, null -> {

@@ -31,6 +31,10 @@ public class CharUtils {
 
   public static byte[] VT102_RESPONSE = makeCode(ESC, '[', '?', '6', 'c');
 
+  // VT220 with color support for better TUI compatibility (Neovim, vim, less)
+  // CSI ? 62 ; 1 c = VT220 terminal with 132 column mode
+  public static byte[] VT220_RESPONSE = makeCode(ESC, '[', '?', '6', '2', ';', '1', 'c');
+
   public static String getNonControlCharacters(int maxChars, char[] buf, int offset, int charsLength) {
     int len = Math.min(maxChars, charsLength);
 

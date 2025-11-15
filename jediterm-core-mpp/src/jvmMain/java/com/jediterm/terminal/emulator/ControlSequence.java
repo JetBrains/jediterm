@@ -58,17 +58,24 @@ public class ControlSequence {
       else if (b == '=' && pos == 0) {
         myStartsWithEqualsMark = true;
       }
-      else if (b == ';') {
-        if (digit > 0) {
+      else if (b == ';' || b == ':') {
+        // Treat both semicolon and colon as parameter separators for compatibility with modern terminals
+        // Semicolon ';' separates parameters, colon ':' separates sub-parameters (ISO-8613-6 / ITU-T Rec. T.416)
+        // Many TUI apps (Neovim, vim) use colon format for 256-color: CSI 38:5:n m instead of CSI 38;5;n m
+        // Always finish the current parameter when we see a separator (even if it's empty)
+        if (digit > 0 || seenDigit > 0) {
+          // We've been parsing parameters, so finish this one
           myArgc++;
-          if (myArgc == myArgv.length) {
-            int[] replacement = new int[myArgv.length * 2];
-            System.arraycopy(myArgv, 0, replacement, 0, myArgv.length);
-            myArgv = replacement;
-          }
-          myArgv[myArgc] = 0;
-          digit = 0;
         }
+        // Expand array if needed
+        if (myArgc >= myArgv.length) {
+          int[] replacement = new int[myArgv.length * 2];
+          System.arraycopy(myArgv, 0, replacement, 0, myArgv.length);
+          myArgv = replacement;
+        }
+        // Initialize next parameter slot to 0 (default for empty parameters)
+        myArgv[myArgc] = 0;
+        digit = 0;
       }
       else if ('0' <= b && b <= '9') {
         myArgv[myArgc] = myArgv[myArgc] * 10 + b - '0';
@@ -79,7 +86,8 @@ public class ControlSequence {
         // Intermediate bytes - valid inside CSI but not parameters.
         addIntermediate(b);
       }
-      else if (':' <= b && b <= '?') {
+      else if (';' < b && b <= '?') {
+        // Unhandled characters between ';' (0x3B) and '?' (0x3F), excluding ':' (0x3A) which is now handled
         addUnhandled(b);
       }
       else if (0x40 <= b && b <= 0x7E) {

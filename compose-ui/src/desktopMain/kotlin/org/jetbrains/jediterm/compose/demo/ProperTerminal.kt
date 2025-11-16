@@ -18,7 +18,7 @@ import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
-import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontFamily
@@ -255,30 +255,26 @@ fun ProperTerminal(
 
     Box(
         modifier = modifier
-            .onSizeChanged { size ->
-                // Debounced resize: only fires when size actually changes, with 150ms delay
-                // This prevents rapid-fire resize operations during window dragging which
-                // can cause CSI query responses from nvim to appear on screen
-                if (size.width > 0 && size.height > 0 && cellWidth > 0f && cellHeight > 0f) {
-                    val newCols = (size.width / cellWidth).toInt().coerceAtLeast(1)
-                    val newRows = (size.height / cellHeight).toInt().coerceAtLeast(1)
+            .onGloballyPositioned { coordinates ->
+                // Detect window size changes and resize terminal accordingly
+                // Note: This fires frequently, but we validate dimensions carefully to prevent crashes
+                val newWidth = coordinates.size.width
+                val newHeight = coordinates.size.height
 
-                    // Cancel any pending resize operation
-                    resizeJob?.cancel()
+                // Ensure we have valid dimensions (minimum 10x10 pixels to prevent crashes)
+                if (newWidth >= 10 && newHeight >= 10 && cellWidth > 0f && cellHeight > 0f) {
+                    val newCols = (newWidth / cellWidth).toInt().coerceAtLeast(2)
+                    val newRows = (newHeight / cellHeight).toInt().coerceAtLeast(2)
+                    val currentCols = textBuffer.width
+                    val currentRows = textBuffer.height
 
-                    // Start new debounced resize operation (150ms follows standard terminal emulator practice)
-                    resizeJob = scope.launch {
-                        delay(150)  // Wait for resize to "settle"
-
-                        val currentCols = textBuffer.width
-                        val currentRows = textBuffer.height
-
-                        // Only resize if dimensions actually changed
-                        if (currentCols != newCols || currentRows != newRows) {
-                            val newTermSize = TermSize(newCols, newRows)
-                            // Resize terminal buffer and notify PTY process (sends SIGWINCH)
-                            terminal.resize(newTermSize, RequestOrigin.User)
-                            // Both operations in same coroutine for proper sequencing
+                    // Only resize if dimensions actually changed AND are reasonable
+                    if ((currentCols != newCols || currentRows != newRows) && newCols >= 2 && newRows >= 2) {
+                        val newTermSize = TermSize(newCols, newRows)
+                        // Resize terminal buffer and notify PTY process (sends SIGWINCH)
+                        terminal.resize(newTermSize, RequestOrigin.User)
+                        // Also notify the process handle if available (must be launched in coroutine)
+                        scope.launch {
                             processHandle?.resize(newCols, newRows)
                         }
                     }

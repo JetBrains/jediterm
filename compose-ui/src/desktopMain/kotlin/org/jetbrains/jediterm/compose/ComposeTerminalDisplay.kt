@@ -100,16 +100,28 @@ class ComposeTerminalDisplay : TerminalDisplay {
     private val _redrawTrigger = mutableStateOf(0)
     val redrawTrigger: State<Int> = _redrawTrigger
 
+    // Cursor debugging (can be disabled by setting to false)
+    private val debugCursor = System.getenv("JEDITERM_DEBUG_CURSOR")?.toBoolean() ?: false
+
     override fun setCursor(x: Int, y: Int) {
+        if (debugCursor && (_cursorX.value != x || _cursorY.value != y)) {
+            println("🔵 CURSOR MOVE: (${ _cursorX.value},${_cursorY.value}) → ($x,$y)")
+        }
         _cursorX.value = x
         _cursorY.value = y
     }
 
     override fun setCursorShape(cursorShape: CursorShape?) {
+        if (debugCursor && _cursorShape.value != cursorShape) {
+            println("🔷 CURSOR SHAPE: ${_cursorShape.value} → $cursorShape")
+        }
         _cursorShape.value = cursorShape
     }
 
     override fun setCursorVisible(visible: Boolean) {
+        if (debugCursor && _cursorVisible.value != visible) {
+            println("👁️  CURSOR VISIBLE: ${_cursorVisible.value} → $visible")
+        }
         _cursorVisible.value = visible
     }
 

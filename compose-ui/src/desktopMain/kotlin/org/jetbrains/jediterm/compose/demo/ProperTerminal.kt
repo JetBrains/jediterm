@@ -468,64 +468,24 @@ fun ProperTerminal(
                         val isInverse = style?.hasOption(JediTextStyle.Option.INVERSE) ?: false
                         val isDim = style?.hasOption(JediTextStyle.Option.DIM) ?: false
 
-                        // Get colors (swap if INVERSE)
-                        val rawFg = if (isInverse) style?.background else style?.foreground
-                        val rawBg = if (isInverse) style?.foreground else style?.background
+                        // Apply defaults FIRST, then swap if INVERSE
+                        // This ensures INVERSE works correctly even when colors are null
+                        val baseFg = style?.foreground?.let { convertTerminalColor(it) } ?: Color.White
+                        val baseBg = style?.background?.let { convertTerminalColor(it) } ?: Color.Black
 
-                        var fgColor = if (rawFg != null) {
-                            convertTerminalColor(rawFg)
-                        } else {
-                            Color.White
-                        }
-                        var bgColor = if (rawBg != null) {
-                            convertTerminalColor(rawBg)
-                        } else {
-                            Color.Black
-                        }
+                        // THEN swap if INVERSE attribute is set
+                        var fgColor = if (isInverse) baseBg else baseFg
+                        var bgColor = if (isInverse) baseFg else baseBg
 
                         // Apply DIM to foreground
                         if (isDim) {
                             fgColor = applyDimColor(fgColor)
                         }
 
-                        // Check if this position is the cursor position
-                        // cursorY is 1-indexed, so adjust to 0-indexed for comparison
-                        val adjustedCursorY = (cursorY - 1).coerceAtLeast(0)
-                        val isCursorPosition = (col == cursorX && row == adjustedCursorY)
-
-                        // Determine the background color to draw
-                        // If cursor is visible and this is cursor position, use cursor color
-                        val finalBgColor = if (cursorVisible && isCursorPosition) {
-                            // Check if cursor should be visible based on blink state
-                            val shouldShowCursor = when (cursorShape) {
-                                CursorShape.BLINK_BLOCK, CursorShape.BLINK_UNDERLINE, CursorShape.BLINK_VERTICAL_BAR -> cursorBlinkVisible
-                                else -> true  // STEADY_* shapes are always visible
-                            }
-
-                            if (shouldShowCursor && (cursorShape == CursorShape.BLINK_BLOCK ||
-                                                     cursorShape == CursorShape.STEADY_BLOCK ||
-                                                     cursorShape == null)) {
-                                // Use cursor color for block cursor (solid when focused, dimmed when unfocused)
-                                val cursorAlpha = if (isFocused) 1.0f else 0.3f
-                                val customCursorColor = terminal.cursorColor
-                                val baseCursorColor = if (customCursorColor != null) {
-                                    Color(customCursorColor.red, customCursorColor.green, customCursorColor.blue)
-                                } else {
-                                    Color.White
-                                }
-                                baseCursorColor.copy(alpha = cursorAlpha)
-                            } else {
-                                // Non-block cursor shapes: use regular background
-                                bgColor
-                            }
-                        } else {
-                            bgColor
-                        }
-
                         // Draw background (single or double width)
                         val bgWidth = if (isWcwidthDoubleWidth) cellWidth * 2 else cellWidth
                         drawRect(
-                            color = finalBgColor,
+                            color = bgColor,
                             topLeft = Offset(x, y),
                             size = Size(bgWidth, cellHeight)
                         )
@@ -536,53 +496,6 @@ fun ProperTerminal(
                         }
 
                         col++
-                    }
-                }
-
-                // ===== PASS 1.5: DRAW NON-BLOCK CURSOR SHAPES =====
-                // Draw underline and vertical bar cursors as overlays after background
-                if (cursorVisible) {
-                    val shouldShowCursor = when (cursorShape) {
-                        CursorShape.BLINK_BLOCK, CursorShape.BLINK_UNDERLINE, CursorShape.BLINK_VERTICAL_BAR -> cursorBlinkVisible
-                        else -> true  // STEADY_* shapes are always visible
-                    }
-
-                    if (shouldShowCursor) {
-                        val x = cursorX * cellWidth
-                        val adjustedCursorY = (cursorY - 1).coerceAtLeast(0)
-                        val y = adjustedCursorY * cellHeight
-                        val cursorAlpha = if (isFocused) 1.0f else 0.3f
-                        val customCursorColor = terminal.cursorColor
-                        val baseCursorColor = if (customCursorColor != null) {
-                            Color(customCursorColor.red, customCursorColor.green, customCursorColor.blue)
-                        } else {
-                            Color.White
-                        }
-                        val cursorColor = baseCursorColor.copy(alpha = cursorAlpha)
-
-                        when (cursorShape) {
-                            CursorShape.BLINK_UNDERLINE, CursorShape.STEADY_UNDERLINE -> {
-                                // Underline cursor - draw line at bottom of cell
-                                val underlineHeight = cellHeight * 0.2f  // 20% of cell height
-                                drawRect(
-                                    color = cursorColor,
-                                    topLeft = Offset(x, y + cellHeight - underlineHeight),
-                                    size = Size(cellWidth, underlineHeight)
-                                )
-                            }
-                            CursorShape.BLINK_VERTICAL_BAR, CursorShape.STEADY_VERTICAL_BAR -> {
-                                // Vertical bar cursor - draw thin line on left side
-                                val barWidth = cellWidth * 0.15f  // 15% of cell width
-                                drawRect(
-                                    color = cursorColor,
-                                    topLeft = Offset(x, y),
-                                    size = Size(barWidth, cellHeight)
-                                )
-                            }
-                            else -> {
-                                // Block cursor already handled in Pass 1
-                            }
-                        }
                     }
                 }
 
@@ -695,21 +608,14 @@ fun ProperTerminal(
                       val isSlowBlink = style?.hasOption(JediTextStyle.Option.SLOW_BLINK) ?: false
                       val isRapidBlink = style?.hasOption(JediTextStyle.Option.RAPID_BLINK) ?: false
 
-                      // Get colors (swap if INVERSE)
-                      // Handle null style or null colors with defaults: white foreground, black background
-                      val rawFg = if (isInverse) style?.background else style?.foreground
-                      val rawBg = if (isInverse) style?.foreground else style?.background
+                      // Apply defaults FIRST, then swap if INVERSE
+                      // This ensures INVERSE works correctly even when colors are null
+                      val baseFg = style?.foreground?.let { convertTerminalColor(it) } ?: Color.White
+                      val baseBg = style?.background?.let { convertTerminalColor(it) } ?: Color.Black
 
-                      var fgColor = if (rawFg != null) {
-                          convertTerminalColor(rawFg)
-                      } else {
-                          Color.White  // Default foreground when color is null
-                      }
-                      var bgColor = if (rawBg != null) {
-                          convertTerminalColor(rawBg)
-                      } else {
-                          Color.Black  // Default background when color is null
-                      }
+                      // THEN swap if INVERSE attribute is set
+                      var fgColor = if (isInverse) baseBg else baseFg
+                      var bgColor = if (isInverse) baseFg else baseBg
 
                       // Apply DIM to foreground color (reduce brightness to 50%)
                       if (isDim) {
@@ -932,8 +838,61 @@ fun ProperTerminal(
                     }
                 }
 
-                // Cursor rendering now handled in Pass 1 (block cursors as background)
-                // and Pass 1.5 (underline/vertical bar cursors as overlays)
+                // Draw cursor (visible even when unfocused, but dimmed)
+                if (cursorVisible) {
+                    // Check if cursor should be visible based on blink state
+                    val shouldShowCursor = when (cursorShape) {
+                        CursorShape.BLINK_BLOCK, CursorShape.BLINK_UNDERLINE, CursorShape.BLINK_VERTICAL_BAR -> cursorBlinkVisible
+                        else -> true  // STEADY_* shapes are always visible
+                    }
+
+                    if (shouldShowCursor) {
+                        val x = cursorX * cellWidth
+                        // Adjust cursor Y position: JediTerm reports cursor in 1-indexed coordinates
+                        // but our rendering is 0-indexed, so we need to subtract 1
+                        val adjustedCursorY = (cursorY - 1).coerceAtLeast(0)
+                        val y = adjustedCursorY * cellHeight
+                        // Dimmed cursor when unfocused for better UX
+                        val cursorAlpha = if (isFocused) 0.7f else 0.3f
+                        // Use custom cursor color from OSC 12, or default to white
+                        val customCursorColor = terminal.cursorColor
+                        val baseCursorColor = if (customCursorColor != null) {
+                            Color(customCursorColor.red, customCursorColor.green, customCursorColor.blue)
+                        } else {
+                            Color.White
+                        }
+                        val cursorColor = baseCursorColor.copy(alpha = cursorAlpha)
+
+                        when (cursorShape) {
+                            CursorShape.BLINK_BLOCK, CursorShape.STEADY_BLOCK, null -> {
+                            // Block cursor - fill entire cell
+                            drawRect(
+                                color = cursorColor,
+                                topLeft = Offset(x, y),
+                                size = Size(cellWidth, cellHeight)
+                            )
+                        }
+                        CursorShape.BLINK_UNDERLINE, CursorShape.STEADY_UNDERLINE -> {
+                            // Underline cursor - draw line at bottom of cell
+                            val underlineHeight = cellHeight * 0.2f  // 20% of cell height
+                            drawRect(
+                                color = cursorColor,
+                                topLeft = Offset(x, y + cellHeight - underlineHeight),
+                                size = Size(cellWidth, underlineHeight)
+                            )
+                        }
+                        CursorShape.BLINK_VERTICAL_BAR, CursorShape.STEADY_VERTICAL_BAR -> {
+                            // Vertical bar cursor - draw thin line on left side
+                            val barWidth = cellWidth * 0.15f  // 15% of cell width
+                            drawRect(
+                                color = cursorColor,
+                                topLeft = Offset(x, y),
+                                size = Size(barWidth, cellHeight)
+                            )
+                        }
+                    }
+                    }
+                }
             } finally {
                 textBuffer.unlock()
             }

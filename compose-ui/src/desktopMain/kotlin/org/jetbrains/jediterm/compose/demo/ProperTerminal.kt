@@ -83,6 +83,26 @@ fun ProperTerminal(
     val dataStream = remember { BlockingTerminalDataStream() }
     val emulator = remember { JediEmulator(dataStream, terminal) }
 
+    /**
+     * Routes terminal responses (DSR, device attributes, mouse events, etc.) back to the PTY process.
+     * This enables bidirectional communication required by TUI applications like vim, less, codex.
+     */
+    class ProcessTerminalOutput(
+        private val processHandle: PlatformServices.ProcessService.ProcessHandle?
+    ) : com.jediterm.terminal.TerminalOutputStream {
+        override fun sendBytes(response: ByteArray, userInput: Boolean) {
+            kotlinx.coroutines.runBlocking {
+                processHandle?.write(String(response, Charsets.UTF_8))
+            }
+        }
+
+        override fun sendString(string: String, userInput: Boolean) {
+            kotlinx.coroutines.runBlocking {
+                processHandle?.write(string)
+            }
+        }
+    }
+
     // Watch redraw trigger to force recomposition
     val redrawTrigger = display.redrawTrigger.value
     val cursorX = display.cursorX.value
@@ -211,6 +231,12 @@ fun ProperTerminal(
 
         val handle = services.getProcessService().spawnProcess(config)
         processHandle = handle
+
+        // Connect terminal output to PTY process for bidirectional communication
+        // This enables DSR responses, device attribute queries, and other terminal→app messages
+        if (handle != null) {
+            terminal.setTerminalOutput(ProcessTerminalOutput(handle))
+        }
 
         // Start emulator processing coroutine - runs continuously and blocks on getChar()
         // This allows CSI sequences to span chunk boundaries without being truncated

@@ -141,6 +141,50 @@ gh pr create --base master --head dev --title "Your PR title" --body "Descriptio
   - Nerd Font file (2.5MB)
   - Must have NO SPACES in filename
 
+## Terminal Output Processing (CRITICAL)
+
+### Blocking Data Stream Architecture
+The terminal now uses a **stateful, single-emulator approach** that prevents CSI code truncation:
+
+#### Problem (Fixed)
+- Creating new `JediEmulator` instance per output chunk caused state loss
+- When CSI sequences (like `ESC[6n`) spanned multiple chunks, they would be truncated
+- Resulted in visible escape codes appearing on screen during nvim startup or window resize
+
+#### Solution (Implemented)
+Created `BlockingTerminalDataStream.kt` that:
+- Implements `TerminalDataStream` interface with blocking behavior
+- Uses internal queue to buffer incoming data chunks
+- Blocks on `getChar()` instead of throwing EOF at chunk boundaries
+- Maintains single long-lived `JediEmulator` instance to preserve state
+
+#### Architecture
+```kotlin
+// Single long-lived instances (ProperTerminal.kt:75-84)
+val dataStream = remember { BlockingTerminalDataStream() }
+val emulator = remember { JediEmulator(dataStream, terminal) }
+
+// Two separate coroutines:
+// 1. Emulator processing (Dispatchers.Default) - blocks on getChar()
+// 2. Output reading (Dispatchers.IO) - appends chunks to stream
+```
+
+#### Key Files
+- `BlockingTerminalDataStream.kt` (121 lines) - Core blocking stream implementation
+- `ProperTerminal.kt:215-264` - Dual-coroutine output processing logic
+
+### Window Resize Handling (CRITICAL)
+
+#### Problem (Fixed)
+- Terminal would crash with negative dimensions during window resize
+- Error: `IllegalArgumentException: maxWidth(-110) must be >= than minWidth(0)`
+
+#### Solution (Implemented)
+Added comprehensive dimension validation in `ProperTerminal.kt:258-264`:
+- Minimum window size: 10x10 pixels
+- Minimum terminal size: 2x2 characters
+- Uses `coerceAtLeast()` to prevent negative/zero dimensions
+
 ## Known Issues & Todos
 
 ### In Progress
@@ -148,7 +192,10 @@ gh pr create --base master --head dev --title "Your PR title" --body "Descriptio
 2. Terminal scrolling performance could be improved
 3. Need to test with different Nerd Font variants
 
-### Completed
+### Completed (Recent → Oldest)
+✅ **CSI code truncation fix** (commit e147d0b) - No more visible escape codes
+✅ **Terminal crash fix** (commit 59f4154) - Resize no longer crashes terminal
+✅ **Stateful emulator architecture** - Single long-lived emulator with blocking stream
 ✅ Font loading mechanism (File-based approach)
 ✅ Dev branch created
 ✅ Screenshot capture script documented
@@ -209,7 +256,13 @@ gh pr create --base master --head dev --title "Your PR title" --body "Descriptio
 - Capture screenshots for visual verification
 
 ## Last Updated
-November 14, 2025 12:18 PM PST
+November 16, 2025 7:30 PM PST
+
+### Recent Changes
+- **November 16, 2025**: Added documentation for improved rendering logic
+  - Blocking data stream architecture (CSI fix)
+  - Window resize handling improvements
+  - Updated completed tasks list
 
 ---
 

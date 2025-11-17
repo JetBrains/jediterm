@@ -333,6 +333,8 @@ fun ProperTerminal(
                     selectionStart = Pair(col, row)
                     selectionEnd = Pair(col, row)
                     isDragging = true
+                    // Phase 2: Immediate redraw for mouse input
+                    display.requestImmediateRedraw()
                 }
             }
             .onPointerEvent(PointerEventType.Move) { event ->
@@ -343,11 +345,15 @@ fun ProperTerminal(
                     val row = (change.position.y / cellHeight).toInt()
 
                     selectionEnd = Pair(col, row)
+                    // Phase 2: Immediate redraw during drag
+                    display.requestImmediateRedraw()
                 }
             }
             .onPointerEvent(PointerEventType.Release) { event ->
                 // End selection on mouse release
                 isDragging = false
+                // Phase 2: Immediate redraw on release
+                display.requestImmediateRedraw()
             }
             .onPointerEvent(PointerEventType.Scroll) { event ->
                 val delta = event.changes.first().scrollDelta.y
@@ -405,6 +411,8 @@ fun ProperTerminal(
                         }
                         if (text.isNotEmpty()) {
                             processHandle?.write(text)
+                            // Phase 2: Immediate redraw for user input (zero lag)
+                            display.requestImmediateRedraw()
                         }
                     }
                     true
@@ -864,7 +872,14 @@ fun ProperTerminal(
                         val y = adjustedCursorY * cellHeight
                         // Dimmed cursor when unfocused for better UX
                         val cursorAlpha = if (isFocused) 0.7f else 0.3f
-                        val cursorColor = Color.White.copy(alpha = cursorAlpha)
+                        // Use custom cursor color from OSC 12, or default to white
+                        val customCursorColor = terminal.cursorColor
+                        val baseCursorColor = if (customCursorColor != null) {
+                            Color(customCursorColor.red, customCursorColor.green, customCursorColor.blue)
+                        } else {
+                            Color.White
+                        }
+                        val cursorColor = baseCursorColor.copy(alpha = cursorAlpha)
 
                         when (cursorShape) {
                             CursorShape.BLINK_BLOCK, CursorShape.STEADY_BLOCK, null -> {

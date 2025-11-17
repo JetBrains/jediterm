@@ -74,6 +74,9 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   private Point myLastMotionReport = null;
   private boolean myCursorYChanged;
 
+  @Nullable
+  private Color myCursorColor = null;
+
   private final List<TerminalApplicationTitleListener> myApplicationTitleListeners = new CopyOnWriteArrayList<>();
   private final List<TerminalResizeListener> myTerminalResizeListeners = new CopyOnWriteArrayList<>();
 
@@ -316,6 +319,17 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   @Override
   public @Nullable Color getWindowBackground() {
     return myDisplay.getWindowBackground();
+  }
+
+  @Override
+  public @Nullable Color getCursorColor() {
+    return myCursorColor;
+  }
+
+  @Override
+  public void setCursorColor(@Nullable Color color) {
+    myCursorColor = color;
+    myDisplay.setCursorColor(color);
   }
 
   private final List<TerminalCustomCommandListener> myCustomCommandListeners = new CopyOnWriteArrayList<>();

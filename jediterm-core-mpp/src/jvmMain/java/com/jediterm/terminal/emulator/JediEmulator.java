@@ -8,6 +8,7 @@ import com.jediterm.terminal.emulator.mouse.MouseFormat;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
 import com.jediterm.terminal.util.CharUtils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -283,6 +284,8 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       case 10:
       case 11:
         return processColorQuery(args);
+      case 12:
+        return processCursorColor(args);
       case 104:
         // `Ps = 104 ; c` (Reset Color Number c).
         // Let's support resetting to avoid warnings.
@@ -292,6 +295,10 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         List<String> argList = args.getArgs();
         myTerminal.processCustomCommand(argList.subList(1, argList.size()));
         return true;
+    }
+    // Log unhandled OSC sequences to help identify missing support
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("UNHANDLED OSC sequence: ps=" + ps + ", args=" + args.getArgs());
     }
     return false;
   }
@@ -326,6 +333,91 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       myTerminal.deviceStatusReport(str);
     }
     return true;
+  }
+
+  /**
+   * Handles OSC 12 (cursor color) queries and updates.
+   * Query: ESC]12;?\ESC\
+   * Set: ESC]12;#RRGGBB\ESC\ or ESC]12;rgb:RR/GG/BB\ESC\
+   */
+  private boolean processCursorColor(@NotNull SystemCommandSequence args) {
+    String arg = args.getStringAt(1);
+    if (arg == null) {
+      return false;
+    }
+
+    if ("?".equals(arg)) {
+      // Query cursor color
+      Color color = myTerminal.getCursorColor();
+      if (color != null) {
+        String str = args.format(List.of("12", color.toXParseColor()));
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Responding to OSC 12 query: " + str);
+        }
+        myTerminal.deviceStatusReport(str);
+      }
+      return true;
+    }
+
+    // Set cursor color
+    try {
+      Color color = parseOscColor(arg);
+      if (color != null) {
+        myTerminal.setCursorColor(color);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Set cursor color to: " + arg);
+        }
+        return true;
+      } else {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Failed to parse cursor color: " + arg);
+        }
+        return false;
+      }
+    } catch (Exception e) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Failed to parse cursor color: " + arg, e);
+      }
+      return false;
+    }
+  }
+
+  /**
+   * Parses OSC color string. Supports two formats:
+   * 1. Hex format: #RRGGBB (e.g., #FF0000 for red)
+   * 2. XParseColor format: rgb:RRRR/GGGG/BBBB (16-bit components, e.g., rgb:FFFF/0000/0000)
+   *
+   * @param colorStr The color string to parse
+   * @return Color object or null if parsing fails
+   */
+  @Nullable
+  private Color parseOscColor(@NotNull String colorStr) {
+    try {
+      // Handle hex format: #RRGGBB
+      if (colorStr.startsWith("#")) {
+        String hex = colorStr.substring(1);
+        if (hex.length() == 6) {
+          int rgb = Integer.parseInt(hex, 16);
+          return new Color(rgb);
+        }
+      }
+      // Handle XParseColor format: rgb:RRRR/GGGG/BBBB
+      else if (colorStr.startsWith("rgb:")) {
+        String[] parts = colorStr.substring(4).split("/");
+        if (parts.length == 3) {
+          // Convert 16-bit values to 8-bit (divide by 0x101)
+          int r = Integer.parseInt(parts[0], 16) / 0x101;
+          int g = Integer.parseInt(parts[1], 16) / 0x101;
+          int b = Integer.parseInt(parts[2], 16) / 0x101;
+          return new Color(r, g, b);
+        }
+      }
+    } catch (NumberFormatException e) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Invalid color format: " + colorStr, e);
+      }
+    }
+    return null;
   }
 
   private void processTwoCharSequence(char ch, Terminal terminal) throws IOException {

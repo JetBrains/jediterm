@@ -47,4 +47,10 @@ public interface TerminalDisplay {
   default @Nullable Color getWindowBackground() {
     return null;
   }
+
+  default @Nullable Color getCursorColor() {
+    return null;
+  }
+
+  default void setCursorColor(@Nullable Color color) {}
 }

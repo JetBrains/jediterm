@@ -172,6 +172,10 @@ public interface Terminal {
 
   @Nullable Color getWindowBackground();
 
+  @Nullable Color getCursorColor();
+
+  void setCursorColor(@Nullable Color color);
+
   default void addApplicationTitleListener(@NotNull TerminalApplicationTitleListener listener) {}
 
   default void removeApplicationTitleListener(@NotNull TerminalApplicationTitleListener listener) {}

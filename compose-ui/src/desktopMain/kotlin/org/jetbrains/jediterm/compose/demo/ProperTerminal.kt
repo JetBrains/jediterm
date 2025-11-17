@@ -78,6 +78,11 @@ fun ProperTerminal(
     val display = remember { ComposeTerminalDisplay() }
     val terminal = remember { JediTerminal(display, textBuffer, styleState) }
 
+    // Create single long-lived data stream and emulator to preserve state across chunk boundaries
+    // This prevents CSI sequences from being truncated when they span multiple output chunks
+    val dataStream = remember { BlockingTerminalDataStream() }
+    val emulator = remember { JediEmulator(dataStream, terminal) }
+
     // Watch redraw trigger to force recomposition
     val redrawTrigger = display.redrawTrigger.value
     val cursorX = display.cursorX.value
@@ -207,14 +212,40 @@ fun ProperTerminal(
         val handle = services.getProcessService().spawnProcess(config)
         processHandle = handle
 
-        // Read output in background and feed to emulator
-        launch {
+        // Start emulator processing coroutine - runs continuously and blocks on getChar()
+        // This allows CSI sequences to span chunk boundaries without being truncated
+        launch(Dispatchers.Default) {
+            try {
+                while (handle != null && handle.isAlive()) {
+                    try {
+                        emulator.processChar(dataStream.getChar(), terminal)
+                        display.requestRedraw()
+                    } catch (e: java.io.EOFException) {
+                        // Stream closed, exit gracefully
+                        break
+                    } catch (e: java.io.IOException) {
+                        // Only log non-EOF errors
+                        if (e !is com.jediterm.terminal.TerminalDataStream.EOF) {
+                            println("WARNING: I/O error processing terminal output: ${e.message}")
+                        }
+                        break
+                    } catch (e: Exception) {
+                        println("ERROR: Unexpected exception processing terminal output: ${e.message}")
+                        e.printStackTrace()
+                        break
+                    }
+                }
+            } finally {
+                dataStream.close()
+            }
+        }
+
+        // Read output in background and append to blocking stream
+        launch(Dispatchers.IO) {
             val maxChunkSize = 64 * 1024  // 64KB per read operation to prevent memory exhaustion
 
             while (handle != null && handle.isAlive()) {
-                val output = withContext(Dispatchers.IO) {
-                    handle.read()
-                }
+                val output = handle.read()
                 if (output != null) {
                     // Limit chunk size to prevent memory exhaustion from malicious/huge output
                     val processedOutput = if (output.length > maxChunkSize) {
@@ -224,28 +255,12 @@ fun ProperTerminal(
                         output
                     }
 
-                    // Convert String to char array and feed to emulator
-                    val chars = processedOutput.toCharArray()
-                    val dataStream = ArrayTerminalDataStream(chars)
-                    val emulator = JediEmulator(dataStream, terminal)
-
-                    try {
-                        // Process all characters through the emulator
-                        while (!dataStream.isEmpty) {
-                            emulator.processChar(dataStream.getChar(), terminal)
-                        }
-                        // Trigger redraw after processing
-                        display.requestRedraw()
-                    } catch (e: java.io.EOFException) {
-                        // Expected when stream ends
-                    } catch (e: java.io.IOException) {
-                        println("WARNING: I/O error processing terminal output: ${e.message}")
-                    } catch (e: Exception) {
-                        println("ERROR: Unexpected exception processing terminal output: ${e.message}")
-                        e.printStackTrace()
-                    }
+                    // Append chunk to blocking stream - emulator will process it atomically
+                    dataStream.append(processedOutput)
                 }
             }
+            // Signal end of stream
+            dataStream.close()
         }
 
         // Request focus after a short delay to ensure window is ready

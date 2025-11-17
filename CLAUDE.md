@@ -72,19 +72,42 @@ Check if font is in JAR:
 jar tf .gradleBuild/compose-ui/libs/compose-ui-desktop-*.jar | grep -i "font\|ttf"
 ```
 
+## Emoji Rendering with Variation Selectors (CRITICAL FIX)
+
+### Problem
+Emoji with Unicode variation selectors (U+FE0F, U+FE0E) were rendering as monochrome powerline symbols instead of proper colorful emoji. Example: ☁️ (U+2601 + U+FE0F) rendered as ☁ powerline glyph from MesloLGS Nerd Font.
+
+### Root Cause
+**Skia/Skiko limitation**: Compose Desktop's rendering engine does NOT honor Unicode variation selectors. Characters are rendered separately at different column positions:
+- U+2601 renders using MesloLGS NF (powerline symbol)
+- U+FE0F renders separately (invisible or box)
+
+### Solution (IMPLEMENTED)
+Implemented peek-ahead detection in `ProperTerminal.kt` (lines 585-597, 670-684, 725-767):
+
+1. **Peek-ahead detection** (lines 585-590): Check if next character is variation selector
+2. **Font switching** (lines 670-674): Use `FontFamily.Default` (system font with Apple Color Emoji) for emoji+variation selector pairs
+3. **Render both together** (lines 725-729): Concatenate emoji + variation selector and render as single unit
+4. **Skip variation selector** (lines 765-767): Advance column after rendering to avoid double-processing
+5. **Fallback skip logic** (lines 592-597): Skip standalone variation selectors for non-emoji pairs
+
+### Working Emoji
+✅ ☁️ (cloud), ☀️ (sun), ⭐ (star), ❤️ (heart), ✨ (sparkles), ⚡ (lightning)
+✅ ⚠️ (warning), ✅ (check mark), ❌ (cross mark), ☑️ (ballot box), ✔️ (check)
+✅ ➡️ (arrows), ©️ (copyright), ®️ (registered), ™️ (trademark)
+✅ Nerd Font symbols: ▲, ❯, ▶, ★, ✓, ♥, →, ← (no variation selectors needed)
+
+### Test Command
+```bash
+echo 'Emoji test: ☀️ ⭐ ❤️ ✨ ⚡ ☁️ ⚠️ ✅ ❌ ☑️ ✔️ ➡️'
+```
+
 ## Current Font Status
 
-### Working Symbols
-✅ ▲, ❯, ▶, ★, ✓, ♥, →, ←
-
-### Not Working
-❌ Some symbols still show as ∅∅ (empty set boxes)
-
-### Next Steps for Font Investigation
-1. Identify which Unicode codepoints are showing as ∅∅
-2. Check if MesloLGS NF includes those glyphs
-3. Try alternative Nerd Font variants (JetBrainsMono NF, FiraCode NF, etc.)
-4. Verify Unicode normalization in terminal output
+### Font Strategy
+- **MesloLGS Nerd Font**: Default for all text and Nerd Font symbols
+- **System Font (Apple Color Emoji)**: Automatically used for emoji with variation selectors
+- **Automatic detection**: Terminal detects emoji+variation selector pairs and switches fonts dynamically
 
 ## Build & Run Commands
 

@@ -450,11 +450,11 @@ fun ProperTerminal(
                         val isWcwidthDoubleWidth = char != ' ' && char != '\u0000' &&
                                 CharUtils.isDoubleWidthCharacter(char.code, display.ambiguousCharsAreDoubleWidth())
 
-                        // Skip variation selectors
-                        if (char.code == 0xFE0F || char.code == 0xFE0E) {
-                            col++
-                            continue
-                        }
+                        // TESTING: Commented out variation selector skip to see if it fixes emoji rendering
+                        // if (char.code == 0xFE0F || char.code == 0xFE0E) {
+                        //     col++
+                        //     continue
+                        // }
 
                         // Get attributes
                         val isInverse = style?.hasOption(JediTextStyle.Option.INVERSE) ?: false
@@ -582,8 +582,16 @@ fun ProperTerminal(
 
                       val isDoubleWidth = isWcwidthDoubleWidth
 
-                      // Skip rendering variation selectors - they're combining characters
-                      if (char.code == 0xFE0F || char.code == 0xFE0E) {
+                      // Peek ahead to detect emoji + variation selector pairs
+                      // When found, we'll handle them together with system font
+                      val nextChar = if (col + 1 < width) line.charAt(col + 1) else null
+                      val isEmojiWithVariationSelector = isEmojiOrWideSymbol &&
+                          nextChar != null &&
+                          (nextChar.code == 0xFE0F || nextChar.code == 0xFE0E)
+
+                      // Skip standalone variation selectors (fallback for non-emoji pairs)
+                      // These will be handled as part of emoji+variation pairs above
+                      if ((char.code == 0xFE0F || char.code == 0xFE0E) && !isEmojiOrWideSymbol) {
                           col++
                           continue
                       }
@@ -656,10 +664,19 @@ fun ProperTerminal(
 
                       // Only draw glyph if it's printable (not space or null), not HIDDEN, and visible in blink cycle
                       if (char != ' ' && char != '\u0000' && !isHidden && isBlinkVisible) {
-                          // Create text style using cached font family (Menlo on macOS for better Unicode support)
+                          // For emoji+variation selector pairs, use system font (FontFamily.Default)
+                          // to enable proper emoji rendering on macOS (Apple Color Emoji)
+                          // Skia doesn't honor variation selectors, so we must switch fonts
+                          val fontForChar = if (isEmojiWithVariationSelector) {
+                              FontFamily.Default  // System font with emoji support
+                          } else {
+                              measurementStyle.fontFamily  // Nerd Font
+                          }
+
+                          // Create text style using the appropriate font
                           val textStyle = TextStyle(
                               color = fgColor,
-                              fontFamily = measurementStyle.fontFamily,
+                              fontFamily = fontForChar,
                               fontSize = 16.sp,
                               fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
                               fontStyle = if (isItalic) androidx.compose.ui.text.font.FontStyle.Italic
@@ -704,23 +721,29 @@ fun ProperTerminal(
                               }
                           } else if (isEmojiOrWideSymbol) {
                               // For emoji/symbols: measure and scale to fit cell better
-                              val measurement = textMeasurer.measure(char.toString(), textStyle)
+                              // If this is emoji+variation selector pair, render both together
+                              val textToRender = if (isEmojiWithVariationSelector) {
+                                  "$char$nextChar"  // Render emoji + variation selector together
+                              } else {
+                                  char.toString()
+                              }
+
+                              val measurement = textMeasurer.measure(textToRender, textStyle)
                               val glyphWidth = measurement.size.width.toFloat()
                               val glyphHeight = measurement.size.height.toFloat()
 
                               // Calculate scale based on BOTH dimensions to prevent clipping
-                              // Target size: fill cell but leave small margin
-                              val targetWidth = cellWidth * 0.95f
-                              val targetHeight = cellHeight * 0.9f
+                              // Target size: fill entire cell (100% width and height)
+                              val targetWidth = cellWidth * 1.0f
+                              val targetHeight = cellHeight * 1.0f
 
                               // Calculate scales for both dimensions
                               val widthScale = if (glyphWidth > 0) targetWidth / glyphWidth else 1.0f
                               val heightScale = if (glyphHeight > 0) targetHeight / glyphHeight else 1.0f
 
                               // Use minimum scale to ensure emoji fits in BOTH dimensions
-                              // No minimum scale - let height constraint prevent clipping
-                              // For small glyphs like cloud, we accept smaller size to avoid clipping tall emoji
-                              val scale = minOf(widthScale, heightScale).coerceIn(0.8f, 2.5f)
+                              // Constrain to minimum 100% (no downsizing), maximum 250% (prevent excessive enlargement)
+                              val scale = minOf(widthScale, heightScale).coerceIn(1.0f, 2.5f)
 
                               // Center emoji in cell with calculated scale
                               val scaledWidth = glyphWidth * scale
@@ -731,10 +754,15 @@ fun ProperTerminal(
                               scale(scaleX = scale, scaleY = scale, pivot = Offset(x + cellWidth/2, y + cellHeight/2)) {
                                   drawText(
                                       textMeasurer = textMeasurer,
-                                      text = char.toString(),
+                                      text = textToRender,
                                       topLeft = Offset(x + xOffset, y + yOffset),
                                       style = textStyle
                                   )
+                              }
+
+                              // If we rendered emoji+variation selector, skip the variation selector
+                              if (isEmojiWithVariationSelector) {
+                                  col++  // Skip the variation selector character
                               }
                           } else {
                               // Normal single-width rendering

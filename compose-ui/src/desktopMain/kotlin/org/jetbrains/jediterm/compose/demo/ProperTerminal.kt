@@ -47,7 +47,60 @@ import com.jediterm.terminal.TextStyle as JediTextStyle
 import com.jediterm.terminal.TerminalColor
 import com.jediterm.terminal.util.CharUtils
 import com.jediterm.terminal.CursorShape
+import com.jediterm.terminal.TerminalKeyEncoder
+import com.jediterm.core.input.InputEvent
+import java.awt.event.KeyEvent as JavaKeyEvent
 import com.jediterm.terminal.emulator.ColorPaletteImpl
+
+/**
+ * Maps Compose Desktop Key constants to Java AWT VK (Virtual Key) codes.
+ * Returns null for keys that don't have a direct VK mapping.
+ */
+private fun mapComposeKeyToVK(key: Key): Int? {
+    return when (key) {
+        Key.Enter -> JavaKeyEvent.VK_ENTER
+        Key.Backspace -> JavaKeyEvent.VK_BACK_SPACE
+        Key.Tab -> JavaKeyEvent.VK_TAB
+        Key.Escape -> JavaKeyEvent.VK_ESCAPE
+        Key.DirectionUp -> JavaKeyEvent.VK_UP
+        Key.DirectionDown -> JavaKeyEvent.VK_DOWN
+        Key.DirectionLeft -> JavaKeyEvent.VK_LEFT
+        Key.DirectionRight -> JavaKeyEvent.VK_RIGHT
+        Key.Home -> JavaKeyEvent.VK_HOME
+        Key.MoveEnd -> JavaKeyEvent.VK_END
+        Key.PageUp -> JavaKeyEvent.VK_PAGE_UP
+        Key.PageDown -> JavaKeyEvent.VK_PAGE_DOWN
+        Key.Insert -> JavaKeyEvent.VK_INSERT
+        Key.Delete -> JavaKeyEvent.VK_DELETE
+        Key.F1 -> JavaKeyEvent.VK_F1
+        Key.F2 -> JavaKeyEvent.VK_F2
+        Key.F3 -> JavaKeyEvent.VK_F3
+        Key.F4 -> JavaKeyEvent.VK_F4
+        Key.F5 -> JavaKeyEvent.VK_F5
+        Key.F6 -> JavaKeyEvent.VK_F6
+        Key.F7 -> JavaKeyEvent.VK_F7
+        Key.F8 -> JavaKeyEvent.VK_F8
+        Key.F9 -> JavaKeyEvent.VK_F9
+        Key.F10 -> JavaKeyEvent.VK_F10
+        Key.F11 -> JavaKeyEvent.VK_F11
+        Key.F12 -> JavaKeyEvent.VK_F12
+        else -> null
+    }
+}
+
+/**
+ * Maps Compose Desktop key event modifiers to JediTerm InputEvent modifier masks.
+ * Note: Using JediTerm's InputEvent constants (SHIFT_MASK, etc.) not Java AWT's
+ * SHIFT_DOWN_MASK, as TerminalKeyEncoder expects the old Event mask values.
+ */
+private fun mapComposeModifiers(keyEvent: androidx.compose.ui.input.key.KeyEvent): Int {
+    var modifiers = 0
+    if (keyEvent.isShiftPressed) modifiers = modifiers or InputEvent.SHIFT_MASK
+    if (keyEvent.isCtrlPressed) modifiers = modifiers or InputEvent.CTRL_MASK
+    if (keyEvent.isAltPressed) modifiers = modifiers or InputEvent.ALT_MASK
+    if (keyEvent.isMetaPressed) modifiers = modifiers or InputEvent.META_MASK
+    return modifiers
+}
 
 /**
  * Proper terminal implementation using JediTerm's emulator.
@@ -82,6 +135,9 @@ fun ProperTerminal(
     // This prevents CSI sequences from being truncated when they span multiple output chunks
     val dataStream = remember { BlockingTerminalDataStream() }
     val emulator = remember { JediEmulator(dataStream, terminal) }
+
+    // Terminal key encoder for proper escape sequence generation (function keys, modifiers, etc.)
+    val keyEncoder = remember { TerminalKeyEncoder() }
 
     /**
      * Routes terminal responses (DSR, device attributes, mouse events, etc.) back to the PTY process.
@@ -118,6 +174,10 @@ fun ProperTerminal(
     var selectionStart by remember { mutableStateOf<Pair<Int, Int>?>(null) }  // (col, row)
     var selectionEnd by remember { mutableStateOf<Pair<Int, Int>?>(null) }    // (col, row)
     var isDragging by remember { mutableStateOf(false) }
+    var dragStartPos by remember { mutableStateOf<Offset?>(null) }  // Track initial mouse position for drag detection
+
+    // Drag threshold: pixels mouse must move before considering it a drag (not just a click)
+    val DRAG_THRESHOLD = 5f
 
     // Cursor blink state for BLINK_* cursor shapes
     var cursorBlinkVisible by remember { mutableStateOf(true) }
@@ -326,42 +386,105 @@ fun ProperTerminal(
             .onPointerEvent(PointerEventType.Press) { event ->
                 val change = event.changes.first()
                 if (change.pressed && change.previousPressed.not()) {
-                    // Start selection on left mouse button press
-                    val col = (change.position.x / cellWidth).toInt()
-                    val row = (change.position.y / cellHeight).toInt()
+                    // Track start position but don't create selection yet
+                    // This allows distinguishing click (no selection) from drag (selection)
+                    dragStartPos = change.position
 
-                    selectionStart = Pair(col, row)
-                    selectionEnd = Pair(col, row)
-                    isDragging = true
+                    // Clear any existing selection on click (standard terminal behavior)
+                    selectionStart = null
+                    selectionEnd = null
+                    isDragging = false
+
                     // Phase 2: Immediate redraw for mouse input
                     display.requestImmediateRedraw()
                 }
             }
             .onPointerEvent(PointerEventType.Move) { event ->
-                if (isDragging) {
-                    // Update selection end point while dragging
-                    val change = event.changes.first()
-                    val col = (change.position.x / cellWidth).toInt()
-                    val row = (change.position.y / cellHeight).toInt()
+                val change = event.changes.first()
+                val pos = change.position
+                val startPos = dragStartPos
 
-                    selectionEnd = Pair(col, row)
-                    // Phase 2: Immediate redraw during drag
-                    display.requestImmediateRedraw()
+                if (startPos != null) {
+                    // Calculate distance from start position
+                    val dx = pos.x - startPos.x
+                    val dy = pos.y - startPos.y
+                    val distance = kotlin.math.sqrt(dx * dx + dy * dy)
+
+                    // Only start selecting if moved beyond threshold (5 pixels)
+                    // This prevents accidental selection on single clicks
+                    if (distance > DRAG_THRESHOLD) {
+                        if (!isDragging) {
+                            // First time crossing threshold - start selection from original position
+                            isDragging = true
+                            val startCol = (startPos.x / cellWidth).toInt()
+                            val startRow = (startPos.y / cellHeight).toInt()
+                            selectionStart = Pair(startCol, startRow)
+                        }
+
+                        // Update selection end point as mouse moves
+                        val col = (pos.x / cellWidth).toInt()
+                        val row = (pos.y / cellHeight).toInt()
+                        selectionEnd = Pair(col, row)
+
+                        // Phase 2: Immediate redraw during drag
+                        display.requestImmediateRedraw()
+                    }
                 }
             }
             .onPointerEvent(PointerEventType.Release) { event ->
-                // End selection on mouse release
+                // If never started dragging (no movement beyond threshold),
+                // ensure selection is cleared - this was just a click, not a drag
+                if (!isDragging) {
+                    selectionStart = null
+                    selectionEnd = null
+                }
+
+                // Reset drag state
                 isDragging = false
+                dragStartPos = null
+
                 // Phase 2: Immediate redraw on release
                 display.requestImmediateRedraw()
             }
             .onPointerEvent(PointerEventType.Scroll) { event ->
                 val delta = event.changes.first().scrollDelta.y
                 val historySize = textBuffer.historyLinesCount
-                scrollOffset = (scrollOffset + delta.toInt()).coerceIn(0, historySize)
+                scrollOffset = (scrollOffset - delta.toInt()).coerceIn(0, historySize)
             }
             .onKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown) {
+                    // Handle Escape key - clear selection if it exists
+                    if (keyEvent.key == Key.Escape) {
+                        if (selectionStart != null || selectionEnd != null) {
+                            // Selection exists - clear it and consume the Escape key
+                            selectionStart = null
+                            selectionEnd = null
+                            display.requestImmediateRedraw()
+                            return@onKeyEvent true  // Consume event
+                        }
+                        // No selection - let Escape pass through to terminal
+                    }
+
+                    // Clear selection on any printable key (except Ctrl/Cmd+key combinations)
+                    // This matches standard terminal behavior - typing clears selection
+                    if (!keyEvent.isCtrlPressed && !keyEvent.isMetaPressed && !keyEvent.isAltPressed) {
+                        if (selectionStart != null || selectionEnd != null) {
+                            // Don't clear on navigation keys or function keys
+                            val isNavigationKey = keyEvent.key in listOf(
+                                Key.DirectionUp, Key.DirectionDown, Key.DirectionLeft, Key.DirectionRight,
+                                Key.Home, Key.MoveEnd, Key.PageUp, Key.PageDown,
+                                Key.F1, Key.F2, Key.F3, Key.F4, Key.F5, Key.F6,
+                                Key.F7, Key.F8, Key.F9, Key.F10, Key.F11, Key.F12
+                            )
+                            if (!isNavigationKey) {
+                                // Clear selection before processing the key
+                                selectionStart = null
+                                selectionEnd = null
+                                display.requestImmediateRedraw()
+                            }
+                        }
+                    }
+
                     // Handle Ctrl+V / Cmd+V for paste
                     if ((keyEvent.isCtrlPressed || keyEvent.isMetaPressed) && keyEvent.key == Key.V) {
                         val text = clipboardManager.getText()?.text
@@ -386,29 +509,37 @@ fun ProperTerminal(
                         return@onKeyEvent false
                     }
 
+                    // Filter out modifier-only keys - they don't produce output
+                    if (keyEvent.key in listOf(
+                        Key.ShiftLeft, Key.ShiftRight,
+                        Key.CtrlLeft, Key.CtrlRight,
+                        Key.AltLeft, Key.AltRight,
+                        Key.MetaLeft, Key.MetaRight
+                    )) {
+                        return@onKeyEvent false
+                    }
+
                     scope.launch {
-                        val text = when (keyEvent.key) {
-                            Key.Enter -> "\r"
-                            Key.Backspace -> "\u007F"  // DEL character
-                            Key.Tab -> "\t"
-                            Key.Escape -> "\u001B"
-                            Key.DirectionUp -> "\u001B[A"
-                            Key.DirectionDown -> "\u001B[B"
-                            Key.DirectionRight -> "\u001B[C"
-                            Key.DirectionLeft -> "\u001B[D"
-                            // Filter out modifier-only keys
-                            Key.ShiftLeft, Key.ShiftRight,
-                            Key.CtrlLeft, Key.CtrlRight,
-                            Key.AltLeft, Key.AltRight,
-                            Key.MetaLeft, Key.MetaRight -> ""
-                            else -> {
-                                val code = keyEvent.utf16CodePoint
-                                // Filter out invalid characters (0xFFFF) and Unicode special ranges
-                                if (code > 0 && code != 0xFFFF && code < 0xFFF0) {
-                                    code.toChar().toString()
-                                } else ""
+                        val text = run {
+                            // Try to map key to VK code and use TerminalKeyEncoder
+                            // This handles function keys, navigation keys, and all modifier combinations
+                            val vkCode = mapComposeKeyToVK(keyEvent.key)
+                            if (vkCode != null) {
+                                val modifiers = mapComposeModifiers(keyEvent)
+                                val bytes = keyEncoder.getCode(vkCode, modifiers)
+                                if (bytes != null) {
+                                    return@run String(bytes, Charsets.UTF_8)
+                                }
                             }
+
+                            // Fallback: Handle printable characters
+                            val code = keyEvent.utf16CodePoint
+                            // Filter out invalid characters (0xFFFF) and Unicode special ranges
+                            if (code > 0 && code != 0xFFFF && code < 0xFFF0) {
+                                code.toChar().toString()
+                            } else ""
                         }
+
                         if (text.isNotEmpty()) {
                             processHandle?.write(text)
                             // Phase 2: Immediate redraw for user input (zero lag)

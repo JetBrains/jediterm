@@ -1,5 +1,5 @@
 package com.jediterm.terminal.model
 
-internal interface TerminalHyperlinkListener {
+interface TerminalHyperlinkListener {
   fun hyperlinksChanged()
 }

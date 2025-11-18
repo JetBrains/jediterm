@@ -21,7 +21,7 @@ internal class SystemCommandSequence
         throw IOException("OSC sequence exceeds maximum length of $maxLength characters")
       }
 
-      val ch = stream.getChar()
+      val ch = stream.char
       if (ch == Ascii.NUL) {
         throw IOException("Unexpected end of stream in OSC sequence")
       }

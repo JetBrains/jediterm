@@ -138,18 +138,17 @@ class ComposeTerminalDisplay : TerminalDisplay {
         // No-op for now - alternate screen buffer handling could be added later
     }
 
-    override fun getWindowTitle(): String {
-        return _windowTitle
-    }
+    override var windowTitle: String?
+        get() = _windowTitle
+        set(value) {
+            _windowTitle = value ?: ""
+        }
 
-    override fun setWindowTitle(windowTitle: String) {
-        _windowTitle = windowTitle
-    }
-
-    override fun getSelection(): TerminalSelection? {
-        // No selection support yet
-        return null
-    }
+    override val selection: TerminalSelection?
+        get() {
+            // No selection support yet
+            return null
+        }
 
     override fun terminalMouseModeSet(mouseMode: MouseMode) {
         // No-op for now - mouse mode handling could be added later

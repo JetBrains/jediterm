@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -26,18 +25,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.jetbrains.jediterm.compose.ComposeTerminalDisplay
 import org.jetbrains.jediterm.compose.PlatformServices
 import org.jetbrains.jediterm.compose.getPlatformServices
 import com.jediterm.core.util.TermSize
-import com.jediterm.terminal.ArrayTerminalDataStream
 import com.jediterm.terminal.emulator.JediEmulator
 import com.jediterm.terminal.model.JediTerminal
 import com.jediterm.terminal.model.StyleState
@@ -304,7 +299,7 @@ fun ProperTerminal(
             try {
                 while (handle != null && handle.isAlive()) {
                     try {
-                        emulator.processChar(dataStream.getChar(), terminal)
+                        emulator.processChar(dataStream.char, terminal)
                         display.requestRedraw()
                     } catch (e: java.io.EOFException) {
                         // Stream closed, exit gracefully

@@ -35,32 +35,34 @@ class BlockingTerminalDataStream : TerminalDataStream {
         closed = true
     }
 
-    override fun getChar(): Char {
-        // First check pushback stack
-        if (pushBackStack.isNotEmpty()) {
-            return pushBackStack.removeAt(pushBackStack.size - 1)
-        }
-
-        // If we have data in the buffer, return it
-        while (position >= buffer.length) {
-            // Need more data - block until available
-            val chunk = if (closed) {
-                dataQueue.poll() // Non-blocking if closed
-            } else {
-                dataQueue.poll(100, TimeUnit.MILLISECONDS) // Wait for data
+    override val char: Char
+        @Throws(IOException::class)
+        get() {
+            // First check pushback stack
+            if (pushBackStack.isNotEmpty()) {
+                return pushBackStack.removeAt(pushBackStack.size - 1)
             }
 
-            if (chunk != null) {
-                buffer.append(chunk)
-            } else if (closed && dataQueue.isEmpty()) {
-                // Stream is closed and no more data
-                throw TerminalDataStream.EOF()
-            }
-            // If chunk is null and not closed, loop again to wait
-        }
+            // If we have data in the buffer, return it
+            while (position >= buffer.length) {
+                // Need more data - block until available
+                val chunk = if (closed) {
+                    dataQueue.poll() // Non-blocking if closed
+                } else {
+                    dataQueue.poll(100, TimeUnit.MILLISECONDS) // Wait for data
+                }
 
-        return buffer[position++]
-    }
+                if (chunk != null) {
+                    buffer.append(chunk)
+                } else if (closed && dataQueue.isEmpty()) {
+                    // Stream is closed and no more data
+                    throw TerminalDataStream.EOF()
+                }
+                // If chunk is null and not closed, loop again to wait
+            }
+
+            return buffer[position++]
+        }
 
     override fun pushChar(c: Char) {
         pushBackStack.add(c)
@@ -109,16 +111,16 @@ class BlockingTerminalDataStream : TerminalDataStream {
         return result.toString()
     }
 
-    override fun pushBackBuffer(bytes: CharArray, length: Int) {
+    override fun pushBackBuffer(bytes: CharArray?, length: Int) {
+        if (bytes == null) return
         // Push back in reverse order so they come out in correct order
         for (i in length - 1 downTo 0) {
             pushBackStack.add(bytes[i])
         }
     }
 
-    override fun isEmpty(): Boolean {
-        return pushBackStack.isEmpty() &&
+    override val isEmpty: Boolean
+        get() = pushBackStack.isEmpty() &&
                position >= buffer.length &&
                (closed || dataQueue.isEmpty())
-    }
 }

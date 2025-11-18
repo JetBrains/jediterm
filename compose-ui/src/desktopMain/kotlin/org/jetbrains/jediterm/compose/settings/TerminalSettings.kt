@@ -1,0 +1,205 @@
+package org.jetbrains.jediterm.compose.settings
+
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
+
+/**
+ * Terminal settings data class with all user-configurable options.
+ * Based on legacy SettingsProvider interface from ui module.
+ */
+@Serializable
+data class TerminalSettings(
+    // ===== Visual Settings =====
+
+    /**
+     * Font size in SP (scalable pixels)
+     */
+    val fontSize: Float = 14f,
+
+    /**
+     * Line spacing multiplier (1.0 = normal, 1.5 = 1.5x spacing)
+     */
+    val lineSpacing: Float = 1.0f,
+
+    /**
+     * Use antialiasing for text rendering
+     */
+    val useAntialiasing: Boolean = true,
+
+    /**
+     * Default foreground color (serialized as ARGB hex)
+     */
+    val defaultForeground: String = "0xFFFFFFFF",
+
+    /**
+     * Default background color (serialized as ARGB hex)
+     */
+    val defaultBackground: String = "0xFF000000",
+
+    /**
+     * Selection highlight color (serialized as ARGB hex)
+     */
+    val selectionColor: String = "0xFF4A90E2",
+
+    /**
+     * Search result highlight color (serialized as ARGB hex)
+     */
+    val foundPatternColor: String = "0xFFFFFF00",
+
+    /**
+     * Hyperlink color (serialized as ARGB hex)
+     */
+    val hyperlinkColor: String = "0xFF5C9FFF",
+
+    // ===== Behavior Settings =====
+
+    /**
+     * Automatically copy selected text to clipboard
+     */
+    val copyOnSelect: Boolean = false,
+
+    /**
+     * Paste clipboard on middle mouse button click
+     */
+    val pasteOnMiddleClick: Boolean = true,
+
+    /**
+     * Emulate X11-style separate selection clipboard
+     */
+    val emulateX11CopyPaste: Boolean = false,
+
+    /**
+     * Scroll to bottom when typing
+     */
+    val scrollToBottomOnTyping: Boolean = true,
+
+    /**
+     * Alt key sends Escape prefix
+     */
+    val altSendsEscape: Boolean = true,
+
+    /**
+     * Enable mouse reporting to terminal application
+     */
+    val enableMouseReporting: Boolean = true,
+
+    /**
+     * Force actions even when mouse reporting is active
+     */
+    val forceActionOnMouseReporting: Boolean = false,
+
+    /**
+     * Play audible bell sound
+     */
+    val audibleBell: Boolean = false,
+
+    /**
+     * Use inverse selection color (swap fg/bg)
+     */
+    val useInverseSelectionColor: Boolean = false,
+
+    // ===== Performance Settings =====
+
+    /**
+     * Maximum refresh rate in FPS (0 = unlimited)
+     */
+    val maxRefreshRate: Int = 60,
+
+    /**
+     * Maximum lines in scrollback buffer
+     */
+    val bufferMaxLines: Int = 10000,
+
+    /**
+     * Cursor blink rate in milliseconds (0 = no blink)
+     */
+    val caretBlinkMs: Int = 500,
+
+    /**
+     * Slow text blink rate in milliseconds
+     */
+    val slowTextBlinkMs: Int = 1000,
+
+    /**
+     * Rapid text blink rate in milliseconds
+     */
+    val rapidTextBlinkMs: Int = 500,
+
+    // ===== Terminal Emulation Settings =====
+
+    /**
+     * DEC compatibility mode
+     */
+    val decCompatibilityMode: Boolean = true,
+
+    /**
+     * Treat ambiguous-width characters as double-width
+     */
+    val ambiguousCharsAreDoubleWidth: Boolean = false,
+
+    /**
+     * Simulate mouse scroll with arrow keys in alternate screen
+     */
+    val simulateMouseScrollInAlternateScreen: Boolean = true,
+
+    // ===== Search Settings =====
+
+    /**
+     * Search is case-sensitive by default
+     */
+    val searchCaseSensitive: Boolean = false,
+
+    /**
+     * Enable regex search by default
+     */
+    val searchUseRegex: Boolean = false,
+
+    // ===== Hyperlink Settings =====
+
+    /**
+     * Show hyperlink underline on hover
+     */
+    val hyperlinkUnderlineOnHover: Boolean = true,
+
+    /**
+     * Hyperlink click requires Ctrl/Cmd modifier
+     */
+    val hyperlinkRequireModifier: Boolean = true
+) {
+    // Non-serialized computed properties
+
+    @Transient
+    val defaultForegroundColor: Color = Color(defaultForeground.removePrefix("0x").toULong(16).toLong())
+
+    @Transient
+    val defaultBackgroundColor: Color = Color(defaultBackground.removePrefix("0x").toULong(16).toLong())
+
+    @Transient
+    val selectionColorValue: Color = Color(selectionColor.removePrefix("0x").toULong(16).toLong())
+
+    @Transient
+    val foundPatternColorValue: Color = Color(foundPatternColor.removePrefix("0x").toULong(16).toLong())
+
+    @Transient
+    val hyperlinkColorValue: Color = Color(hyperlinkColor.removePrefix("0x").toULong(16).toLong())
+
+    companion object {
+        /**
+         * Default settings instance
+         */
+        val DEFAULT = TerminalSettings()
+
+        /**
+         * Convert Color to hex string for serialization
+         */
+        fun Color.toHexString(): String {
+            val argb = (this.alpha * 255).toInt().shl(24) or
+                       (this.red * 255).toInt().shl(16) or
+                       (this.green * 255).toInt().shl(8) or
+                       (this.blue * 255).toInt()
+            return "0x${argb.toUInt().toString(16).uppercase().padStart(8, '0')}"
+        }
+    }
+}

@@ -46,6 +46,11 @@ import com.jediterm.terminal.TerminalKeyEncoder
 import com.jediterm.core.input.InputEvent
 import java.awt.event.KeyEvent as JavaKeyEvent
 import com.jediterm.terminal.emulator.ColorPaletteImpl
+import org.jetbrains.jediterm.compose.settings.SettingsManager
+import org.jetbrains.jediterm.compose.search.SearchBar
+import org.jetbrains.jediterm.compose.hyperlinks.HyperlinkDetector
+import org.jetbrains.jediterm.compose.hyperlinks.Hyperlink
+import androidx.compose.ui.Alignment
 
 /**
  * Maps Compose Desktop Key constants to Java AWT VK (Virtual Key) codes.
@@ -120,11 +125,69 @@ fun ProperTerminal(
     val textMeasurer = rememberTextMeasurer()
     val clipboardManager = LocalClipboardManager.current
 
+    // Settings integration
+    val settingsManager = remember { SettingsManager.instance }
+    val settings by settingsManager.settings.collectAsState()
+
     // Create JediTerm components
     val styleState = remember { StyleState() }
     val textBuffer = remember { TerminalTextBuffer(80, 24, styleState) }
     val display = remember { ComposeTerminalDisplay() }
     val terminal = remember { JediTerminal(display, textBuffer, styleState) }
+
+    // Search state
+    var searchVisible by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    var searchCaseSensitive by remember { mutableStateOf(settings.searchCaseSensitive) }
+    var searchMatches by remember { mutableStateOf<List<Pair<Int, Int>>>(emptyList()) } // (col, row)
+    var currentMatchIndex by remember { mutableStateOf(-1) }
+
+    // Search function
+    fun performSearch() {
+        if (searchQuery.isEmpty()) {
+            searchMatches = emptyList()
+            currentMatchIndex = -1
+            return
+        }
+
+        val matches = mutableListOf<Pair<Int, Int>>()
+        val buffer = terminal.terminalTextBuffer
+        buffer.lock()
+        try {
+            val lineCount = buffer.historyLinesCount + buffer.height
+            for (row in -buffer.historyLinesCount until buffer.height) {
+                val line = buffer.getLine(row)
+                if (line != null) {
+                    val text = line.text
+                    val searchText = if (searchCaseSensitive) searchQuery else searchQuery.lowercase()
+                    val lineText = if (searchCaseSensitive) text else text.lowercase()
+
+                    var index = 0
+                    while (index >= 0) {
+                        index = lineText.indexOf(searchText, index)
+                        if (index >= 0) {
+                            matches.add(Pair(index, row))
+                            index += searchQuery.length
+                        }
+                    }
+                }
+            }
+        } finally {
+            buffer.unlock()
+        }
+
+        searchMatches = matches
+        currentMatchIndex = if (matches.isNotEmpty()) 0 else -1
+    }
+
+    // Trigger search on query change
+    LaunchedEffect(searchQuery, searchCaseSensitive) {
+        performSearch()
+    }
+
+    // Hyperlink state
+    var hoveredHyperlink by remember { mutableStateOf<Hyperlink?>(null) }
+    var cachedHyperlinks by remember { mutableStateOf<Map<Int, List<Hyperlink>>>(emptyMap()) }
 
     // Create single long-lived data stream and emulator to preserve state across chunk boundaries
     // This prevents CSI sequences from being truncated when they span multiple output chunks
@@ -210,10 +273,10 @@ fun ProperTerminal(
         }
     }
 
-    val measurementStyle = remember(nerdFont) {
+    val measurementStyle = remember(nerdFont, settings.fontSize) {
         TextStyle(
             fontFamily = nerdFont,
-            fontSize = 16.sp,  // Match iTerm2 font size
+            fontSize = settings.fontSize.sp,
             fontWeight = FontWeight.Normal
         )
     }
@@ -377,10 +440,20 @@ fun ProperTerminal(
                 }
             }
             .fillMaxSize()
-            .background(Color.Black)
+            .background(settings.defaultBackgroundColor)
             .onPointerEvent(PointerEventType.Press) { event ->
                 val change = event.changes.first()
                 if (change.pressed && change.previousPressed.not()) {
+                    // Check for hyperlink click
+                    // TODO: Add Ctrl/Cmd modifier check when proper API is available
+                    // For now, require Ctrl to be checked via keyboard state separately
+                    if (hoveredHyperlink != null) {
+                        // Open hyperlink (modifier requirement can be added later)
+                        HyperlinkDetector.openUrl(hoveredHyperlink!!.url)
+                        change.consume()
+                        return@onPointerEvent
+                    }
+
                     // Track start position but don't create selection yet
                     // This allows distinguishing click (no selection) from drag (selection)
                     dragStartPos = change.position
@@ -398,6 +471,17 @@ fun ProperTerminal(
                 val change = event.changes.first()
                 val pos = change.position
                 val startPos = dragStartPos
+
+                // Check for hyperlink hover
+                val col = (pos.x / cellWidth).toInt()
+                val row = (pos.y / cellHeight).toInt() + scrollOffset
+                val absoluteRow = row - scrollOffset
+
+                // Get hyperlinks for this row
+                val hyperlinksForRow = cachedHyperlinks[absoluteRow]
+                hoveredHyperlink = hyperlinksForRow?.firstOrNull { link ->
+                    link.row == absoluteRow && col >= link.startCol && col < link.endCol
+                }
 
                 if (startPos != null) {
                     // Calculate distance from start position
@@ -448,6 +532,12 @@ fun ProperTerminal(
             }
             .onKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown) {
+                    // Handle Ctrl+F / Cmd+F for search
+                    if ((keyEvent.isCtrlPressed || keyEvent.isMetaPressed) && keyEvent.key == Key.F) {
+                        searchVisible = !searchVisible
+                        return@onKeyEvent true
+                    }
+
                     // Handle Escape key - clear selection if it exists
                     if (keyEvent.key == Key.Escape) {
                         if (selectionStart != null || selectionEnd != null) {
@@ -503,6 +593,16 @@ fun ProperTerminal(
                         // No selection - let Ctrl+C pass through to terminal (for process interrupt)
                         return@onKeyEvent false
                     }
+
+                    // TODO: IME (Input Method Editor) Support
+                    // Compose Desktop's IME support is limited and requires custom text input handling.
+                    // This would enable proper input for CJK languages (Chinese, Japanese, Korean) and other
+                    // complex input methods. Implementation requires:
+                    // 1. TextField with IME composition state tracking
+                    // 2. Custom text field overlay for IME candidates
+                    // 3. Proper handling of composition events (start, update, commit)
+                    // 4. Integration with terminal's text input pipeline
+                    // See: https://github.com/JetBrains/compose-multiplatform/issues/2993
 
                     // Filter out modifier-only keys - they don't produce output
                     if (keyEvent.key in listOf(
@@ -596,8 +696,8 @@ fun ProperTerminal(
 
                         // Apply defaults FIRST, then swap if INVERSE
                         // This ensures INVERSE works correctly even when colors are null
-                        val baseFg = style?.foreground?.let { convertTerminalColor(it) } ?: Color.White
-                        val baseBg = style?.background?.let { convertTerminalColor(it) } ?: Color.Black
+                        val baseFg = style?.foreground?.let { convertTerminalColor(it) } ?: settings.defaultForegroundColor
+                        val baseBg = style?.background?.let { convertTerminalColor(it) } ?: settings.defaultBackgroundColor
 
                         // THEN swap if INVERSE attribute is set
                         var fgColor = if (isInverse) baseBg else baseFg
@@ -633,6 +733,13 @@ fun ProperTerminal(
                     val lineIndex = row - scrollOffset
                     val line = textBuffer.getLine(lineIndex)
 
+                    // Detect hyperlinks in current line
+                    val hyperlinks = HyperlinkDetector.detectHyperlinks(line.text, row)
+                    // Cache hyperlinks for mouse hover detection
+                    if (hyperlinks.isNotEmpty()) {
+                        cachedHyperlinks = cachedHyperlinks + (row to hyperlinks)
+                    }
+
                   // Text batching: accumulate consecutive characters with same style
                   val batchText = StringBuilder()
                   var batchStartCol = 0
@@ -648,9 +755,9 @@ fun ProperTerminal(
                           val y = row * cellHeight
 
                           val textStyle = TextStyle(
-                              color = batchFgColor ?: Color.White,
+                              color = batchFgColor ?: settings.defaultForegroundColor,
                               fontFamily = measurementStyle.fontFamily,
-                              fontSize = 16.sp,
+                              fontSize = settings.fontSize.sp,
                               fontWeight = if (batchIsBold) FontWeight.Bold else FontWeight.Normal,
                               fontStyle = if (batchIsItalic) androidx.compose.ui.text.font.FontStyle.Italic
                                          else androidx.compose.ui.text.font.FontStyle.Normal
@@ -736,8 +843,8 @@ fun ProperTerminal(
 
                       // Apply defaults FIRST, then swap if INVERSE
                       // This ensures INVERSE works correctly even when colors are null
-                      val baseFg = style?.foreground?.let { convertTerminalColor(it) } ?: Color.White
-                      val baseBg = style?.background?.let { convertTerminalColor(it) } ?: Color.Black
+                      val baseFg = style?.foreground?.let { convertTerminalColor(it) } ?: settings.defaultForegroundColor
+                      val baseBg = style?.background?.let { convertTerminalColor(it) } ?: settings.defaultBackgroundColor
 
                       // THEN swap if INVERSE attribute is set
                       var fgColor = if (isInverse) baseBg else baseFg
@@ -798,7 +905,7 @@ fun ProperTerminal(
                           val textStyle = TextStyle(
                               color = fgColor,
                               fontFamily = fontForChar,
-                              fontSize = 16.sp,
+                              fontSize = settings.fontSize.sp,
                               fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
                               fontStyle = if (isItalic) androidx.compose.ui.text.font.FontStyle.Italic
                                          else androidx.compose.ui.text.font.FontStyle.Normal
@@ -906,6 +1013,21 @@ fun ProperTerminal(
                                   strokeWidth = 1f
                               )
                           }
+
+                          // Draw hyperlink underline if hovered
+                          if (settings.hyperlinkUnderlineOnHover &&
+                              hoveredHyperlink != null &&
+                              hoveredHyperlink!!.row == row &&
+                              col >= hoveredHyperlink!!.startCol &&
+                              col < hoveredHyperlink!!.endCol) {
+                              val underlineY = y + cellHeight - 1f
+                              drawLine(
+                                  color = settings.hyperlinkColorValue,
+                                  start = Offset(x, underlineY),
+                                  end = Offset(x + cellWidth, underlineY),
+                                  strokeWidth = 1f
+                              )
+                          }
                       }
                       }  // Close else block
 
@@ -954,7 +1076,7 @@ fun ProperTerminal(
                                     val x = col * cellWidth
                                     val y = row * cellHeight
                                     drawRect(
-                                        color = Color.Blue.copy(alpha = 0.3f),
+                                        color = settings.selectionColorValue.copy(alpha = 0.3f),
                                         topLeft = Offset(x, y),
                                         size = Size(cellWidth, cellHeight)
                                     )
@@ -1037,6 +1159,33 @@ fun ProperTerminal(
                 )
             }
         }
+
+        // Search bar UI
+        SearchBar(
+            visible = searchVisible,
+            searchQuery = searchQuery,
+            currentMatch = currentMatchIndex + 1,
+            totalMatches = searchMatches.size,
+            caseSensitive = searchCaseSensitive,
+            onSearchQueryChange = { searchQuery = it },
+            onFindNext = {
+                if (searchMatches.isNotEmpty()) {
+                    currentMatchIndex = (currentMatchIndex + 1) % searchMatches.size
+                }
+            },
+            onFindPrevious = {
+                if (searchMatches.isNotEmpty()) {
+                    currentMatchIndex = if (currentMatchIndex <= 0) searchMatches.size - 1 else currentMatchIndex - 1
+                }
+            },
+            onCaseSensitiveToggle = { searchCaseSensitive = !searchCaseSensitive },
+            onClose = {
+                searchVisible = false
+                searchQuery = ""
+                searchMatches = emptyList()
+            },
+            modifier = Modifier.align(Alignment.TopCenter)
+        )
     }
 
     DisposableEffect(Unit) {

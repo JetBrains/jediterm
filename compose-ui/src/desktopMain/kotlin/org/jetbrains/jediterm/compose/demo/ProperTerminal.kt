@@ -50,6 +50,8 @@ import org.jetbrains.jediterm.compose.settings.SettingsManager
 import org.jetbrains.jediterm.compose.search.SearchBar
 import org.jetbrains.jediterm.compose.hyperlinks.HyperlinkDetector
 import org.jetbrains.jediterm.compose.hyperlinks.Hyperlink
+import org.jetbrains.jediterm.compose.ime.IMEHandler
+import org.jetbrains.jediterm.compose.ime.IMEState
 import androidx.compose.ui.Alignment
 
 /**
@@ -141,6 +143,9 @@ fun ProperTerminal(
     var searchCaseSensitive by remember { mutableStateOf(settings.searchCaseSensitive) }
     var searchMatches by remember { mutableStateOf<List<Pair<Int, Int>>>(emptyList()) } // (col, row)
     var currentMatchIndex by remember { mutableStateOf(-1) }
+
+    // IME (Input Method Editor) state for CJK input
+    val imeState = remember { IMEState() }
 
     // Search function
     fun performSearch() {
@@ -538,6 +543,12 @@ fun ProperTerminal(
                         return@onKeyEvent true
                     }
 
+                    // Handle Ctrl+Space for IME toggle (CJK input)
+                    if (keyEvent.isCtrlPressed && keyEvent.key == Key.Spacebar) {
+                        imeState.toggle()
+                        return@onKeyEvent true
+                    }
+
                     // Handle Escape key - clear selection if it exists
                     if (keyEvent.key == Key.Escape) {
                         if (selectionStart != null || selectionEnd != null) {
@@ -594,15 +605,15 @@ fun ProperTerminal(
                         return@onKeyEvent false
                     }
 
-                    // TODO: IME (Input Method Editor) Support
-                    // Compose Desktop's IME support is limited and requires custom text input handling.
-                    // This would enable proper input for CJK languages (Chinese, Japanese, Korean) and other
-                    // complex input methods. Implementation requires:
-                    // 1. TextField with IME composition state tracking
-                    // 2. Custom text field overlay for IME candidates
-                    // 3. Proper handling of composition events (start, update, commit)
-                    // 4. Integration with terminal's text input pipeline
-                    // See: https://github.com/JetBrains/compose-multiplatform/issues/2993
+                    // IME (Input Method Editor) Support - IMPLEMENTED
+                    // Press Ctrl+Space to toggle IME mode for CJK (Chinese, Japanese, Korean) input.
+                    // When enabled, an invisible TextField appears at the cursor position to capture
+                    // IME composition events (e.g., Pinyin for Chinese, Hiragana for Japanese).
+                    // The composed text is forwarded to the terminal once committed.
+                    //
+                    // Implementation: See IMEHandler component (line ~1176) and IMEState (line ~148)
+                    // Keyboard shortcut: Ctrl+Space to toggle (line ~547)
+                    // See: org.jetbrains.jediterm.compose.ime package
 
                     // Filter out modifier-only keys - they don't produce output
                     if (keyEvent.key in listOf(
@@ -1159,6 +1170,24 @@ fun ProperTerminal(
                 )
             }
         }
+
+        // IME (Input Method Editor) handler for CJK input
+        // Provides invisible TextField for IME composition (Pinyin, Hiragana, etc.)
+        IMEHandler(
+            enabled = imeState.isEnabled,
+            cursorX = cursorX,
+            cursorY = (cursorY - 1).coerceAtLeast(0), // Adjust for 1-indexed cursor
+            charWidth = cellWidth,
+            charHeight = cellHeight,
+            onTextCommit = { text ->
+                // Forward composed text to terminal
+                scope.launch {
+                    processHandle?.write(text)
+                }
+                // Disable IME after successful input
+                imeState.disable()
+            }
+        )
 
         // Search bar UI
         SearchBar(

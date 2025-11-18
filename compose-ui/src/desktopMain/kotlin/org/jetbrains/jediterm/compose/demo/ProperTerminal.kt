@@ -52,6 +52,9 @@ import org.jetbrains.jediterm.compose.hyperlinks.HyperlinkDetector
 import org.jetbrains.jediterm.compose.hyperlinks.Hyperlink
 import org.jetbrains.jediterm.compose.ime.IMEHandler
 import org.jetbrains.jediterm.compose.ime.IMEState
+import org.jetbrains.jediterm.compose.features.ContextMenuController
+import org.jetbrains.jediterm.compose.features.ContextMenuPopup
+import org.jetbrains.jediterm.compose.features.showTerminalContextMenu
 import androidx.compose.ui.Alignment
 
 /**
@@ -242,6 +245,39 @@ fun ProperTerminal(
     // Drag threshold: pixels mouse must move before considering it a drag (not just a click)
     val DRAG_THRESHOLD = 5f
 
+    // Context menu controller
+    val contextMenuController = remember { ContextMenuController() }
+
+    // Helper functions for context menu actions
+    fun clearBuffer() {
+        terminal.clearScreen()
+        display.requestImmediateRedraw()
+    }
+
+    fun clearScrollback() {
+        val buffer = terminal.terminalTextBuffer
+        buffer.lock()
+        try {
+            buffer.clearHistory()
+        } finally {
+            buffer.unlock()
+        }
+        display.requestImmediateRedraw()
+    }
+
+    fun selectAll() {
+        val buffer = terminal.terminalTextBuffer
+        buffer.lock()
+        try {
+            // Select from start of history to end of screen
+            selectionStart = Pair(0, -buffer.historyLinesCount)
+            selectionEnd = Pair(buffer.width - 1, buffer.height - 1)
+        } finally {
+            buffer.unlock()
+        }
+        display.requestImmediateRedraw()
+    }
+
     // Cursor blink state for BLINK_* cursor shapes
     var cursorBlinkVisible by remember { mutableStateOf(true) }
 
@@ -418,7 +454,7 @@ fun ProperTerminal(
     }
 
     Box(
-        modifier = modifier
+            modifier = modifier
             .onGloballyPositioned { coordinates ->
                 // Detect window size changes and resize terminal accordingly
                 // Note: This fires frequently, but we validate dimensions carefully to prevent crashes
@@ -449,6 +485,39 @@ fun ProperTerminal(
             .onPointerEvent(PointerEventType.Press) { event ->
                 val change = event.changes.first()
                 if (change.pressed && change.previousPressed.not()) {
+                    // Check for right-click (secondary button)
+                    if (event.button == androidx.compose.ui.input.pointer.PointerButton.Secondary) {
+                        // Show context menu
+                        val pos = change.position
+                        showTerminalContextMenu(
+                            controller = contextMenuController,
+                            x = pos.x,
+                            y = pos.y,
+                            hasSelection = selectionStart != null && selectionEnd != null,
+                            onCopy = {
+                                if (selectionStart != null && selectionEnd != null) {
+                                    val selectedText = extractSelectedText(textBuffer, selectionStart!!, selectionEnd!!)
+                                    if (selectedText.isNotEmpty()) {
+                                        clipboardManager.setText(AnnotatedString(selectedText))
+                                    }
+                                }
+                            },
+                            onPaste = {
+                                val text = clipboardManager.getText()?.text
+                                if (!text.isNullOrEmpty()) {
+                                    scope.launch {
+                                        processHandle?.write(text)
+                                    }
+                                }
+                            },
+                            onSelectAll = { selectAll() },
+                            onClearScreen = { clearBuffer() },
+                            onFind = { searchVisible = true }
+                        )
+                        change.consume()
+                        return@onPointerEvent
+                    }
+
                     // Check for hyperlink click
                     // TODO: Add Ctrl/Cmd modifier check when proper API is available
                     // For now, require Ctrl to be checked via keyboard state separately
@@ -1216,6 +1285,9 @@ fun ProperTerminal(
             modifier = Modifier.align(Alignment.TopCenter)
         )
     }
+
+    // Context menu popup
+    ContextMenuPopup(controller = contextMenuController)
 
     DisposableEffect(Unit) {
         onDispose {

@@ -180,7 +180,7 @@ class TabController(
                         while (handle.isAlive()) {
                             try {
                                 tab.emulator.processChar(tab.dataStream.char, tab.terminal)
-                                if (tab.isVisible) {
+                                if (tab.isVisible.value) {
                                     tab.display.requestRedraw()
                                 }
                             } catch (e: java.io.EOFException) {

@@ -174,8 +174,9 @@ data class TerminalTab(
     /**
      * Whether this tab is currently rendering to the UI.
      * False for background tabs (still processing output, but UI updates paused).
+     * Thread-safe: Uses MutableState for safe access from multiple coroutines.
      */
-    var isVisible: Boolean = false
+    val isVisible: MutableState<Boolean> = mutableStateOf(false)
 
     /**
      * Lifecycle callback invoked when this tab becomes visible (user switches to it).
@@ -183,7 +184,7 @@ data class TerminalTab(
      * TabController checks isVisible flag to skip redraws for hidden tabs.
      */
     fun onVisible() {
-        isVisible = true
+        isVisible.value = true
     }
 
     /**
@@ -192,7 +193,7 @@ data class TerminalTab(
      * TabController checks isVisible flag to skip redraws for hidden tabs.
      */
     fun onHidden() {
-        isVisible = false
+        isVisible.value = false
     }
 
     /**

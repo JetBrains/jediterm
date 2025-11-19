@@ -334,6 +334,142 @@ cd ..
 - Use try-catch for font loading (with fallbacks)
 - Log errors with `println()` or proper logger
 
+## Extensible Terminal Actions Framework (Issue #11)
+
+### Overview
+Implemented a plugin-style action framework to replace hardcoded keyboard handling with an extensible, testable system. This allows for easy addition of new keyboard shortcuts and customization without modifying core terminal code.
+
+**Implementation Date**: November 18, 2025
+**GitHub Issue**: [#11](https://github.com/kshivang/jediTermCompose/issues/11)
+
+### Architecture
+
+**Core Components**:
+
+1. **KeyStroke** (`TerminalAction.kt`) - Data class representing a keyboard combination
+   - Stores key + modifiers (ctrl, shift, alt, meta)
+   - Platform-aware matching (macOS uses Cmd/meta, Windows/Linux use Ctrl)
+   - Supports multiple keystrokes per action (e.g., Ctrl+C and Cmd+C for same action)
+
+2. **TerminalAction** (`TerminalAction.kt`) - Encapsulates an action with its keystrokes and handler
+   - Unique ID and display name
+   - List of keystrokes that trigger the action
+   - Enabled predicate for conditional availability
+   - Handler function that executes the action
+
+3. **ActionRegistry** (`ActionRegistry.kt`) - Thread-safe registry for managing actions
+   - Register/unregister actions
+   - Find actions by ID or KeyEvent
+   - Execute actions with enable/disable support
+   - Platform-aware (isMacOS parameter)
+
+4. **Built-in Actions** (`BuiltinActions.kt`) - Factory for creating all built-in terminal actions
+   - Copy (Cmd/Ctrl+C) - Only when selection exists
+   - Paste (Cmd/Ctrl+V)
+   - Search (Cmd/Ctrl+F) - Toggles search bar
+   - Clear Selection (Escape)
+   - Toggle IME (Ctrl+Space) - For CJK input
+   - Select All (Cmd/Ctrl+A)
+
+### Key Files
+
+#### compose-ui/src/desktopMain/kotlin/org/jetbrains/jediterm/compose/actions/
+- `TerminalAction.kt` (90 lines) - Data classes for KeyStroke and TerminalAction
+- `ActionRegistry.kt` (120 lines) - Thread-safe action registry with ConcurrentHashMap
+- `BuiltinActions.kt` (233 lines) - Factory function + all built-in action handlers
+
+#### Modified Files
+- `ProperTerminal.kt` - Refactored keyboard handling (removed 118 lines of hardcoded logic)
+  - Lines 336-372: macOS detection + action registry creation
+  - Lines 734-780: Simplified onKeyEvent using ActionRegistry
+
+### Usage Examples
+
+**Creating a Custom Action**:
+```kotlin
+val customAction = TerminalAction(
+    id = "custom_action",
+    name = "My Custom Action",
+    keyStroke = KeyStroke(key = Key.K, ctrl = true, shift = true),
+    enabled = { /* condition */ true },
+    handler = { keyEvent ->
+        // Handle the action
+        println("Custom action triggered!")
+        true  // Return true if event was consumed
+    }
+)
+
+// Register it
+actionRegistry.register(customAction)
+```
+
+**Creating Platform-Specific Actions**:
+```kotlin
+val action = TerminalAction(
+    id = "copy",
+    name = "Copy",
+    keyStrokes = listOf(
+        KeyStroke(key = Key.C, ctrl = true),  // Windows/Linux
+        KeyStroke(key = Key.C, meta = true)   // macOS (Cmd key)
+    ),
+    handler = { event -> /* ... */ }
+)
+```
+
+**Dynamic Lambda Access Pattern (CRITICAL)**:
+When passing resources that are initialized later (e.g., processHandle), use lambdas:
+```kotlin
+// WRONG - Captures null value:
+processHandle = processHandle
+
+// CORRECT - Captures variable by reference:
+getProcessHandle = { processHandle }
+```
+
+### Platform Awareness
+
+The framework automatically handles platform differences:
+- **macOS**: Uses Cmd (meta) key as primary modifier
+- **Windows/Linux**: Uses Ctrl key as primary modifier
+- Actions can define multiple keystrokes to support both platforms
+- KeyStroke matching logic automatically checks correct modifier based on `isMacOS` flag
+
+### Testing
+
+**Unit Tests**: `compose-ui/src/commonTest/kotlin/org/jetbrains/jediterm/compose/actions/ActionRegistryTest.kt`
+- Tests action registration and retrieval
+- Tests KeyStroke properties
+- Tests TerminalAction enabled/disabled states
+- Tests ActionRegistry operations (clear, size, getAllActions)
+- Note: KeyEvent matching tested via manual integration testing (KeyEvent constructor is internal)
+
+**Manual Integration Testing**:
+All shortcuts verified working:
+- ✅ Copy (Cmd/Ctrl+C) - Only with selection
+- ✅ Paste (Cmd/Ctrl+V) - Fixed lambda capture issue
+- ✅ Search (Cmd/Ctrl+F) - Toggles search bar
+- ✅ Clear selection (Escape)
+- ✅ Select all (Cmd/Ctrl+A)
+- ✅ Toggle IME (Ctrl+Space) - For CJK input
+
+### Benefits
+
+1. **Extensibility**: Add new actions without modifying core terminal code
+2. **Testability**: Actions can be unit tested independently
+3. **Maintainability**: Clear separation of concerns, actions defined in one place
+4. **Customization**: Users can override or add shortcuts in the future
+5. **Platform Support**: Automatic handling of macOS vs Windows/Linux shortcuts
+6. **Thread Safety**: ConcurrentHashMap ensures safe concurrent access
+
+### Future Enhancements
+
+- User-configurable shortcuts (load from settings)
+- Action groups and categories
+- Visual shortcut editor UI
+- Action enable/disable from settings
+- Macro recording (sequence of actions)
+- Context-sensitive actions (enabled based on terminal state)
+
 ## Resources & References
 
 ### Compose Desktop Font Loading
@@ -371,10 +507,19 @@ cd ..
 - Capture screenshots for visual verification
 
 ## Last Updated
-November 18, 2025 4:15 PM PST
+November 18, 2025 6:30 PM PST
 
 ### Recent Changes
-- **November 18, 2025**: Completed high-priority feature implementation sprint
+- **November 18, 2025 (Evening)**: Implemented extensible terminal actions framework (#11)
+  - Created plugin-style action system with KeyStroke, TerminalAction, and ActionRegistry classes
+  - Refactored ProperTerminal.kt to use ActionRegistry (removed 118 lines of hardcoded logic)
+  - Implemented 6 built-in actions: Copy, Paste, Search, Clear Selection, Toggle IME, Select All
+  - Platform-aware shortcuts (macOS Cmd vs Windows/Linux Ctrl)
+  - Fixed paste lambda capture issue for dynamic processHandle access
+  - Created comprehensive unit tests (ActionRegistryTest.kt)
+  - All shortcuts manually verified working
+  - Closed GitHub issue #11
+- **November 18, 2025 (Afternoon)**: Completed high-priority feature implementation sprint
   - Implemented Settings System (#4) - JSON persistence, 30+ options
   - Implemented Text Search (#2) - Ctrl+F with modern Material 3 UI
   - Implemented Hyperlink Detection (#3) - Clickable URLs with Ctrl+Click

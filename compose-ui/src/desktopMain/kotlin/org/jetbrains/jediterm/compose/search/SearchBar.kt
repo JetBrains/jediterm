@@ -74,9 +74,9 @@ fun SearchBar(
                 },
                 modifier = Modifier
                     .weight(1f)
-                    .height(40.dp)
                     .focusRequester(focusRequester)
-                    .onKeyEvent { event ->
+                    .onPreviewKeyEvent { event ->
+                        // Consume ALL key events to prevent them from reaching terminal
                         if (event.type == KeyEventType.KeyDown) {
                             when {
                                 event.key == Key.Enter && event.isShiftPressed -> {
@@ -91,9 +91,13 @@ fun SearchBar(
                                     onClose()
                                     true
                                 }
-                                else -> false
+                                // Consume all typing to prevent terminal input
+                                else -> true
                             }
-                        } else false
+                        } else {
+                            // Consume key up events too
+                            true
+                        }
                     },
                 singleLine = true,
                 textStyle = TextStyle(

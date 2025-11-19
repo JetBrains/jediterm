@@ -30,7 +30,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.jetbrains.jediterm.compose.ComposeTerminalDisplay
+import org.jetbrains.jediterm.compose.ConnectionState
 import org.jetbrains.jediterm.compose.PlatformServices
+import org.jetbrains.jediterm.compose.PreConnectScreen
 import org.jetbrains.jediterm.compose.getPlatformServices
 import com.jediterm.core.util.TermSize
 import com.jediterm.terminal.emulator.JediEmulator
@@ -122,6 +124,7 @@ fun ProperTerminal(
     modifier: Modifier = Modifier
 ) {
     var processHandle by remember { mutableStateOf<PlatformServices.ProcessService.ProcessHandle?>(null) }
+    var connectionState by remember { mutableStateOf<ConnectionState>(ConnectionState.Initializing) }
     var isFocused by remember { mutableStateOf(false) }
     var scrollOffset by remember { mutableStateOf(0) }  // 0 = at bottom, positive = scrolled up into history
     val scope = rememberCoroutineScope()
@@ -419,28 +422,42 @@ fun ProperTerminal(
 
     // Initialize process
     LaunchedEffect(Unit) {
-        val services = getPlatformServices()
+        try {
+            // Transition to Connecting state
+            connectionState = ConnectionState.Connecting
 
-        // Set proper TERM environment variables for TUI app compatibility (Neovim, vim, less, etc.)
-        // TERM=xterm-256color tells apps we support xterm escape sequences and 256 colors
-        // COLORTERM=truecolor advertises 24-bit color support
-        // TERM_PROGRAM=JediTerm identifies this terminal for app-specific workarounds
-        val terminalEnvironment = buildMap {
-            putAll(filterEnvironmentVariables(System.getenv()))
-            put("TERM", "xterm-256color")
-            put("COLORTERM", "truecolor")
-            put("TERM_PROGRAM", "JediTerm")
-        }
+            val services = getPlatformServices()
 
-        val config = PlatformServices.ProcessService.ProcessConfig(
-            command = command,
-            arguments = arguments,
-            environment = terminalEnvironment,
-            workingDirectory = System.getProperty("user.home")
-        )
+            // Set proper TERM environment variables for TUI app compatibility (Neovim, vim, less, etc.)
+            // TERM=xterm-256color tells apps we support xterm escape sequences and 256 colors
+            // COLORTERM=truecolor advertises 24-bit color support
+            // TERM_PROGRAM=JediTerm identifies this terminal for app-specific workarounds
+            val terminalEnvironment = buildMap {
+                putAll(filterEnvironmentVariables(System.getenv()))
+                put("TERM", "xterm-256color")
+                put("COLORTERM", "truecolor")
+                put("TERM_PROGRAM", "JediTerm")
+            }
 
-        val handle = services.getProcessService().spawnProcess(config)
-        processHandle = handle
+            val config = PlatformServices.ProcessService.ProcessConfig(
+                command = command,
+                arguments = arguments,
+                environment = terminalEnvironment,
+                workingDirectory = System.getProperty("user.home")
+            )
+
+            val handle = services.getProcessService().spawnProcess(config)
+
+            if (handle == null) {
+                connectionState = ConnectionState.Error(
+                    message = "Failed to spawn process: $command",
+                    cause = null
+                )
+                return@LaunchedEffect
+            }
+
+            processHandle = handle
+            connectionState = ConnectionState.Connected(handle)
 
         // Connect terminal output to PTY process for bidirectional communication
         // This enables DSR responses, device attribute queries, and other terminal→app messages
@@ -499,9 +516,17 @@ fun ProperTerminal(
             dataStream.close()
         }
 
-        // Request focus after a short delay to ensure window is ready
-        kotlinx.coroutines.delay(100)
-        focusRequester.requestFocus()
+            // Request focus after a short delay to ensure window is ready
+            kotlinx.coroutines.delay(100)
+            focusRequester.requestFocus()
+        } catch (e: Exception) {
+            connectionState = ConnectionState.Error(
+                message = "Failed to initialize terminal: ${e.message ?: "Unknown error"}",
+                cause = e
+            )
+            println("ERROR: Terminal initialization failed: ${e.message}")
+            e.printStackTrace()
+        }
     }
 
     Box(
@@ -801,6 +826,18 @@ fun ProperTerminal(
                 isFocused = focusState.isFocused
             }
     ) {
+        // Show loading/error screen before connection is established
+        if (connectionState !is ConnectionState.Connected) {
+            PreConnectScreen(
+                state = connectionState,
+                onRetry = {
+                    // Reset to initializing and trigger re-composition
+                    // The LaunchedEffect will run again automatically
+                    connectionState = ConnectionState.Initializing
+                }
+            )
+        } else {
+            // Only show terminal UI when connected
         Canvas(modifier = Modifier.fillMaxSize()) {
             // Two-pass rendering to fix z-index issue:
             // Pass 1: Draw all backgrounds first
@@ -1383,6 +1420,7 @@ fun ProperTerminal(
             }
         }
     }
+        } // end else (Connected state)
 }
 
 /**

@@ -121,6 +121,8 @@ private fun mapComposeModifiers(keyEvent: androidx.compose.ui.input.key.KeyEvent
 /**
  * Proper terminal implementation using JediTerm's emulator.
  * This uses the real JediTerminal, JediEmulator, and TerminalTextBuffer from the core module.
+ *
+ * Refactored to support multiple tabs - accepts a TerminalTab with all per-tab state.
  */
 @OptIn(
     androidx.compose.ui.ExperimentalComposeUiApi::class,
@@ -128,17 +130,21 @@ private fun mapComposeModifiers(keyEvent: androidx.compose.ui.input.key.KeyEvent
 )
 @Composable
 fun ProperTerminal(
-    command: String = System.getenv("SHELL") ?: "/bin/bash",
-    arguments: List<String> = listOf("--login"),
-    modifier: Modifier = Modifier,
-    onProcessExit: () -> Unit = {}
+    tab: org.jetbrains.jediterm.compose.tabs.TerminalTab,
+    isActiveTab: Boolean,
+    sharedFont: FontFamily,
+    onTabTitleChange: (String) -> Unit,
+    onProcessExit: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    var processHandle by remember { mutableStateOf<PlatformServices.ProcessService.ProcessHandle?>(null) }
-    var connectionState by remember { mutableStateOf<ConnectionState>(ConnectionState.Initializing) }
-    var isFocused by remember { mutableStateOf(false) }
-    var scrollOffset by remember { mutableStateOf(0) }  // 0 = at bottom, positive = scrolled up into history
+    // Extract tab state (no more remember {} blocks - state lives in TerminalTab)
+    val processHandle = tab.processHandle.value
+    var connectionState by tab.connectionState
+    var isFocused by tab.isFocused
+    var scrollOffset by tab.scrollOffset
     val scope = rememberCoroutineScope()
     var resizeJob by remember { mutableStateOf<Job?>(null) }  // For debouncing resize operations
+    var hasPerformedInitialResize by remember { mutableStateOf(false) }  // Track initial resize
     val focusRequester = remember { FocusRequester() }
     val textMeasurer = rememberTextMeasurer()
     val clipboardManager = LocalClipboardManager.current
@@ -147,29 +153,27 @@ fun ProperTerminal(
     val settingsManager = remember { SettingsManager.instance }
     val settings by settingsManager.settings.collectAsState()
 
-    // Create JediTerm components
-    val styleState = remember { StyleState() }
-    val textBuffer = remember { TerminalTextBuffer(80, 24, styleState, settings.bufferMaxLines) }
-    val display = remember { ComposeTerminalDisplay() }
-    val terminal = remember { JediTerminal(display, textBuffer, styleState) }
+    // Use tab's terminal components
+    val terminal = tab.terminal
+    val textBuffer = tab.textBuffer
+    val display = tab.display
 
-    // Search state
-    var searchVisible by remember { mutableStateOf(false) }
-    var searchQuery by remember { mutableStateOf("") }
+    // Search state from tab
+    var searchVisible by tab.searchVisible
+    var searchQuery by tab.searchQuery
     var searchCaseSensitive by remember { mutableStateOf(settings.searchCaseSensitive) }
-    var searchMatches by remember { mutableStateOf<List<Pair<Int, Int>>>(emptyList()) } // (col, row)
-    var currentMatchIndex by remember { mutableStateOf(-1) }
+    var searchMatches by tab.searchMatches
+    var currentMatchIndex by tab.currentSearchMatchIndex
 
-    // IME (Input Method Editor) state for CJK input
-    val imeState = remember { IMEState() }
+    // IME state from tab
+    val imeState = tab.imeState
 
-    // Text selection state (needed by search helper functions)
-    var selectionStart by remember { mutableStateOf<Pair<Int, Int>?>(null) }  // (col, row)
-    var selectionEnd by remember { mutableStateOf<Pair<Int, Int>?>(null) }    // (col, row)
+    // Selection state from tab
+    var selectionStart by tab.selectionStart
+    var selectionEnd by tab.selectionEnd
 
-    // X11-style selection clipboard (separate from system clipboard)
-    // Used when settings.emulateX11CopyPaste is enabled
-    var selectionClipboard by remember { mutableStateOf<String?>(null) }
+    // X11-style selection clipboard from tab
+    var selectionClipboard by tab.selectionClipboard
 
     // Scroll terminal to show a search match
     fun scrollToMatch(matchRow: Int) {
@@ -262,37 +266,20 @@ fun ProperTerminal(
         performSearch()
     }
 
-    // Hyperlink state
-    var hoveredHyperlink by remember { mutableStateOf<Hyperlink?>(null) }
+    // Hyperlink state from tab
+    var hoveredHyperlink by tab.hoveredHyperlink
     var cachedHyperlinks by remember { mutableStateOf<Map<Int, List<Hyperlink>>>(emptyMap()) }
 
-    // Create single long-lived data stream and emulator to preserve state across chunk boundaries
+    // Use tab's long-lived data stream and emulator (preserves state across chunk boundaries)
     // This prevents CSI sequences from being truncated when they span multiple output chunks
-    val dataStream = remember { BlockingTerminalDataStream() }
-    val emulator = remember { JediEmulator(dataStream, terminal) }
+    val dataStream = tab.dataStream
+    val emulator = tab.emulator
 
     // Terminal key encoder for proper escape sequence generation (function keys, modifiers, etc.)
     val keyEncoder = remember { TerminalKeyEncoder() }
 
-    /**
-     * Routes terminal responses (DSR, device attributes, mouse events, etc.) back to the PTY process.
-     * This enables bidirectional communication required by TUI applications like vim, less, codex.
-     */
-    class ProcessTerminalOutput(
-        private val processHandle: PlatformServices.ProcessService.ProcessHandle?
-    ) : com.jediterm.terminal.TerminalOutputStream {
-        override fun sendBytes(response: ByteArray, userInput: Boolean) {
-            kotlinx.coroutines.runBlocking {
-                processHandle?.write(String(response, Charsets.UTF_8))
-            }
-        }
-
-        override fun sendString(string: String, userInput: Boolean) {
-            kotlinx.coroutines.runBlocking {
-                processHandle?.write(string)
-            }
-        }
-    }
+    // ProcessTerminalOutput is now defined in TabController
+    // No longer needed here since terminal output routing is set up during tab initialization
 
     // Watch redraw trigger to force recomposition
     val redrawTrigger = display.redrawTrigger.value
@@ -368,7 +355,7 @@ fun ProperTerminal(
             },
             textBuffer = textBuffer,
             clipboardManager = clipboardManager,
-            getProcessHandle = { processHandle },
+            getProcessHandle = { tab.processHandle.value },
             searchVisible = object : androidx.compose.runtime.MutableState<Boolean> {
                 override var value: Boolean
                     get() = searchVisible
@@ -387,42 +374,12 @@ fun ProperTerminal(
     // Cursor blink state for BLINK_* cursor shapes
     var cursorBlinkVisible by remember { mutableStateOf(true) }
 
-    // Cache measurement style for performance (avoid recreating on every draw)
-    // Load MesloLGS NF (Nerd Font) from resources - includes powerline glyphs and symbols
-    // This matches iTerm2's font configuration for proper symbol rendering
-    val nerdFont = remember {
-        try {
-            // Try loading font from classpath resources using File approach
-            // This is more reliable than the resource string approach in some Skiko versions
-            val fontStream = object {}.javaClass.classLoader?.getResourceAsStream("fonts/MesloLGSNF-Regular.ttf")
-                ?: throw IllegalStateException("Font resource not found: fonts/MesloLGSNF-Regular.ttf")
+    // Use shared font loaded once by Main.kt (performance optimization for multiple tabs)
+    // Font loading is expensive and should only happen once, not per tab
 
-            // Create temp file from InputStream
-            val tempFile = java.io.File.createTempFile("MesloLGSNF", ".ttf")
-            tempFile.deleteOnExit()
-            fontStream.use { input ->
-                tempFile.outputStream().use { output ->
-                    input.copyTo(output)
-                }
-            }
-
-            println("INFO: Loaded MesloLGSNF font from: ${tempFile.absolutePath}")
-            FontFamily(
-                androidx.compose.ui.text.platform.Font(
-                    file = tempFile,
-                    weight = FontWeight.Normal
-                )
-            )
-        } catch (e: Exception) {
-            println("ERROR: Failed to load MesloLGSNF font: ${e.message}")
-            e.printStackTrace()
-            FontFamily.Monospace  // Fallback to system monospace
-        }
-    }
-
-    val measurementStyle = remember(nerdFont, settings.fontSize) {
+    val measurementStyle = remember(sharedFont, settings.fontSize) {
         TextStyle(
-            fontFamily = nerdFont,
+            fontFamily = sharedFont,
             fontSize = settings.fontSize.sp,
             fontWeight = FontWeight.Normal
         )
@@ -472,125 +429,14 @@ fun ProperTerminal(
         }
     }
 
-    // Initialize process
-    LaunchedEffect(Unit) {
-        try {
-            // Transition to Connecting state
-            connectionState = ConnectionState.Connecting
+    // PTY initialization and process monitoring are now handled by TabController
+    // ProperTerminal only handles rendering and user interaction
 
-            val services = getPlatformServices()
-
-            // Set proper TERM environment variables for TUI app compatibility (Neovim, vim, less, etc.)
-            // TERM=xterm-256color tells apps we support xterm escape sequences and 256 colors
-            // COLORTERM=truecolor advertises 24-bit color support
-            // TERM_PROGRAM=JediTerm identifies this terminal for app-specific workarounds
-            val terminalEnvironment = buildMap {
-                putAll(filterEnvironmentVariables(System.getenv()))
-                put("TERM", "xterm-256color")
-                put("COLORTERM", "truecolor")
-                put("TERM_PROGRAM", "JediTerm")
-            }
-
-            val config = PlatformServices.ProcessService.ProcessConfig(
-                command = command,
-                arguments = arguments,
-                environment = terminalEnvironment,
-                workingDirectory = System.getProperty("user.home")
-            )
-
-            val handle = services.getProcessService().spawnProcess(config)
-
-            if (handle == null) {
-                connectionState = ConnectionState.Error(
-                    message = "Failed to spawn process: $command",
-                    cause = null
-                )
-                return@LaunchedEffect
-            }
-
-            processHandle = handle
-            connectionState = ConnectionState.Connected(handle)
-
-        // Connect terminal output to PTY process for bidirectional communication
-        // This enables DSR responses, device attribute queries, and other terminal→app messages
-        if (handle != null) {
-            terminal.setTerminalOutput(ProcessTerminalOutput(handle))
-        }
-
-        // Start emulator processing coroutine - runs continuously and blocks on getChar()
-        // This allows CSI sequences to span chunk boundaries without being truncated
-        launch(Dispatchers.Default) {
-            try {
-                while (handle != null && handle.isAlive()) {
-                    try {
-                        emulator.processChar(dataStream.char, terminal)
-                        display.requestRedraw()
-                    } catch (e: java.io.EOFException) {
-                        // Stream closed, exit gracefully
-                        break
-                    } catch (e: java.io.IOException) {
-                        // Only log non-EOF errors
-                        if (e !is com.jediterm.terminal.TerminalDataStream.EOF) {
-                            println("WARNING: I/O error processing terminal output: ${e.message}")
-                        }
-                        break
-                    } catch (e: Exception) {
-                        println("ERROR: Unexpected exception processing terminal output: ${e.message}")
-                        e.printStackTrace()
-                        break
-                    }
-                }
-            } finally {
-                dataStream.close()
-            }
-        }
-
-        // Read output in background and append to blocking stream
-        launch(Dispatchers.IO) {
-            val maxChunkSize = 64 * 1024  // 64KB per read operation to prevent memory exhaustion
-
-            while (handle != null && handle.isAlive()) {
-                val output = handle.read()
-                if (output != null) {
-                    // Limit chunk size to prevent memory exhaustion from malicious/huge output
-                    val processedOutput = if (output.length > maxChunkSize) {
-                        println("WARNING: Process output chunk (${output.length} chars) exceeds $maxChunkSize limit, truncating")
-                        output.substring(0, maxChunkSize)
-                    } else {
-                        output
-                    }
-
-                    // Append chunk to blocking stream - emulator will process it atomically
-                    dataStream.append(processedOutput)
-                }
-            }
-            // Signal end of stream
-            dataStream.close()
-        }
-
-            // Request focus after a short delay to ensure window is ready
-            kotlinx.coroutines.delay(100)
-            focusRequester.requestFocus()
-        } catch (e: Exception) {
-            connectionState = ConnectionState.Error(
-                message = "Failed to initialize terminal: ${e.message ?: "Unknown error"}",
-                cause = e
-            )
-            println("ERROR: Terminal initialization failed: ${e.message}")
-            e.printStackTrace()
-        }
-    }
-
-    // Monitor process exit and close window when process terminates
-    LaunchedEffect(processHandle) {
-        val handle = processHandle
-        if (handle != null) {
-            withContext(Dispatchers.IO) {
-                handle.waitFor()  // Blocks until process exits (no polling!)
-            }
-            println("INFO: Shell process exited, closing window")
-            onProcessExit()
-        }
+    // Request focus when tab becomes active or changes
+    // Use tab.id as key so effect re-triggers when switching between tabs
+    LaunchedEffect(tab.id) {
+        kotlinx.coroutines.delay(100)
+        focusRequester.requestFocus()
     }
 
     // Scrollbar adapter that bridges terminal scroll state with Compose scrollbar
@@ -624,8 +470,8 @@ fun ProperTerminal(
                     val currentCols = textBuffer.width
                     val currentRows = textBuffer.height
 
-                    // Only resize if dimensions actually changed AND are reasonable
-                    if ((currentCols != newCols || currentRows != newRows) && newCols >= 2 && newRows >= 2) {
+                    // Resize on first render OR when dimensions change (ensures PTY gets correct size on startup)
+                    if ((!hasPerformedInitialResize || (currentCols != newCols || currentRows != newRows)) && newCols >= 2 && newRows >= 2) {
                         val newTermSize = TermSize(newCols, newRows)
                         // Resize terminal buffer and notify PTY process (sends SIGWINCH)
                         terminal.resize(newTermSize, RequestOrigin.User)
@@ -633,6 +479,7 @@ fun ProperTerminal(
                         scope.launch {
                             processHandle?.resize(newCols, newRows)
                         }
+                        hasPerformedInitialResize = true
                     }
                 }
             }
@@ -1591,21 +1438,7 @@ private fun extractSelectedText(
     }
 }
 
-/**
- * Filter environment variables to remove sensitive data before passing to spawned process.
- * Removes variables that likely contain passwords, tokens, API keys, or other credentials.
- */
-private fun filterEnvironmentVariables(env: Map<String, String>): Map<String, String> {
-    val sensitiveKeywords = listOf(
-        "PASSWORD", "TOKEN", "KEY", "SECRET", "CREDENTIAL", "AUTH",
-        "API", "PRIVATE", "CERT", "OAUTH"
-    )
-
-    return env.filterKeys { key ->
-        val upperKey = key.uppercase()
-        !sensitiveKeywords.any { upperKey.contains(it) }
-    }
-}
+// filterEnvironmentVariables function moved to TabController.kt
 
 // Use XTerm color palette for consistency with original JediTerm
 private val colorPalette = ColorPaletteImpl.XTERM_PALETTE

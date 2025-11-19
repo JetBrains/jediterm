@@ -53,29 +53,12 @@ fun AlwaysVisibleScrollbar(
     val isHovered by interactionSource.collectIsHoveredAsState()
     val scope = rememberCoroutineScope()
 
-    // State to force recomposition when scroll position changes
-    var scrollUpdateTrigger by remember { mutableStateOf(0) }
-
-    // Observe scroll changes reactively (only when values actually change)
-    LaunchedEffect(adapter, containerHeight) {
-        snapshotFlow {
-            val containerSize = containerHeight.toInt()
-            if (containerSize > 0) {
-                adapter.scrollOffset to adapter.maxScrollOffset(containerSize)
-            } else {
-                0.0 to 0.0
-            }
-        }.collect { (scrollOffset, maxScroll) ->
-            // Trigger recomposition only when scroll state actually changes
-            scrollUpdateTrigger++
-        }
-    }
-
     // Calculate thumb opacity based on hover state
     val thumbAlpha = if (isHovered) 1.0f else 0.8f
 
-    // Calculate current scroll state
+    // Read scroll state directly - Compose will automatically recompose when these values change
     val containerSize = containerHeight.toInt()
+    val scrollOffset = adapter.scrollOffset
     val maxScroll = if (containerSize > 0) adapter.maxScrollOffset(containerSize) else 0f
 
     // Always render container Box for size measurement
@@ -86,7 +69,7 @@ fun AlwaysVisibleScrollbar(
             .onSizeChanged { containerHeight = it.height.toFloat() }
     ) {
         // Only render visible scrollbar when there's content to scroll
-        if (scrollUpdateTrigger >= 0 && containerHeight > 0f && maxScroll > 0f) {
+        if (containerHeight > 0f && maxScroll > 0f) {
             // Track background
             Box(
                 modifier = Modifier
@@ -108,7 +91,6 @@ fun AlwaysVisibleScrollbar(
             )
 
             // Thumb
-            val scrollOffset = adapter.scrollOffset
             val thumbHeightPx = run {
                 val visibleRatio = containerHeight / (containerHeight + maxScroll)
                 max(

@@ -58,6 +58,7 @@ import org.jetbrains.jediterm.compose.features.ContextMenuController
 import org.jetbrains.jediterm.compose.features.ContextMenuPopup
 import org.jetbrains.jediterm.compose.features.showTerminalContextMenu
 import androidx.compose.ui.Alignment
+import org.jetbrains.jediterm.compose.actions.createBuiltinActions
 
 /**
  * Maps Compose Desktop Key constants to Java AWT VK (Virtual Key) codes.
@@ -330,6 +331,44 @@ fun ProperTerminal(
             buffer.unlock()
         }
         display.requestImmediateRedraw()
+    }
+
+    // Detect macOS for keyboard shortcut handling (Cmd vs Ctrl)
+    val isMacOS = remember { System.getProperty("os.name").lowercase().contains("mac") }
+
+    // Create action registry with all built-in actions
+    val actionRegistry = remember(isMacOS) {
+        createBuiltinActions(
+            selectionStart = object : androidx.compose.runtime.MutableState<Pair<Int, Int>?> {
+                override var value: Pair<Int, Int>?
+                    get() = selectionStart
+                    set(value) { selectionStart = value }
+                override fun component1() = value
+                override fun component2(): (Pair<Int, Int>?) -> Unit = { selectionStart = it }
+            },
+            selectionEnd = object : androidx.compose.runtime.MutableState<Pair<Int, Int>?> {
+                override var value: Pair<Int, Int>?
+                    get() = selectionEnd
+                    set(value) { selectionEnd = value }
+                override fun component1() = value
+                override fun component2(): (Pair<Int, Int>?) -> Unit = { selectionEnd = it }
+            },
+            textBuffer = textBuffer,
+            clipboardManager = clipboardManager,
+            getProcessHandle = { processHandle },
+            searchVisible = object : androidx.compose.runtime.MutableState<Boolean> {
+                override var value: Boolean
+                    get() = searchVisible
+                    set(value) { searchVisible = value }
+                override fun component1() = value
+                override fun component2(): (Boolean) -> Unit = { searchVisible = it }
+            },
+            imeState = imeState,
+            display = display,
+            scope = scope,
+            selectAllCallback = { selectAll() },
+            isMacOS = isMacOS
+        )
     }
 
     // Cursor blink state for BLINK_* cursor shapes
@@ -693,11 +732,14 @@ fun ProperTerminal(
                 scrollOffset = (scrollOffset - delta.toInt()).coerceIn(0, historySize)
             }
             .onPreviewKeyEvent { keyEvent ->
-                // Handle Ctrl+F / Cmd+F for search (intercept before search bar)
-                if (keyEvent.type == KeyEventType.KeyDown &&
-                    (keyEvent.isCtrlPressed || keyEvent.isMetaPressed) && keyEvent.key == Key.F) {
-                    searchVisible = !searchVisible
-                    return@onPreviewKeyEvent true
+                // Handle actions in preview (before search bar intercepts)
+                // This allows shortcuts like Ctrl+F to work even when search bar is focused
+                if (keyEvent.type == KeyEventType.KeyDown) {
+                    // Only handle search action in preview to intercept before search bar
+                    val action = actionRegistry.getAction("search")
+                    if (action != null && action.matchesKeyEvent(keyEvent, isMacOS)) {
+                        return@onPreviewKeyEvent action.execute(keyEvent)
+                    }
                 }
                 false  // Let other events pass through
             }
@@ -708,22 +750,13 @@ fun ProperTerminal(
                 }
 
                 if (keyEvent.type == KeyEventType.KeyDown) {
-                    // Handle Ctrl+Space for IME toggle (CJK input)
-                    if (keyEvent.isCtrlPressed && keyEvent.key == Key.Spacebar) {
-                        imeState.toggle()
-                        return@onKeyEvent true
-                    }
-
-                    // Handle Escape key - clear selection if it exists
-                    if (keyEvent.key == Key.Escape) {
-                        if (selectionStart != null || selectionEnd != null) {
-                            // Selection exists - clear it and consume the Escape key
-                            selectionStart = null
-                            selectionEnd = null
-                            display.requestImmediateRedraw()
-                            return@onKeyEvent true  // Consume event
+                    // Try to execute action from registry
+                    val action = actionRegistry.findAction(keyEvent)
+                    if (action != null && action.enabled()) {
+                        val consumed = action.execute(keyEvent)
+                        if (consumed) {
+                            return@onKeyEvent true
                         }
-                        // No selection - let Escape pass through to terminal
                     }
 
                     // Clear selection on any printable key (except Ctrl/Cmd+key combinations)
@@ -744,30 +777,6 @@ fun ProperTerminal(
                                 display.requestImmediateRedraw()
                             }
                         }
-                    }
-
-                    // Handle Ctrl+V / Cmd+V for paste
-                    if ((keyEvent.isCtrlPressed || keyEvent.isMetaPressed) && keyEvent.key == Key.V) {
-                        val text = clipboardManager.getText()?.text
-                        if (!text.isNullOrEmpty()) {
-                            scope.launch {
-                                processHandle?.write(text)
-                            }
-                        }
-                        return@onKeyEvent true
-                    }
-
-                    // Handle Ctrl+C / Cmd+C for copy (only when selection exists)
-                    if ((keyEvent.isCtrlPressed || keyEvent.isMetaPressed) && keyEvent.key == Key.C) {
-                        if (selectionStart != null && selectionEnd != null) {
-                            val selectedText = extractSelectedText(textBuffer, selectionStart!!, selectionEnd!!)
-                            if (selectedText.isNotEmpty()) {
-                                clipboardManager.setText(AnnotatedString(selectedText))
-                                return@onKeyEvent true  // Consume event only if we copied
-                            }
-                        }
-                        // No selection - let Ctrl+C pass through to terminal (for process interrupt)
-                        return@onKeyEvent false
                     }
 
                     // IME (Input Method Editor) Support - IMPLEMENTED

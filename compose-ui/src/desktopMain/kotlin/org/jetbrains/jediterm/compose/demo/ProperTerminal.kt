@@ -158,6 +158,10 @@ fun ProperTerminal(
     var selectionStart by remember { mutableStateOf<Pair<Int, Int>?>(null) }  // (col, row)
     var selectionEnd by remember { mutableStateOf<Pair<Int, Int>?>(null) }    // (col, row)
 
+    // X11-style selection clipboard (separate from system clipboard)
+    // Used when settings.emulateX11CopyPaste is enabled
+    var selectionClipboard by remember { mutableStateOf<String?>(null) }
+
     // Scroll terminal to show a search match
     fun scrollToMatch(matchRow: Int) {
         val screenHeight = textBuffer.height
@@ -633,6 +637,29 @@ fun ProperTerminal(
                         return@onPointerEvent
                     }
 
+                    // Check for middle-click paste (tertiary button)
+                    if (event.button == androidx.compose.ui.input.pointer.PointerButton.Tertiary && settings.pasteOnMiddleClick) {
+                        val text = if (settings.emulateX11CopyPaste) {
+                            // X11 mode: Paste from selection clipboard (middle-click buffer)
+                            selectionClipboard
+                        } else {
+                            // Normal mode: Paste from system clipboard
+                            clipboardManager.getText()?.text
+                        }
+                        if (!text.isNullOrEmpty() && processHandle != null) {
+                            scope.launch {
+                                try {
+                                    processHandle?.write(text)
+                                } catch (e: Exception) {
+                                    println("ERROR: Failed to paste text via middle-click: ${e.message}")
+                                    e.printStackTrace()
+                                }
+                            }
+                            change.consume()
+                            return@onPointerEvent
+                        }
+                    }
+
                     // Check for hyperlink click
                     // TODO: Add Ctrl/Cmd modifier check when proper API is available
                     // For now, require Ctrl to be checked via keyboard state separately
@@ -717,6 +744,26 @@ fun ProperTerminal(
                 if (!isDragging && event.button != androidx.compose.ui.input.pointer.PointerButton.Secondary) {
                     selectionStart = null
                     selectionEnd = null
+                }
+
+                // Copy-on-select: Automatically copy selected text to clipboard
+                // Capture values first to avoid race condition (TOCTOU)
+                val start = selectionStart
+                val end = selectionEnd
+                if (settings.copyOnSelect && start != null && end != null) {
+                    val selectedText = extractSelectedText(textBuffer, start, end)
+                    if (selectedText.isNotEmpty()) {
+                        if (settings.emulateX11CopyPaste) {
+                            // X11 mode: Copy to selection clipboard (middle-click buffer)
+                            // Limit clipboard size to 10MB to prevent memory issues
+                            if (selectedText.length <= 10_000_000) {
+                                selectionClipboard = selectedText
+                            }
+                        } else {
+                            // Normal mode: Copy to system clipboard
+                            clipboardManager.setText(AnnotatedString(selectedText))
+                        }
+                    }
                 }
 
                 // Reset drag state

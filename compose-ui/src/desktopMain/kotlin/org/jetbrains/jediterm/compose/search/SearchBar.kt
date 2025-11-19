@@ -76,7 +76,7 @@ fun SearchBar(
                     .weight(1f)
                     .focusRequester(focusRequester)
                     .onPreviewKeyEvent { event ->
-                        // Consume ALL key events to prevent them from reaching terminal
+                        // Handle search-specific key events
                         if (event.type == KeyEventType.KeyDown) {
                             when {
                                 event.key == Key.Enter && event.isShiftPressed -> {
@@ -91,12 +91,18 @@ fun SearchBar(
                                     onClose()
                                     true
                                 }
-                                // Consume all typing to prevent terminal input
+                                // DON'T consume Ctrl+F/Cmd+F - let it propagate to terminal
+                                // This ensures Ctrl+F always shows the search bar even if it's focused
+                                (event.isCtrlPressed || event.isMetaPressed) && event.key == Key.F -> {
+                                    false  // Don't consume, let terminal handle it
+                                }
+                                // Consume all other typing to prevent terminal input
                                 else -> true
                             }
                         } else {
-                            // Consume key up events too
-                            true
+                            // Consume key up events too (except Ctrl+F/Cmd+F)
+                            val isCtrlF = (event.isCtrlPressed || event.isMetaPressed) && event.key == Key.F
+                            !isCtrlF  // Consume unless it's Ctrl+F
                         }
                     },
                 singleLine = true,

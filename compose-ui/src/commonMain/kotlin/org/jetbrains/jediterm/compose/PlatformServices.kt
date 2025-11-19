@@ -96,6 +96,15 @@ interface PlatformServices {
             suspend fun kill()
 
             /**
+             * Wait for the process to exit and return its exit code.
+             * This is a blocking operation that should be called from a coroutine context
+             * suitable for blocking operations (e.g., Dispatchers.IO).
+             *
+             * @return the exit code of the process
+             */
+            suspend fun waitFor(): Int
+
+            /**
              * Resize PTY
              */
             suspend fun resize(columns: Int, rows: Int)

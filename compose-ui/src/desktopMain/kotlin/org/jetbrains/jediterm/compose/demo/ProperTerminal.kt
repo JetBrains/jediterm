@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.jetbrains.jediterm.compose.ComposeTerminalDisplay
 import org.jetbrains.jediterm.compose.ConnectionState
 import org.jetbrains.jediterm.compose.PlatformServices
@@ -62,6 +63,7 @@ import org.jetbrains.jediterm.compose.features.ContextMenuController
 import org.jetbrains.jediterm.compose.features.ContextMenuPopup
 import org.jetbrains.jediterm.compose.features.showTerminalContextMenu
 import androidx.compose.ui.Alignment
+import kotlinx.coroutines.withContext
 import org.jetbrains.jediterm.compose.actions.createBuiltinActions
 import org.jetbrains.jediterm.compose.scrollbar.rememberTerminalScrollbarAdapter
 import org.jetbrains.jediterm.compose.scrollbar.AlwaysVisibleScrollbar
@@ -583,11 +585,9 @@ fun ProperTerminal(
     LaunchedEffect(processHandle) {
         val handle = processHandle
         if (handle != null) {
-            // Wait for the process to exit
-            while (handle.isAlive()) {
-                kotlinx.coroutines.delay(500)  // Check every 500ms
+            withContext(Dispatchers.IO) {
+                handle.waitFor()  // Blocks until process exits (no polling!)
             }
-            // Process has exited, close the window
             println("INFO: Shell process exited, closing window")
             onProcessExit()
         }
@@ -1507,6 +1507,7 @@ fun ProperTerminal(
         if (settings.showScrollbar) {
             AlwaysVisibleScrollbar(
                 adapter = scrollbarAdapter,
+                redrawTrigger = display.redrawTrigger,
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
                     .fillMaxHeight(),

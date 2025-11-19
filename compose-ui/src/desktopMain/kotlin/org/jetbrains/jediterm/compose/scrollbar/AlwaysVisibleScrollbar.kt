@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
+import androidx.compose.runtime.State
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -33,6 +34,7 @@ import kotlin.math.roundToInt
  * Designed to replace Compose Desktop's VerticalScrollbar which hides when not hovered.
  *
  * @param adapter ScrollbarAdapter that provides scroll position information
+ * @param redrawTrigger State that changes when terminal content updates (for buffer changes)
  * @param modifier Modifier to be applied to the scrollbar container
  * @param thickness Width of the scrollbar in Dp
  * @param thumbColor Color of the scrollbar thumb
@@ -42,6 +44,7 @@ import kotlin.math.roundToInt
 @Composable
 fun AlwaysVisibleScrollbar(
     adapter: ScrollbarAdapter,
+    redrawTrigger: State<Int>,
     modifier: Modifier = Modifier,
     thickness: Dp = 12.dp,
     thumbColor: Color = Color.White,
@@ -53,32 +56,14 @@ fun AlwaysVisibleScrollbar(
     val isHovered by interactionSource.collectIsHoveredAsState()
     val scope = rememberCoroutineScope()
 
-    // Observe buffer changes (new lines added) to detect maxScroll changes
-    // This doesn't poll - it only triggers when the values actually change
-    var bufferChangeTrigger by remember { mutableStateOf(0) }
-    LaunchedEffect(adapter, containerHeight) {
-        snapshotFlow {
-            val containerSize = containerHeight.toInt()
-            if (containerSize > 0) {
-                // Only observe maxScrollOffset for buffer changes
-                adapter.maxScrollOffset(containerSize)
-            } else {
-                0.0
-            }
-        }.collect {
-            // Trigger recomposition when buffer content changes
-            bufferChangeTrigger++
-        }
-    }
-
     // Calculate thumb opacity based on hover state
     val thumbAlpha = if (isHovered) 1.0f else 0.8f
 
     // Read scroll state directly for zero-lag scroll updates
-    // bufferChangeTrigger ensures we recompose when buffer content changes
+    // Reading redrawTrigger.value ensures we recompose when terminal content changes (new lines added)
     val containerSize = containerHeight.toInt()
     val scrollOffset = adapter.scrollOffset
-    val maxScroll = if (containerSize > 0 && bufferChangeTrigger >= 0) {
+    val maxScroll = if (containerSize > 0 && redrawTrigger.value >= 0) {
         adapter.maxScrollOffset(containerSize)
     } else {
         0f

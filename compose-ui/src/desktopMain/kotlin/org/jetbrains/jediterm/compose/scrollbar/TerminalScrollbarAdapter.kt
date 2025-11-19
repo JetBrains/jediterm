@@ -140,6 +140,11 @@ private class TerminalScrollbarAdapter(
         }
 
         val cellH = cellHeight()
+        // Guard against division by zero (can happen during initialization or window minimize)
+        if (cellH <= 0f) {
+            onScroll(0)
+            return
+        }
         val rawMaxScroll = history * cellH  // Raw maximum scroll in pixels
 
         // Get the capped maxScrollOffset

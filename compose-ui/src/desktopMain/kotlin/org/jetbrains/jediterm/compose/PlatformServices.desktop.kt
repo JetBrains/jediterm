@@ -126,6 +126,10 @@ class DesktopProcessService : PlatformServices.ProcessService {
             process.destroy()
         }
 
+        override suspend fun waitFor(): Int = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            process.waitFor()
+        }
+
         override suspend fun resize(columns: Int, rows: Int) {
             process.setWinSize(com.pty4j.WinSize(columns, rows))
         }

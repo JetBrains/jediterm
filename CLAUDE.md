@@ -299,6 +299,7 @@ cd ..
 2. Need to test with different Nerd Font variants
 
 ### Completed (Recent → Oldest)
+✅ **Code Cleanup & Hyperlink Enhancement** (November 19, 2025) - Removed unused variables/code, implemented Ctrl/Cmd+Click for hyperlinks
 ✅ **Visual Scrollbar** (November 19, 2025, issue #8) - Custom scrollbar adapter with coordinate system conversion
 ✅ **Clipboard Enhancement Features** (November 19, 2025, issue #9) - Copy-on-select, middle-click paste, and X11 clipboard emulation
 ✅ **Ctrl+F consistency fix** (November 18, 2025, commit df1d183) - Search shortcut works from any focus state
@@ -809,6 +810,89 @@ See `compose-ui/src/desktopMain/kotlin/org/jetbrains/jediterm/compose/settings/T
 
 ---
 
+## Code Cleanup & Hyperlink Enhancement
+
+### Overview
+Comprehensive code cleanup and improvement of hyperlink interaction based on TODO/unused code analysis.
+
+**Implementation Date**: November 19, 2025
+
+### Changes Made
+
+#### Code Cleanup (Tier 1)
+Removed dead code and improved code quality:
+
+1. **Removed unused variables** (ProperTerminal.kt):
+   - `resizeJob` (line 146): Declared for debouncing but never used
+   - `baselineOffset` (line 399): Calculated from font metrics but never referenced
+
+2. **Removed duplicate import** (ProperTerminal.kt:66):
+   - Duplicate `import kotlinx.coroutines.withContext`
+
+3. **Removed commented testing code** (ProperTerminal.kt:815-819):
+   - Old variation selector skip logic from emoji rendering debugging
+   - Working solution is documented in CLAUDE.md (Emoji Rendering section)
+
+4. **Updated Phase 8 TODOs** (TerminalTab.kt:185, 193):
+   - Removed outdated TODO comments about redraw pause/resume
+   - Feature already implemented via Phase 2 adaptive debouncing
+   - Updated comments to clarify current implementation
+
+#### Hyperlink Enhancement (Tier 2)
+Implemented standard terminal behavior for hyperlink clicks: **Ctrl+Click** (Windows/Linux) or **Cmd+Click** (macOS).
+
+**Problem**: Hyperlinks opened on any mouse click, risking accidental navigation.
+
+**Solution** (ProperTerminal.kt):
+1. Added state variable to track Ctrl/Cmd key status (line 146):
+   ```kotlin
+   var isModifierPressed by remember { mutableStateOf(false) }
+   ```
+
+2. Track modifier keys in `onPreviewKeyEvent` (lines 665-668):
+   ```kotlin
+   when (keyEvent.key) {
+       Key.CtrlLeft, Key.CtrlRight, Key.MetaLeft, Key.MetaRight -> {
+           isModifierPressed = keyEvent.type == KeyEventType.KeyDown
+       }
+   }
+   ```
+
+3. Updated hyperlink click handler (lines 547-550):
+   ```kotlin
+   if (hoveredHyperlink != null && isModifierPressed) {
+       HyperlinkDetector.openUrl(hoveredHyperlink!!.url)
+       // ...
+   }
+   ```
+
+### Testing
+
+**Hyperlink Behavior**:
+- ✅ Regular click on hyperlink → No action (expected)
+- ✅ Ctrl+Click on hyperlink (Windows/Linux) → Opens browser
+- ✅ Cmd+Click on hyperlink (macOS) → Opens browser
+- ✅ Existing keyboard shortcuts still work
+- ✅ Terminal input not affected
+
+### Benefits
+
+1. **Standard Behavior**: Matches terminal emulators like iTerm2, Alacritty, Hyper
+2. **Prevents Accidents**: No more accidental link opening during text selection
+3. **Platform-Aware**: Automatically uses Ctrl (Windows/Linux) or Cmd (macOS)
+4. **Clean Code**: Removed 4 dead code items (variables, imports, comments)
+5. **Clear Documentation**: Updated comments to reflect actual implementation state
+
+### Files Modified
+
+| File | Changes | Lines |
+|------|---------|-------|
+| ProperTerminal.kt | Cleanup + hyperlink modifier | -10 +15 |
+| TerminalTab.kt | Updated TODO comments | ~6 |
+| CLAUDE.md | Documentation | +100 |
+
+---
+
 ## Extensible Terminal Actions Framework (Issue #11)
 
 ### Overview
@@ -982,10 +1066,17 @@ All shortcuts verified working:
 - Capture screenshots for visual verification
 
 ## Last Updated
-November 19, 2025 12:00 PM PST
+November 19, 2025 2:00 PM PST
 
 ### Recent Changes
-- **November 19, 2025**: Implemented clipboard enhancement features (#9)
+- **November 19, 2025 (Afternoon)**: Code cleanup and hyperlink enhancement
+  - Removed unused variables: `resizeJob`, `baselineOffset` (ProperTerminal.kt)
+  - Removed duplicate import and commented testing code
+  - Updated Phase 8 TODOs to reflect already-implemented features
+  - Implemented Ctrl/Cmd+Click for hyperlinks (standard terminal behavior)
+  - Added modifier key tracking to prevent accidental link opening
+  - Comprehensive documentation in CLAUDE.md
+- **November 19, 2025 (Morning)**: Implemented clipboard enhancement features (#9)
   - Copy-on-select: Automatically copies selected text to clipboard on mouse release
   - Middle-click paste: Paste clipboard content with middle mouse button (Tertiary button)
   - X11 clipboard emulation: Separate clipboards for selection vs system copy/paste

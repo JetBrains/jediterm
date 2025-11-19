@@ -179,18 +179,20 @@ data class TerminalTab(
 
     /**
      * Lifecycle callback invoked when this tab becomes visible (user switches to it).
+     * Note: Redraw optimization is already implemented via Phase 2 adaptive debouncing.
+     * TabController checks isVisible flag to skip redraws for hidden tabs.
      */
     fun onVisible() {
         isVisible = true
-        // TODO: Resume redraw processing when Phase 8 performance optimization is implemented
     }
 
     /**
      * Lifecycle callback invoked when this tab becomes hidden (user switches away).
+     * Note: Redraw optimization is already implemented via Phase 2 adaptive debouncing.
+     * TabController checks isVisible flag to skip redraws for hidden tabs.
      */
     fun onHidden() {
         isVisible = false
-        // TODO: Pause redraw processing when Phase 8 performance optimization is implemented
     }
 
     /**

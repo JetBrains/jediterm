@@ -63,7 +63,6 @@ import org.jetbrains.jediterm.compose.features.ContextMenuController
 import org.jetbrains.jediterm.compose.features.ContextMenuPopup
 import org.jetbrains.jediterm.compose.features.showTerminalContextMenu
 import androidx.compose.ui.Alignment
-import kotlinx.coroutines.withContext
 import org.jetbrains.jediterm.compose.actions.createBuiltinActions
 import org.jetbrains.jediterm.compose.scrollbar.rememberTerminalScrollbarAdapter
 import org.jetbrains.jediterm.compose.scrollbar.AlwaysVisibleScrollbar
@@ -143,8 +142,8 @@ fun ProperTerminal(
     var isFocused by tab.isFocused
     var scrollOffset by tab.scrollOffset
     val scope = rememberCoroutineScope()
-    var resizeJob by remember { mutableStateOf<Job?>(null) }  // For debouncing resize operations
     var hasPerformedInitialResize by remember { mutableStateOf(false) }  // Track initial resize
+    var isModifierPressed by remember { mutableStateOf(false) }  // Track Ctrl/Cmd for hyperlink clicks
     val focusRequester = remember { FocusRequester() }
     val textMeasurer = rememberTextMeasurer()
     val clipboardManager = LocalClipboardManager.current
@@ -396,7 +395,6 @@ fun ProperTerminal(
     }
     val cellWidth = cellMetrics.first
     val cellHeight = cellMetrics.second
-    val baselineOffset = cellMetrics.third
 
     // Auto-scroll to bottom on new output if already at bottom
     LaunchedEffect(redrawTrigger) {
@@ -544,11 +542,9 @@ fun ProperTerminal(
                         }
                     }
 
-                    // Check for hyperlink click
-                    // TODO: Add Ctrl/Cmd modifier check when proper API is available
-                    // For now, require Ctrl to be checked via keyboard state separately
-                    if (hoveredHyperlink != null) {
-                        // Open hyperlink (modifier requirement can be added later)
+                    // Check for hyperlink click with Ctrl/Cmd modifier
+                    // Standard terminal behavior: Ctrl+Click (Windows/Linux) or Cmd+Click (macOS)
+                    if (hoveredHyperlink != null && isModifierPressed) {
                         HyperlinkDetector.openUrl(hoveredHyperlink!!.url)
                         change.consume()
                         return@onPointerEvent
@@ -663,6 +659,13 @@ fun ProperTerminal(
                 scrollOffset = (scrollOffset - delta.toInt()).coerceIn(0, historySize)
             }
             .onPreviewKeyEvent { keyEvent ->
+                // Track Ctrl/Cmd key state for hyperlink clicks
+                when (keyEvent.key) {
+                    Key.CtrlLeft, Key.CtrlRight, Key.MetaLeft, Key.MetaRight -> {
+                        isModifierPressed = keyEvent.type == KeyEventType.KeyDown
+                    }
+                }
+
                 // Handle actions in preview (before search bar intercepts)
                 // This allows shortcuts like Ctrl+F to work even when search bar is focused
                 if (keyEvent.type == KeyEventType.KeyDown) {
@@ -811,12 +814,6 @@ fun ProperTerminal(
                         // Check if double-width
                         val isWcwidthDoubleWidth = char != ' ' && char != '\u0000' &&
                                 CharUtils.isDoubleWidthCharacter(char.code, display.ambiguousCharsAreDoubleWidth())
-
-                        // TESTING: Commented out variation selector skip to see if it fixes emoji rendering
-                        // if (char.code == 0xFE0F || char.code == 0xFE0E) {
-                        //     col++
-                        //     continue
-                        // }
 
                         // Get attributes
                         val isInverse = style?.hasOption(JediTextStyle.Option.INVERSE) ?: false

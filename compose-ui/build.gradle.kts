@@ -6,6 +6,7 @@ plugins {
     id("org.jetbrains.compose")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.android.library")
+    kotlin("plugin.serialization") version "2.1.0"
     `maven-publish`
 }
 
@@ -91,6 +92,9 @@ kotlin {
                 // Coroutines
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
 
+                // Serialization
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+
                 // Logging
                 implementation("org.slf4j:slf4j-api:2.0.9")
             }
@@ -103,17 +107,10 @@ kotlin {
             }
         }
 
-        val jvmMain by creating {
-            dependsOn(commonMain)
-            dependencies {
-                implementation(project(":jediterm-core-mpp"))
-            }
-        }
-
         // Android source set
         val androidMain by getting {
-            dependsOn(jvmMain)
             dependencies {
+                implementation(project(":jediterm-core-mpp"))
                 implementation("androidx.activity:activity-compose:1.9.3")
                 implementation("androidx.appcompat:appcompat:1.7.0")
                 implementation("androidx.core:core-ktx:1.15.0")
@@ -121,21 +118,10 @@ kotlin {
             }
         }
 
-        // iOS source sets
-        val iosX64Main by getting
-        val iosArm64Main by getting
-        val iosSimulatorArm64Main by getting
-        val iosMain by creating {
-            dependsOn(commonMain)
-            iosX64Main.dependsOn(this)
-            iosArm64Main.dependsOn(this)
-            iosSimulatorArm64Main.dependsOn(this)
-        }
-
         // Desktop source set
         val desktopMain by getting {
-            dependsOn(jvmMain)
             dependencies {
+                implementation(project(":jediterm-core-mpp"))
                 implementation(compose.desktop.currentOs)
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.9.0")
                 implementation("org.jetbrains.pty4j:pty4j:0.12.13")

@@ -43,19 +43,20 @@ class TerminalTextBuffer internal constructor(
   var screenLinesStorage: LinesStorage = createScreenLinesStorage()
     private set
 
-  @Deprecated("Use historyLinesStorage instead", replaceWith = ReplaceWith("historyLinesStorage"))
-  var historyBuffer: LinesBuffer = createLinesBuffer(historyLinesStorage)
-    private set
-
-  @Deprecated("Use screenLinesStorage instead", replaceWith = ReplaceWith("screenLinesStorage"))
-  var screenBuffer: LinesBuffer = createLinesBuffer(screenLinesStorage)
-    private set
 
   internal val historyLinesStorageOrBackup: LinesStorage
-    get() = if (isUsingAlternateBuffer) historyLinesStorageBackup!! else historyLinesStorage
+    get() = if (isUsingAlternateBuffer) {
+        historyLinesStorageBackup ?: historyLinesStorage
+    } else {
+        historyLinesStorage
+    }
 
   internal val screenLinesStorageOrBackup: LinesStorage
-    get() = if (isUsingAlternateBuffer) screenLinesStorageBackup!! else screenLinesStorage
+    get() = if (isUsingAlternateBuffer) {
+        screenLinesStorageBackup ?: screenLinesStorage
+    } else {
+        screenLinesStorage
+    }
 
   // Public accessors for Java interop
   fun getHistoryLinesStorageOrBackup(): LinesStorage = historyLinesStorageOrBackup
@@ -71,9 +72,6 @@ class TerminalTextBuffer internal constructor(
 
   private var historyLinesStorageBackup: LinesStorage? = null
   private var screenLinesStorageBackup: LinesStorage? = null
-
-  private var historyBufferBackup: LinesBuffer? = null
-  private var screenBufferBackup: LinesBuffer? = null // to store textBuffer after switching to alternate buffer
 
   private var alternateBuffer = false
 
@@ -101,9 +99,6 @@ class TerminalTextBuffer internal constructor(
     return CyclicBufferLinesStorage(maxHistoryLinesCount)
   }
 
-  private fun createLinesBuffer(delegate: LinesStorage): LinesBuffer {
-    return LinesBuffer(delegate, textProcessing)
-  }
 
   fun resize(newTermSize: TermSize, oldCursor: CellPosition, selection: TerminalSelection?): TerminalResizeResult {
     val newWidth = newTermSize.columns
@@ -118,7 +113,10 @@ class TerminalTextBuffer internal constructor(
       changeWidthOperation.addPointToTrack(cursorPoint, true)
       if (selection != null) {
         changeWidthOperation.addPointToTrack(selection.start, false)
-        changeWidthOperation.addPointToTrack(selection.end, false)
+        val selectionEnd = selection.end
+        if (selectionEnd != null) {
+          changeWidthOperation.addPointToTrack(selectionEnd, false)
+        }
       }
       changeWidthOperation.run()
       width = newWidth
@@ -128,7 +126,10 @@ class TerminalTextBuffer internal constructor(
       newCursorY = newCursor.y + 1
       if (selection != null) {
         selection.start.setLocation(changeWidthOperation.getTrackedPoint(selection.start))
-        selection.end.setLocation(changeWidthOperation.getTrackedPoint(selection.end))
+        val selectionEnd = selection.end
+        if (selectionEnd != null) {
+          selectionEnd.setLocation(changeWidthOperation.getTrackedPoint(selectionEnd))
+        }
       }
       changesMulticaster.widthResized()
     }
@@ -406,25 +407,21 @@ class TerminalTextBuffer internal constructor(
         screenLinesStorage = createScreenLinesStorage()
         historyLinesStorage = createHistoryLinesStorage()
 
-        screenBufferBackup = screenBuffer
-        historyBufferBackup = historyBuffer
-        screenBuffer = createLinesBuffer(screenLinesStorage)
-        historyBuffer = createLinesBuffer(historyLinesStorage)
         isUsingAlternateBuffer = true
       }
     }
     else {
       if (isUsingAlternateBuffer) {
-        screenLinesStorage = screenLinesStorageBackup!!
-        historyLinesStorage = historyLinesStorageBackup!!
-        screenLinesStorageBackup = createScreenLinesStorage()
-        historyLinesStorageBackup = createHistoryLinesStorage()
+        val screenBackup = screenLinesStorageBackup
+        val historyBackup = historyLinesStorageBackup
 
-        screenBuffer = screenBufferBackup!!
-        historyBuffer = historyBufferBackup!!
-        screenBufferBackup = createLinesBuffer(screenLinesStorageBackup!!)
-        historyBufferBackup = createLinesBuffer(historyLinesStorageBackup!!)
-        isUsingAlternateBuffer = false
+        if (screenBackup != null && historyBackup != null) {
+          screenLinesStorage = screenBackup
+          historyLinesStorage = historyBackup
+          screenLinesStorageBackup = null
+          historyLinesStorageBackup = null
+          isUsingAlternateBuffer = false
+        }
       }
     }
     fireModelChangeEvent()

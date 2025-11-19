@@ -53,13 +53,36 @@ fun AlwaysVisibleScrollbar(
     val isHovered by interactionSource.collectIsHoveredAsState()
     val scope = rememberCoroutineScope()
 
+    // Observe buffer changes (new lines added) to detect maxScroll changes
+    // This doesn't poll - it only triggers when the values actually change
+    var bufferChangeTrigger by remember { mutableStateOf(0) }
+    LaunchedEffect(adapter, containerHeight) {
+        snapshotFlow {
+            val containerSize = containerHeight.toInt()
+            if (containerSize > 0) {
+                // Only observe maxScrollOffset for buffer changes
+                adapter.maxScrollOffset(containerSize)
+            } else {
+                0.0
+            }
+        }.collect {
+            // Trigger recomposition when buffer content changes
+            bufferChangeTrigger++
+        }
+    }
+
     // Calculate thumb opacity based on hover state
     val thumbAlpha = if (isHovered) 1.0f else 0.8f
 
-    // Read scroll state directly - Compose will automatically recompose when these values change
+    // Read scroll state directly for zero-lag scroll updates
+    // bufferChangeTrigger ensures we recompose when buffer content changes
     val containerSize = containerHeight.toInt()
     val scrollOffset = adapter.scrollOffset
-    val maxScroll = if (containerSize > 0) adapter.maxScrollOffset(containerSize) else 0f
+    val maxScroll = if (containerSize > 0 && bufferChangeTrigger >= 0) {
+        adapter.maxScrollOffset(containerSize)
+    } else {
+        0f
+    }
 
     // Always render container Box for size measurement
     Box(

@@ -150,6 +150,52 @@ fun ProperTerminal(
     // IME (Input Method Editor) state for CJK input
     val imeState = remember { IMEState() }
 
+    // Text selection state (needed by search helper functions)
+    var selectionStart by remember { mutableStateOf<Pair<Int, Int>?>(null) }  // (col, row)
+    var selectionEnd by remember { mutableStateOf<Pair<Int, Int>?>(null) }    // (col, row)
+
+    // Scroll terminal to show a search match
+    fun scrollToMatch(matchRow: Int) {
+        val screenHeight = textBuffer.height
+        val historySize = textBuffer.historyLinesCount
+
+        when {
+            matchRow < 0 -> {
+                // Match is in history, scroll up to center it
+                val targetOffset = -matchRow - (screenHeight / 2)
+                scrollOffset = targetOffset.coerceIn(0, historySize)
+            }
+            matchRow >= screenHeight -> {
+                // Match is below screen, scroll to bottom
+                scrollOffset = 0
+            }
+            else -> {
+                // Match is in screen buffer, check if visible
+                val visibleRowStart = -scrollOffset
+                val visibleRowEnd = visibleRowStart + screenHeight
+
+                if (matchRow !in visibleRowStart until visibleRowEnd) {
+                    // Not visible, center it
+                    val targetOffset = kotlin.math.max(0, -matchRow + (screenHeight / 2))
+                    scrollOffset = targetOffset.coerceIn(0, historySize)
+                }
+            }
+        }
+        display.requestImmediateRedraw()
+    }
+
+    // Highlight a search match using selection
+    fun highlightMatch(matchCol: Int, matchRow: Int, matchLength: Int) {
+        // Convert buffer coordinates to screen coordinates
+        val screenRow = matchRow + scrollOffset
+
+        // Set selection to highlight the match
+        selectionStart = Pair(matchCol, screenRow)
+        selectionEnd = Pair(matchCol + matchLength - 1, screenRow)
+
+        display.requestImmediateRedraw()
+    }
+
     // Search function
     fun performSearch() {
         if (searchQuery.isEmpty()) {
@@ -185,7 +231,13 @@ fun ProperTerminal(
         }
 
         searchMatches = matches
-        currentMatchIndex = if (matches.isNotEmpty()) 0 else -1
+        currentMatchIndex = if (matches.isNotEmpty()) {
+            // Scroll to and highlight the first match
+            val (col, row) = matches[0]
+            scrollToMatch(row)
+            highlightMatch(col, row, searchQuery.length)
+            0
+        } else -1
     }
 
     // Trigger search on query change
@@ -236,9 +288,7 @@ fun ProperTerminal(
     var slowBlinkVisible by remember { mutableStateOf(true) }
     var rapidBlinkVisible by remember { mutableStateOf(true) }
 
-    // Text selection state
-    var selectionStart by remember { mutableStateOf<Pair<Int, Int>?>(null) }  // (col, row)
-    var selectionEnd by remember { mutableStateOf<Pair<Int, Int>?>(null) }    // (col, row)
+    // Drag state for text selection
     var isDragging by remember { mutableStateOf(false) }
     var dragStartPos by remember { mutableStateOf<Offset?>(null) }  // Track initial mouse position for drag detection
 
@@ -250,8 +300,9 @@ fun ProperTerminal(
 
     // Helper functions for context menu actions
     fun clearBuffer() {
-        terminal.clearScreen()
-        display.requestImmediateRedraw()
+        scope.launch {
+            processHandle?.write("clear\n")
+        }
     }
 
     fun clearScrollback() {
@@ -532,9 +583,12 @@ fun ProperTerminal(
                     // This allows distinguishing click (no selection) from drag (selection)
                     dragStartPos = change.position
 
-                    // Clear any existing selection on click (standard terminal behavior)
-                    selectionStart = null
-                    selectionEnd = null
+                    // Clear selection on LEFT-CLICK only (not right-click)
+                    // Also preserve selection during search navigation
+                    if (event.button != androidx.compose.ui.input.pointer.PointerButton.Secondary && !searchVisible) {
+                        selectionStart = null
+                        selectionEnd = null
+                    }
                     isDragging = false
 
                     // Phase 2: Immediate redraw for mouse input
@@ -569,6 +623,14 @@ fun ProperTerminal(
                         if (!isDragging) {
                             // First time crossing threshold - start selection from original position
                             isDragging = true
+
+                            // Clear search when user manually selects text
+                            if (searchVisible) {
+                                searchVisible = false
+                                searchQuery = ""
+                                searchMatches = emptyList()
+                            }
+
                             val startCol = (startPos.x / cellWidth).toInt()
                             val startRow = (startPos.y / cellHeight).toInt()
                             selectionStart = Pair(startCol, startRow)
@@ -587,7 +649,8 @@ fun ProperTerminal(
             .onPointerEvent(PointerEventType.Release) { event ->
                 // If never started dragging (no movement beyond threshold),
                 // ensure selection is cleared - this was just a click, not a drag
-                if (!isDragging) {
+                // BUT: Don't clear on right-click to allow context menu → Copy
+                if (!isDragging && event.button != androidx.compose.ui.input.pointer.PointerButton.Secondary) {
                     selectionStart = null
                     selectionEnd = null
                 }
@@ -604,14 +667,22 @@ fun ProperTerminal(
                 val historySize = textBuffer.historyLinesCount
                 scrollOffset = (scrollOffset - delta.toInt()).coerceIn(0, historySize)
             }
+            .onPreviewKeyEvent { keyEvent ->
+                // Handle Ctrl+F / Cmd+F for search (intercept before search bar)
+                if (keyEvent.type == KeyEventType.KeyDown &&
+                    (keyEvent.isCtrlPressed || keyEvent.isMetaPressed) && keyEvent.key == Key.F) {
+                    searchVisible = !searchVisible
+                    return@onPreviewKeyEvent true
+                }
+                false  // Let other events pass through
+            }
             .onKeyEvent { keyEvent ->
-                if (keyEvent.type == KeyEventType.KeyDown) {
-                    // Handle Ctrl+F / Cmd+F for search (toggle visibility)
-                    if ((keyEvent.isCtrlPressed || keyEvent.isMetaPressed) && keyEvent.key == Key.F) {
-                        searchVisible = !searchVisible
-                        return@onKeyEvent true
-                    }
+                // Don't consume keys when search bar is visible - let it handle them
+                if (searchVisible) {
+                    return@onKeyEvent false
+                }
 
+                if (keyEvent.type == KeyEventType.KeyDown) {
                     // Handle Ctrl+Space for IME toggle (CJK input)
                     if (keyEvent.isCtrlPressed && keyEvent.key == Key.Spacebar) {
                         imeState.toggle()
@@ -1269,11 +1340,17 @@ fun ProperTerminal(
             onFindNext = {
                 if (searchMatches.isNotEmpty()) {
                     currentMatchIndex = (currentMatchIndex + 1) % searchMatches.size
+                    val (col, row) = searchMatches[currentMatchIndex]
+                    scrollToMatch(row)
+                    highlightMatch(col, row, searchQuery.length)
                 }
             },
             onFindPrevious = {
                 if (searchMatches.isNotEmpty()) {
                     currentMatchIndex = if (currentMatchIndex <= 0) searchMatches.size - 1 else currentMatchIndex - 1
+                    val (col, row) = searchMatches[currentMatchIndex]
+                    scrollToMatch(row)
+                    highlightMatch(col, row, searchQuery.length)
                 }
             },
             onCaseSensitiveToggle = { searchCaseSensitive = !searchCaseSensitive },
@@ -1281,10 +1358,16 @@ fun ProperTerminal(
                 searchVisible = false
                 searchQuery = ""
                 searchMatches = emptyList()
-            },
-            onToggle = {
-                // Toggle search bar visibility when Ctrl+F is pressed from search bar
-                searchVisible = !searchVisible
+
+                // Clear search highlight
+                selectionStart = null
+                selectionEnd = null
+
+                // Restore focus to terminal when search closes
+                scope.launch {
+                    kotlinx.coroutines.delay(50)  // Let SearchBar unmount first
+                    focusRequester.requestFocus()
+                }
             },
             modifier = Modifier.align(Alignment.TopCenter)
         )

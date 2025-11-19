@@ -30,23 +30,9 @@ fun SearchBar(
     onFindPrevious: () -> Unit,
     onCaseSensitiveToggle: () -> Unit,
     onClose: () -> Unit,
-    onToggle: () -> Unit = {},  // New parameter for Ctrl+F toggle
     modifier: Modifier = Modifier
 ) {
     if (!visible) return
-
-    val focusRequester = remember { FocusRequester() }
-
-    // Auto-focus search input when opened
-    LaunchedEffect(visible) {
-        if (visible) {
-            try {
-                focusRequester.requestFocus()
-            } catch (e: Exception) {
-                // Focus request may fail
-            }
-        }
-    }
 
     Surface(
         modifier = modifier
@@ -75,8 +61,7 @@ fun SearchBar(
                 },
                 modifier = Modifier
                     .weight(1f)
-                    .focusRequester(focusRequester)
-                    .onPreviewKeyEvent { event ->
+                    .onKeyEvent { event ->
                         // Handle search-specific key events
                         if (event.type == KeyEventType.KeyDown) {
                             when {
@@ -92,18 +77,11 @@ fun SearchBar(
                                     onClose()
                                     true
                                 }
-                                // Handle Ctrl+F/Cmd+F to toggle search bar
-                                (event.isCtrlPressed || event.isMetaPressed) && event.key == Key.F -> {
-                                    onToggle()  // Call toggle callback
-                                    true  // Consume the event
-                                }
-                                // Consume all other typing to prevent terminal input
-                                else -> true
+                                // Let everything else (including Ctrl+F) pass through
+                                // TextField handles typing, Ctrl+F bubbles to terminal
+                                else -> false
                             }
-                        } else {
-                            // Consume all key up events
-                            true
-                        }
+                        } else false
                     },
                 singleLine = true,
                 textStyle = TextStyle(

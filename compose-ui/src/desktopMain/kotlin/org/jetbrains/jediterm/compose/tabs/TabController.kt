@@ -15,6 +15,7 @@ import org.jetbrains.jediterm.compose.demo.BlockingTerminalDataStream
 import org.jetbrains.jediterm.compose.features.ContextMenuController
 import org.jetbrains.jediterm.compose.getPlatformServices
 import org.jetbrains.jediterm.compose.ime.IMEState
+import org.jetbrains.jediterm.compose.osc.WorkingDirectoryOSCListener
 import org.jetbrains.jediterm.compose.settings.TerminalSettings
 
 /**
@@ -79,6 +80,15 @@ class TabController(
         val display = ComposeTerminalDisplay()
         val terminal = JediTerminal(display, textBuffer, styleState)
         val dataStream = BlockingTerminalDataStream()
+
+        // Create working directory state
+        val workingDirectoryState = mutableStateOf<String?>(workingDir)
+
+        // Register OSC 7 listener for working directory tracking (Phase 4)
+        val oscListener = WorkingDirectoryOSCListener(workingDirectoryState)
+        terminal.addCustomCommandListener(oscListener)
+
+        // Create emulator with terminal
         val emulator = JediEmulator(dataStream, terminal)
 
         // Create tab with all state
@@ -91,7 +101,7 @@ class TabController(
             dataStream = dataStream,
             emulator = emulator,
             processHandle = mutableStateOf(null),
-            workingDirectory = mutableStateOf(workingDir),
+            workingDirectory = workingDirectoryState,
             connectionState = mutableStateOf(ConnectionState.Initializing),
             coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
             isFocused = mutableStateOf(false),

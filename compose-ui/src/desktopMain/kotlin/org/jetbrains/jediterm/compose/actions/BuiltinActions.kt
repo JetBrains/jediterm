@@ -230,3 +230,115 @@ private fun extractSelectedText(
         textBuffer.unlock()
     }
 }
+
+/**
+ * Adds tab management keyboard shortcuts to an existing ActionRegistry.
+ * These are global shortcuts that work regardless of terminal focus.
+ *
+ * Shortcuts:
+ * - Cmd/Ctrl+T: New tab
+ * - Cmd/Ctrl+W: Close current tab
+ * - Ctrl+Tab: Next tab
+ * - Ctrl+Shift+Tab: Previous tab
+ * - Cmd/Ctrl+1-9: Switch to specific tab (1-based index)
+ *
+ * @param registry The ActionRegistry to add actions to
+ * @param onNewTab Callback to create a new tab
+ * @param onCloseTab Callback to close the current tab
+ * @param onNextTab Callback to switch to the next tab
+ * @param onPreviousTab Callback to switch to the previous tab
+ * @param onSwitchToTab Callback to switch to a specific tab by index (0-based)
+ * @param isMacOS Whether running on macOS (affects modifier keys)
+ */
+fun addTabManagementActions(
+    registry: ActionRegistry,
+    onNewTab: () -> Unit,
+    onCloseTab: () -> Unit,
+    onNextTab: () -> Unit,
+    onPreviousTab: () -> Unit,
+    onSwitchToTab: (Int) -> Unit,
+    isMacOS: Boolean
+) {
+    // NEW TAB - Cmd/Ctrl+T
+    registry.register(TerminalAction(
+        id = "new_tab",
+        name = "New Tab",
+        keyStrokes = listOf(
+            KeyStroke(key = Key.T, ctrl = true),  // Windows/Linux
+            KeyStroke(key = Key.T, meta = true)   // macOS
+        ),
+        handler = { event ->
+            onNewTab()
+            true  // Consume event
+        }
+    ))
+
+    // CLOSE TAB - Cmd/Ctrl+W
+    registry.register(TerminalAction(
+        id = "close_tab",
+        name = "Close Tab",
+        keyStrokes = listOf(
+            KeyStroke(key = Key.W, ctrl = true),  // Windows/Linux
+            KeyStroke(key = Key.W, meta = true)   // macOS
+        ),
+        handler = { event ->
+            onCloseTab()
+            true  // Consume event
+        }
+    ))
+
+    // NEXT TAB - Ctrl+Tab
+    registry.register(TerminalAction(
+        id = "next_tab",
+        name = "Next Tab",
+        keyStrokes = listOf(
+            KeyStroke(key = Key.Tab, ctrl = true)  // Both platforms use Ctrl
+        ),
+        handler = { event ->
+            onNextTab()
+            true  // Consume event
+        }
+    ))
+
+    // PREVIOUS TAB - Ctrl+Shift+Tab
+    registry.register(TerminalAction(
+        id = "previous_tab",
+        name = "Previous Tab",
+        keyStrokes = listOf(
+            KeyStroke(key = Key.Tab, ctrl = true, shift = true)  // Both platforms
+        ),
+        handler = { event ->
+            onPreviousTab()
+            true  // Consume event
+        }
+    ))
+
+    // SWITCH TO TAB 1-9 - Cmd/Ctrl+1 through Cmd/Ctrl+9
+    for (i in 1..9) {
+        val key = when (i) {
+            1 -> Key.One
+            2 -> Key.Two
+            3 -> Key.Three
+            4 -> Key.Four
+            5 -> Key.Five
+            6 -> Key.Six
+            7 -> Key.Seven
+            8 -> Key.Eight
+            9 -> Key.Nine
+            else -> continue
+        }
+
+        registry.register(TerminalAction(
+            id = "switch_to_tab_$i",
+            name = "Switch to Tab $i",
+            keyStrokes = listOf(
+                KeyStroke(key = key, ctrl = true),  // Windows/Linux
+                KeyStroke(key = key, meta = true)   // macOS
+            ),
+            handler = { event ->
+                onSwitchToTab(i - 1)  // Convert to 0-based index
+                true  // Consume event
+            }
+        ))
+    }
+}

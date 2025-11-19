@@ -63,6 +63,7 @@ import org.jetbrains.jediterm.compose.features.ContextMenuController
 import org.jetbrains.jediterm.compose.features.ContextMenuPopup
 import org.jetbrains.jediterm.compose.features.showTerminalContextMenu
 import androidx.compose.ui.Alignment
+import org.jetbrains.jediterm.compose.actions.addTabManagementActions
 import org.jetbrains.jediterm.compose.actions.createBuiltinActions
 import org.jetbrains.jediterm.compose.scrollbar.rememberTerminalScrollbarAdapter
 import org.jetbrains.jediterm.compose.scrollbar.AlwaysVisibleScrollbar
@@ -134,6 +135,11 @@ fun ProperTerminal(
     sharedFont: FontFamily,
     onTabTitleChange: (String) -> Unit,
     onProcessExit: () -> Unit,
+    onNewTab: () -> Unit = {},
+    onCloseTab: () -> Unit = {},
+    onNextTab: () -> Unit = {},
+    onPreviousTab: () -> Unit = {},
+    onSwitchToTab: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     // Extract tab state (no more remember {} blocks - state lives in TerminalTab)
@@ -337,7 +343,7 @@ fun ProperTerminal(
 
     // Create action registry with all built-in actions
     val actionRegistry = remember(isMacOS) {
-        createBuiltinActions(
+        val registry = createBuiltinActions(
             selectionStart = object : androidx.compose.runtime.MutableState<Pair<Int, Int>?> {
                 override var value: Pair<Int, Int>?
                     get() = selectionStart
@@ -368,6 +374,19 @@ fun ProperTerminal(
             selectAllCallback = { selectAll() },
             isMacOS = isMacOS
         )
+
+        // Add tab management shortcuts (Phase 5)
+        addTabManagementActions(
+            registry = registry,
+            onNewTab = onNewTab,
+            onCloseTab = onCloseTab,
+            onNextTab = onNextTab,
+            onPreviousTab = onPreviousTab,
+            onSwitchToTab = onSwitchToTab,
+            isMacOS = isMacOS
+        )
+
+        registry
     }
 
     // Cursor blink state for BLINK_* cursor shapes

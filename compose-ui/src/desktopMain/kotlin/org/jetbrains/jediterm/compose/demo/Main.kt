@@ -106,6 +106,29 @@ fun TerminalApp(onExit: () -> Unit) {
                     // Auto-close tab when shell exits
                     tabController.closeTab(tabController.activeTabIndex)
                 },
+                onNewTab = {
+                    // Inherit working directory from active tab (Phase 5)
+                    val workingDir = tabController.getActiveWorkingDirectory()
+                    tabController.createTab(workingDir = workingDir)
+                },
+                onCloseTab = {
+                    // Close current tab (Phase 5)
+                    tabController.closeTab(tabController.activeTabIndex)
+                },
+                onNextTab = {
+                    // Switch to next tab (Phase 5)
+                    tabController.nextTab()
+                },
+                onPreviousTab = {
+                    // Switch to previous tab (Phase 5)
+                    tabController.previousTab()
+                },
+                onSwitchToTab = { index ->
+                    // Switch to specific tab by index (Phase 5)
+                    if (index in tabController.tabs.indices) {
+                        tabController.switchToTab(index)
+                    }
+                },
                 modifier = Modifier.fillMaxSize()
             )
         }

@@ -156,6 +156,7 @@ fun ContextMenuPopup(
 
     if (state.isVisible) {
         Popup(
+            offset = androidx.compose.ui.unit.IntOffset(state.x.toInt(), state.y.toInt()),
             onDismissRequest = { controller.hideMenu() },
             properties = PopupProperties(
                 focusable = true,

@@ -648,7 +648,12 @@ fun ProperTerminal(
                         }
                         if (!text.isNullOrEmpty() && processHandle != null) {
                             scope.launch {
-                                processHandle?.write(text)
+                                try {
+                                    processHandle?.write(text)
+                                } catch (e: Exception) {
+                                    println("ERROR: Failed to paste text via middle-click: ${e.message}")
+                                    e.printStackTrace()
+                                }
                             }
                             change.consume()
                             return@onPointerEvent
@@ -742,12 +747,18 @@ fun ProperTerminal(
                 }
 
                 // Copy-on-select: Automatically copy selected text to clipboard
-                if (settings.copyOnSelect && selectionStart != null && selectionEnd != null) {
-                    val selectedText = extractSelectedText(textBuffer, selectionStart!!, selectionEnd!!)
+                // Capture values first to avoid race condition (TOCTOU)
+                val start = selectionStart
+                val end = selectionEnd
+                if (settings.copyOnSelect && start != null && end != null) {
+                    val selectedText = extractSelectedText(textBuffer, start, end)
                     if (selectedText.isNotEmpty()) {
                         if (settings.emulateX11CopyPaste) {
                             // X11 mode: Copy to selection clipboard (middle-click buffer)
-                            selectionClipboard = selectedText
+                            // Limit clipboard size to 10MB to prevent memory issues
+                            if (selectedText.length <= 10_000_000) {
+                                selectionClipboard = selectedText
+                            }
                         } else {
                             // Normal mode: Copy to system clipboard
                             clipboardManager.setText(AnnotatedString(selectedText))

@@ -56,26 +56,18 @@ fun AlwaysVisibleScrollbar(
     // State to force recomposition when scroll position changes
     var scrollUpdateTrigger by remember { mutableStateOf(0) }
 
-    // Observe scroll changes with debouncing
-    LaunchedEffect(adapter) {
-        var lastScrollOffset = adapter.scrollOffset
-        var lastMaxScroll = 0f
-
-        while (true) {
-            kotlinx.coroutines.delay(16) // ~60fps update rate
-
+    // Observe scroll changes reactively (only when values actually change)
+    LaunchedEffect(adapter, containerHeight) {
+        snapshotFlow {
             val containerSize = containerHeight.toInt()
             if (containerSize > 0) {
-                val currentScrollOffset = adapter.scrollOffset
-                val currentMaxScroll = adapter.maxScrollOffset(containerSize)
-
-                // Trigger recomposition if scroll state changed
-                if (currentScrollOffset != lastScrollOffset || currentMaxScroll != lastMaxScroll) {
-                    scrollUpdateTrigger++
-                    lastScrollOffset = currentScrollOffset
-                    lastMaxScroll = currentMaxScroll
-                }
+                adapter.scrollOffset to adapter.maxScrollOffset(containerSize)
+            } else {
+                0.0 to 0.0
             }
+        }.collect { (scrollOffset, maxScroll) ->
+            // Trigger recomposition only when scroll state actually changes
+            scrollUpdateTrigger++
         }
     }
 

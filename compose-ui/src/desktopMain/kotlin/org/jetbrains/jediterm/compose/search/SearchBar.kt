@@ -30,6 +30,7 @@ fun SearchBar(
     onFindPrevious: () -> Unit,
     onCaseSensitiveToggle: () -> Unit,
     onClose: () -> Unit,
+    onToggle: () -> Unit = {},  // New parameter for Ctrl+F toggle
     modifier: Modifier = Modifier
 ) {
     if (!visible) return
@@ -91,18 +92,17 @@ fun SearchBar(
                                     onClose()
                                     true
                                 }
-                                // DON'T consume Ctrl+F/Cmd+F - let it propagate to terminal
-                                // This ensures Ctrl+F always shows the search bar even if it's focused
+                                // Handle Ctrl+F/Cmd+F to toggle search bar
                                 (event.isCtrlPressed || event.isMetaPressed) && event.key == Key.F -> {
-                                    false  // Don't consume, let terminal handle it
+                                    onToggle()  // Call toggle callback
+                                    true  // Consume the event
                                 }
                                 // Consume all other typing to prevent terminal input
                                 else -> true
                             }
                         } else {
-                            // Consume key up events too (except Ctrl+F/Cmd+F)
-                            val isCtrlF = (event.isCtrlPressed || event.isMetaPressed) && event.key == Key.F
-                            !isCtrlF  // Consume unless it's Ctrl+F
+                            // Consume all key up events
+                            true
                         }
                     },
                 singleLine = true,

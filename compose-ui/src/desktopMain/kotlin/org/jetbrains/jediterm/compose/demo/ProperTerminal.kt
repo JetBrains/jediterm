@@ -1282,6 +1282,10 @@ fun ProperTerminal(
                 searchQuery = ""
                 searchMatches = emptyList()
             },
+            onToggle = {
+                // Toggle search bar visibility when Ctrl+F is pressed from search bar
+                searchVisible = !searchVisible
+            },
             modifier = Modifier.align(Alignment.TopCenter)
         )
     }

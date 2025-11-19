@@ -62,13 +62,13 @@ class TabController(
      * Create a new terminal tab with optional working directory.
      *
      * @param workingDir Working directory to start the shell in (inherits from active tab if null)
-     * @param command Shell command to execute (default: /bin/zsh)
+     * @param command Shell command to execute (default: $SHELL or /bin/bash)
      * @param arguments Command-line arguments for the shell (default: empty)
      * @return The newly created TerminalTab
      */
     fun createTab(
         workingDir: String? = null,
-        command: String = "/bin/zsh",
+        command: String = System.getenv("SHELL") ?: "/bin/bash",
         arguments: List<String> = emptyList()
     ): TerminalTab {
         tabCounter++
@@ -254,11 +254,26 @@ class TabController(
 
         val tab = tabs[index]
 
-        // Clean up resources
+        // Hold reference to process before tab disposal to prevent GC during kill()
+        val processToKill = tab.processHandle.value
+
+        // Clean up resources (cancels coroutines only, process kill handled below)
         tab.dispose()
 
         // Remove from list
         tabs.removeAt(index)
+
+        // Kill process asynchronously with guaranteed reference
+        // This prevents theoretical GC issue where tab might be GC'd before kill() completes
+        if (processToKill != null) {
+            GlobalScope.launch(Dispatchers.IO) {
+                try {
+                    processToKill.kill()
+                } catch (e: Exception) {
+                    println("WARN: Error killing process: ${e.message}")
+                }
+            }
+        }
 
         // Handle tab switching
         if (tabs.isEmpty()) {

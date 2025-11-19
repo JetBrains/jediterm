@@ -198,21 +198,14 @@ data class TerminalTab(
     /**
      * Clean up resources when closing this tab.
      * - Cancels all coroutines
-     * - Closes PTY connection
      * - Releases terminal resources
+     *
+     * Note: Process termination is handled by TabController.closeTab() to prevent
+     * potential GC issues where the tab might be collected before kill() completes.
      */
     fun dispose() {
         // Cancel all coroutines in this scope
         coroutineScope.cancel()
-
-        // Kill process asynchronously (kill() is suspend function)
-        GlobalScope.launch {
-            try {
-                processHandle.value?.kill()
-            } catch (e: Exception) {
-                println("WARN: Error killing process: ${e.message}")
-            }
-        }
 
         // Terminal cleanup (if needed)
         // terminal.close() may not be available in all JediTerm versions

@@ -299,6 +299,12 @@ cd ..
 2. Need to test with different Nerd Font variants
 
 ### Completed (Recent → Oldest)
+✅ **Ctrl+F consistency fix** (November 18, 2025, commit df1d183) - Search shortcut works from any focus state
+✅ **Context menu positioning** (November 18, 2025, commit 3e7e92d) - Menu appears at mouse cursor
+✅ **Search bar redesign** (November 18, 2025, commits fa0ad29, 35d6a89) - Modern Material 3 UI with proper event isolation
+✅ **Context menu implementation** (November 18, 2025, commit f7bff7a) - Right-click menu with copy/paste/clear
+✅ **IME (CJK) support** (November 18, 2025, commit c546c78) - Full Chinese/Japanese/Korean input method support
+✅ **High-priority features batch** (November 18, 2025, commit 0f59c9c) - Settings, Search, Hyperlinks, IME
 ✅ **Rendering optimization** (November 17, 2025) - 99.8% reduction in redraws
 ✅ **Adaptive debouncing** - Three-mode system with burst detection
 ✅ **Zero-lag user input** - Immediate mode for keyboard/mouse
@@ -365,9 +371,19 @@ cd ..
 - Capture screenshots for visual verification
 
 ## Last Updated
-November 16, 2025 7:30 PM PST
+November 18, 2025 4:15 PM PST
 
 ### Recent Changes
+- **November 18, 2025**: Completed high-priority feature implementation sprint
+  - Implemented Settings System (#4) - JSON persistence, 30+ options
+  - Implemented Text Search (#2) - Ctrl+F with modern Material 3 UI
+  - Implemented Hyperlink Detection (#3) - Clickable URLs with Ctrl+Click
+  - Implemented IME Support (#5) - Full CJK input method support
+  - Implemented Context Menu (#6) - Right-click menu with copy/paste/clear
+  - Fixed context menu positioning to appear at mouse cursor
+  - Fixed search bar text cutoff and input leak issues
+  - Fixed Ctrl+F consistency - works from any focus state
+  - Closed GitHub issues #2, #3, #4, #5, #6
 - **November 16, 2025**: Added documentation for improved rendering logic
   - Blocking data stream architecture (CSI fix)
   - Window resize handling improvements

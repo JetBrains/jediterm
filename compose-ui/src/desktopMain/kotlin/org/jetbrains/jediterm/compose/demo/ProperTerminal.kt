@@ -606,9 +606,9 @@ fun ProperTerminal(
             }
             .onKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown) {
-                    // Handle Ctrl+F / Cmd+F for search
+                    // Handle Ctrl+F / Cmd+F for search (always show, don't toggle)
                     if ((keyEvent.isCtrlPressed || keyEvent.isMetaPressed) && keyEvent.key == Key.F) {
-                        searchVisible = !searchVisible
+                        searchVisible = true
                         return@onKeyEvent true
                     }
 

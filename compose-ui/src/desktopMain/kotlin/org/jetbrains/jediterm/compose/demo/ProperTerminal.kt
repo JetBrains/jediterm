@@ -4,7 +4,10 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -25,10 +28,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.jetbrains.jediterm.compose.ComposeTerminalDisplay
 import org.jetbrains.jediterm.compose.ConnectionState
 import org.jetbrains.jediterm.compose.PlatformServices
@@ -58,7 +63,10 @@ import org.jetbrains.jediterm.compose.features.ContextMenuController
 import org.jetbrains.jediterm.compose.features.ContextMenuPopup
 import org.jetbrains.jediterm.compose.features.showTerminalContextMenu
 import androidx.compose.ui.Alignment
+import kotlinx.coroutines.withContext
 import org.jetbrains.jediterm.compose.actions.createBuiltinActions
+import org.jetbrains.jediterm.compose.scrollbar.rememberTerminalScrollbarAdapter
+import org.jetbrains.jediterm.compose.scrollbar.AlwaysVisibleScrollbar
 
 /**
  * Maps Compose Desktop Key constants to Java AWT VK (Virtual Key) codes.
@@ -122,7 +130,8 @@ private fun mapComposeModifiers(keyEvent: androidx.compose.ui.input.key.KeyEvent
 fun ProperTerminal(
     command: String = System.getenv("SHELL") ?: "/bin/bash",
     arguments: List<String> = listOf("--login"),
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onProcessExit: () -> Unit = {}
 ) {
     var processHandle by remember { mutableStateOf<PlatformServices.ProcessService.ProcessHandle?>(null) }
     var connectionState by remember { mutableStateOf<ConnectionState>(ConnectionState.Initializing) }
@@ -140,7 +149,7 @@ fun ProperTerminal(
 
     // Create JediTerm components
     val styleState = remember { StyleState() }
-    val textBuffer = remember { TerminalTextBuffer(80, 24, styleState) }
+    val textBuffer = remember { TerminalTextBuffer(80, 24, styleState, settings.bufferMaxLines) }
     val display = remember { ComposeTerminalDisplay() }
     val terminal = remember { JediTerminal(display, textBuffer, styleState) }
 
@@ -572,8 +581,36 @@ fun ProperTerminal(
         }
     }
 
-    Box(
-            modifier = modifier
+    // Monitor process exit and close window when process terminates
+    LaunchedEffect(processHandle) {
+        val handle = processHandle
+        if (handle != null) {
+            withContext(Dispatchers.IO) {
+                handle.waitFor()  // Blocks until process exits (no polling!)
+            }
+            println("INFO: Shell process exited, closing window")
+            onProcessExit()
+        }
+    }
+
+    // Scrollbar adapter that bridges terminal scroll state with Compose scrollbar
+    val scrollbarAdapter = rememberTerminalScrollbarAdapter(
+        terminalScrollOffset = rememberUpdatedState(scrollOffset),
+        historySize = {
+            textBuffer.historyLinesCount
+        },
+        screenHeight = { textBuffer.height },
+        cellHeight = { cellHeight },
+        onScroll = { newOffset ->
+            scrollOffset = newOffset
+            display.requestImmediateRedraw() // Immediate redraw for responsive scrolling
+        }
+    )
+
+    Box(modifier = modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
             .onGloballyPositioned { coordinates ->
                 // Detect window size changes and resize terminal accordingly
                 // Note: This fires frequently, but we validate dimensions carefully to prevent crashes
@@ -1464,7 +1501,23 @@ fun ProperTerminal(
             },
             modifier = Modifier.align(Alignment.TopCenter)
         )
-    }
+        }
+
+        // Vertical scrollbar on the right side - Always visible custom scrollbar
+        if (settings.showScrollbar) {
+            AlwaysVisibleScrollbar(
+                adapter = scrollbarAdapter,
+                redrawTrigger = display.redrawTrigger,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .fillMaxHeight(),
+                thickness = settings.scrollbarWidth.dp,
+                thumbColor = Color.White,
+                trackColor = Color.White.copy(alpha = 0.12f),
+                minThumbHeight = 32.dp
+            )
+        }
+    } // end Box
 
     // Context menu popup
     ContextMenuPopup(controller = contextMenuController)

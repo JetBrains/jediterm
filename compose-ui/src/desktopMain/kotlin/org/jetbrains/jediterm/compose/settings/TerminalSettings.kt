@@ -100,6 +100,33 @@ data class TerminalSettings(
      */
     val useInverseSelectionColor: Boolean = false,
 
+    // ===== Scrollbar Settings =====
+
+    /**
+     * Show visual scrollbar on the right side
+     */
+    val showScrollbar: Boolean = true,
+
+    /**
+     * Always show scrollbar (vs. auto-hide on inactivity)
+     */
+    val scrollbarAlwaysVisible: Boolean = false,
+
+    /**
+     * Scrollbar width in pixels
+     */
+    val scrollbarWidth: Float = 12f,
+
+    /**
+     * Scrollbar track color (serialized as ARGB hex)
+     */
+    val scrollbarColor: String = "0x40FFFFFF",
+
+    /**
+     * Scrollbar thumb color (serialized as ARGB hex)
+     */
+    val scrollbarThumbColor: String = "0xFFAAAAAA",
+
     // ===== Performance Settings =====
 
     /**
@@ -184,6 +211,12 @@ data class TerminalSettings(
 
     @Transient
     val hyperlinkColorValue: Color = Color(hyperlinkColor.removePrefix("0x").toULong(16).toLong())
+
+    @Transient
+    val scrollbarColorValue: Color = Color(scrollbarColor.removePrefix("0x").toULong(16).toLong())
+
+    @Transient
+    val scrollbarThumbColorValue: Color = Color(scrollbarThumbColor.removePrefix("0x").toULong(16).toLong())
 
     companion object {
         /**

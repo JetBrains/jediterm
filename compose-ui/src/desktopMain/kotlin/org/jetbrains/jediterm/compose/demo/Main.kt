@@ -8,6 +8,8 @@ fun main() = application {
         onCloseRequest = ::exitApplication,
         title = "JediTerm Compose - Proper Terminal (JediTerminal Integration)"
     ) {
-        ProperTerminal()
+        ProperTerminal(
+            onProcessExit = ::exitApplication
+        )
     }
 }

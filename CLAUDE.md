@@ -299,6 +299,7 @@ cd ..
 2. Need to test with different Nerd Font variants
 
 ### Completed (Recent → Oldest)
+✅ **Visual Scrollbar** (November 19, 2025, issue #8) - Custom scrollbar adapter with coordinate system conversion
 ✅ **Clipboard Enhancement Features** (November 19, 2025, issue #9) - Copy-on-select, middle-click paste, and X11 clipboard emulation
 ✅ **Ctrl+F consistency fix** (November 18, 2025, commit df1d183) - Search shortcut works from any focus state
 ✅ **Context menu positioning** (November 18, 2025, commit 3e7e92d) - Menu appears at mouse cursor

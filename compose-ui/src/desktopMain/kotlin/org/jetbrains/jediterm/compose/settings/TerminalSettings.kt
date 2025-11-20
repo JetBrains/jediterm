@@ -193,7 +193,49 @@ data class TerminalSettings(
     /**
      * Hyperlink click requires Ctrl/Cmd modifier
      */
-    val hyperlinkRequireModifier: Boolean = true
+    val hyperlinkRequireModifier: Boolean = true,
+
+    // ===== Debug Settings =====
+
+    /**
+     * Enable debug mode (captures I/O for debug panel)
+     */
+    val debugModeEnabled: Boolean = false,
+
+    /**
+     * Maximum number of chunks to store in debug buffer (circular)
+     */
+    val debugMaxChunks: Int = 1000,
+
+    /**
+     * Maximum number of state snapshots to store
+     */
+    val debugMaxSnapshots: Int = 100,
+
+    /**
+     * Auto-capture terminal state snapshots (ms interval)
+     */
+    val debugCaptureInterval: Long = 100L,
+
+    /**
+     * Show chunk IDs in control sequence visualization
+     */
+    val debugShowChunkIds: Boolean = true,
+
+    /**
+     * Show invisible characters in debug view
+     */
+    val debugShowInvisibleChars: Boolean = true,
+
+    /**
+     * Wrap long lines in debug sequence view
+     */
+    val debugWrapLines: Boolean = true,
+
+    /**
+     * Color-code escape sequences in debug view
+     */
+    val debugColorCodeSequences: Boolean = true
 ) {
     // Non-serialized computed properties
 

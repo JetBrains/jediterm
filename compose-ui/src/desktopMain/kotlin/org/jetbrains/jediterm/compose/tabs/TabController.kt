@@ -91,6 +91,17 @@ class TabController(
         // Create emulator with terminal
         val emulator = JediEmulator(dataStream, terminal)
 
+        // Create debug collector if enabled (before tab creation to avoid circular dependency)
+        val debugCollector = if (settings.debugModeEnabled) {
+            org.jetbrains.jediterm.compose.debug.DebugDataCollector(
+                tab = null,  // Will be set after tab creation
+                maxChunks = settings.debugMaxChunks,
+                maxSnapshots = settings.debugMaxSnapshots
+            )
+        } else {
+            null
+        }
+
         // Create tab with all state
         val tab = TerminalTab(
             id = java.util.UUID.randomUUID().toString(),
@@ -116,8 +127,21 @@ class TabController(
             imeState = IMEState(),
             contextMenuController = ContextMenuController(),
             hyperlinks = mutableStateOf(emptyList()),
-            hoveredHyperlink = mutableStateOf(null)
+            hoveredHyperlink = mutableStateOf(null),
+            debugEnabled = mutableStateOf(settings.debugModeEnabled),
+            debugCollector = debugCollector
         )
+
+        // Complete debug collector initialization
+        debugCollector?.let { collector ->
+            // Set the tab reference now that tab is created
+            collector.setTab(tab)
+
+            // Hook into data stream for PTY output capture
+            dataStream.debugCallback = { data ->
+                collector.recordChunk(data, org.jetbrains.jediterm.compose.debug.ChunkSource.PTY_OUTPUT)
+            }
+        }
 
         // Initialize the terminal session (spawn PTY, start coroutines)
         initializeTerminalSession(tab, workingDir, command, arguments)
@@ -225,6 +249,20 @@ class TabController(
                         }
                     }
                     tab.dataStream.close()
+                }
+
+                // Start debug state capture coroutine if enabled
+                tab.debugCollector?.let { collector ->
+                    launch(Dispatchers.IO) {
+                        try {
+                            while (handle.isAlive() && isActive) {
+                                delay(settings.debugCaptureInterval)
+                                collector.captureState()
+                            }
+                        } catch (e: Exception) {
+                            println("DEBUG: State capture coroutine stopped: ${e.message}")
+                        }
+                    }
                 }
 
                 // Monitor process exit

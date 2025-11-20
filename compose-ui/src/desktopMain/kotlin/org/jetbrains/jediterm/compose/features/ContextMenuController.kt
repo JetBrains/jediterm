@@ -83,9 +83,10 @@ fun createTerminalContextMenuItems(
     onPaste: () -> Unit,
     onSelectAll: () -> Unit,
     onClearScreen: () -> Unit,
-    onFind: () -> Unit
+    onFind: () -> Unit,
+    onShowDebug: (() -> Unit)? = null
 ): List<ContextMenuController.MenuItem> {
-    return listOf(
+    val baseItems = listOf(
         ContextMenuController.MenuItem(
             id = "copy",
             label = "Copy",
@@ -117,6 +118,26 @@ fun createTerminalContextMenuItems(
             action = onClearScreen
         )
     )
+
+    // Add debug panel option if callback provided
+    return if (onShowDebug != null) {
+        baseItems + listOf(
+            ContextMenuController.MenuItem(
+                id = "separator_debug",
+                label = "",
+                enabled = false,
+                action = {}
+            ),
+            ContextMenuController.MenuItem(
+                id = "show_debug",
+                label = "Show Debug Panel",
+                enabled = true,
+                action = onShowDebug
+            )
+        )
+    } else {
+        baseItems
+    }
 }
 
 /**
@@ -131,7 +152,8 @@ fun showTerminalContextMenu(
     onPaste: () -> Unit,
     onSelectAll: () -> Unit,
     onClearScreen: () -> Unit,
-    onFind: () -> Unit
+    onFind: () -> Unit,
+    onShowDebug: (() -> Unit)? = null
 ) {
     val items = createTerminalContextMenuItems(
         hasSelection = hasSelection,
@@ -139,7 +161,8 @@ fun showTerminalContextMenu(
         onPaste = onPaste,
         onSelectAll = onSelectAll,
         onClearScreen = onClearScreen,
-        onFind = onFind
+        onFind = onFind,
+        onShowDebug = onShowDebug
     )
     controller.showMenu(x, y, items)
 }

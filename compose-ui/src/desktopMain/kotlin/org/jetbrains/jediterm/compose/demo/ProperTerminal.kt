@@ -171,7 +171,7 @@ fun ProperTerminal(
     var searchMatches by tab.searchMatches
 
     // Debug panel state from tab
-    var debugPanelVisible by tab.debugEnabled
+    var debugPanelVisible by tab.debugPanelVisible
     val debugCollector = tab.debugCollector
     var currentMatchIndex by tab.currentSearchMatchIndex
 

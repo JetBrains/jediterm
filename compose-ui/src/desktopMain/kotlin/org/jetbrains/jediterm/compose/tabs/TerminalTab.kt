@@ -176,8 +176,15 @@ data class TerminalTab(
     /**
      * Whether debug mode is enabled for this tab.
      * When enabled, I/O data is captured for visualization in the debug panel.
+     * This controls data collection (background), not UI visibility.
      */
     val debugEnabled: MutableState<Boolean> = mutableStateOf(false),
+
+    /**
+     * Whether the debug panel UI is currently visible.
+     * Defaults to false even when debugEnabled is true (toggled with Cmd/Ctrl+Shift+D).
+     */
+    val debugPanelVisible: MutableState<Boolean> = mutableStateOf(false),
 
     /**
      * Debug data collector for capturing I/O chunks and terminal state snapshots.

@@ -55,6 +55,7 @@ import java.awt.event.KeyEvent as JavaKeyEvent
 import com.jediterm.terminal.emulator.ColorPaletteImpl
 import org.jetbrains.jediterm.compose.settings.SettingsManager
 import org.jetbrains.jediterm.compose.search.SearchBar
+import org.jetbrains.jediterm.compose.debug.DebugPanel
 import org.jetbrains.jediterm.compose.hyperlinks.HyperlinkDetector
 import org.jetbrains.jediterm.compose.hyperlinks.Hyperlink
 import org.jetbrains.jediterm.compose.ime.IMEHandler
@@ -168,6 +169,10 @@ fun ProperTerminal(
     var searchQuery by tab.searchQuery
     var searchCaseSensitive by remember { mutableStateOf(settings.searchCaseSensitive) }
     var searchMatches by tab.searchMatches
+
+    // Debug panel state from tab
+    var debugPanelVisible by tab.debugEnabled
+    val debugCollector = tab.debugCollector
     var currentMatchIndex by tab.currentSearchMatchIndex
 
     // IME state from tab
@@ -367,6 +372,13 @@ fun ProperTerminal(
                     set(value) { searchVisible = value }
                 override fun component1() = value
                 override fun component2(): (Boolean) -> Unit = { searchVisible = it }
+            },
+            debugPanelVisible = object : androidx.compose.runtime.MutableState<Boolean> {
+                override var value: Boolean
+                    get() = debugPanelVisible
+                    set(value) { debugPanelVisible = value }
+                override fun component1() = value
+                override fun component2(): (Boolean) -> Unit = { debugPanelVisible = it }
             },
             imeState = imeState,
             display = display,
@@ -1363,6 +1375,14 @@ fun ProperTerminal(
                 }
             },
             modifier = Modifier.align(Alignment.TopCenter)
+        )
+
+        // Debug panel UI (bottom overlay)
+        DebugPanel(
+            visible = debugPanelVisible,
+            collector = debugCollector,
+            onClose = { debugPanelVisible = false },
+            modifier = Modifier.align(Alignment.BottomCenter)
         )
         }
 

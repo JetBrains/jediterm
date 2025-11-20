@@ -169,7 +169,21 @@ data class TerminalTab(
     /**
      * Currently hovered hyperlink (for cursor styling and click handling).
      */
-    val hoveredHyperlink: MutableState<Hyperlink?>
+    val hoveredHyperlink: MutableState<Hyperlink?>,
+
+    // === Debug Tools ===
+
+    /**
+     * Whether debug mode is enabled for this tab.
+     * When enabled, I/O data is captured for visualization in the debug panel.
+     */
+    val debugEnabled: MutableState<Boolean> = mutableStateOf(false),
+
+    /**
+     * Debug data collector for capturing I/O chunks and terminal state snapshots.
+     * Null when debug mode is disabled to avoid memory overhead.
+     */
+    val debugCollector: org.jetbrains.jediterm.compose.debug.DebugDataCollector? = null
 ) {
     /**
      * Whether this tab is currently rendering to the UI.

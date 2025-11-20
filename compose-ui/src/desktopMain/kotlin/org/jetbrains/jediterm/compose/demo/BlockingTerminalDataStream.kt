@@ -21,11 +21,19 @@ class BlockingTerminalDataStream : TerminalDataStream {
     private val pushBackStack = mutableListOf<Char>()
 
     /**
+     * Optional debug callback invoked when data is appended.
+     * Used by debug tools to capture I/O for visualization.
+     */
+    var debugCallback: ((String) -> Unit)? = null
+
+    /**
      * Append a chunk of data to the stream
      */
     fun append(data: String) {
         if (closed) return
         dataQueue.offer(data)
+        // Invoke debug callback if set
+        debugCallback?.invoke(data)
     }
 
     /**

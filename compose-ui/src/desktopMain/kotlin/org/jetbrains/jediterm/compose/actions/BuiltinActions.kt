@@ -22,6 +22,7 @@ import org.jetbrains.jediterm.compose.ime.IMEState
  * @param clipboardManager The clipboard manager for copy/paste
  * @param getProcessHandle Lambda that returns the current PTY process handle (allows dynamic access)
  * @param searchVisible Mutable state for search bar visibility
+ * @param debugPanelVisible Mutable state for debug panel visibility
  * @param imeState IME state for CJK input
  * @param display Terminal display for requesting redraws
  * @param scope Coroutine scope for async operations
@@ -35,6 +36,7 @@ fun createBuiltinActions(
     clipboardManager: ClipboardManager,
     getProcessHandle: () -> PlatformServices.ProcessService.ProcessHandle?,
     searchVisible: MutableState<Boolean>,
+    debugPanelVisible: MutableState<Boolean>,
     imeState: IMEState,
     display: ComposeTerminalDisplay,
     scope: CoroutineScope,
@@ -154,6 +156,22 @@ fun createBuiltinActions(
         }
     )
 
+    // DEBUG PANEL - Ctrl/Cmd+Shift+D
+    // Toggles the debug panel for inspecting terminal I/O and state
+    val debugPanelAction = TerminalAction(
+        id = "debug_panel",
+        name = "Toggle Debug Panel",
+        keyStrokes = listOf(
+            KeyStroke(key = Key.D, ctrl = true, shift = true),   // Windows/Linux
+            KeyStroke(key = Key.D, meta = true, shift = true)    // macOS
+        ),
+        enabled = { true },
+        handler = { _ ->
+            debugPanelVisible.value = !debugPanelVisible.value
+            true
+        }
+    )
+
     // Register all actions
     registry.registerAll(
         copyAction,
@@ -161,7 +179,8 @@ fun createBuiltinActions(
         searchAction,
         clearSelectionAction,
         toggleImeAction,
-        selectAllAction
+        selectAllAction,
+        debugPanelAction
     )
 
     return registry

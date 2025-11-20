@@ -544,7 +544,10 @@ fun ProperTerminal(
                             },
                             onSelectAll = { selectAll() },
                             onClearScreen = { clearBuffer() },
-                            onFind = { searchVisible = true }
+                            onFind = { searchVisible = true },
+                            onShowDebug = if (debugCollector != null) {
+                                { debugPanelVisible = !debugPanelVisible }
+                            } else null
                         )
                         change.consume()
                         return@onPointerEvent

@@ -198,6 +198,29 @@ gh pr create --base master --head dev --title "Your PR title" --body "Descriptio
 
 **Settings**: `debugModeEnabled`, `debugMaxChunks`, `debugMaxSnapshots`, `debugCaptureInterval`
 
+### 10. Mouse Reporting Modes (#20)
+- **Event Forwarding**: Mouse clicks, movement, drag, and scroll events forwarded to terminal applications
+- **Application Support**: vim, tmux, htop, less, fzf, Midnight Commander, and other mouse-aware apps
+- **Mouse Modes**: NORMAL, BUTTON_MOTION, ALL_MOTION, HILITE (FOCUS not yet implemented)
+- **Shift+Click Bypass**: Holding Shift forces local actions (selection, scrolling) even when app has mouse mode
+- **Alternate Buffer Scroll**: Scroll wheel events forwarded to apps using alternate buffer (vim, less, etc.)
+- **Coordinate Mapping**: Accurate pixel-to-character cell conversion with boundary clamping
+
+**Architecture**:
+- `ComposeMouseEvent.kt`: Event adapter layer converting Compose PointerEvent to JediTerm MouseEvent/MouseWheelEvent
+- `ComposeTerminalDisplay.kt`: Tracks current mouse mode state from terminal
+- `ProperTerminal.kt`: Decision logic in all pointer event handlers (Press, Move, Release, Scroll)
+
+**Key Methods**:
+- `isMouseReporting()`: Check if terminal app has enabled mouse mode
+- `isLocalMouseAction()`: Determine if event should be handled locally
+- `isRemoteMouseAction()`: Determine if event should be forwarded to app
+- `pixelToCharCoords()`: Convert pixel offset to 0-based character coordinates
+
+**Testing**: See `MOUSE_REPORTING_TEST.md` for comprehensive testing guide
+
+**Settings**: `enableMouseReporting` (default: true)
+
 ## Known Issues & Todos
 
 ### In Progress
@@ -209,6 +232,7 @@ gh pr create --base master --head dev --title "Your PR title" --body "Descriptio
 - Background tab performance optimization - Phase 8
 
 ### Completed (Recent)
+✅ Mouse Reporting Modes (November 21, 2025, issue #20)
 ✅ Terminal Debug Tools (November 19, 2025, issue #10)
 ✅ Multiple Terminal Tabs (November 19, 2025, issue #7)
 ✅ Clipboard Enhancements (November 19, 2025, issue #9)
@@ -270,9 +294,17 @@ gh pr create --base master --head dev --title "Your PR title" --body "Descriptio
 ---
 
 ## Last Updated
-November 19, 2025 10:45 PM PST
+November 21, 2025 2:15 PM PST
 
 ### Recent Changes
+- **November 21, 2025 (Afternoon, 2:15 PM)**: Mouse Reporting Modes (#20)
+  - Implemented mouse event forwarding to terminal applications (vim, tmux, htop, less, etc.)
+  - Added Shift+Click bypass mechanism for local actions
+  - Created ComposeMouseEvent.kt adapter layer (114 lines)
+  - Updated ComposeTerminalDisplay.kt with mouse mode tracking
+  - Modified ProperTerminal.kt pointer event handlers (Press, Move, Release, Scroll, Drag)
+  - Added comprehensive documentation and testing guide (MOUSE_REPORTING_TEST.md)
+  - Build successful, ready for manual testing
 - **November 19, 2025 (Late Evening, 10:45 PM)**: Optimized CLAUDE.md documentation
   - Reduced file size by ~50% (1803 → ~900 lines)
   - Removed verbose code review response sections

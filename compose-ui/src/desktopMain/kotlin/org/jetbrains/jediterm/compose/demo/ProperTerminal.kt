@@ -308,8 +308,16 @@ fun ProperTerminal(
     var isDragging by remember { mutableStateOf(false) }
     var dragStartPos by remember { mutableStateOf<Offset?>(null) }  // Track initial mouse position for drag detection
 
+    // Multi-click tracking for double-click (word select) and triple-click (line select)
+    var lastClickTime by remember { mutableStateOf(0L) }
+    var lastClickPosition by remember { mutableStateOf(Offset.Zero) }
+    var clickCount by remember { mutableIntStateOf(0) }
+
     // Drag threshold: pixels mouse must move before considering it a drag (not just a click)
     val DRAG_THRESHOLD = 5f
+    // Multi-click thresholds
+    val MULTI_CLICK_TIME_THRESHOLD = 500L  // milliseconds
+    val MULTI_CLICK_DISTANCE_THRESHOLD = 10f  // pixels
 
     // Context menu controller
     val contextMenuController = remember { ContextMenuController() }
@@ -644,17 +652,71 @@ fun ProperTerminal(
                         return@onPointerEvent
                     }
 
+                    // Multi-click detection for word/line selection
+                    // Track click count based on time and position deltas
+                    val currentTime = System.currentTimeMillis()
+                    val currentPosition = change.position
+                    val timeDelta = currentTime - lastClickTime
+                    val dx = currentPosition.x - lastClickPosition.x
+                    val dy = currentPosition.y - lastClickPosition.y
+                    val distance = kotlin.math.sqrt(dx * dx + dy * dy)
+
+                    // Determine if this is a multi-click or a new click sequence
+                    if (timeDelta < MULTI_CLICK_TIME_THRESHOLD && distance < MULTI_CLICK_DISTANCE_THRESHOLD) {
+                        clickCount++
+                    } else {
+                        clickCount = 1
+                    }
+
+                    lastClickTime = currentTime
+                    lastClickPosition = currentPosition
+
                     // Track start position but don't create selection yet
                     // This allows distinguishing click (no selection) from drag (selection)
                     dragStartPos = change.position
 
-                    // Clear selection on LEFT-CLICK only (not right-click)
-                    // Also preserve selection during search navigation
-                    if (event.button != androidx.compose.ui.input.pointer.PointerButton.Secondary && !searchVisible) {
-                        selectionStart = null
-                        selectionEnd = null
+                    // Branch on click count for different selection modes
+                    when (clickCount) {
+                        1 -> {
+                            // Single click: Clear selection on LEFT-CLICK only (not right-click)
+                            // Also preserve selection during search navigation
+                            if (event.button != androidx.compose.ui.input.pointer.PointerButton.Secondary && !searchVisible) {
+                                selectionStart = null
+                                selectionEnd = null
+                            }
+                            isDragging = false
+                        }
+                        2 -> {
+                            // Double-click: Select word at cursor position
+                            val (col, row) = pixelToCharCoords(currentPosition)
+                            val (start, end) = selectWordAt(col, row, textBuffer)
+                            selectionStart = start
+                            selectionEnd = end
+                            isDragging = false
+
+                            // Clear search when user manually selects text
+                            if (searchVisible) {
+                                searchVisible = false
+                                searchQuery = ""
+                                searchMatches = emptyList()
+                            }
+                        }
+                        else -> {
+                            // Triple-click (or more): Select entire logical line
+                            val (col, row) = pixelToCharCoords(currentPosition)
+                            val (start, end) = selectLineAt(col, row, textBuffer)
+                            selectionStart = start
+                            selectionEnd = end
+                            isDragging = false
+
+                            // Clear search when user manually selects text
+                            if (searchVisible) {
+                                searchVisible = false
+                                searchQuery = ""
+                                searchMatches = emptyList()
+                            }
+                        }
                     }
-                    isDragging = false
 
                     // Phase 2: Immediate redraw for mouse input
                     display.requestImmediateRedraw()
@@ -1537,6 +1599,73 @@ fun ProperTerminal(
         }
     }
         } // end else (Connected state)
+}
+
+/**
+ * Select word at the given character coordinates using SelectionUtil.
+ * Returns the selection as a pair of (start, end) coordinates.
+ */
+private fun selectWordAt(
+    col: Int,
+    row: Int,
+    textBuffer: TerminalTextBuffer
+): Pair<Pair<Int, Int>, Pair<Int, Int>> {
+    textBuffer.lock()
+    try {
+        // Convert Pair<Int, Int> to Point for SelectionUtil
+        val clickPoint = com.jediterm.core.compatibility.Point(col, row)
+
+        // Get word boundaries using SelectionUtil
+        val startPoint = com.jediterm.terminal.model.SelectionUtil.getPreviousSeparator(clickPoint, textBuffer)
+        val endPoint = com.jediterm.terminal.model.SelectionUtil.getNextSeparator(clickPoint, textBuffer)
+
+        // Convert Point back to Pair<Int, Int>
+        return Pair(Pair(startPoint.x, startPoint.y), Pair(endPoint.x, endPoint.y))
+    } finally {
+        textBuffer.unlock()
+    }
+}
+
+/**
+ * Select entire logical line at the given character coordinates.
+ * Handles wrapped lines by walking backwards and forwards through isWrapped property.
+ * Returns the selection as a pair of (start, end) coordinates.
+ */
+private fun selectLineAt(
+    col: Int,
+    row: Int,
+    textBuffer: TerminalTextBuffer
+): Pair<Pair<Int, Int>, Pair<Int, Int>> {
+    textBuffer.lock()
+    try {
+        var startLine = row
+        var endLine = row
+
+        // Walk backwards through wrapped lines to find logical line start
+        while (startLine > -textBuffer.historyLinesCount) {
+            val prevLine = textBuffer.getLine(startLine - 1)
+            if (prevLine.isWrapped) {
+                startLine--
+            } else {
+                break
+            }
+        }
+
+        // Walk forwards through wrapped lines to find logical line end
+        while (endLine < textBuffer.height - 1) {
+            val currentLine = textBuffer.getLine(endLine)
+            if (currentLine.isWrapped) {
+                endLine++
+            } else {
+                break
+            }
+        }
+
+        // Select from start of first line to end of last line
+        return Pair(Pair(0, startLine), Pair(textBuffer.width - 1, endLine))
+    } finally {
+        textBuffer.unlock()
+    }
 }
 
 /**

@@ -817,7 +817,8 @@ fun ProperTerminal(
                 // If never started dragging (no movement beyond threshold),
                 // ensure selection is cleared - this was just a click, not a drag
                 // BUT: Don't clear on right-click to allow context menu → Copy
-                if (!isDragging && event.button != androidx.compose.ui.input.pointer.PointerButton.Secondary) {
+                // ALSO: Don't clear multi-click selections (double-click word, triple-click line)
+                if (!isDragging && clickCount == 1 && event.button != androidx.compose.ui.input.pointer.PointerButton.Secondary) {
                     selectionStart = null
                     selectionEnd = null
                 }

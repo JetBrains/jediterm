@@ -91,6 +91,14 @@ data class TerminalSettings(
     val forceActionOnMouseReporting: Boolean = false,
 
     /**
+     * Mouse scroll sensitivity threshold (filters out tiny scroll events)
+     * Higher values = less sensitive, lower values = more sensitive
+     * Range: 0.0 (all events) to 2.0 (very insensitive)
+     * Default: 0.5 works well for most trackpads and mice
+     */
+    val mouseScrollThreshold: Float = 0.5f,
+
+    /**
      * Play audible bell sound
      */
     val audibleBell: Boolean = false,

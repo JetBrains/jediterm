@@ -65,10 +65,10 @@ fun PointerEvent.toMouseModifierFlags(): Int {
 
 /**
  * Checks if Shift key is pressed in a PointerEvent.
+ * Reuses modifier flag extraction to avoid duplication.
  */
 fun PointerEvent.isShiftPressed(): Boolean {
-    val awtEvent = nativeEvent as? java.awt.event.MouseEvent
-    return awtEvent?.isShiftDown ?: false
+    return (toMouseModifierFlags() and MouseButtonModifierFlags.MOUSE_BUTTON_SHIFT_FLAG) != 0
 }
 
 /**
@@ -90,11 +90,13 @@ fun createComposeMouseEvent(
 /**
  * Creates a JediTerm MouseWheelEvent from a Compose PointerEvent.
  *
- * Terminal mouse wheel protocol uses inverted mapping:
- * - Mouse wheel UP (negative delta) → SCROLLDOWN button code (64+1)
- * - Mouse wheel DOWN (positive delta) → SCROLLUP button code (64+0)
+ * Terminal protocol convention (matches xterm):
+ * - Positive scroll delta (wheel DOWN, away from user) → SCROLLUP code (64+0)
+ * - Negative scroll delta (wheel UP, toward user) → SCROLLDOWN code (64+1)
  *
- * This matches xterm behavior where wheel direction is opposite to button codes.
+ * This mapping seems counter-intuitive but matches standard xterm/terminal behavior:
+ * the button codes represent the scroll direction of the content, not the wheel movement.
+ * When you scroll wheel DOWN, content scrolls UP (revealing earlier content).
  *
  * @param event The Compose pointer event with scroll delta
  * @param scrollDirection The Y scroll delta from change.scrollDelta.y

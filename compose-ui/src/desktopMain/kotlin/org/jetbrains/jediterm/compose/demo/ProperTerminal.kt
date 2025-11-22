@@ -41,6 +41,7 @@ import org.jetbrains.jediterm.compose.PreConnectScreen
 import org.jetbrains.jediterm.compose.getPlatformServices
 import com.jediterm.core.util.TermSize
 import com.jediterm.terminal.emulator.JediEmulator
+import com.jediterm.terminal.emulator.mouse.MouseMode
 import com.jediterm.terminal.model.JediTerminal
 import com.jediterm.terminal.model.StyleState
 import com.jediterm.terminal.model.TerminalTextBuffer
@@ -562,12 +563,17 @@ fun ProperTerminal(
                     val shiftPressed = event.isShiftPressed()
                     if (settings.enableMouseReporting && isRemoteMouseAction(shiftPressed)) {
                         // If button is null, skip remote forwarding and fall through to local handling
+                        // Button can be null for touch events, stylus input, or exotic input devices
                         event.button?.let { button ->
                             val (col, row) = pixelToCharCoords(change.position)
                             val mouseEvent = createComposeMouseEvent(event, button)
                             terminal.mousePressed(col, row, mouseEvent)
                             change.consume()
                             return@onPointerEvent
+                        } ?: run {
+                            if (settings.debugModeEnabled) {
+                                println("Mouse press with null button at (${change.position.x}, ${change.position.y}) - handling locally")
+                            }
                         }
                     }
 
@@ -669,10 +675,9 @@ fun ProperTerminal(
                             val mouseEvent = createComposeMouseEvent(event, button)
                             terminal.mouseDragged(col, row, mouseEvent)
                         }
-                    } else {
+                    } else if (display.mouseMode.value == MouseMode.MOUSE_REPORTING_ALL_MOTION) {
                         // No button pressed - pure move event, only sent in ALL_MOTION mode
-                        // Note: mouseMoved() is only meaningful in MOUSE_REPORTING_ALL_MOTION
-                        // The terminal's TerminalMouseListener will check the mode internally
+                        // Check mode before sending to avoid excessive events in other modes
                         val mouseEvent = createMouseEvent(MouseButtonCodes.NONE, event.toMouseModifierFlags())
                         terminal.mouseMoved(col, row, mouseEvent)
                     }
@@ -733,12 +738,17 @@ fun ProperTerminal(
                 val shiftPressed = event.isShiftPressed()
                 if (settings.enableMouseReporting && isRemoteMouseAction(shiftPressed)) {
                     // If button is null, skip remote forwarding and fall through to local handling
+                    // Button can be null for touch events, stylus input, or exotic input devices
                     event.button?.let { button ->
                         val (col, row) = pixelToCharCoords(change.position)
                         val mouseEvent = createComposeMouseEvent(event, button)
                         terminal.mouseReleased(col, row, mouseEvent)
                         change.consume()
                         return@onPointerEvent
+                    } ?: run {
+                        if (settings.debugModeEnabled) {
+                            println("Mouse release with null button at (${change.position.x}, ${change.position.y}) - handling locally")
+                        }
                     }
                 }
 
@@ -790,7 +800,7 @@ fun ProperTerminal(
                     // Only forward if delta is significant (reduces sensitivity)
                     // Terminal protocols send discrete events, not continuous deltas
                     val absDelta = kotlin.math.abs(delta)
-                    if (absDelta >= 0.5f) {  // Threshold to filter out tiny scroll events
+                    if (absDelta >= settings.mouseScrollThreshold) {
                         val (col, row) = pixelToCharCoords(change.position)
                         val wheelEvent = createComposeMouseWheelEvent(event, delta)
                         terminal.mouseWheelMoved(col, row, wheelEvent)

@@ -2,11 +2,6 @@ package org.jetbrains.jediterm.compose.demo
 
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEvent
-import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.isShiftPressed as keyIsShiftPressed
-import androidx.compose.ui.input.key.isCtrlPressed as keyIsCtrlPressed
-import androidx.compose.ui.input.key.isMetaPressed as keyIsMetaPressed
 import com.jediterm.core.input.MouseEvent as CoreMouseEvent
 import com.jediterm.core.input.MouseWheelEvent as CoreMouseWheelEvent
 import com.jediterm.terminal.emulator.mouse.MouseButtonCodes
@@ -95,8 +90,12 @@ fun createComposeMouseEvent(
 /**
  * Creates a JediTerm MouseWheelEvent from a Compose PointerEvent.
  *
+ * Scroll direction mapping (matches Compose and vim/less behavior):
+ * - Positive scrollDelta.y (scrolling down) → SCROLLDOWN (move towards bottom/recent)
+ * - Negative scrollDelta.y (scrolling up) → SCROLLUP (move towards top/history)
+ *
  * @param event The Compose pointer event with scroll delta
- * @param scrollDirection Positive for SCROLLUP, negative for SCROLLDOWN
+ * @param scrollDirection The Y scroll delta from change.scrollDelta.y
  * @return MouseWheelEvent ready for terminal forwarding
  */
 fun createComposeMouseWheelEvent(
@@ -104,9 +103,9 @@ fun createComposeMouseWheelEvent(
     scrollDirection: Float
 ): CoreMouseWheelEvent {
     val buttonCode = if (scrollDirection > 0) {
-        MouseButtonCodes.SCROLLUP
+        MouseButtonCodes.SCROLLDOWN  // Positive = scrolling down
     } else {
-        MouseButtonCodes.SCROLLDOWN
+        MouseButtonCodes.SCROLLUP  // Negative = scrolling up
     }
     val modifiers = event.toMouseModifierFlags()
     return createMouseWheelEvent(buttonCode, modifiers)

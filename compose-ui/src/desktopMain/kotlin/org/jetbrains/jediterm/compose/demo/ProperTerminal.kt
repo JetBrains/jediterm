@@ -561,6 +561,7 @@ fun ProperTerminal(
                     // Check if mouse event should be forwarded to terminal application
                     val shiftPressed = event.isShiftPressed()
                     if (settings.enableMouseReporting && isRemoteMouseAction(shiftPressed)) {
+                        // If button is null, skip remote forwarding and fall through to local handling
                         event.button?.let { button ->
                             val (col, row) = pixelToCharCoords(change.position)
                             val mouseEvent = createComposeMouseEvent(event, button)
@@ -663,13 +664,15 @@ fun ProperTerminal(
                 if (settings.enableMouseReporting && isRemoteMouseAction(shiftPressed)) {
                     val (col, row) = pixelToCharCoords(pos)
                     if (change.pressed) {
-                        // Button is held - this is a drag event
+                        // Button is held - this is a drag event (BUTTON_MOTION or ALL_MOTION modes)
                         event.button?.let { button ->
                             val mouseEvent = createComposeMouseEvent(event, button)
                             terminal.mouseDragged(col, row, mouseEvent)
                         }
                     } else {
-                        // No button pressed - this is a pure move event (for ALL_MOTION mode)
+                        // No button pressed - pure move event, only sent in ALL_MOTION mode
+                        // Note: mouseMoved() is only meaningful in MOUSE_REPORTING_ALL_MOTION
+                        // The terminal's TerminalMouseListener will check the mode internally
                         val mouseEvent = createMouseEvent(MouseButtonCodes.NONE, event.toMouseModifierFlags())
                         terminal.mouseMoved(col, row, mouseEvent)
                     }
@@ -729,6 +732,7 @@ fun ProperTerminal(
                 // Check if mouse event should be forwarded to terminal application
                 val shiftPressed = event.isShiftPressed()
                 if (settings.enableMouseReporting && isRemoteMouseAction(shiftPressed)) {
+                    // If button is null, skip remote forwarding and fall through to local handling
                     event.button?.let { button ->
                         val (col, row) = pixelToCharCoords(change.position)
                         val mouseEvent = createComposeMouseEvent(event, button)

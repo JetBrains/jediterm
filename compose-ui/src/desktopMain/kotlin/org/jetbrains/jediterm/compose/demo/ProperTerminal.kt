@@ -787,9 +787,14 @@ fun ProperTerminal(
                     isRemoteMouseAction(shiftPressed) &&
                     textBuffer.isUsingAlternateBuffer) {
 
-                    val (col, row) = pixelToCharCoords(change.position)
-                    val wheelEvent = createComposeMouseWheelEvent(event, delta)
-                    terminal.mouseWheelMoved(col, row, wheelEvent)
+                    // Only forward if delta is significant (reduces sensitivity)
+                    // Terminal protocols send discrete events, not continuous deltas
+                    val absDelta = kotlin.math.abs(delta)
+                    if (absDelta >= 0.5f) {  // Threshold to filter out tiny scroll events
+                        val (col, row) = pixelToCharCoords(change.position)
+                        val wheelEvent = createComposeMouseWheelEvent(event, delta)
+                        terminal.mouseWheelMoved(col, row, wheelEvent)
+                    }
                     change.consume()
                     return@onPointerEvent
                 }

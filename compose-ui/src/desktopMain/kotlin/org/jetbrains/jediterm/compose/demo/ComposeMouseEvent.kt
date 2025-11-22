@@ -90,9 +90,11 @@ fun createComposeMouseEvent(
 /**
  * Creates a JediTerm MouseWheelEvent from a Compose PointerEvent.
  *
- * Scroll direction mapping (matches Compose and vim/less behavior):
- * - Positive scrollDelta.y (scrolling down) → SCROLLDOWN (move towards bottom/recent)
- * - Negative scrollDelta.y (scrolling up) → SCROLLUP (move towards top/history)
+ * Terminal mouse wheel protocol uses inverted mapping:
+ * - Mouse wheel UP (negative delta) → SCROLLDOWN button code (64+1)
+ * - Mouse wheel DOWN (positive delta) → SCROLLUP button code (64+0)
+ *
+ * This matches xterm behavior where wheel direction is opposite to button codes.
  *
  * @param event The Compose pointer event with scroll delta
  * @param scrollDirection The Y scroll delta from change.scrollDelta.y
@@ -102,10 +104,11 @@ fun createComposeMouseWheelEvent(
     event: PointerEvent,
     scrollDirection: Float
 ): CoreMouseWheelEvent {
+    // Terminal protocol: positive delta → SCROLLUP, negative → SCROLLDOWN
     val buttonCode = if (scrollDirection > 0) {
-        MouseButtonCodes.SCROLLDOWN  // Positive = scrolling down
+        MouseButtonCodes.SCROLLUP
     } else {
-        MouseButtonCodes.SCROLLUP  // Negative = scrolling up
+        MouseButtonCodes.SCROLLDOWN
     }
     val modifiers = event.toMouseModifierFlags()
     return createMouseWheelEvent(buttonCode, modifiers)

@@ -877,10 +877,17 @@ fun ProperTerminal(
                 scrollOffset = (scrollOffset - delta.toInt()).coerceIn(0, historySize)
             }
             .onPreviewKeyEvent { keyEvent ->
-                // Track Ctrl/Cmd key state for hyperlink clicks
+                // Track Ctrl/Cmd key state for hyperlink clicks and hover effects
                 when (keyEvent.key) {
                     Key.CtrlLeft, Key.CtrlRight, Key.MetaLeft, Key.MetaRight -> {
+                        val wasPressed = isModifierPressed
                         isModifierPressed = keyEvent.type == KeyEventType.KeyDown
+
+                        // Request immediate redraw if modifier state changed and hovering over hyperlink
+                        // This ensures the underline appears/disappears immediately when Cmd/Ctrl is pressed/released
+                        if (wasPressed != isModifierPressed && hoveredHyperlink != null) {
+                            display.requestImmediateRedraw()
+                        }
                     }
                 }
 
@@ -1357,12 +1364,14 @@ fun ProperTerminal(
                               )
                           }
 
-                          // Draw hyperlink underline if hovered
+                          // Draw hyperlink underline if hovered with Ctrl/Cmd modifier
+                          // This provides standard IDE-like behavior: underline only shows when modifier is pressed
                           if (settings.hyperlinkUnderlineOnHover &&
                               hoveredHyperlink != null &&
                               hoveredHyperlink!!.row == row &&
                               col >= hoveredHyperlink!!.startCol &&
-                              col < hoveredHyperlink!!.endCol) {
+                              col < hoveredHyperlink!!.endCol &&
+                              isModifierPressed) {
                               val underlineY = y + cellHeight - 1f
                               drawLine(
                                   color = settings.hyperlinkColorValue,

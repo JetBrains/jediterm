@@ -87,6 +87,7 @@ class ComposeTerminalDisplay : TerminalDisplay {
     private val _bracketedPasteMode = mutableStateOf(false)
     private val _termSize = mutableStateOf(TermSize(80, 24))
     private var _windowTitle = ""
+    private val _mouseMode = mutableStateOf(MouseMode.MOUSE_REPORTING_NONE)
 
     // Compose state properties
     val cursorX: State<Int> = _cursorX
@@ -95,6 +96,7 @@ class ComposeTerminalDisplay : TerminalDisplay {
     val cursorShape: State<CursorShape?> = _cursorShape
     val bracketedPasteMode: State<Boolean> = _bracketedPasteMode
     val termSize: State<TermSize> = _termSize
+    val mouseMode: State<MouseMode> = _mouseMode
 
     // Trigger for redraw - increment this to force redraw
     private val _redrawTrigger = mutableStateOf(0)
@@ -151,7 +153,15 @@ class ComposeTerminalDisplay : TerminalDisplay {
         }
 
     override fun terminalMouseModeSet(mouseMode: MouseMode) {
-        // No-op for now - mouse mode handling could be added later
+        _mouseMode.value = mouseMode
+    }
+
+    /**
+     * Check if terminal is in mouse reporting mode.
+     * @return true if mouse events should be forwarded to terminal application
+     */
+    fun isMouseReporting(): Boolean {
+        return _mouseMode.value != MouseMode.MOUSE_REPORTING_NONE
     }
 
     override fun setMouseFormat(mouseFormat: MouseFormat) {

@@ -41,6 +41,7 @@ import org.jetbrains.jediterm.compose.PreConnectScreen
 import org.jetbrains.jediterm.compose.getPlatformServices
 import com.jediterm.core.util.TermSize
 import com.jediterm.terminal.emulator.JediEmulator
+import com.jediterm.terminal.emulator.mouse.MouseMode
 import com.jediterm.terminal.model.JediTerminal
 import com.jediterm.terminal.model.StyleState
 import com.jediterm.terminal.model.TerminalTextBuffer
@@ -68,6 +69,7 @@ import org.jetbrains.jediterm.compose.actions.addTabManagementActions
 import org.jetbrains.jediterm.compose.actions.createBuiltinActions
 import org.jetbrains.jediterm.compose.scrollbar.rememberTerminalScrollbarAdapter
 import org.jetbrains.jediterm.compose.scrollbar.AlwaysVisibleScrollbar
+import com.jediterm.terminal.emulator.mouse.MouseButtonCodes
 
 /**
  * Maps Compose Desktop Key constants to Java AWT VK (Virtual Key) codes.
@@ -482,6 +484,46 @@ fun ProperTerminal(
         }
     )
 
+    /**
+     * Mouse reporting decision logic helpers (Issue #20)
+     *
+     * Determines if mouse event should be handled locally (selection, scrolling) or
+     * forwarded to terminal application (vim, tmux, etc.).
+     *
+     * Key behavior:
+     * - Shift+Click ALWAYS forces local action, even when app has mouse mode
+     * - Without Shift: respects application's mouse mode settings
+     */
+
+    /**
+     * Check if mouse action should be handled locally (selection, scrolling).
+     * Returns true when NOT in mouse reporting mode OR Shift is held.
+     */
+    fun isLocalMouseAction(shiftPressed: Boolean): Boolean {
+        return !display.isMouseReporting() || shiftPressed
+    }
+
+    /**
+     * Check if mouse action should be forwarded to terminal application.
+     * Returns true when: Mouse reporting enabled AND in mouse mode AND Shift NOT held.
+     */
+    fun isRemoteMouseAction(shiftPressed: Boolean): Boolean {
+        return settings.enableMouseReporting && display.isMouseReporting() && !shiftPressed
+    }
+
+    /**
+     * Convert pixel position to character cell coordinates (0-based).
+     * Clamps coordinates to valid terminal bounds.
+     *
+     * @param position Offset in pixels from top-left corner
+     * @return Pair of (col, row) in 0-based character coordinates
+     */
+    fun pixelToCharCoords(position: Offset): Pair<Int, Int> {
+        val col = (position.x / cellWidth).toInt().coerceIn(0, textBuffer.width - 1)
+        val row = (position.y / cellHeight).toInt().coerceIn(0, textBuffer.height - 1)
+        return Pair(col, row)
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
@@ -517,6 +559,24 @@ fun ProperTerminal(
             .onPointerEvent(PointerEventType.Press) { event ->
                 val change = event.changes.first()
                 if (change.pressed && change.previousPressed.not()) {
+                    // Check if mouse event should be forwarded to terminal application
+                    val shiftPressed = event.isShiftPressed()
+                    if (settings.enableMouseReporting && isRemoteMouseAction(shiftPressed)) {
+                        // If button is null, skip remote forwarding and fall through to local handling
+                        // Button can be null for touch events, stylus input, or exotic input devices
+                        event.button?.let { button ->
+                            val (col, row) = pixelToCharCoords(change.position)
+                            val mouseEvent = createComposeMouseEvent(event, button)
+                            terminal.mousePressed(col, row, mouseEvent)
+                            change.consume()
+                            return@onPointerEvent
+                        } ?: run {
+                            if (settings.debugModeEnabled) {
+                                println("Mouse press with null button at (${change.position.x}, ${change.position.y}) - handling locally")
+                            }
+                        }
+                    }
+
                     // Check for right-click (secondary button)
                     if (event.button == androidx.compose.ui.input.pointer.PointerButton.Secondary) {
                         // Show context menu
@@ -605,6 +665,26 @@ fun ProperTerminal(
                 val pos = change.position
                 val startPos = dragStartPos
 
+                // Check if mouse event should be forwarded to terminal application
+                val shiftPressed = event.isShiftPressed()
+                if (settings.enableMouseReporting && isRemoteMouseAction(shiftPressed)) {
+                    val (col, row) = pixelToCharCoords(pos)
+                    if (change.pressed) {
+                        // Button is held - this is a drag event (BUTTON_MOTION or ALL_MOTION modes)
+                        event.button?.let { button ->
+                            val mouseEvent = createComposeMouseEvent(event, button)
+                            terminal.mouseDragged(col, row, mouseEvent)
+                        }
+                    } else if (display.mouseMode.value == MouseMode.MOUSE_REPORTING_ALL_MOTION) {
+                        // No button pressed - pure move event, only sent in ALL_MOTION mode
+                        // Check mode before sending to avoid excessive events in other modes
+                        val mouseEvent = createMouseEvent(MouseButtonCodes.NONE, event.toMouseModifierFlags())
+                        terminal.mouseMoved(col, row, mouseEvent)
+                    }
+                    change.consume()
+                    return@onPointerEvent
+                }
+
                 // Check for hyperlink hover
                 val col = (pos.x / cellWidth).toInt()
                 val row = (pos.y / cellHeight).toInt() + scrollOffset
@@ -652,6 +732,26 @@ fun ProperTerminal(
                 }
             }
             .onPointerEvent(PointerEventType.Release) { event ->
+                val change = event.changes.first()
+
+                // Check if mouse event should be forwarded to terminal application
+                val shiftPressed = event.isShiftPressed()
+                if (settings.enableMouseReporting && isRemoteMouseAction(shiftPressed)) {
+                    // If button is null, skip remote forwarding and fall through to local handling
+                    // Button can be null for touch events, stylus input, or exotic input devices
+                    event.button?.let { button ->
+                        val (col, row) = pixelToCharCoords(change.position)
+                        val mouseEvent = createComposeMouseEvent(event, button)
+                        terminal.mouseReleased(col, row, mouseEvent)
+                        change.consume()
+                        return@onPointerEvent
+                    } ?: run {
+                        if (settings.debugModeEnabled) {
+                            println("Mouse release with null button at (${change.position.x}, ${change.position.y}) - handling locally")
+                        }
+                    }
+                }
+
                 // If never started dragging (no movement beyond threshold),
                 // ensure selection is cleared - this was just a click, not a drag
                 // BUT: Don't clear on right-click to allow context menu → Copy
@@ -688,7 +788,28 @@ fun ProperTerminal(
                 display.requestImmediateRedraw()
             }
             .onPointerEvent(PointerEventType.Scroll) { event ->
-                val delta = event.changes.first().scrollDelta.y
+                val change = event.changes.first()
+                val delta = change.scrollDelta.y
+                val shiftPressed = event.isShiftPressed()
+
+                // Forward wheel events to app in alternate buffer (vim, less, etc.) unless Shift held
+                if (settings.enableMouseReporting &&
+                    isRemoteMouseAction(shiftPressed) &&
+                    textBuffer.isUsingAlternateBuffer) {
+
+                    // Only forward if delta is significant (reduces sensitivity)
+                    // Terminal protocols send discrete events, not continuous deltas
+                    val absDelta = kotlin.math.abs(delta)
+                    if (absDelta >= settings.mouseScrollThreshold) {
+                        val (col, row) = pixelToCharCoords(change.position)
+                        val wheelEvent = createComposeMouseWheelEvent(event, delta)
+                        terminal.mouseWheelMoved(col, row, wheelEvent)
+                    }
+                    change.consume()
+                    return@onPointerEvent
+                }
+
+                // Local scroll (main buffer or Shift+Wheel override)
                 val historySize = textBuffer.historyLinesCount
                 scrollOffset = (scrollOffset - delta.toInt()).coerceIn(0, historySize)
             }

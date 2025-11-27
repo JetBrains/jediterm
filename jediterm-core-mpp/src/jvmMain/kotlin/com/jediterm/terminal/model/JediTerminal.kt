@@ -58,6 +58,7 @@ class JediTerminal(
     private val myTerminalKeyEncoder: TerminalKeyEncoder = TerminalKeyEncoder(current())
 
   private val myWindowTitlesStack = Stack<String>()
+    private val myIconTitlesStack = Stack<String>()
 
     private val myTabulator: Tabulator
 
@@ -273,6 +274,29 @@ class JediTerminal(
             val title = myWindowTitlesStack.pop()
             changeApplicationTitle(title)
         }
+    }
+
+    override fun setIconTitle(name: String) {
+        changeApplicationIconTitle(name)
+    }
+
+    override fun saveIconTitleOnStack() {
+        val title = myDisplay.iconTitle
+        myIconTitlesStack.push(title)
+    }
+
+    override fun restoreIconTitleFromStack() {
+        if (!myIconTitlesStack.empty()) {
+            val title = myIconTitlesStack.pop()
+            changeApplicationIconTitle(title)
+        }
+    }
+
+    private fun changeApplicationIconTitle(newIconTitle: String) {
+        for (listener in myApplicationTitleListeners) {
+            listener.onApplicationIconTitleChanged(newIconTitle)
+        }
+        myDisplay.iconTitle = newIconTitle
     }
 
     override fun addResizeListener(listener: TerminalResizeListener) {

@@ -60,6 +60,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   private final TerminalKeyEncoder myTerminalKeyEncoder;
 
   private final Stack<String> myWindowTitlesStack = new Stack<>();
+  private final Stack<String> myIconTitlesStack = new Stack<>();
 
   private final Tabulator myTabulator;
 
@@ -296,6 +297,32 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
       String title = myWindowTitlesStack.pop();
       changeApplicationTitle(title);
     }
+  }
+
+  @Override
+  public void setIconTitle(@NotNull String name) {
+    changeApplicationIconTitle(name);
+  }
+
+  @Override
+  public void saveIconTitleOnStack() {
+    String title = myDisplay.getIconTitle();
+    myIconTitlesStack.push(title);
+  }
+
+  @Override
+  public void restoreIconTitleFromStack() {
+    if (!myIconTitlesStack.empty()) {
+      String title = myIconTitlesStack.pop();
+      changeApplicationIconTitle(title);
+    }
+  }
+
+  private void changeApplicationIconTitle(@Nls String newIconTitle) {
+    for (TerminalApplicationTitleListener listener : myApplicationTitleListeners) {
+      listener.onApplicationIconTitleChanged(newIconTitle);
+    }
+    myDisplay.setIconTitle(newIconTitle);
   }
 
   @Override

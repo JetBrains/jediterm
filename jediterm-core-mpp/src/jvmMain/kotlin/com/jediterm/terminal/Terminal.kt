@@ -115,6 +115,12 @@ interface Terminal {
 
     fun restoreWindowTitleFromStack()
 
+    fun setIconTitle(name: String)
+
+    fun saveIconTitleOnStack()
+
+    fun restoreIconTitleFromStack()
+
     fun clearScreen()
 
     fun setCursorVisible(visible: Boolean)

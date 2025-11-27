@@ -181,7 +181,22 @@ class JediEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
         // https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
         val ps = args.getIntAt(0, -1)
         when (ps) {
-            0, 1, 2 -> {
+            0 -> {  // Set both window and icon title
+                val name = args.getStringAt(1)
+                if (name != null) {
+                    myTerminal?.setWindowTitle(name)
+                    myTerminal?.setIconTitle(name)
+                    return true
+                }
+            }
+            1 -> {  // Set icon title only
+                val name = args.getStringAt(1)
+                if (name != null) {
+                    myTerminal?.setIconTitle(name)
+                    return true
+                }
+            }
+            2 -> {  // Set window title only
                 val name = args.getStringAt(1)
                 if (name != null) {
                     myTerminal?.setWindowTitle(name)
@@ -481,26 +496,40 @@ class JediEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
         }
     }
 
-    private fun csi22(args: ControlSequence): kotlin.Boolean { // TODO: support icon title
+    private fun csi22(args: ControlSequence): kotlin.Boolean {
         when (args.getArg(1, -1)) {
-            0, 2 -> {
+            0 -> {  // Save both window and icon title
+                myTerminal?.saveWindowTitleOnStack()
+                myTerminal?.saveIconTitleOnStack()
+                return true
+            }
+            1 -> {  // Save icon title only
+                myTerminal?.saveIconTitleOnStack()
+                return true
+            }
+            2 -> {  // Save window title only
                 myTerminal?.saveWindowTitleOnStack()
                 return true
             }
-
-            1 -> return true
             else -> return false
         }
     }
 
-    private fun csi23(args: ControlSequence): kotlin.Boolean { // TODO: support icon title
+    private fun csi23(args: ControlSequence): kotlin.Boolean {
         when (args.getArg(1, -1)) {
-            0, 2 -> {
+            0 -> {  // Restore both window and icon title
+                myTerminal?.restoreWindowTitleFromStack()
+                myTerminal?.restoreIconTitleFromStack()
+                return true
+            }
+            1 -> {  // Restore icon title only
+                myTerminal?.restoreIconTitleFromStack()
+                return true
+            }
+            2 -> {  // Restore window title only
                 myTerminal?.restoreWindowTitleFromStack()
                 return true
             }
-
-            1 -> return true
             else -> return false
         }
     }

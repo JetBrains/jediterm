@@ -30,6 +30,10 @@ public interface TerminalDisplay {
 
   void setWindowTitle(@NotNull String windowTitle);
 
+  String getIconTitle();
+
+  void setIconTitle(@NotNull String iconTitle);
+
   @Nullable TerminalSelection getSelection();
 
   void terminalMouseModeSet(@NotNull MouseMode mouseMode);

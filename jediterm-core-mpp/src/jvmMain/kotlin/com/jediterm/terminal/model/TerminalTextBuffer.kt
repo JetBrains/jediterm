@@ -46,16 +46,16 @@ class TerminalTextBuffer internal constructor(
 
   internal val historyLinesStorageOrBackup: LinesStorage
     get() = if (isUsingAlternateBuffer) {
-        historyLinesStorageBackup ?: historyLinesStorage
+      historyLinesStorageBackup ?: historyLinesStorage
     } else {
-        historyLinesStorage
+      historyLinesStorage
     }
 
   internal val screenLinesStorageOrBackup: LinesStorage
     get() = if (isUsingAlternateBuffer) {
-        screenLinesStorageBackup ?: screenLinesStorage
+      screenLinesStorageBackup ?: screenLinesStorage
     } else {
-        screenLinesStorage
+      screenLinesStorage
     }
 
   // Public accessors for Java interop
@@ -309,8 +309,7 @@ class TerminalTextBuffer internal constructor(
         changesMulticaster.linesChanged(index)
       }
       return line
-    }
-    else {
+    } else {
       if (index < -historyLinesCount) {
         LOG.error("Attempt to get line out of bounds: $index < ${-historyLinesCount}")
         return TerminalLine.createEmpty()

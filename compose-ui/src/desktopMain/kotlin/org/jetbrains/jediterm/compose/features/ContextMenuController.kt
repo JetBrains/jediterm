@@ -83,6 +83,7 @@ fun createTerminalContextMenuItems(
     onPaste: () -> Unit,
     onSelectAll: () -> Unit,
     onClearScreen: () -> Unit,
+    onClearScrollback: () -> Unit,
     onFind: () -> Unit,
     onShowDebug: (() -> Unit)? = null
 ): List<ContextMenuController.MenuItem> {
@@ -116,6 +117,12 @@ fun createTerminalContextMenuItems(
             label = "Clear Screen",
             enabled = true,
             action = onClearScreen
+        ),
+        ContextMenuController.MenuItem(
+            id = "clear_scrollback",
+            label = "Clear Scrollback",
+            enabled = true,
+            action = onClearScrollback
         )
     )
 
@@ -152,6 +159,7 @@ fun showTerminalContextMenu(
     onPaste: () -> Unit,
     onSelectAll: () -> Unit,
     onClearScreen: () -> Unit,
+    onClearScrollback: () -> Unit,
     onFind: () -> Unit,
     onShowDebug: (() -> Unit)? = null
 ) {
@@ -161,6 +169,7 @@ fun showTerminalContextMenu(
         onPaste = onPaste,
         onSelectAll = onSelectAll,
         onClearScreen = onClearScreen,
+        onClearScrollback = onClearScrollback,
         onFind = onFind,
         onShowDebug = onShowDebug
     )

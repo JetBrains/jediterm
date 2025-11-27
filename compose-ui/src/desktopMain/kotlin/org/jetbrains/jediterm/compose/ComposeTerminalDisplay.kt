@@ -11,6 +11,9 @@ import com.jediterm.terminal.emulator.mouse.MouseMode
 import com.jediterm.terminal.model.TerminalSelection
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.concurrent.timer
 
@@ -86,7 +89,8 @@ class ComposeTerminalDisplay : TerminalDisplay {
     private val _cursorShape = mutableStateOf<CursorShape?>(null)
     private val _bracketedPasteMode = mutableStateOf(false)
     private val _termSize = mutableStateOf(TermSize(80, 24))
-    private var _windowTitle = ""
+    private val _windowTitle = MutableStateFlow("")
+    private val _iconTitle = MutableStateFlow("")
     private val _mouseMode = mutableStateOf(MouseMode.MOUSE_REPORTING_NONE)
 
     // Compose state properties
@@ -97,6 +101,8 @@ class ComposeTerminalDisplay : TerminalDisplay {
     val bracketedPasteMode: State<Boolean> = _bracketedPasteMode
     val termSize: State<TermSize> = _termSize
     val mouseMode: State<MouseMode> = _mouseMode
+    val windowTitleFlow: StateFlow<String> = _windowTitle.asStateFlow()
+    val iconTitleFlow: StateFlow<String> = _iconTitle.asStateFlow()
 
     // Trigger for redraw - increment this to force redraw
     private val _redrawTrigger = mutableStateOf(0)
@@ -141,9 +147,15 @@ class ComposeTerminalDisplay : TerminalDisplay {
     }
 
     override var windowTitle: String?
-        get() = _windowTitle
+        get() = _windowTitle.value
         set(value) {
-            _windowTitle = value ?: ""
+            _windowTitle.value = value ?: ""
+        }
+
+    override var iconTitle: String?
+        get() = _iconTitle.value
+        set(value) {
+            _iconTitle.value = value ?: ""
         }
 
     override val selection: TerminalSelection?

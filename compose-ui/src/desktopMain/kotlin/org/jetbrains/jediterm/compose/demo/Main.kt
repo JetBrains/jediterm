@@ -13,18 +13,27 @@ import org.jetbrains.jediterm.compose.tabs.TabBar
 import org.jetbrains.jediterm.compose.tabs.TabController
 
 fun main() = application {
+    // Window title state that will be updated by active tab's window title
+    val windowTitleState = remember { mutableStateOf("JediTerm Compose - Multiple Terminal Tabs") }
+
     Window(
         onCloseRequest = ::exitApplication,
-        title = "JediTerm Compose - Multiple Terminal Tabs"
+        title = windowTitleState.value
     ) {
         TerminalApp(
-            onExit = ::exitApplication
+            onExit = ::exitApplication,
+            onWindowTitleChange = { newTitle ->
+                windowTitleState.value = newTitle
+            }
         )
     }
 }
 
 @Composable
-fun TerminalApp(onExit: () -> Unit) {
+fun TerminalApp(
+    onExit: () -> Unit,
+    onWindowTitleChange: (String) -> Unit = {}
+) {
     // Settings integration
     val settingsManager = remember { SettingsManager.instance }
     val settings by settingsManager.settings.collectAsState()
@@ -72,6 +81,8 @@ fun TerminalApp(onExit: () -> Unit) {
     LaunchedEffect(Unit) {
         if (tabController.tabs.isEmpty()) {
             println("INFO: Creating initial terminal tab...")
+            // Note: onProcessExit is now handled by TabController.initializeTerminalSession
+            // TabController auto-closes tabs when shell exits, callback is optional for custom logic
             tabController.createTab()
         }
     }
@@ -87,6 +98,7 @@ fun TerminalApp(onExit: () -> Unit) {
             onNewTab = {
                 // Inherit working directory from active tab
                 val workingDir = tabController.getActiveWorkingDirectory()
+                // TabController handles auto-close on exit, onProcessExit callback is optional
                 tabController.createTab(workingDir = workingDir)
             }
         )
@@ -95,16 +107,21 @@ fun TerminalApp(onExit: () -> Unit) {
         if (tabController.tabs.isNotEmpty()) {
             val activeTab = tabController.tabs[tabController.activeTabIndex]
 
+            // Observe active tab's window title (OSC 2) and update main window title bar
+            LaunchedEffect(activeTab) {
+                activeTab.display.windowTitleFlow.collect { newTitle ->
+                    if (newTitle.isNotEmpty()) {
+                        onWindowTitleChange(newTitle)
+                    }
+                }
+            }
+
             ProperTerminal(
                 tab = activeTab,
                 isActiveTab = true,
                 sharedFont = nerdFont,
                 onTabTitleChange = { newTitle ->
                     activeTab.title.value = newTitle
-                },
-                onProcessExit = {
-                    // Auto-close tab when shell exits
-                    tabController.closeTab(tabController.activeTabIndex)
                 },
                 onNewTab = {
                     // Inherit working directory from active tab (Phase 5)

@@ -17,6 +17,7 @@ import org.jetbrains.jediterm.compose.ime.IMEState
 import com.jediterm.terminal.emulator.JediEmulator
 import com.jediterm.terminal.model.JediTerminal
 import com.jediterm.terminal.model.TerminalTextBuffer
+import org.jetbrains.jediterm.compose.debug.DebugDataCollector
 import java.util.UUID
 
 /**
@@ -91,6 +92,13 @@ data class TerminalTab(
      * Connection state of the terminal (Initializing, Connected, Disconnected).
      */
     val connectionState: MutableState<ConnectionState>,
+
+    /**
+     * Callback invoked when the shell process exits.
+     * Called by TabController before auto-closing the tab.
+     * Can be used for cleanup, logging, or custom exit handling.
+     */
+    val onProcessExit: (() -> Unit)? = null,
 
     // === Coroutine Management ===
 
@@ -190,7 +198,7 @@ data class TerminalTab(
      * Debug data collector for capturing I/O chunks and terminal state snapshots.
      * Null when debug mode is disabled to avoid memory overhead.
      */
-    val debugCollector: org.jetbrains.jediterm.compose.debug.DebugDataCollector? = null
+    val debugCollector: DebugDataCollector? = null
 ) {
     /**
      * Whether this tab is currently rendering to the UI.
@@ -231,6 +239,22 @@ data class TerminalTab(
 
         // Terminal cleanup (if needed)
         // terminal.close() may not be available in all JediTerm versions
+    }
+
+    /**
+     * Write user input to the process and record in debug collector.
+     * Centralizes input handling to ensure all user input is captured for debugging.
+     *
+     * @param text The text to send to the shell
+     */
+    fun writeUserInput(text: String) {
+        // Record in debug collector
+        debugCollector?.recordChunk(text, org.jetbrains.jediterm.compose.debug.ChunkSource.USER_INPUT)
+
+        // Send to process
+        kotlinx.coroutines.runBlocking {
+            processHandle.value?.write(text)
+        }
     }
 }
 

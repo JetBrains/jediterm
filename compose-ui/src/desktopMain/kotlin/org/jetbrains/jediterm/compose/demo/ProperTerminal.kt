@@ -4,10 +4,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -30,20 +28,11 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import org.jetbrains.jediterm.compose.ComposeTerminalDisplay
 import org.jetbrains.jediterm.compose.ConnectionState
-import org.jetbrains.jediterm.compose.PlatformServices
 import org.jetbrains.jediterm.compose.PreConnectScreen
-import org.jetbrains.jediterm.compose.getPlatformServices
 import com.jediterm.core.util.TermSize
-import com.jediterm.terminal.emulator.JediEmulator
 import com.jediterm.terminal.emulator.mouse.MouseMode
-import com.jediterm.terminal.model.JediTerminal
-import com.jediterm.terminal.model.StyleState
 import com.jediterm.terminal.model.TerminalTextBuffer
 import com.jediterm.terminal.RequestOrigin
 import com.jediterm.terminal.TextStyle as JediTextStyle
@@ -60,16 +49,23 @@ import org.jetbrains.jediterm.compose.debug.DebugPanel
 import org.jetbrains.jediterm.compose.hyperlinks.HyperlinkDetector
 import org.jetbrains.jediterm.compose.hyperlinks.Hyperlink
 import org.jetbrains.jediterm.compose.ime.IMEHandler
-import org.jetbrains.jediterm.compose.ime.IMEState
 import org.jetbrains.jediterm.compose.features.ContextMenuController
 import org.jetbrains.jediterm.compose.features.ContextMenuPopup
 import org.jetbrains.jediterm.compose.features.showTerminalContextMenu
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.input.pointer.PointerButton
+import androidx.compose.ui.text.ExperimentalTextApi
+import com.jediterm.core.compatibility.Point
 import org.jetbrains.jediterm.compose.actions.addTabManagementActions
 import org.jetbrains.jediterm.compose.actions.createBuiltinActions
 import org.jetbrains.jediterm.compose.scrollbar.rememberTerminalScrollbarAdapter
 import org.jetbrains.jediterm.compose.scrollbar.AlwaysVisibleScrollbar
 import com.jediterm.terminal.emulator.mouse.MouseButtonCodes
+import com.jediterm.terminal.model.SelectionUtil.getNextSeparator
+import com.jediterm.terminal.model.SelectionUtil.getPreviousSeparator
+import kotlinx.coroutines.delay
+import org.jetbrains.jediterm.compose.tabs.TerminalTab
 
 /**
  * Maps Compose Desktop Key constants to Java AWT VK (Virtual Key) codes.
@@ -112,7 +108,7 @@ private fun mapComposeKeyToVK(key: Key): Int? {
  * Note: Using JediTerm's InputEvent constants (SHIFT_MASK, etc.) not Java AWT's
  * SHIFT_DOWN_MASK, as TerminalKeyEncoder expects the old Event mask values.
  */
-private fun mapComposeModifiers(keyEvent: androidx.compose.ui.input.key.KeyEvent): Int {
+private fun mapComposeModifiers(keyEvent: KeyEvent): Int {
     var modifiers = 0
     if (keyEvent.isShiftPressed) modifiers = modifiers or InputEvent.SHIFT_MASK
     if (keyEvent.isCtrlPressed) modifiers = modifiers or InputEvent.CTRL_MASK
@@ -128,22 +124,21 @@ private fun mapComposeModifiers(keyEvent: androidx.compose.ui.input.key.KeyEvent
  * Refactored to support multiple tabs - accepts a TerminalTab with all per-tab state.
  */
 @OptIn(
-    androidx.compose.ui.ExperimentalComposeUiApi::class,
-    androidx.compose.ui.text.ExperimentalTextApi::class
+  ExperimentalComposeUiApi::class,
+  ExperimentalTextApi::class
 )
 @Composable
 fun ProperTerminal(
-    tab: org.jetbrains.jediterm.compose.tabs.TerminalTab,
-    isActiveTab: Boolean,
-    sharedFont: FontFamily,
-    onTabTitleChange: (String) -> Unit,
-    onProcessExit: () -> Unit,
-    onNewTab: () -> Unit = {},
-    onCloseTab: () -> Unit = {},
-    onNextTab: () -> Unit = {},
-    onPreviousTab: () -> Unit = {},
-    onSwitchToTab: (Int) -> Unit = {},
-    modifier: Modifier = Modifier
+  tab: TerminalTab,
+  isActiveTab: Boolean,
+  sharedFont: FontFamily,
+  onTabTitleChange: (String) -> Unit,
+  onNewTab: () -> Unit = {},
+  onCloseTab: () -> Unit = {},
+  onNextTab: () -> Unit = {},
+  onPreviousTab: () -> Unit = {},
+  onSwitchToTab: (Int) -> Unit = {},
+  modifier: Modifier = Modifier
 ) {
     // Extract tab state (no more remember {} blocks - state lives in TerminalTab)
     val processHandle = tab.processHandle.value
@@ -241,21 +236,18 @@ fun ProperTerminal(
         val buffer = terminal.terminalTextBuffer
         buffer.lock()
         try {
-            val lineCount = buffer.historyLinesCount + buffer.height
             for (row in -buffer.historyLinesCount until buffer.height) {
                 val line = buffer.getLine(row)
-                if (line != null) {
-                    val text = line.text
-                    val searchText = if (searchCaseSensitive) searchQuery else searchQuery.lowercase()
-                    val lineText = if (searchCaseSensitive) text else text.lowercase()
+                val text = line.text
+                val searchText = if (searchCaseSensitive) searchQuery else searchQuery.lowercase()
+                val lineText = if (searchCaseSensitive) text else text.lowercase()
 
-                    var index = 0
-                    while (index >= 0) {
-                        index = lineText.indexOf(searchText, index)
-                        if (index >= 0) {
-                            matches.add(Pair(index, row))
-                            index += searchQuery.length
-                        }
+                var index = 0
+                while (index >= 0) {
+                    index = lineText.indexOf(searchText, index)
+                    if (index >= 0) {
+                        matches.add(Pair(index, row))
+                        index += searchQuery.length
                     }
                 }
             }
@@ -282,11 +274,6 @@ fun ProperTerminal(
     var hoveredHyperlink by tab.hoveredHyperlink
     var cachedHyperlinks by remember { mutableStateOf<Map<Int, List<Hyperlink>>>(emptyMap()) }
 
-    // Use tab's long-lived data stream and emulator (preserves state across chunk boundaries)
-    // This prevents CSI sequences from being truncated when they span multiple output chunks
-    val dataStream = tab.dataStream
-    val emulator = tab.emulator
-
     // Terminal key encoder for proper escape sequence generation (function keys, modifiers, etc.)
     val keyEncoder = remember { TerminalKeyEncoder() }
 
@@ -294,7 +281,6 @@ fun ProperTerminal(
     // No longer needed here since terminal output routing is set up during tab initialization
 
     // Watch redraw trigger to force recomposition
-    val redrawTrigger = display.redrawTrigger.value
     val cursorX = display.cursorX.value
     val cursorY = display.cursorY.value
     val cursorVisible = display.cursorVisible.value
@@ -325,7 +311,7 @@ fun ProperTerminal(
     // Helper functions for context menu actions
     fun clearBuffer() {
         scope.launch {
-            processHandle?.write("clear\n")
+            tab.writeUserInput("clear\n")
         }
     }
 
@@ -359,14 +345,14 @@ fun ProperTerminal(
     // Create action registry with all built-in actions
     val actionRegistry = remember(isMacOS) {
         val registry = createBuiltinActions(
-            selectionStart = object : androidx.compose.runtime.MutableState<Pair<Int, Int>?> {
+            selectionStart = object : MutableState<Pair<Int, Int>?> {
                 override var value: Pair<Int, Int>?
                     get() = selectionStart
                     set(value) { selectionStart = value }
                 override fun component1() = value
                 override fun component2(): (Pair<Int, Int>?) -> Unit = { selectionStart = it }
             },
-            selectionEnd = object : androidx.compose.runtime.MutableState<Pair<Int, Int>?> {
+            selectionEnd = object : MutableState<Pair<Int, Int>?> {
                 override var value: Pair<Int, Int>?
                     get() = selectionEnd
                     set(value) { selectionEnd = value }
@@ -375,15 +361,15 @@ fun ProperTerminal(
             },
             textBuffer = textBuffer,
             clipboardManager = clipboardManager,
-            getProcessHandle = { tab.processHandle.value },
-            searchVisible = object : androidx.compose.runtime.MutableState<Boolean> {
+            writeUserInput = tab::writeUserInput,
+            searchVisible = object : MutableState<Boolean> {
                 override var value: Boolean
                     get() = searchVisible
                     set(value) { searchVisible = value }
                 override fun component1() = value
                 override fun component2(): (Boolean) -> Unit = { searchVisible = it }
             },
-            debugPanelVisible = object : androidx.compose.runtime.MutableState<Boolean> {
+            debugPanelVisible = object : MutableState<Boolean> {
                 override var value: Boolean
                     get() = debugPanelVisible
                     set(value) { debugPanelVisible = value }
@@ -437,17 +423,10 @@ fun ProperTerminal(
     val cellWidth = cellMetrics.first
     val cellHeight = cellMetrics.second
 
-    // Auto-scroll to bottom on new output if already at bottom
-    LaunchedEffect(redrawTrigger) {
-        if (scrollOffset == 0) {
-            // Already at bottom, stay there (no action needed)
-        }
-    }
-
     // SLOW_BLINK animation timer (500ms intervals)
     LaunchedEffect(Unit) {
         while (true) {
-            kotlinx.coroutines.delay(500)
+            delay(500)
             slowBlinkVisible = !slowBlinkVisible
         }
     }
@@ -455,7 +434,7 @@ fun ProperTerminal(
     // RAPID_BLINK animation timer (250ms intervals)
     LaunchedEffect(Unit) {
         while (true) {
-            kotlinx.coroutines.delay(250)
+            delay(250)
             rapidBlinkVisible = !rapidBlinkVisible
         }
     }
@@ -463,7 +442,7 @@ fun ProperTerminal(
     // Cursor blink animation timer (500ms intervals)
     LaunchedEffect(Unit) {
         while (true) {
-            kotlinx.coroutines.delay(500)
+            delay(500)
             cursorBlinkVisible = !cursorBlinkVisible
         }
     }
@@ -474,8 +453,20 @@ fun ProperTerminal(
     // Request focus when tab becomes active or changes
     // Use tab.id as key so effect re-triggers when switching between tabs
     LaunchedEffect(tab.id) {
-        kotlinx.coroutines.delay(100)
+        delay(100)
         focusRequester.requestFocus()
+    }
+
+    // Observe icon title changes from OSC 1 sequence for tab labels (XTerm standard)
+    // Icon title (OSC 1) is used for tab labels in modern terminals
+    // Window title (OSC 2) is used for the main window title bar
+    // Using reactive Flow instead of polling for immediate updates and better resource efficiency
+    LaunchedEffect(Unit) {
+        display.iconTitleFlow.collect { newTitle ->
+            if (newTitle.isNotEmpty()) {
+                onTabTitleChange(newTitle)
+            }
+        }
     }
 
     // Scrollbar adapter that bridges terminal scroll state with Compose scrollbar
@@ -493,27 +484,16 @@ fun ProperTerminal(
     )
 
     /**
-     * Mouse reporting decision logic helpers (Issue #20)
+     * Mouse reporting decision logic (Issue #20)
      *
-     * Determines if mouse event should be handled locally (selection, scrolling) or
-     * forwarded to terminal application (vim, tmux, etc.).
+     * Determines if mouse event should be forwarded to terminal application (vim, tmux, etc.)
+     * or handled locally (selection, scrolling).
      *
      * Key behavior:
      * - Shift+Click ALWAYS forces local action, even when app has mouse mode
      * - Without Shift: respects application's mouse mode settings
-     */
-
-    /**
-     * Check if mouse action should be handled locally (selection, scrolling).
-     * Returns true when NOT in mouse reporting mode OR Shift is held.
-     */
-    fun isLocalMouseAction(shiftPressed: Boolean): Boolean {
-        return !display.isMouseReporting() || shiftPressed
-    }
-
-    /**
-     * Check if mouse action should be forwarded to terminal application.
-     * Returns true when: Mouse reporting enabled AND in mouse mode AND Shift NOT held.
+     *
+     * @return true when mouse event should be forwarded to terminal app
      */
     fun isRemoteMouseAction(shiftPressed: Boolean): Boolean {
         return settings.enableMouseReporting && display.isMouseReporting() && !shiftPressed
@@ -586,7 +566,7 @@ fun ProperTerminal(
                     }
 
                     // Check for right-click (secondary button)
-                    if (event.button == androidx.compose.ui.input.pointer.PointerButton.Secondary) {
+                    if (event.button == PointerButton.Secondary) {
                         // Show context menu
                         val pos = change.position
                         showTerminalContextMenu(
@@ -606,12 +586,13 @@ fun ProperTerminal(
                                 val text = clipboardManager.getText()?.text
                                 if (!text.isNullOrEmpty()) {
                                     scope.launch {
-                                        processHandle?.write(text)
+                                        tab.writeUserInput(text)
                                     }
                                 }
                             },
                             onSelectAll = { selectAll() },
                             onClearScreen = { clearBuffer() },
+                            onClearScrollback = { clearScrollback() },
                             onFind = { searchVisible = true },
                             onShowDebug = if (debugCollector != null) {
                                 { debugPanelVisible = !debugPanelVisible }
@@ -622,7 +603,7 @@ fun ProperTerminal(
                     }
 
                     // Check for middle-click paste (tertiary button)
-                    if (event.button == androidx.compose.ui.input.pointer.PointerButton.Tertiary && settings.pasteOnMiddleClick) {
+                    if (event.button == PointerButton.Tertiary && settings.pasteOnMiddleClick) {
                         val text = if (settings.emulateX11CopyPaste) {
                             // X11 mode: Paste from selection clipboard (middle-click buffer)
                             selectionClipboard
@@ -633,7 +614,7 @@ fun ProperTerminal(
                         if (!text.isNullOrEmpty() && processHandle != null) {
                             scope.launch {
                                 try {
-                                    processHandle?.write(text)
+                                    tab.writeUserInput(text)
                                 } catch (e: Exception) {
                                     println("ERROR: Failed to paste text via middle-click: ${e.message}")
                                     e.printStackTrace()
@@ -980,7 +961,7 @@ fun ProperTerminal(
                         }
 
                         if (text.isNotEmpty()) {
-                            processHandle?.write(text)
+                            tab.writeUserInput(text)
                             // Phase 2: Immediate redraw for user input (zero lag)
                             display.requestImmediateRedraw()
                         }
@@ -1523,7 +1504,7 @@ fun ProperTerminal(
             onTextCommit = { text ->
                 // Forward composed text to terminal
                 scope.launch {
-                    processHandle?.write(text)
+                    tab.writeUserInput(text)
                 }
                 // Disable IME after successful input
                 imeState.disable()
@@ -1623,11 +1604,11 @@ private fun selectWordAt(
     textBuffer.lock()
     try {
         // Convert Pair<Int, Int> to Point for SelectionUtil
-        val clickPoint = com.jediterm.core.compatibility.Point(col, row)
+        val clickPoint = Point(col, row)
 
         // Get word boundaries using SelectionUtil
-        val startPoint = com.jediterm.terminal.model.SelectionUtil.getPreviousSeparator(clickPoint, textBuffer)
-        val endPoint = com.jediterm.terminal.model.SelectionUtil.getNextSeparator(clickPoint, textBuffer)
+        val startPoint = getPreviousSeparator(clickPoint, textBuffer)
+        val endPoint = getNextSeparator(clickPoint, textBuffer)
 
         // Convert Point back to Pair<Int, Int>
         return Pair(Pair(startPoint.x, startPoint.y), Pair(endPoint.x, endPoint.y))

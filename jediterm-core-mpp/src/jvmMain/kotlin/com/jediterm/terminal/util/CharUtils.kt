@@ -54,13 +54,34 @@ object CharUtils {
         return String(buf, offset - length, length)
     }
 
+    /**
+     * Counts double-width characters in a buffer.
+     *
+     * FIXED: Now properly handles surrogate pairs by iterating by code point,
+     * not by char. Previous implementation would miscount surrogate pairs because
+     * it incremented by 1 after calling codePointAt(), which skipped the low surrogate.
+     *
+     * @param buf Character buffer
+     * @param start Starting index in buffer
+     * @param length Number of characters to process
+     * @param ambiguousIsDWC Whether ambiguous-width characters are double-width
+     * @return Count of double-width characters (in terms of visual cells)
+     */
     fun countDoubleWidthCharacters(buf: CharArray, start: Int, length: Int, ambiguousIsDWC: Boolean): Int {
         var cnt = 0
-        for (i in 0..<length) {
-            val ucs = Character.codePointAt(buf, i + start)
+        var offset = 0
+
+        while (offset < length) {
+            val index = start + offset
+            if (index >= buf.size) break
+
+            val ucs = Character.codePointAt(buf, index)
             if (isDoubleWidthCharacter(ucs, ambiguousIsDWC)) {
                 cnt++
             }
+
+            // CRITICAL: Increment by charCount to skip both surrogates for supplementary chars
+            offset += Character.charCount(ucs)
         }
 
         return cnt
@@ -107,6 +128,9 @@ object CharUtils {
     /**
      * Computes text length as sum of characters length, treating double-width(full-width) characters as 2, normal-width(half-width) as 1
      * (Read http://en.wikipedia.org/wiki/Halfwidth_and_fullwidth_forms)
+     *
+     * NOTE: This method uses char-by-char iteration and may not handle grapheme clusters correctly.
+     * Consider using getTextLengthGraphemeAware() for proper Unicode support.
      */
     fun getTextLengthDoubleWidthAware(buffer: CharArray, start: Int, length: Int, ambiguousIsDWC: Boolean): Int {
         var result = 0
@@ -118,6 +142,46 @@ object CharUtils {
             ) 2 else 1
         }
         return result
+    }
+
+    /**
+     * Computes text length using grapheme-aware width calculation.
+     *
+     * This is the CORRECT way to measure text with:
+     * - Surrogate pairs (characters outside BMP, U+10000+)
+     * - Emoji with ZWJ sequences (family emoji, etc.)
+     * - Emoji with variation selectors (☁️, ⭐, etc.)
+     * - Emoji with skin tone modifiers (👍🏽, etc.)
+     * - Combining characters (á = a + combining acute)
+     *
+     * Uses GraphemeUtils for segmentation and width calculation.
+     *
+     * @param text The string to measure
+     * @param ambiguousIsDWC Whether ambiguous-width characters are double-width
+     * @return Visual width in character cells
+     */
+    fun getTextLengthGraphemeAware(text: String, ambiguousIsDWC: Boolean): Int {
+        if (text.isEmpty()) return 0
+
+        // Fast path: simple ASCII without DWC markers
+        if (text.all { it.code < 128 && it != DWC }) {
+            return text.length
+        }
+
+        // Segment into graphemes and sum widths
+        val graphemes = GraphemeUtils.segmentIntoGraphemes(text)
+        var visualLength = 0
+
+        for (grapheme in graphemes) {
+            // Skip DWC markers (they don't add to visual length)
+            if (grapheme.text == DWC.toString()) continue
+
+            // Use grapheme's pre-calculated width (already considers ambiguousIsDWC)
+            val width = GraphemeUtils.getGraphemeWidth(grapheme.text, ambiguousIsDWC)
+            visualLength += width
+        }
+
+        return visualLength
     }
 
     fun isDoubleWidthCharacter(c: Int, ambiguousIsDWC: Boolean): Boolean {

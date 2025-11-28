@@ -70,6 +70,8 @@ public enum CharacterSet
         return -1;
       }
     },
+  // DEC Supplemental character set (partial ISO-8859-1, indices 0-63 only)
+  // Note: For ANSI conformance levels 1/2, use ISO_LATIN_1 instead
   DEC_SUPPLEMENTAL( 'U', '<' )
     {
       @Override
@@ -78,6 +80,22 @@ public enum CharacterSet
         if ( index >= 0 && index < 64 )
         {
           // Set the 8th bit...
+          return index + 160;
+        }
+        return -1;
+      }
+    },
+  ISO_LATIN_1( '-' )
+    {
+      @Override
+      public int map( int index )
+      {
+        // ISO Latin-1 supplemental character set (ISO-8859-1 upper half)
+        // Maps indices 0-95 to Unicode 160-255 (GR range)
+        // Note: Uses '-' designation to avoid conflict with BRITISH ('A')
+        // In full escape sequences: ESC - A designates this to G1
+        if ( index >= 0 && index < 96 )
+        {
           return index + 160;
         }
         return -1;

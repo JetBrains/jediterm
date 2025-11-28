@@ -233,8 +233,8 @@ class JediTerminal(
             myGraphicSetState
                 .designateGraphicSet(
                     1,
-                    CharacterSet.DEC_SUPPLEMENTAL
-                ) //TODO: not DEC supplemental, but ISO Latin-1 supplemental designated as G1
+                    CharacterSet.ISO_LATIN_1
+                ) // ISO Latin-1 supplemental designated as G1
             mapCharsetToGL(0)
             mapCharsetToGR(1)
         } else if (level == 3) {
@@ -243,6 +243,17 @@ class JediTerminal(
         } else {
             throw IllegalArgumentException()
         }
+    }
+
+    /**
+     * Sets the character encoding mode, which controls GR range (160-255) mapping behavior.
+     *
+     * @param encoding "UTF-8" to disable GR mapping (preserve multi-byte sequences),
+     *                 "ISO-8859-1" to enable GR mapping through character sets
+     */
+    fun setCharacterEncoding(encoding: String) {
+        val useGRMapping = encoding.equals("ISO-8859-1", ignoreCase = true)
+        myGraphicSetState.setUseGRMapping(useGRMapping)
     }
 
     override fun setWindowTitle(name: String) {

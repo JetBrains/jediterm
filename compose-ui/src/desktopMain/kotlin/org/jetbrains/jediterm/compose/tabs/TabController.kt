@@ -84,6 +84,10 @@ class TabController(
         val textBuffer = TerminalTextBuffer(80, 24, styleState, settings.bufferMaxLines)
         val display = ComposeTerminalDisplay()
         val terminal = JediTerminal(display, textBuffer, styleState)
+
+        // Configure character encoding mode (ISO-8859-1 enables GR mapping, UTF-8 disables it)
+        terminal.setCharacterEncoding(settings.characterEncoding)
+
         val dataStream = BlockingTerminalDataStream()
 
         // Create working directory state

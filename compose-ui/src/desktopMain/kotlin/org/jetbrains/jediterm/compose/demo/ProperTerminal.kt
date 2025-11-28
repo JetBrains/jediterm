@@ -1840,6 +1840,15 @@ fun ProperTerminal(
             onClose = { debugPanelVisible = false },
             modifier = Modifier.align(Alignment.BottomCenter)
         )
+
+        // Restore focus to terminal when debug panel closes
+        LaunchedEffect(debugPanelVisible) {
+            if (!debugPanelVisible) {
+                // Panel just closed - restore focus to terminal
+                kotlinx.coroutines.delay(50)  // Let DebugPanel unmount first
+                focusRequester.requestFocus()
+            }
+        }
         }
 
         // Vertical scrollbar on the right side - Always visible custom scrollbar

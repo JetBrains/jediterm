@@ -83,7 +83,6 @@ class JediEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
 
         var visualLength = 0
         var endGraphemeIndex = 0
-        var lastGrapheme: GraphemeCluster? = null
 
         for ((index, grapheme) in graphemes.withIndex()) {
             val graphemeWidth = grapheme.visualWidth
@@ -92,13 +91,11 @@ class JediEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
             if (visualLength + graphemeWidth == maxChars) {
                 // 1) Found exactly maxChars
                 endGraphemeIndex = index + 1
-                lastGrapheme = grapheme
                 break
             } else if (visualLength + graphemeWidth < maxChars) {
                 // 2) Found less, continue searching
                 endGraphemeIndex = index + 1
                 visualLength += graphemeWidth
-                lastGrapheme = grapheme
             } else {
                 // 3) Would exceed maxChars (e.g., 1 cell left but grapheme is 2 cells wide)
                 break

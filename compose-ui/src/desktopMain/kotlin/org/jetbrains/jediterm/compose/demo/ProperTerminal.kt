@@ -1365,13 +1365,6 @@ fun ProperTerminal(
                       // Detect actual width from buffer: if col+1 has DWC, it's stored as double-width
                       val isWcwidthDoubleWidth = charAtCol1 == CharUtils.DWC || wcwidthResult
 
-                      if (actualCodePoint in 0x1D400..0x1D7FF || actualCodePoint >= 0x1F300) {
-                          val col1Char = if (charAtCol1 == CharUtils.DWC) "DWC" else if (charAtCol1 != null) "U+${charAtCol1.code.toString(16).uppercase()}" else "null"
-                          val col2Char = if (charAtCol2 == CharUtils.DWC) "DWC" else if (charAtCol2 != null) "U+${charAtCol2.code.toString(16).uppercase()}" else "null"
-                          println("[SURROGATE] row=$row col=$col char='$char' (U+${actualCodePoint.toString(16).uppercase()}) isDoubleWidth=$isWcwidthDoubleWidth")
-                          println("[SURROGATE]   col+1=$col1Char col+2=$col2Char lowSurrogatePos=$lowSurrogatePos")
-                      }
-
                       // Determine the text to render - for surrogate pairs, combine high and low surrogates
                       val charTextToRender = if (lowSurrogate != null && Character.isLowSurrogate(lowSurrogate)) {
                           "$char$lowSurrogate"
@@ -1379,13 +1372,15 @@ fun ProperTerminal(
                           char.toString()
                       }
 
+                      // Detect cursive/mathematical characters - need system font but no special scaling
+                      val isCursiveOrMath = actualCodePoint in 0x1D400..0x1D7FF
+
                       // For emoji and symbols, we'll render them with slight scaling for better visibility
                       // These are Unicode blocks containing symbols that render poorly at normal size
                       // IMPORTANT: Use actualCodePoint for surrogate pair emoji!
                       val isEmojiOrWideSymbol = when (actualCodePoint) {
                           in 0x2600..0x26FF -> true  // Miscellaneous Symbols (☁️, ☀️, ★, etc.)
                           in 0x2700..0x27BF -> true  // Dingbats (✂, ✈, ❯, etc.)
-                          in 0x1D400..0x1D7FF -> true  // Mathematical Alphanumeric Symbols (𝕳𝖊𝖑𝖑𝖔, 𝓗𝓮𝓵𝓵𝓸, etc.)
                           in 0x1F300..0x1F9FF -> true  // Emoji & Pictographs
                           in 0x1F600..0x1F64F -> true  // Emoticons
                           in 0x1F680..0x1F6FF -> true  // Transport & Map Symbols
@@ -1450,7 +1445,8 @@ fun ProperTerminal(
                       }
 
                       // Decide if this character can be batched or needs individual rendering
-                      val canBatch = !isDoubleWidth && !isEmojiOrWideSymbol &&
+                      // Cursive/math chars can't be batched (need system font), but emoji need special scaling
+                      val canBatch = !isDoubleWidth && !isEmojiOrWideSymbol && !isCursiveOrMath &&
                                      !isHidden && isBlinkVisible &&
                                      char != ' ' && char != '\u0000'
 
@@ -1477,10 +1473,10 @@ fun ProperTerminal(
 
                       // Only draw glyph if it's printable (not space or null), not HIDDEN, and visible in blink cycle
                       if (char != ' ' && char != '\u0000' && !isHidden && isBlinkVisible) {
-                          // For emoji/symbols, use system font (FontFamily.Default)
+                          // For emoji/symbols/cursive, use system font (FontFamily.Default)
                           // to enable proper emoji rendering on macOS (Apple Color Emoji)
                           // MesloLGSNF doesn't have glyphs for emoji or mathematical alphanumerics
-                          val fontForChar = if (isEmojiOrWideSymbol || isEmojiWithVariationSelector) {
+                          val fontForChar = if (isEmojiOrWideSymbol || isEmojiWithVariationSelector || isCursiveOrMath) {
                               FontFamily.Default  // System font with emoji/Unicode support
                           } else {
                               measurementStyle.fontFamily  // Nerd Font
@@ -1578,6 +1574,17 @@ fun ProperTerminal(
                                   col++  // Skip the variation selector character
                                   // Variation selector doesn't add visual width
                               }
+                          } else if (isCursiveOrMath) {
+                              // Cursive/math characters: center in cell to prevent overlap
+                              val measurement = textMeasurer.measure(charTextToRender, textStyle)
+                              val glyphWidth = measurement.size.width.toFloat()
+                              val centeringOffset = ((cellWidth - glyphWidth) / 2f).coerceAtLeast(0f)
+                              drawText(
+                                  textMeasurer = textMeasurer,
+                                  text = charTextToRender,
+                                  topLeft = Offset(x + centeringOffset, y),
+                                  style = textStyle
+                              )
                           } else {
                               // Normal single-width rendering
                               drawText(
@@ -1642,11 +1649,6 @@ fun ProperTerminal(
                       // This includes emoji forced to double-width even if stored as single-width
                       if (isDoubleWidth) {
                           visualCol++  // Double-width takes 2 visual columns
-                      }
-
-                      // Debug: log after column advancement for cursive chars
-                      if (actualCodePoint in 0x1D400..0x1D7FF) {
-                          println("[CURSIVE-ADVANCE] After advancing: col=$col visualCol=$visualCol")
                       }
                   }
 

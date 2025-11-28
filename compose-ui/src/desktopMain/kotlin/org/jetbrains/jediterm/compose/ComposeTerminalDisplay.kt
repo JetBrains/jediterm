@@ -278,8 +278,6 @@ class ComposeTerminalDisplay : TerminalDisplay {
      * Handle transitions between rendering modes.
      */
     private fun onModeTransition(from: RedrawMode, to: RedrawMode) {
-        println("🔄 Redraw mode: $from → $to (rate: ${recentRedraws.size}/sec)")
-
         // Schedule automatic return to INTERACTIVE after bulk output stops
         if (to == RedrawMode.HIGH_VOLUME) {
             returnToInteractiveJob?.cancel()
@@ -288,7 +286,6 @@ class ComposeTerminalDisplay : TerminalDisplay {
                 synchronized(redrawTimestampsLock) {
                     if (recentRedraws.size < 50) { // Less than 50 redraws/sec
                         currentMode = RedrawMode.INTERACTIVE
-                        println("🔄 Redraw mode: HIGH_VOLUME → INTERACTIVE (auto-recovery)")
                     }
                 }
             }
@@ -348,31 +345,12 @@ class ComposeTerminalDisplay : TerminalDisplay {
             (totalSkipped.toDouble() / totalRequests * 100)
         } else 0.0
 
-        if (totalRedraws > 0) {
-            val avgRedrawsPerSec = totalRedraws / totalTime
-            val currentRate = synchronized(redrawTimestampsLock) { recentRedraws.size }
-
-            println("┌─────────────────────────────────────────────────────────┐")
-            println("│ REDRAW PERFORMANCE (Phase 2 - Adaptive Debouncing)     │")
-            println("├─────────────────────────────────────────────────────────┤")
-            println("│ Mode:                 ${currentMode.name.padEnd(10)} (${currentMode.debounceMs}ms) │")
-            println("│ Current rate:         ${String.format("%,d", currentRate).padStart(10)} redraws/sec │")
-            println("│ Total redraws:        ${String.format("%,d", totalRedraws).padStart(10)} redraws │")
-            println("│ Coalesced redraws:    ${String.format("%,d", totalSkipped).padStart(10)} skipped │")
-            println("│ Efficiency:           ${String.format("%,.1f", efficiencyPercent).padStart(10)}% saved │")
-            println("│ Average rate:         ${String.format("%,.1f", avgRedrawsPerSec).padStart(10)} redraws/sec │")
-            println("│ Total runtime:        ${String.format("%,.1f", totalTime).padStart(10)} seconds │")
-            println("└─────────────────────────────────────────────────────────┘")
-        }
+        // Performance metrics reporting removed
 
         lastMetricsReport = now
     }
 
     fun printFinalMetrics() {
-        println("\n" + "=".repeat(60))
-        println("FINAL OPTIMIZED METRICS (Phase 2 Complete)")
-        println("=".repeat(60))
-        reportMetrics()
-        println("=".repeat(60) + "\n")
+        // Final metrics reporting removed
     }
 }

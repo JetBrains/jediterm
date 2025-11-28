@@ -1153,16 +1153,51 @@ fun ProperTerminal(
                           }
                       }
 
-                      // Check if there's a ZWJ in the clean text
-                      if (cleanText.contains('\u200D')) {
+                      // Check if current character is IMMEDIATELY followed by skin tone modifier
+                      // Skin tone modifiers: U+1F3FB to U+1F3FF (stored as surrogate pairs)
+                      fun hasFollowingSkinTone(): Boolean {
+                          // Skip past current character (might be surrogate pair + DWC)
+                          var checkCol = col
+                          val currentChar = line.charAt(checkCol)
+
+                          // If current is high surrogate, skip past the pair
+                          if (Character.isHighSurrogate(currentChar)) {
+                              checkCol++  // Skip low surrogate
+                          }
+                          checkCol++  // Move to next position
+
+                          // Skip DWC if present (for double-width chars)
+                          if (checkCol < width && line.charAt(checkCol) == CharUtils.DWC) {
+                              checkCol++
+                          }
+
+                          // Now check if we're at a skin tone modifier
+                          if (checkCol < width - 1) {
+                              val c1 = line.charAt(checkCol)
+                              // Skin tone modifiers are surrogate pairs: high=\uD83C, low=\uDFFB-\uDFFF
+                              if (c1 == '\uD83C' && checkCol + 1 < width) {
+                                  val c2 = line.charAt(checkCol + 1)
+                                  if (c2.code in 0xDFFB..0xDFFF) {
+                                      return true
+                                  }
+                              }
+                          }
+
+                          return false
+                      }
+
+                      val hasZWJ = cleanText.contains('\u200D')
+                      val hasSkinTone = hasFollowingSkinTone()
+
+                      if (hasZWJ || hasSkinTone) {
                           // Segment clean text into graphemes
                           val graphemes = com.jediterm.terminal.util.GraphemeUtils.segmentIntoGraphemes(cleanText)
 
                           if (graphemes.isNotEmpty()) {
                               val grapheme = graphemes[0]
 
-                              // Only handle if this grapheme contains ZWJ
-                              if (grapheme.hasZWJ) {
+                              // Handle if grapheme contains ZWJ or skin tone
+                              if (grapheme.hasZWJ || hasSkinTone) {
                                   // Flush any pending batch before rendering ZWJ sequence
                                   flushBatch()
 
@@ -1215,7 +1250,7 @@ fun ProperTerminal(
                                       drawText(
                                           textMeasurer = textMeasurer,
                                           text = grapheme.text,
-                                          topLeft = Offset(centerX / scale, y),
+                                          topLeft = Offset(x + (centerX - x) / scale, y),
                                           style = textStyle
                                       )
                                   }
@@ -1262,13 +1297,33 @@ fun ProperTerminal(
                                           graphemeCharIndex++
                                       } else {
                                           // Mismatch - stop to avoid consuming wrong cells
+                                          println("[WARN] Grapheme match break: grapheme='${grapheme.text}' expected='$expectedChar'(${expectedChar.code}) got='$c'(${c.code}) at col=$col i=$i")
+                                          println("[WARN]   charsToSkip=$charsToSkip graphemeCharIndex=$graphemeCharIndex/${graphemeText.length}")
+                                          println("[WARN]   This will cause desync: advancing col by $charsToSkip but visualCol by ${grapheme.visualWidth}")
                                           break
                                       }
                                   }
 
+                                  // Check if we fully matched the grapheme
+                                  val fullyMatched = graphemeCharIndex == graphemeText.length
+                                  if (!fullyMatched) {
+                                      println("[ERROR] Partial grapheme match at row=$row col=$col:")
+                                      println("[ERROR]   grapheme='${grapheme.text}' visualWidth=${grapheme.visualWidth}")
+                                      println("[ERROR]   matched $graphemeCharIndex/${graphemeText.length} chars, skipped $charsToSkip buffer cells")
+                                      println("[ERROR]   Buffer will desync: col+=$charsToSkip visualCol+=${grapheme.visualWidth}")
+                                  }
+
+                                  // After matching grapheme, check if there are DWC markers we need to skip
+                                  while (i < width && line.charAt(i) == CharUtils.DWC) {
+                                      charsToSkip++
+                                      i++
+                                  }
+
                                   col += charsToSkip
-                                  // Each buffer cell = 1 visual column (including DWC markers)
-                                  visualCol += charsToSkip
+                                  // Use grapheme's logical visual width, not buffer cell count
+                                  // Family emoji takes 8+ buffer cells but only 2 visual columns
+                                  visualCol += grapheme.visualWidth
+
                                   continue
                               }
                           }
@@ -1277,26 +1332,79 @@ fun ProperTerminal(
                       val x = visualCol * cellWidth  // Use visual column for positioning
                       val y = row * cellHeight
 
+                      // For surrogate pairs, we need to find the low surrogate FIRST
+                      // because we need the actual codepoint for wcwidth check
+                      // Check what's at col+1 and col+2
+                      val charAtCol1 = if (col + 1 < width) line.charAt(col + 1) else null
+                      val charAtCol2 = if (col + 2 < width) line.charAt(col + 2) else null
+
+                      // Find low surrogate: could be at col+1 (single-width) or col+2 (if col+1 is DWC)
+                      val lowSurrogate = if (Character.isHighSurrogate(char)) {
+                          when {
+                              charAtCol1 != null && Character.isLowSurrogate(charAtCol1) -> charAtCol1
+                              charAtCol1 == CharUtils.DWC && charAtCol2 != null && Character.isLowSurrogate(charAtCol2) -> charAtCol2
+                              else -> null
+                          }
+                      } else null
+                      val lowSurrogatePos = when (lowSurrogate) {
+                          charAtCol1 -> col + 1
+                          charAtCol2 -> col + 2
+                          else -> -1
+                      }
+
+                      // Calculate actual codepoint (combining surrogates if needed)
+                      val actualCodePoint = if (lowSurrogate != null && Character.isLowSurrogate(lowSurrogate)) {
+                          Character.toCodePoint(char, lowSurrogate)
+                      } else char.code
+
                       // Check if this is a double-width character according to wcwidth
-                      val isWcwidthDoubleWidth = char != ' ' && char != '\u0000' &&
-                              CharUtils.isDoubleWidthCharacter(char.code, display.ambiguousCharsAreDoubleWidth())
+                      // IMPORTANT: Use actualCodePoint, not char.code, for surrogate pairs!
+                      val wcwidthResult = char != ' ' && char != '\u0000' &&
+                              CharUtils.isDoubleWidthCharacter(actualCodePoint, display.ambiguousCharsAreDoubleWidth())
+
+                      // Detect actual width from buffer: if col+1 has DWC, it's stored as double-width
+                      val isWcwidthDoubleWidth = charAtCol1 == CharUtils.DWC || wcwidthResult
+
+                      if (actualCodePoint in 0x1D400..0x1D7FF || actualCodePoint >= 0x1F300) {
+                          val col1Char = if (charAtCol1 == CharUtils.DWC) "DWC" else if (charAtCol1 != null) "U+${charAtCol1.code.toString(16).uppercase()}" else "null"
+                          val col2Char = if (charAtCol2 == CharUtils.DWC) "DWC" else if (charAtCol2 != null) "U+${charAtCol2.code.toString(16).uppercase()}" else "null"
+                          println("[SURROGATE] row=$row col=$col char='$char' (U+${actualCodePoint.toString(16).uppercase()}) isDoubleWidth=$isWcwidthDoubleWidth")
+                          println("[SURROGATE]   col+1=$col1Char col+2=$col2Char lowSurrogatePos=$lowSurrogatePos")
+                      }
+
+                      // Determine the text to render - for surrogate pairs, combine high and low surrogates
+                      val charTextToRender = if (lowSurrogate != null && Character.isLowSurrogate(lowSurrogate)) {
+                          "$char$lowSurrogate"
+                      } else {
+                          char.toString()
+                      }
 
                       // For emoji and symbols, we'll render them with slight scaling for better visibility
                       // These are Unicode blocks containing symbols that render poorly at normal size
-                      val isEmojiOrWideSymbol = when (char.code) {
+                      // IMPORTANT: Use actualCodePoint for surrogate pair emoji!
+                      val isEmojiOrWideSymbol = when (actualCodePoint) {
                           in 0x2600..0x26FF -> true  // Miscellaneous Symbols (☁️, ☀️, ★, etc.)
                           in 0x2700..0x27BF -> true  // Dingbats (✂, ✈, ❯, etc.)
+                          in 0x1D400..0x1D7FF -> true  // Mathematical Alphanumeric Symbols (𝕳𝖊𝖑𝖑𝖔, 𝓗𝓮𝓵𝓵𝓸, etc.)
                           in 0x1F300..0x1F9FF -> true  // Emoji & Pictographs
                           in 0x1F600..0x1F64F -> true  // Emoticons
                           in 0x1F680..0x1F6FF -> true  // Transport & Map Symbols
                           else -> false
                       }
 
-                      val isDoubleWidth = isWcwidthDoubleWidth
+                      // Separate rendering width from buffer storage width
+                      // Emoji (>= 0x1F300) should render in 2 cells even if stored as single-width
+                      val isDoubleWidth = if (actualCodePoint >= 0x1F300) {
+                          true  // Force emoji to render in 2-cell space
+                      } else {
+                          isWcwidthDoubleWidth  // Use buffer storage width
+                      }
 
                       // Peek ahead to detect emoji + variation selector pairs
                       // When found, we'll handle them together with system font
-                      val nextChar = if (col + 1 < width) line.charAt(col + 1) else null
+                      // For double-width emoji, need to skip DWC marker at col+1 to check col+2
+                      val nextCharOffset = if (isWcwidthDoubleWidth) 2 else 1
+                      val nextChar = if (col + nextCharOffset < width) line.charAt(col + nextCharOffset) else null
                       val isEmojiWithVariationSelector = isEmojiOrWideSymbol &&
                           nextChar != null &&
                           (nextChar.code == 0xFE0F || nextChar.code == 0xFE0E)
@@ -1369,11 +1477,11 @@ fun ProperTerminal(
 
                       // Only draw glyph if it's printable (not space or null), not HIDDEN, and visible in blink cycle
                       if (char != ' ' && char != '\u0000' && !isHidden && isBlinkVisible) {
-                          // For emoji+variation selector pairs, use system font (FontFamily.Default)
+                          // For emoji/symbols, use system font (FontFamily.Default)
                           // to enable proper emoji rendering on macOS (Apple Color Emoji)
-                          // Skia doesn't honor variation selectors, so we must switch fonts
-                          val fontForChar = if (isEmojiWithVariationSelector) {
-                              FontFamily.Default  // System font with emoji support
+                          // MesloLGSNF doesn't have glyphs for emoji or mathematical alphanumerics
+                          val fontForChar = if (isEmojiOrWideSymbol || isEmojiWithVariationSelector) {
+                              FontFamily.Default  // System font with emoji/Unicode support
                           } else {
                               measurementStyle.fontFamily  // Nerd Font
                           }
@@ -1393,7 +1501,7 @@ fun ProperTerminal(
                           // - If font doesn't (emoji in monospace), scale them to fill space
                           if (isDoubleWidth) {
                               // Measure the actual glyph width at natural font size
-                              val measurement = textMeasurer.measure(char.toString(), textStyle)
+                              val measurement = textMeasurer.measure(charTextToRender, textStyle)
                               val glyphWidth = measurement.size.width.toFloat()
 
                               // Calculate available space (2 cells)
@@ -1408,7 +1516,7 @@ fun ProperTerminal(
                                   scale(scaleX = scaleX, scaleY = 1f, pivot = Offset(x, y + cellWidth)) {
                                       drawText(
                                           textMeasurer = textMeasurer,
-                                          text = char.toString(),
+                                          text = charTextToRender,
                                           topLeft = Offset(x, y),
                                           style = textStyle
                                       )
@@ -1419,7 +1527,7 @@ fun ProperTerminal(
                                   val centeringOffset = emptySpace / 2f
                                   drawText(
                                       textMeasurer = textMeasurer,
-                                      text = char.toString(),
+                                      text = charTextToRender,
                                       topLeft = Offset(x + centeringOffset, y),
                                       style = textStyle
                                   )
@@ -1428,9 +1536,9 @@ fun ProperTerminal(
                               // For emoji/symbols: measure and scale to fit cell better
                               // If this is emoji+variation selector pair, render both together
                               val textToRender = if (isEmojiWithVariationSelector) {
-                                  "$char$nextChar"  // Render emoji + variation selector together
+                                  "$charTextToRender$nextChar"  // Render emoji + variation selector together
                               } else {
-                                  char.toString()
+                                  charTextToRender
                               }
 
                               val measurement = textMeasurer.measure(textToRender, textStyle)
@@ -1474,7 +1582,7 @@ fun ProperTerminal(
                               // Normal single-width rendering
                               drawText(
                                   textMeasurer = textMeasurer,
-                                  text = char.toString(),
+                                  text = charTextToRender,
                                   topLeft = Offset(x, y),
                                   style = textStyle
                               )
@@ -1519,13 +1627,26 @@ fun ProperTerminal(
                       }
 
                       col++  // Advance to next character in buffer
+
+                      // Skip the low surrogate if we found one
+                      // For single-width: [high][low] - we've advanced past high, now skip low
+                      // For double-width: [high][DWC][low] - we've skipped DWC and advanced, now skip low
+                      if (lowSurrogate != null) {
+                          col++  // Skip the low surrogate
+                      }
+
                       visualCol++  // Advance visual column (1 for single-width, handled by DWC skip for double-width)
 
-                      // For double-width characters, we already skipped the DWC above,
-                      // so col advanced by 2 total, but visualCol only by 1 here
-                      // We need to add 1 more to visualCol for double-width
-                      if (isWcwidthDoubleWidth) {
+                      // For double-width characters (rendering width, not buffer width),
+                      // add 1 more to visualCol since they occupy 2 visual columns
+                      // This includes emoji forced to double-width even if stored as single-width
+                      if (isDoubleWidth) {
                           visualCol++  // Double-width takes 2 visual columns
+                      }
+
+                      // Debug: log after column advancement for cursive chars
+                      if (actualCodePoint in 0x1D400..0x1D7FF) {
+                          println("[CURSIVE-ADVANCE] After advancing: col=$col visualCol=$visualCol")
                       }
                   }
 

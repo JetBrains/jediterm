@@ -69,11 +69,11 @@ def capture_window(window_id, output_path="/tmp/jediterm_window.png"):
         # -s format jpeg: Convert to JPEG
         # -s formatOptions 40: JPEG quality 40% (lower quality for smaller size)
         subprocess.run(
-            ['sips', '-Z', '300', '-s', 'format', 'jpeg', '-s', 'formatOptions', '40', output_path, '--out', output_path],
+            ['sips', '-Z', '600', '-s', 'format', 'jpeg', '-s', 'formatOptions', '40', output_path, '--out', output_path],
             check=True,
             capture_output=True  # Suppress sips output
         )
-        print(f"✓ Resized to low resolution (max 300px) and compressed as JPEG")
+        print(f"✓ Resized to low resolution (max 600px) and compressed as JPEG")
         print(f"✓ Screenshot saved: {output_path}")
         subprocess.run(['ls', '-lh', output_path])
         return True

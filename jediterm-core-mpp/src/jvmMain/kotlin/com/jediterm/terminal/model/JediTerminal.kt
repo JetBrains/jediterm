@@ -15,6 +15,7 @@ import com.jediterm.terminal.emulator.mouse.*
 import com.jediterm.terminal.model.hyperlinks.LinkInfo
 import com.jediterm.terminal.model.hyperlinks.LinkResultItem
 import com.jediterm.terminal.util.CharUtils
+import com.jediterm.terminal.util.GraphemeUtils
 import org.jetbrains.annotations.Nls
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -1146,30 +1147,32 @@ class JediTerminal(
     }
 
     private fun newCharBuf(str: CharArray): CharBuffer {
-        val dwcCount = CharUtils.countDoubleWidthCharacters(str, 0, str.size, myDisplay.ambiguousCharsAreDoubleWidth())
+        // Convert CharArray to String for grapheme segmentation
+        val inputString = String(str)
 
-        val buf: CharArray?
+        // Segment into grapheme clusters to handle surrogate pairs, emoji, etc.
+        val graphemes = GraphemeUtils.segmentIntoGraphemes(inputString)
+
+        // Count double-width graphemes to allocate buffer
+        val dwcCount = graphemes.count { it.isDoubleWidth }
 
         if (dwcCount > 0) {
-            // Leave gaps for the private use "DWC" character, which simply tells the rendering code to advance one cell.
-            buf = CharArray(str.size + dwcCount)
+            // Leave gaps for the private use "DWC" character, which tells rendering to advance one cell
+            val result = StringBuilder(inputString.length + dwcCount)
 
-            var j = 0
-            for (i in str.indices) {
-                buf[j] = str[i]
-                val codePoint = Character.codePointAt(str, i)
-                val doubleWidthCharacter =
-                    CharUtils.isDoubleWidthCharacter(codePoint, myDisplay.ambiguousCharsAreDoubleWidth())
-                if (doubleWidthCharacter) {
-                    j++
-                    buf[j] = CharUtils.DWC
+            for (grapheme in graphemes) {
+                result.append(grapheme.text)
+                if (grapheme.isDoubleWidth) {
+                    result.append(CharUtils.DWC)
                 }
-                j++
             }
+
+            val buf = result.toString().toCharArray()
+            return CharBuffer(buf, 0, buf.size)
         } else {
-            buf = str
+            // No double-width graphemes, return as-is
+            return CharBuffer(str, 0, str.size)
         }
-        return CharBuffer(buf, 0, buf.size)
     }
 
     override fun ambiguousCharsAreDoubleWidth(): Boolean {

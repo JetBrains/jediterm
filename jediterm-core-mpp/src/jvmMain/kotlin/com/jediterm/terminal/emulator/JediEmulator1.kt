@@ -7,6 +7,8 @@ import com.jediterm.terminal.*
 import com.jediterm.terminal.emulator.mouse.MouseFormat
 import com.jediterm.terminal.emulator.mouse.MouseMode
 import com.jediterm.terminal.util.CharUtils
+import com.jediterm.terminal.util.GraphemeCluster
+import com.jediterm.terminal.util.GraphemeUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.IOException
@@ -75,35 +77,60 @@ class JediEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
     @Throws(IOException::class)
     private fun readNonControlCharacters(maxChars: Int, ambiguousAreDWC: kotlin.Boolean): String {
         val result = myDataStream.readNonControlCharacters(maxChars) ?: return ""
+
+        // Segment into grapheme clusters to handle surrogate pairs, emoji, etc.
+        val graphemes = GraphemeUtils.segmentIntoGraphemes(result)
+
         var visualLength = 0
-        var end = 0
-        for (i in 0..<result.length) {
-            // TODO surrogate pair support missing, but it must be implemented in the entire library at once
-            val c = result[i]
-            val sourceLength = i + 1
-            visualLength += if (CharUtils.isDoubleWidthCharacter(c.code, ambiguousAreDWC)) 2 else 1
+        var endGraphemeIndex = 0
+        var lastGrapheme: GraphemeCluster? = null
+
+        for ((index, grapheme) in graphemes.withIndex()) {
+            val graphemeWidth = grapheme.visualWidth
+
             // Three cases:
-            if (visualLength == maxChars) {
-                end = sourceLength // 1) found exactly maxChars
+            if (visualLength + graphemeWidth == maxChars) {
+                // 1) Found exactly maxChars
+                endGraphemeIndex = index + 1
+                lastGrapheme = grapheme
                 break
-            } else if (visualLength < maxChars) {
-                end = sourceLength // 2) found less, continue searching
-            } else { // visualLength > maxChars
-                break // 3) found less on the previous iteration, but now it's too many (1 char of space left, but a DWC is found)
+            } else if (visualLength + graphemeWidth < maxChars) {
+                // 2) Found less, continue searching
+                endGraphemeIndex = index + 1
+                visualLength += graphemeWidth
+                lastGrapheme = grapheme
+            } else {
+                // 3) Would exceed maxChars (e.g., 1 cell left but grapheme is 2 cells wide)
+                break
             }
         }
-        var nextIsDWC = false
-        if (end < result.length) {
-            val pushBack = CharArray(result.length - end)
-            result.toCharArray(pushBack, 0, end, result.length)
-            nextIsDWC = CharUtils.isDoubleWidthCharacter(pushBack[0].code, ambiguousAreDWC)
-            myDataStream.pushBackBuffer(pushBack, pushBack.size)
+
+        // Reconstruct output string from complete graphemes
+        val outputText = if (endGraphemeIndex > 0) {
+            graphemes.subList(0, endGraphemeIndex).joinToString("") { it.text }
+        } else {
+            ""
         }
-        // A special case: if the next char is DWC, but it doesn't fit on this line (case 3 above),
-        // then we must fill the line with an additional space to trigger line wrapping.
-        // Otherwise, it'll be an endless loop: read, realize it doesn't fit, push back, read again...
-        if (end == maxChars - 1 && nextIsDWC) return result.substring(0, end) + " "
-        return result.substring(0, end)
+
+        // Push back remaining graphemes that didn't fit
+        var nextGraphemeIsWide = false
+        if (endGraphemeIndex < graphemes.size) {
+            val remaining = graphemes.subList(endGraphemeIndex, graphemes.size)
+                .joinToString("") { it.text }
+            val remainingChars = remaining.toCharArray()
+            myDataStream.pushBackBuffer(remainingChars, remainingChars.size)
+
+            // Check if next grapheme is double-width
+            nextGraphemeIsWide = graphemes[endGraphemeIndex].isDoubleWidth
+        }
+
+        // Special case: if the next grapheme is wide but only 1 cell is left,
+        // fill with space to trigger line wrapping and avoid endless loop
+        if (visualLength == maxChars - 1 && nextGraphemeIsWide) {
+            return outputText + " "
+        }
+
+        return outputText
     }
 
     @Throws(IOException::class)

@@ -1124,9 +1124,12 @@ fun ProperTerminal(
                       val style = line.getStyleAt(col)
 
                       // Skip double-width character continuation markers
+                      // CRITICAL FIX: DWC is a storage artifact, not a separate visual cell
+                      // Visual width is already accounted for via grapheme.visualWidth or isWcwidthDoubleWidth
+                      // Incrementing visualCol here would double-count and cause spacing issues with emoji
                       if (char == CharUtils.DWC) {
                           col++
-                          visualCol++  // DWC takes 1 visual column
+                          // Do NOT increment visualCol here
                           continue
                       }
 

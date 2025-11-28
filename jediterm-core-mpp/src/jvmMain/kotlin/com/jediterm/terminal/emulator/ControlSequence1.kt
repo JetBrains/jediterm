@@ -202,6 +202,9 @@ class ControlSequence internal constructor(channel: TerminalDataStream) {
         return myStartsWithMoreMark
     }
 
+    val intermediateChars: String
+        get() = myIntermediateChars?.toString() ?: ""
+
     val debugInfo: String
         get() {
             val sb = StringBuilder()

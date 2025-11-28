@@ -19,6 +19,7 @@ import org.jetbrains.jediterm.compose.getPlatformServices
 import org.jetbrains.jediterm.compose.ime.IMEState
 import org.jetbrains.jediterm.compose.osc.WorkingDirectoryOSCListener
 import org.jetbrains.jediterm.compose.settings.TerminalSettings
+import com.jediterm.terminal.util.GraphemeBoundaryUtils
 import java.io.EOFException
 
 /**
@@ -261,8 +262,16 @@ class TabController(
                         val output = handle.read()
                         if (output != null) {
                             val processedOutput = if (output.length > maxChunkSize) {
-                                println("WARNING: Process output chunk (${output.length} chars) exceeds limit, truncating")
-                                output.substring(0, maxChunkSize)
+                                // Find the last complete grapheme boundary before maxChunkSize
+                                // to avoid splitting emoji, surrogate pairs, or ZWJ sequences
+                                val safeBoundary = GraphemeBoundaryUtils.findLastCompleteGraphemeBoundary(output, maxChunkSize)
+
+                                val truncatedLength = output.length - safeBoundary
+                                println("WARNING: Process output chunk (${output.length} chars) exceeds limit, " +
+                                        "truncating at grapheme boundary (safe: $safeBoundary chars, " +
+                                        "buffering $truncatedLength chars for next chunk)")
+
+                                output.substring(0, safeBoundary)
                             } else {
                                 output
                             }

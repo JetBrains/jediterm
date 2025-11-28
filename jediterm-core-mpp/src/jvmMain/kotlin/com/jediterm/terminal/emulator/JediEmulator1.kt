@@ -474,7 +474,18 @@ class JediEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
                 return false
             }
 
-            'q' -> return cursorShape(args) //DECSCUSR
+            'q' -> {
+                if (args.startsWithExclamationMark()) {
+                    // Existing: cursor shape (DECSCUSR)
+                    return cursorShape(args)
+                }
+                // NEW: DECSCA handler
+                if (args.intermediateChars.contains("\"")) {
+                    return processCharacterProtection(args)
+                }
+                // Fallback to cursor shape for compatibility
+                return cursorShape(args)
+            }
             'r' -> if (args.startsWithQuestionMark()) {
                 return restoreDecPrivateModeValues(args) //
             } else {
@@ -841,6 +852,30 @@ class JediEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
         }
     }
 
+    private fun processCharacterProtection(args: ControlSequence): kotlin.Boolean {
+        // ESC [ Ps " q - DECSCA (Select Character Protection Attribute)
+        if (args.intermediateChars == " \"") {
+            val ps = args.getArg(0, 0)
+            when (ps) {
+                0, 2 -> {
+                    // DECSED and DECSEL can erase (unprotected)
+                    myTerminal?.setCharacterProtection(false)
+                    return true
+                }
+                1 -> {
+                    // Protected against DECSED and DECSEL
+                    myTerminal?.setCharacterProtection(true)
+                    return true
+                }
+                else -> {
+                    LOG.warn("Unknown DECSCA parameter: $ps")
+                    return false
+                }
+            }
+        }
+        return false
+    }
+
     private fun insertLines(args: ControlSequence): kotlin.Boolean {
         myTerminal?.insertLines(args.getArg(0, 1))
         return true
@@ -893,8 +928,9 @@ class JediEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
 
     private fun eraseInDisplay(args: ControlSequence): kotlin.Boolean {
         if (args.startsWithQuestionMark()) {
-            // Selective Erase (DECSED) is not supported
-            return false
+            // DECSED - Selective Erase in Display
+            myTerminal?.selectiveEraseInDisplay(args.getArg(0, 0))
+            return true
         }
         myTerminal?.eraseInDisplay(args.getArg(0, 0))
         return true
@@ -905,8 +941,9 @@ class JediEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
         val arg = args.getArg(0, 0)
 
         if (args.startsWithQuestionMark()) {
-            //TODO: support ESC [ ? Ps K - Selective Erase (DECSEL)
-            return false
+            // DECSEL - Selective Erase in Line
+            myTerminal?.selectiveEraseInLine(arg)
+            return true
         }
 
         myTerminal?.eraseInLine(arg)

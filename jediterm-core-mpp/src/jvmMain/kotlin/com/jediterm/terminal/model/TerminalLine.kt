@@ -222,6 +222,76 @@ class TerminalLine {
         )
     }
 
+    /**
+     * Selectively clears an area, preserving protected characters.
+     * Used by DECSEL (Selective Erase in Line).
+     */
+    fun selectiveClearArea(leftX: Int, rightX: Int, style: TextStyle) {
+        var rightX = rightX
+        if (rightX == -1) {
+            rightX = max(myTextEntries.length(), leftX)
+        }
+
+        // Iterate through existing entries and preserve protected characters
+        var currentX = 0
+        val newEntries = mutableListOf<TextEntry>()
+
+        for (entry in myTextEntries) {
+            val entryStart = currentX
+            val entryEnd = currentX + entry.length
+
+            if (entryEnd <= leftX || entryStart >= rightX) {
+                // Outside erase region - keep as-is
+                newEntries.add(entry)
+            } else {
+                // Overlaps with erase region
+                val isProtected = entry.style.hasOption(TextStyle.Option.PROTECTED)
+
+                if (isProtected) {
+                    // Protected - keep as-is
+                    newEntries.add(entry)
+                } else {
+                    // Unprotected - split and erase
+                    // Before erase region
+                    if (entryStart < leftX) {
+                        val beforeLen = leftX - entryStart
+                        newEntries.add(TextEntry(
+                            entry.style,
+                            entry.text.subBuffer(0, beforeLen)
+                        ))
+                    }
+
+                    // Erased portion
+                    val eraseStart = max(entryStart, leftX)
+                    val eraseEnd = min(entryEnd, rightX)
+                    val eraseLen = eraseEnd - eraseStart
+                    newEntries.add(TextEntry(
+                        style,
+                        CharBuffer(CharUtils.EMPTY_CHAR, eraseLen)
+                    ))
+
+                    // After erase region
+                    if (entryEnd > rightX) {
+                        val afterStart = rightX - entryStart
+                        val afterLen = entryEnd - rightX
+                        newEntries.add(TextEntry(
+                            entry.style,
+                            entry.text.subBuffer(afterStart, afterLen)
+                        ))
+                    }
+                }
+            }
+
+            currentX = entryEnd
+        }
+
+        // Rebuild text entries
+        myTextEntries.clear()
+        for (entry in newEntries) {
+            myTextEntries.add(entry)
+        }
+    }
+
     fun getStyleAt(x: Int): TextStyle? {
         var i = 0
 

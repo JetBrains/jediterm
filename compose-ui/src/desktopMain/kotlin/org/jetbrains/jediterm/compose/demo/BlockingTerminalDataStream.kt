@@ -2,6 +2,7 @@ package org.jetbrains.jediterm.compose.demo
 
 import com.jediterm.terminal.TerminalDataStream
 import com.jediterm.terminal.util.GraphemeUtils
+import com.jediterm.terminal.util.GraphemeBoundaryUtils
 import java.io.IOException
 import java.util.concurrent.BlockingQueue
 import java.util.concurrent.LinkedBlockingQueue
@@ -58,7 +59,7 @@ class BlockingTerminalDataStream : TerminalDataStream {
         incompleteGraphemeBuffer = ""
 
         // Check if the chunk ends with an incomplete grapheme
-        val lastCompleteIndex = findLastCompleteGraphemeBoundary(fullData)
+        val lastCompleteIndex = GraphemeBoundaryUtils.findLastCompleteGraphemeBoundary(fullData)
 
         if (lastCompleteIndex < fullData.length) {
             // Chunk ends mid-grapheme - buffer the incomplete part
@@ -172,78 +173,4 @@ class BlockingTerminalDataStream : TerminalDataStream {
         get() = pushBackStack.isEmpty() &&
                position >= buffer.length &&
                (closed || dataQueue.isEmpty())
-
-    /**
-     * Finds the index of the last complete grapheme boundary in the text.
-     *
-     * Returns the position after the last complete grapheme. If the text ends
-     * with an incomplete grapheme (e.g., high surrogate, emoji without variation
-     * selector, ZWJ sequence), returns the start of that incomplete grapheme.
-     *
-     * Examples:
-     * - "abc" -> 3 (all complete)
-     * - "ab\uD835" (high surrogate at end) -> 2 (incomplete surrogate)
-     * - "ab👨\u200D" (ZWJ at end) -> 2 (incomplete ZWJ sequence)
-     *
-     * @param text The text to analyze
-     * @return Index after the last complete grapheme
-     */
-    private fun findLastCompleteGraphemeBoundary(text: String): Int {
-        if (text.isEmpty()) return 0
-
-        // Fast path: if last char is ASCII and not a grapheme extender, it's complete
-        val lastChar = text.last()
-        if (lastChar.code < 128 && !needsGraphemeAnalysis(lastChar)) {
-            return text.length
-        }
-
-        // Check the last few characters for incomplete graphemes
-        // Max grapheme is ~20 chars for ZWJ sequences, check up to 30 to be safe
-        val checkLength = minOf(text.length, 30)
-        val startIndex = text.length - checkLength
-        val tail = text.substring(startIndex)
-
-        // Get all grapheme boundaries in the tail
-        val boundaries = GraphemeUtils.findGraphemeBoundaries(tail)
-
-        if (boundaries.isEmpty()) {
-            // No boundaries found - entire tail is one incomplete grapheme
-            return startIndex
-        }
-
-        // The boundaries list includes 0 as the first boundary
-        // Find the last boundary that's not at the end
-        val lastBoundary = boundaries.last()
-
-        if (lastBoundary == tail.length) {
-            // Last boundary is at the end - all complete
-            return text.length
-        } else {
-            // Last boundary is before the end - incomplete grapheme from lastBoundary to end
-            return startIndex + lastBoundary
-        }
-    }
-
-    /**
-     * Checks if a character needs grapheme analysis.
-     *
-     * Fast heuristic to avoid expensive grapheme segmentation for simple ASCII.
-     * Returns true for:
-     * - Surrogate pairs (high/low surrogates)
-     * - Zero-Width Joiner (ZWJ)
-     * - Variation selectors (U+FE0E, U+FE0F)
-     * - Combining diacritics
-     * - Other grapheme extenders
-     *
-     * @param c The character to check
-     * @return True if this character might be part of a complex grapheme
-     */
-    private fun needsGraphemeAnalysis(c: Char): Boolean {
-        return c.isHighSurrogate() ||
-               c.isLowSurrogate() ||
-               c.code == 0x200D || // ZWJ
-               c.code == 0xFE0E || c.code == 0xFE0F || // Variation selectors
-               c.code in 0x0300..0x036F || // Combining diacritics
-               GraphemeUtils.isGraphemeExtender(c)
-    }
 }

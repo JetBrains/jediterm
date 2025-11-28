@@ -447,6 +447,52 @@ class JediTerminal(
         }
     }
 
+    override fun selectiveEraseInDisplay(arg: Int) {
+        terminalTextBuffer.lock()
+        try {
+            var beginY = 0
+            var endY = 0
+
+            when (arg) {
+                0 -> {
+                    // Cursor to end of display (selective)
+                    if (myCursorX < myTerminalWidth) {
+                        terminalTextBuffer.selectiveEraseCharacters(myCursorX, -1, myCursorY - 1)
+                    }
+                    beginY = myCursorY
+                    endY = myTerminalHeight - 1
+                }
+
+                1 -> {
+                    // Beginning to cursor (selective)
+                    terminalTextBuffer.selectiveEraseCharacters(0, myCursorX + 1, myCursorY - 1)
+                    beginY = 0
+                    endY = myCursorY - 1
+                }
+
+                2 -> {
+                    // Entire display (selective)
+                    beginY = 0
+                    endY = myTerminalHeight - 1
+                }
+
+                else -> {
+                    LOG.warn("Unsupported selective erase in display mode: $arg")
+                    return
+                }
+            }
+
+            // Selectively clear lines in range
+            for (y in beginY..endY) {
+                if (y != myCursorY - 1) {
+                    terminalTextBuffer.selectiveEraseCharacters(0, -1, y)
+                }
+            }
+        } finally {
+            terminalTextBuffer.unlock()
+        }
+    }
+
     fun clearLines(beginY: Int, endY: Int) {
         terminalTextBuffer.lock()
         try {
@@ -467,6 +513,11 @@ class JediTerminal(
     override fun useAlternateBuffer(enabled: Boolean) {
         terminalTextBuffer.useAlternateBuffer(enabled)
         myDisplay.useAlternateScreenBuffer(enabled)
+
+        // Clear protection when switching buffers
+        myStyleState.current = myStyleState.current.toBuilder()
+            .setOption(TextStyle.Option.PROTECTED, false)
+            .build()
     }
 
     override fun getCodeForKey(key: Int, modifiers: Int): ByteArray? {
@@ -512,6 +563,36 @@ class JediTerminal(
 
                 2 -> terminalTextBuffer.eraseCharacters(0, -1, myCursorY - 1)
                 else -> LOG.warn("Unsupported erase in line mode:" + arg)
+            }
+        } finally {
+            terminalTextBuffer.unlock()
+        }
+    }
+
+    override fun selectiveEraseInLine(arg: Int) {
+        terminalTextBuffer.lock()
+        try {
+            when (arg) {
+                0 -> {
+                    // Erase from cursor to end of line (selective)
+                    if (myCursorX < myTerminalWidth) {
+                        terminalTextBuffer.selectiveEraseCharacters(myCursorX, -1, myCursorY - 1)
+                    }
+                    terminalTextBuffer.setLineWrapped(myCursorY - 1, false)
+                }
+
+                1 -> {
+                    // Erase from start of line to cursor (selective)
+                    val extent = min(myCursorX + 1, myTerminalWidth)
+                    terminalTextBuffer.selectiveEraseCharacters(0, extent, myCursorY - 1)
+                }
+
+                2 -> {
+                    // Erase entire line (selective)
+                    terminalTextBuffer.selectiveEraseCharacters(0, -1, myCursorY - 1)
+                }
+
+                else -> LOG.warn("Unsupported selective erase in line mode: $arg")
             }
         } finally {
             terminalTextBuffer.unlock()
@@ -760,6 +841,18 @@ class JediTerminal(
         }
     }
 
+    override fun setCharacterProtection(enabled: Boolean) {
+        myStyleState.current = if (enabled) {
+            myStyleState.current.toBuilder()
+                .setOption(TextStyle.Option.PROTECTED, true)
+                .build()
+        } else {
+            myStyleState.current.toBuilder()
+                .setOption(TextStyle.Option.PROTECTED, false)
+                .build()
+        }
+    }
+
     override fun beep() {
         myDisplay.beep()
     }
@@ -837,6 +930,13 @@ class JediTerminal(
         initModes()
 
         initMouseModes()
+
+        // Clear character protection on full reset
+        if (clearScrollBackBuffer) {
+            myStyleState.current = myStyleState.current.toBuilder()
+                .setOption(TextStyle.Option.PROTECTED, false)
+                .build()
+        }
 
         cursorPosition(1, 1)
         cursorShapeNullable(null)

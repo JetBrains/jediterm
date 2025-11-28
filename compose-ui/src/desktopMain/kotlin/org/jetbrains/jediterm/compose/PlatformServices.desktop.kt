@@ -105,6 +105,13 @@ class DesktopProcessService : PlatformServices.ProcessService {
         private val inputStream = process.inputStream
         private val outputStream = process.outputStream
 
+        /**
+         * Buffer for incomplete UTF-8 byte sequences at read boundaries.
+         * UTF-8 characters can be 1-4 bytes, so we may need to buffer up to 3 bytes
+         * if a read ends mid-character.
+         */
+        private val incompleteUtf8Buffer = mutableListOf<Byte>()
+
         override suspend fun write(data: String) {
             outputStream.write(data.toByteArray())
             outputStream.flush()
@@ -114,10 +121,84 @@ class DesktopProcessService : PlatformServices.ProcessService {
             return try {
                 val buffer = ByteArray(8192)
                 val len = inputStream.read(buffer)
-                if (len > 0) String(buffer, 0, len) else null
+                if (len <= 0) return null
+
+                // Combine any buffered incomplete UTF-8 bytes with new data
+                val allBytes = if (incompleteUtf8Buffer.isNotEmpty()) {
+                    val combined = ByteArray(incompleteUtf8Buffer.size + len)
+                    incompleteUtf8Buffer.forEachIndexed { index, byte -> combined[index] = byte }
+                    System.arraycopy(buffer, 0, combined, incompleteUtf8Buffer.size, len)
+                    incompleteUtf8Buffer.clear()
+                    combined
+                } else {
+                    buffer.copyOf(len)
+                }
+
+                // Check if data ends with incomplete UTF-8 sequence
+                val lastCompleteByteIndex = findLastCompleteUtf8Boundary(allBytes)
+
+                if (lastCompleteByteIndex < allBytes.size) {
+                    // Buffer incomplete bytes for next read
+                    for (i in lastCompleteByteIndex until allBytes.size) {
+                        incompleteUtf8Buffer.add(allBytes[i])
+                    }
+
+                    if (lastCompleteByteIndex == 0) {
+                        // Entire buffer is incomplete - very rare, but possible
+                        return ""
+                    }
+
+                    // Return only complete UTF-8 characters
+                    String(allBytes, 0, lastCompleteByteIndex, Charsets.UTF_8)
+                } else {
+                    // All bytes form complete UTF-8 characters
+                    String(allBytes, 0, allBytes.size, Charsets.UTF_8)
+                }
             } catch (e: Exception) {
                 null
             }
+        }
+
+        /**
+         * Find the index after the last complete UTF-8 character in a byte array.
+         * Returns the index where incomplete bytes start (or array length if all complete).
+         *
+         * UTF-8 encoding rules:
+         * - 0xxxxxxx: 1-byte character (ASCII)
+         * - 110xxxxx 10xxxxxx: 2-byte character
+         * - 1110xxxx 10xxxxxx 10xxxxxx: 3-byte character
+         * - 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx: 4-byte character
+         * - 10xxxxxx: continuation byte (invalid as first byte)
+         */
+        private fun findLastCompleteUtf8Boundary(bytes: ByteArray): Int {
+            if (bytes.isEmpty()) return 0
+
+            // Check last few bytes for incomplete sequence
+            // Max UTF-8 character is 4 bytes, so check last 4 bytes
+            val checkStart = maxOf(0, bytes.size - 4)
+
+            for (i in bytes.size - 1 downTo checkStart) {
+                val byte = bytes[i].toInt() and 0xFF
+
+                // Check if this starts a multi-byte character
+                val expectedLength = when {
+                    (byte and 0x80) == 0 -> 1        // 0xxxxxxx (ASCII)
+                    (byte and 0xE0) == 0xC0 -> 2    // 110xxxxx
+                    (byte and 0xF0) == 0xE0 -> 3    // 1110xxxx
+                    (byte and 0xF8) == 0xF0 -> 4    // 11110xxx
+                    (byte and 0xC0) == 0x80 -> continue  // 10xxxxxx (continuation byte, skip)
+                    else -> 1  // Invalid UTF-8, treat as 1 byte
+                }
+
+                val actualLength = bytes.size - i
+                if (actualLength < expectedLength) {
+                    // Incomplete multi-byte character
+                    return i
+                }
+            }
+
+            // All characters are complete
+            return bytes.size
         }
 
         override fun isAlive(): Boolean = process.isAlive

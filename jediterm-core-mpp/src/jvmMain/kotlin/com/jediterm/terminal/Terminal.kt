@@ -59,6 +59,8 @@ interface Terminal {
 
     fun characterAttributes(textStyle: TextStyle?)
 
+    fun setCharacterProtection(enabled: Boolean)
+
     fun setScrollingRegion(top: Int, bottom: Int)
 
     fun scrollUp(count: Int)
@@ -85,6 +87,8 @@ interface Terminal {
 
     fun eraseInLine(arg: Int)
 
+    fun selectiveEraseInLine(arg: Int)
+
     fun deleteCharacters(count: Int)
 
     fun ambiguousCharsAreDoubleWidth(): Boolean
@@ -96,6 +100,8 @@ interface Terminal {
     val size: TermSize
 
     fun eraseInDisplay(arg: Int)
+
+    fun selectiveEraseInDisplay(arg: Int)
 
     fun setModeEnabled(mode: TerminalMode?, enabled: Boolean)
 

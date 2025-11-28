@@ -465,6 +465,21 @@ class TerminalTextBuffer internal constructor(
     }
   }
 
+  fun selectiveEraseCharacters(leftX: Int, rightX: Int, y: Int) {
+    val style = createEmptyStyleWithCurrentColor()
+    if (y >= 0) {
+      screenLinesStorage[y].selectiveClearArea(leftX, rightX, style)
+      fireModelChangeEvent()
+      changesMulticaster.linesChanged(fromIndex = y)
+      if (textProcessing != null && y < height) {
+        textProcessing.processHyperlinks(screenLinesStorage, getLine(y))
+      }
+    }
+    else {
+      LOG.error("Attempt to selectively erase characters in line: $y")
+    }
+  }
+
   fun clearScreenAndHistoryBuffers() {
     screenLinesStorage.clear()
     historyLinesStorage.clear()

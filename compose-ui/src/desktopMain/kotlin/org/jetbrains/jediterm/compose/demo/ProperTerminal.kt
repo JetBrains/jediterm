@@ -1128,6 +1128,93 @@ fun ProperTerminal(
                           continue
                       }
 
+                      // GRAPHEME CLUSTER HANDLING: Check for ZWJ sequences
+                      // ZWJ (Zero-Width Joiner) U+200D combines multiple emoji into single visual unit
+                      // Examples: 👨‍👩‍👧‍👦 (family), 👨‍💻 (man technologist)
+                      // We need to extract the full grapheme and render it as a unit with system font
+                      val lineText = line.text
+                      if (col < lineText.length) {
+                          // Check if there's a ZWJ anywhere ahead in next few chars
+                          val lookAheadLimit = minOf(col + 20, lineText.length)  // Max grapheme ~20 chars
+                          val hasZWJAhead = (col until lookAheadLimit).any { i ->
+                              i < lineText.length && lineText[i] == '\u200D'
+                          }
+
+                          if (hasZWJAhead) {
+                              // Extract the complete grapheme starting at current position
+                              val remainingText = lineText.substring(col)
+                              val graphemes = com.jediterm.terminal.util.GraphemeUtils.segmentIntoGraphemes(remainingText)
+
+                              if (graphemes.isNotEmpty()) {
+                                  val grapheme = graphemes[0]
+
+                                  // Only handle if this grapheme actually contains ZWJ
+                                  if (grapheme.hasZWJ) {
+                                      // Flush any pending batch before rendering ZWJ sequence
+                                      flushBatch()
+
+                                      val x = col * cellWidth
+                                      val y = row * cellHeight
+
+                                      // Get style for first character of grapheme
+                                      val isBold = style?.hasOption(JediTextStyle.Option.BOLD) ?: false
+                                      val isItalic = style?.hasOption(JediTextStyle.Option.ITALIC) ?: false
+                                      val isInverse = style?.hasOption(JediTextStyle.Option.INVERSE) ?: false
+                                      val isDim = style?.hasOption(JediTextStyle.Option.DIM) ?: false
+
+                                      // Apply color logic
+                                      val baseFg = style?.foreground?.let { convertTerminalColor(it) } ?: settings.defaultForegroundColor
+                                      val baseBg = style?.background?.let { convertTerminalColor(it) } ?: settings.defaultBackgroundColor
+                                      var fgColor = if (isInverse) baseBg else baseFg
+                                      if (isDim) fgColor = applyDimColor(fgColor)
+
+                                      // Use system font (FontFamily.Default) for ZWJ sequences
+                                      // This enables Apple Color Emoji on macOS which has combined glyphs
+                                      val textStyle = TextStyle(
+                                          color = fgColor,
+                                          fontFamily = FontFamily.Default,  // System font with ZWJ support
+                                          fontSize = settings.fontSize.sp,
+                                          fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
+                                          fontStyle = if (isItalic) androidx.compose.ui.text.font.FontStyle.Italic
+                                                     else androidx.compose.ui.text.font.FontStyle.Normal
+                                      )
+
+                                      // Render the complete ZWJ sequence as a single unit
+                                      val measurement = textMeasurer.measure(grapheme.text, textStyle)
+                                      val glyphWidth = measurement.size.width.toFloat()
+                                      val glyphHeight = measurement.size.height.toFloat()
+
+                                      // Calculate scale to fit in allocated space (width 2 cells for emoji)
+                                      val allocatedWidth = cellWidth * 2f
+                                      val targetHeight = cellHeight * 1.0f
+
+                                      val widthScale = if (glyphWidth > 0) allocatedWidth / glyphWidth else 1.0f
+                                      val heightScale = if (glyphHeight > 0) targetHeight / glyphHeight else 1.0f
+                                      val scale = minOf(widthScale, heightScale).coerceIn(1.0f, 2.5f)
+
+                                      // Center in allocated space
+                                      val scaledWidth = glyphWidth * scale
+                                      val scaledHeight = glyphHeight * scale
+                                      val centerX = x + (allocatedWidth - scaledWidth) / 2f
+                                      val centerY = y + (cellHeight - scaledHeight) / 2f
+
+                                      scale(scaleX = scale, scaleY = scale, pivot = Offset(x, y + cellHeight / 2f)) {
+                                          drawText(
+                                              textMeasurer = textMeasurer,
+                                              text = grapheme.text,
+                                              topLeft = Offset(centerX / scale, y),
+                                              style = textStyle
+                                          )
+                                      }
+
+                                      // Advance by visual width of grapheme (usually 2 for emoji)
+                                      col += grapheme.visualWidth
+                                      continue
+                                  }
+                              }
+                          }
+                      }
+
                       val x = col * cellWidth
                       val y = row * cellHeight
 

@@ -1117,7 +1117,8 @@ fun ProperTerminal(
                       }
                   }
 
-                  var col = 0
+                  var col = 0  // Character index in buffer
+                  var visualCol = 0  // Visual column position (accounts for double-width chars)
                   while (col < width) {
                       val char = line.charAt(col)
                       val style = line.getStyleAt(col)
@@ -1125,97 +1126,152 @@ fun ProperTerminal(
                       // Skip double-width character continuation markers
                       if (char == CharUtils.DWC) {
                           col++
+                          visualCol++  // DWC takes 1 visual column
                           continue
                       }
 
                       // GRAPHEME CLUSTER HANDLING: Check for ZWJ sequences
                       // ZWJ (Zero-Width Joiner) U+200D combines multiple emoji into single visual unit
                       // Examples: 👨‍👩‍👧‍👦 (family), 👨‍💻 (man technologist)
-                      // We need to extract the full grapheme and render it as a unit with system font
-                      val lineText = line.text
-                      if (col < lineText.length) {
-                          // Check if there's a ZWJ anywhere ahead in next few chars
-                          val lookAheadLimit = minOf(col + 20, lineText.length)  // Max grapheme ~20 chars
-                          val hasZWJAhead = (col until lookAheadLimit).any { i ->
-                              i < lineText.length && lineText[i] == '\u200D'
+                      // Problem: line.text contains DWC markers that break ZWJ sequences
+                      // Solution: Extract clean text by skipping DWC markers
+
+                      // Build clean text from current position (no DWC markers)
+                      val cleanText = buildString {
+                          var i = col
+                          var count = 0
+                          while (i < width && count < 20) {  // Look ahead max 20 chars
+                              val c = line.charAt(i)
+                              if (c != CharUtils.DWC) {
+                                  append(c)
+                                  count++
+                              }
+                              i++
                           }
+                      }
 
-                          if (hasZWJAhead) {
-                              // Extract the complete grapheme starting at current position
-                              val remainingText = lineText.substring(col)
-                              val graphemes = com.jediterm.terminal.util.GraphemeUtils.segmentIntoGraphemes(remainingText)
+                      // Check if there's a ZWJ in the clean text
+                      if (cleanText.contains('\u200D')) {
+                          // Segment clean text into graphemes
+                          val graphemes = com.jediterm.terminal.util.GraphemeUtils.segmentIntoGraphemes(cleanText)
 
-                              if (graphemes.isNotEmpty()) {
-                                  val grapheme = graphemes[0]
+                          if (graphemes.isNotEmpty()) {
+                              val grapheme = graphemes[0]
 
-                                  // Only handle if this grapheme actually contains ZWJ
-                                  if (grapheme.hasZWJ) {
-                                      // Flush any pending batch before rendering ZWJ sequence
-                                      flushBatch()
+                              // Only handle if this grapheme contains ZWJ
+                              if (grapheme.hasZWJ) {
+                                  // Flush any pending batch before rendering ZWJ sequence
+                                  flushBatch()
 
-                                      val x = col * cellWidth
-                                      val y = row * cellHeight
+                                  val x = visualCol * cellWidth  // Use visual column for positioning
+                                  val y = row * cellHeight
 
-                                      // Get style for first character of grapheme
-                                      val isBold = style?.hasOption(JediTextStyle.Option.BOLD) ?: false
-                                      val isItalic = style?.hasOption(JediTextStyle.Option.ITALIC) ?: false
-                                      val isInverse = style?.hasOption(JediTextStyle.Option.INVERSE) ?: false
-                                      val isDim = style?.hasOption(JediTextStyle.Option.DIM) ?: false
+                                  // Get style for first character of grapheme
+                                  val isBold = style?.hasOption(JediTextStyle.Option.BOLD) ?: false
+                                  val isItalic = style?.hasOption(JediTextStyle.Option.ITALIC) ?: false
+                                  val isInverse = style?.hasOption(JediTextStyle.Option.INVERSE) ?: false
+                                  val isDim = style?.hasOption(JediTextStyle.Option.DIM) ?: false
 
-                                      // Apply color logic
-                                      val baseFg = style?.foreground?.let { convertTerminalColor(it) } ?: settings.defaultForegroundColor
-                                      val baseBg = style?.background?.let { convertTerminalColor(it) } ?: settings.defaultBackgroundColor
-                                      var fgColor = if (isInverse) baseBg else baseFg
-                                      if (isDim) fgColor = applyDimColor(fgColor)
+                                  // Apply color logic
+                                  val baseFg = style?.foreground?.let { convertTerminalColor(it) } ?: settings.defaultForegroundColor
+                                  val baseBg = style?.background?.let { convertTerminalColor(it) } ?: settings.defaultBackgroundColor
+                                  var fgColor = if (isInverse) baseBg else baseFg
+                                  if (isDim) fgColor = applyDimColor(fgColor)
 
-                                      // Use system font (FontFamily.Default) for ZWJ sequences
-                                      // This enables Apple Color Emoji on macOS which has combined glyphs
-                                      val textStyle = TextStyle(
-                                          color = fgColor,
-                                          fontFamily = FontFamily.Default,  // System font with ZWJ support
-                                          fontSize = settings.fontSize.sp,
-                                          fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
-                                          fontStyle = if (isItalic) androidx.compose.ui.text.font.FontStyle.Italic
-                                                     else androidx.compose.ui.text.font.FontStyle.Normal
+                                  // Use system font (FontFamily.Default) for ZWJ sequences
+                                  // This enables Apple Color Emoji on macOS which has combined glyphs
+                                  val textStyle = TextStyle(
+                                      color = fgColor,
+                                      fontFamily = FontFamily.Default,  // System font with ZWJ support
+                                      fontSize = settings.fontSize.sp,
+                                      fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
+                                      fontStyle = if (isItalic) androidx.compose.ui.text.font.FontStyle.Italic
+                                                 else androidx.compose.ui.text.font.FontStyle.Normal
+                                  )
+
+                                  // Render the complete ZWJ sequence as a single unit
+                                  val measurement = textMeasurer.measure(grapheme.text, textStyle)
+                                  val glyphWidth = measurement.size.width.toFloat()
+                                  val glyphHeight = measurement.size.height.toFloat()
+
+                                  // Calculate scale to fit in allocated space
+                                  val allocatedWidth = cellWidth * grapheme.visualWidth.toFloat()
+                                  val targetHeight = cellHeight * 1.0f
+
+                                  val widthScale = if (glyphWidth > 0) allocatedWidth / glyphWidth else 1.0f
+                                  val heightScale = if (glyphHeight > 0) targetHeight / glyphHeight else 1.0f
+                                  val scale = minOf(widthScale, heightScale).coerceIn(0.8f, 2.5f)
+
+                                  // Center in allocated space
+                                  val scaledWidth = glyphWidth * scale
+                                  val scaledHeight = glyphHeight * scale
+                                  val centerX = x + (allocatedWidth - scaledWidth) / 2f
+                                  val centerY = y + (cellHeight - scaledHeight) / 2f
+
+                                  scale(scaleX = scale, scaleY = scale, pivot = Offset(x, y + cellHeight / 2f)) {
+                                      drawText(
+                                          textMeasurer = textMeasurer,
+                                          text = grapheme.text,
+                                          topLeft = Offset(centerX / scale, y),
+                                          style = textStyle
                                       )
+                                  }
 
-                                      // Render the complete ZWJ sequence as a single unit
-                                      val measurement = textMeasurer.measure(grapheme.text, textStyle)
-                                      val glyphWidth = measurement.size.width.toFloat()
-                                      val glyphHeight = measurement.size.height.toFloat()
+                                  // Advance by matching grapheme text against buffer cells
+                                  // We must consume ALL cells (including DWC markers) for this grapheme
+                                  val graphemeText = grapheme.text
+                                  var graphemeCharIndex = 0
+                                  var charsToSkip = 0
+                                  var i = col
 
-                                      // Calculate scale to fit in allocated space (width 2 cells for emoji)
-                                      val allocatedWidth = cellWidth * 2f
-                                      val targetHeight = cellHeight * 1.0f
+                                  while (i < width && graphemeCharIndex < graphemeText.length) {
+                                      val c = line.charAt(i)
 
-                                      val widthScale = if (glyphWidth > 0) allocatedWidth / glyphWidth else 1.0f
-                                      val heightScale = if (glyphHeight > 0) targetHeight / glyphHeight else 1.0f
-                                      val scale = minOf(widthScale, heightScale).coerceIn(1.0f, 2.5f)
-
-                                      // Center in allocated space
-                                      val scaledWidth = glyphWidth * scale
-                                      val scaledHeight = glyphHeight * scale
-                                      val centerX = x + (allocatedWidth - scaledWidth) / 2f
-                                      val centerY = y + (cellHeight - scaledHeight) / 2f
-
-                                      scale(scaleX = scale, scaleY = scale, pivot = Offset(x, y + cellHeight / 2f)) {
-                                          drawText(
-                                              textMeasurer = textMeasurer,
-                                              text = grapheme.text,
-                                              topLeft = Offset(centerX / scale, y),
-                                              style = textStyle
-                                          )
+                                      if (c == CharUtils.DWC) {
+                                          // DWC markers are part of grapheme storage but not in grapheme.text
+                                          charsToSkip++
+                                          i++
+                                          continue
                                       }
 
-                                      // Advance by visual width of grapheme (usually 2 for emoji)
-                                      col += grapheme.visualWidth
-                                      continue
+                                      // Match this buffer character against grapheme.text
+                                      val expectedChar = graphemeText[graphemeCharIndex]
+
+                                      if (Character.isHighSurrogate(c) && i + 1 < width) {
+                                          val next = line.charAt(i + 1)
+                                          if (Character.isLowSurrogate(next)) {
+                                              // Verify surrogate pair matches
+                                              if (graphemeCharIndex + 1 < graphemeText.length &&
+                                                  graphemeText[graphemeCharIndex] == c &&
+                                                  graphemeText[graphemeCharIndex + 1] == next) {
+                                                  charsToSkip += 2
+                                                  i += 2
+                                                  graphemeCharIndex += 2
+                                                  continue
+                                              }
+                                          }
+                                      }
+
+                                      // Single character match
+                                      if (expectedChar == c) {
+                                          charsToSkip++
+                                          i++
+                                          graphemeCharIndex++
+                                      } else {
+                                          // Mismatch - stop to avoid consuming wrong cells
+                                          break
+                                      }
                                   }
+
+                                  col += charsToSkip
+                                  // Each buffer cell = 1 visual column (including DWC markers)
+                                  visualCol += charsToSkip
+                                  continue
                               }
                           }
                       }
 
-                      val x = col * cellWidth
+                      val x = visualCol * cellWidth  // Use visual column for positioning
                       val y = row * cellHeight
 
                       // Check if this is a double-width character according to wcwidth
@@ -1297,7 +1353,7 @@ fun ProperTerminal(
                       if (canBatch && (batchText.isEmpty() || styleMatches)) {
                           // Add to batch
                           if (batchText.isEmpty()) {
-                              batchStartCol = col
+                              batchStartCol = visualCol  // Use visual column for rendering position
                               batchFgColor = fgColor
                               batchIsBold = isBold
                               batchIsItalic = isItalic
@@ -1409,6 +1465,7 @@ fun ProperTerminal(
                               // If we rendered emoji+variation selector, skip the variation selector
                               if (isEmojiWithVariationSelector) {
                                   col++  // Skip the variation selector character
+                                  // Variation selector doesn't add visual width
                               }
                           } else {
                               // Normal single-width rendering
@@ -1454,10 +1511,19 @@ fun ProperTerminal(
                       // If true double-width (wcwidth), skip the next column (contains DWC marker)
                       // For emoji/symbols, don't skip - they're single-width in the buffer but render wider
                       if (isWcwidthDoubleWidth) {
-                          col++
+                          col++  // Skip DWC marker in buffer
+                          // No visualCol++ here because we do it below
                       }
 
-                      col++
+                      col++  // Advance to next character in buffer
+                      visualCol++  // Advance visual column (1 for single-width, handled by DWC skip for double-width)
+
+                      // For double-width characters, we already skipped the DWC above,
+                      // so col advanced by 2 total, but visualCol only by 1 here
+                      // We need to add 1 more to visualCol for double-width
+                      if (isWcwidthDoubleWidth) {
+                          visualCol++  // Double-width takes 2 visual columns
+                      }
                   }
 
                   // Flush any remaining batch at end of line

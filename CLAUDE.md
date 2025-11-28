@@ -221,6 +221,67 @@ gh pr create --base master --head dev --title "Your PR title" --body "Descriptio
 
 **Settings**: `enableMouseReporting` (default: true)
 
+### 11. Surrogate Pair & Grapheme Cluster Support (#TBD)
+- **Full Unicode Support**: Characters outside Basic Multilingual Plane (U+10000+)
+- **Emoji Sequences**: ZWJ emoji (👨‍👩‍👧‍👦), skin tones (👍🏽), variation selectors (☁️)
+- **Combining Characters**: Diacritics and other combining marks (á = a + ◌́)
+- **Production-Grade**: ICU4J BreakIterator for accurate grapheme segmentation
+
+**Architecture**:
+- `GraphemeCluster.kt` (150 lines): Data class representing single grapheme with metadata
+- `GraphemeMetadata.kt` (189 lines): Sparse boundary tracking for efficient random access
+- `GraphemeUtils.kt` (257 lines): Core segmentation engine with LRU cache (1024 entries)
+- ICU4J dependency (74.1): Industry-standard Unicode library
+
+**Critical Bug Fixes**:
+1. **JediEmulator1.readNonControlCharacters()** (lines 76-132)
+   - BEFORE: Char-by-char iteration split surrogate pairs
+   - AFTER: Grapheme-aware iteration preserves multi-code-point sequences
+   - IMPACT: Characters >U+FFFF now display correctly
+
+2. **JediTerminal.newCharBuf()** (lines 1148-1175)
+   - BEFORE: DWC insertion destroyed surrogate pairs
+   - AFTER: Grapheme-aware DWC marking preserves surrogate pair integrity
+   - IMPACT: Wide characters >U+FFFF render with correct spacing
+
+3. **BlockingTerminalDataStream.append()** (lines 53-78, 176-248)
+   - BEFORE: Chunk boundaries could split graphemes mid-sequence
+   - AFTER: Incomplete grapheme buffering ensures atomic processing
+   - IMPACT: Streaming output never splits emoji or surrogate pairs
+
+4. **CharUtils.countDoubleWidthCharacters()** (lines 70-88)
+   - BEFORE: Incremented by 1 after codePointAt(), missed low surrogates
+   - AFTER: Increments by Character.charCount() for proper surrogate handling
+   - IMPACT: Accurate width calculation for supplementary plane characters
+
+**New APIs**:
+- `CharUtils.getTextLengthGraphemeAware()`: Comprehensive width calculation
+- `GraphemeUtils.segmentIntoGraphemes()`: ICU4J-based segmentation
+- `GraphemeUtils.getGraphemeWidth()`: Cached width calculation with special emoji handling
+- `GraphemeMetadata.analyze()`: Sparse metadata generation (null for simple ASCII)
+
+**Key Files Modified**:
+- build.gradle.kts: Added ICU4J 74.1
+- CharUtils.kt: +66 lines (grapheme-aware methods, surrogate pair fix)
+- JediEmulator1.kt: Complete rewrite of readNonControlCharacters()
+- JediTerminal.kt: Complete rewrite of newCharBuf()
+- BlockingTerminalDataStream.kt: +119 lines (incomplete grapheme buffering)
+
+**Performance**:
+- LRU cache (1024 entries) for grapheme width calculations
+- ThreadLocal BreakIterator for thread safety without synchronization
+- Fast-path for ASCII (no grapheme analysis needed)
+- Sparse metadata (only for complex graphemes, null for simple strings)
+
+**Remaining Work**:
+- ProperTerminal.kt rendering refactor (grapheme-aware iteration)
+- JediTerminal.kt cursor movement (grapheme boundaries)
+- ProperTerminal.kt selection (grapheme boundaries)
+- Comprehensive test suite (200+ tests planned)
+- CharBuffer.kt refactoring (deferred - not critical after bug fixes)
+
+**Status**: Foundation complete, critical bugs fixed (November 27, 2025)
+
 ## Known Issues & Todos
 
 ### In Progress
@@ -294,9 +355,23 @@ gh pr create --base master --head dev --title "Your PR title" --body "Descriptio
 ---
 
 ## Last Updated
-November 21, 2025 2:15 PM PST
+November 27, 2025 (Evening)
 
 ### Recent Changes
+- **November 27, 2025 (Evening)**: Surrogate Pair & Grapheme Cluster Support (#11)
+  - **Foundation**: Added ICU4J 74.1, created 3 new classes (596 lines total)
+    - GraphemeCluster.kt: Data class with emoji/surrogate detection
+    - GraphemeMetadata.kt: Sparse boundary tracking for random access
+    - GraphemeUtils.kt: Core segmentation with LRU cache (1024 entries)
+  - **Critical Bug Fixes**: Fixed 4 major surrogate pair bugs
+    - JediEmulator1.readNonControlCharacters(): Char-by-char → grapheme iteration
+    - JediTerminal.newCharBuf(): Fixed DWC insertion destroying surrogate pairs
+    - BlockingTerminalDataStream.append(): Added incomplete grapheme buffering
+    - CharUtils.countDoubleWidthCharacters(): Fixed codePoint iteration bug
+  - **New APIs**: CharUtils.getTextLengthGraphemeAware() for proper width calculation
+  - **Impact**: Characters >U+FFFF (𝕳, 🎨, etc.) now display correctly
+  - **Status**: Foundation complete, critical bugs fixed, ready for rendering/cursor work
+  - **Commits**: 3 feature commits pushed to dev branch
 - **November 21, 2025 (Afternoon, 2:15 PM)**: Mouse Reporting Modes (#20)
   - Implemented mouse event forwarding to terminal applications (vim, tmux, htop, less, etc.)
   - Added Shift+Click bypass mechanism for local actions

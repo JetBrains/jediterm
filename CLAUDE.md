@@ -299,7 +299,22 @@ gh pr create --base master --head dev --title "Your PR title" --body "Descriptio
 
 **Settings**: `enableMouseReporting` (default: true)
 
-### 11. Surrogate Pair & Grapheme Cluster Support (#TBD)
+### 11. Auto-Scroll During Selection Drag (#24)
+- **Bounds Detection**: Detects when drag extends above/below visible canvas
+- **Proportional Speed**: Scroll velocity increases with distance from bounds
+- **Timer-Based**: Continuous 20 Hz scrolling even when mouse is stationary outside bounds
+- **Bi-directional**: Scroll up into history (above) or down toward current (below)
+
+**Implementation**:
+- `AUTO_SCROLL_SPEED = 0.05f`: Coefficient matching Swing TerminalPanel.java reference
+- `AUTO_SCROLL_INTERVAL = 50L`: 20 Hz timer for continuous scrolling
+- `startAutoScroll()`: Coroutine-based timer that updates scroll offset and selection
+
+**Key File**: `ProperTerminal.kt` (lines 345-389)
+
+**Testing**: Generate history with `for i in {1..200}; do echo "Line $i"; done`, then drag selection beyond bounds.
+
+### 12. Surrogate Pair & Grapheme Cluster Support (#TBD)
 - **Full Unicode Support**: Characters outside Basic Multilingual Plane (U+10000+)
 - **Emoji Sequences**: ZWJ emoji (👨‍👩‍👧‍👦), skin tones (👍🏽), variation selectors (☁️)
 - **Combining Characters**: Diacritics and other combining marks (á = a + ◌́)
@@ -371,6 +386,7 @@ gh pr create --base master --head dev --title "Your PR title" --body "Descriptio
 - Background tab performance optimization - Phase 8
 
 ### Completed (Recent)
+✅ Auto-Scroll During Selection Drag (November 30, 2025, issue #24)
 ✅ Type-Ahead Prediction System (November 30, 2025, issue #23)
 ✅ Snapshot-Based Rendering - 94% lock contention reduction (November 29, 2025)
 ✅ Mouse Reporting Modes (November 21, 2025, issue #20)

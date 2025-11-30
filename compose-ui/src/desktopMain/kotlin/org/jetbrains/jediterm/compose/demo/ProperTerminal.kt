@@ -1010,6 +1010,9 @@ fun ProperTerminal(
         }
 
         Canvas(modifier = Modifier.fillMaxSize()) {
+          // Guard against invalid canvas sizes during resize - prevents drawText constraint failures
+          if (size.width < cellWidth || size.height < cellHeight) return@Canvas
+
           // Two-pass rendering to fix z-index issue:
           // Pass 1: Draw all backgrounds first
           // Pass 2: Draw all text on top
@@ -1019,13 +1022,18 @@ fun ProperTerminal(
           val height = bufferSnapshot.height
           val width = bufferSnapshot.width
 
+          // Calculate visible bounds - limit rendering to what fits in canvas
+          // This prevents crashes when buffer is wider/taller than current canvas during resize
+          val visibleCols = (size.width / cellWidth).toInt().coerceAtMost(width)
+          val visibleRows = (size.height / cellHeight).toInt().coerceAtMost(height)
+
           // ===== PASS 1: DRAW ALL BACKGROUNDS =====
-          for (row in 0 until height) {
+          for (row in 0 until visibleRows) {
             val lineIndex = row - scrollOffset
             val line = bufferSnapshot.getLine(lineIndex)
 
               var col = 0
-              while (col < width) {
+              while (col < visibleCols) {
                 val char = line.charAt(col)
                 val style = line.getStyleAt(col)
 
@@ -1078,7 +1086,7 @@ fun ProperTerminal(
             }
 
           // ===== PASS 2: DRAW ALL TEXT =====
-          for (row in 0 until height) {
+          for (row in 0 until visibleRows) {
             // Calculate actual line index based on scroll offset
             // scrollOffset = 0 means showing screen lines 0..height-1
             // scrollOffset > 0 means showing some history lines
@@ -1140,7 +1148,7 @@ fun ProperTerminal(
 
               var col = 0  // Character index in buffer
               var visualCol = 0  // Visual column position (accounts for double-width chars)
-              while (col < width) {
+              while (col < visibleCols) {
                 val char = line.charAt(col)
                 val style = line.getStyleAt(col)
 

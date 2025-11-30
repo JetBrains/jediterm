@@ -218,36 +218,35 @@ private fun extractSelectedText(
         if (startRow < endRow) startCol to endCol else endCol to startCol
     }
 
-    textBuffer.lock()
-    return try {
-        val result = StringBuilder()
+    // Create immutable snapshot (fast, <1ms with lock, then lock released)
+    // This allows PTY writers to continue during text extraction
+    val snapshot = textBuffer.createSnapshot()
 
-        for (row in minRow..maxRow) {
-            val line = textBuffer.getLine(row) ?: continue
+    val result = StringBuilder()
 
-            val colStart = if (row == minRow) minCol else 0
-            val colEnd = if (row == maxRow) maxCol else (textBuffer.width - 1)
+    for (row in minRow..maxRow) {
+        val line = snapshot.getLine(row)
 
-            for (col in colStart..colEnd) {
-                if (col < textBuffer.width) {
-                    val char = line.charAt(col)
-                    // Skip DWC markers
-                    if (char != CharUtils.DWC) {
-                        result.append(char)
-                    }
+        val colStart = if (row == minRow) minCol else 0
+        val colEnd = if (row == maxRow) maxCol else (snapshot.width - 1)
+
+        for (col in colStart..colEnd) {
+            if (col < snapshot.width) {
+                val char = line.charAt(col)
+                // Skip DWC markers
+                if (char != CharUtils.DWC) {
+                    result.append(char)
                 }
-            }
-
-            // Add newline between rows (except after last row)
-            if (row < maxRow) {
-                result.append('\n')
             }
         }
 
-        result.toString()
-    } finally {
-        textBuffer.unlock()
+        // Add newline between rows (except after last row)
+        if (row < maxRow) {
+            result.append('\n')
+        }
     }
+
+    return result.toString()
 }
 
 /**

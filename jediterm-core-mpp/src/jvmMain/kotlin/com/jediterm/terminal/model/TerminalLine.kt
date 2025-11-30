@@ -46,7 +46,9 @@ class TerminalLine {
     fun copy(): TerminalLine {
         val result = TerminalLine()
         for (entry in myTextEntries) {
-            result.myTextEntries.add(entry)
+            // Deep copy: Create new TextEntry which clones CharBuffer in constructor
+            // This ensures true immutability for snapshot-based rendering
+            result.myTextEntries.add(TextEntry(entry.style, entry.text))
         }
         result.isWrapped = this.isWrapped
         return result

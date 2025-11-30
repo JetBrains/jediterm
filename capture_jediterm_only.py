@@ -53,7 +53,7 @@ def find_jediterm_window_id():
     return None
 
 def capture_window(window_id, output_path="/tmp/jediterm_window.png"):
-    """Capture a specific window by ID using screencapture."""
+    """Capture a specific window by ID using screencapture, then resize to low resolution."""
     try:
         # Use screencapture -l to capture specific window
         # -o flag excludes shadow
@@ -61,6 +61,19 @@ def capture_window(window_id, output_path="/tmp/jediterm_window.png"):
             ['screencapture', '-l', str(window_id), '-o', output_path],
             check=True
         )
+        print(f"✓ Screenshot captured")
+
+        # Resize and convert to JPEG with compression to reduce token usage
+        # Using sips (built-in macOS tool)
+        # -Z 300: Resize so largest dimension is 300px
+        # -s format jpeg: Convert to JPEG
+        # -s formatOptions 40: JPEG quality 40% (lower quality for smaller size)
+        subprocess.run(
+            ['sips', '-Z', '600', '-s', 'format', 'jpeg', '-s', 'formatOptions', '40', output_path, '--out', output_path],
+            check=True,
+            capture_output=True  # Suppress sips output
+        )
+        print(f"✓ Resized to low resolution (max 600px) and compressed as JPEG")
         print(f"✓ Screenshot saved: {output_path}")
         subprocess.run(['ls', '-lh', output_path])
         return True

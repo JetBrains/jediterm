@@ -6,17 +6,21 @@ import com.jediterm.core.util.TermSize
 import com.jediterm.terminal.emulator.JediEmulator
 import com.jediterm.terminal.model.JediTerminal
 import com.jediterm.terminal.model.StyleState
+import com.jediterm.terminal.model.TerminalApplicationTitleListener
 import com.jediterm.terminal.model.TerminalTextBuffer
 import kotlinx.coroutines.*
 import org.jetbrains.jediterm.compose.ComposeTerminalDisplay
 import org.jetbrains.jediterm.compose.ConnectionState
 import org.jetbrains.jediterm.compose.PlatformServices
+import org.jetbrains.jediterm.compose.debug.ChunkSource
 import org.jetbrains.jediterm.compose.demo.BlockingTerminalDataStream
 import org.jetbrains.jediterm.compose.features.ContextMenuController
 import org.jetbrains.jediterm.compose.getPlatformServices
 import org.jetbrains.jediterm.compose.ime.IMEState
 import org.jetbrains.jediterm.compose.osc.WorkingDirectoryOSCListener
 import org.jetbrains.jediterm.compose.settings.TerminalSettings
+import com.jediterm.terminal.util.GraphemeBoundaryUtils
+import java.io.EOFException
 
 /**
  * Controller for managing multiple terminal tabs.
@@ -65,12 +69,14 @@ class TabController(
      * @param workingDir Working directory to start the shell in (inherits from active tab if null)
      * @param command Shell command to execute (default: $SHELL or /bin/bash)
      * @param arguments Command-line arguments for the shell (default: empty)
+     * @param onProcessExit Callback invoked when shell process exits (before auto-closing tab)
      * @return The newly created TerminalTab
      */
     fun createTab(
         workingDir: String? = null,
         command: String = System.getenv("SHELL") ?: "/bin/bash",
-        arguments: List<String> = emptyList()
+        arguments: List<String> = emptyList(),
+        onProcessExit: (() -> Unit)? = null
     ): TerminalTab {
         tabCounter++
 
@@ -79,6 +85,19 @@ class TabController(
         val textBuffer = TerminalTextBuffer(80, 24, styleState, settings.bufferMaxLines)
         val display = ComposeTerminalDisplay()
         val terminal = JediTerminal(display, textBuffer, styleState)
+
+        // CRITICAL: Register ModelListener to trigger redraws when buffer content changes
+        // This is how the Swing TerminalPanel gets notified - without this, the display
+        // never knows when to redraw after new text is written to the buffer!
+        textBuffer.addModelListener(object : com.jediterm.terminal.model.TerminalModelListener {
+            override fun modelChanged() {
+                display.requestImmediateRedraw()
+            }
+        })
+
+        // Configure character encoding mode (ISO-8859-1 enables GR mapping, UTF-8 disables it)
+        terminal.setCharacterEncoding(settings.characterEncoding)
+
         val dataStream = BlockingTerminalDataStream()
 
         // Create working directory state
@@ -87,6 +106,17 @@ class TabController(
         // Register OSC 7 listener for working directory tracking (Phase 4)
         val oscListener = WorkingDirectoryOSCListener(workingDirectoryState)
         terminal.addCustomCommandListener(oscListener)
+
+        // Register window title listener for reactive updates (OSC 0/1/2 sequences)
+        terminal.addApplicationTitleListener(object : TerminalApplicationTitleListener {
+            override fun onApplicationTitleChanged(newApplicationTitle: String) {
+                display.windowTitle = newApplicationTitle
+            }
+
+            override fun onApplicationIconTitleChanged(newIconTitle: String) {
+                display.iconTitle = newIconTitle
+            }
+        })
 
         // Create emulator with terminal
         val emulator = JediEmulator(dataStream, terminal)
@@ -114,6 +144,7 @@ class TabController(
             processHandle = mutableStateOf(null),
             workingDirectory = workingDirectoryState,
             connectionState = mutableStateOf(ConnectionState.Initializing),
+            onProcessExit = onProcessExit,
             coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
             isFocused = mutableStateOf(false),
             scrollOffset = mutableStateOf(0),
@@ -139,7 +170,7 @@ class TabController(
 
             // Hook into data stream for PTY output capture
             dataStream.debugCallback = { data ->
-                collector.recordChunk(data, org.jetbrains.jediterm.compose.debug.ChunkSource.PTY_OUTPUT)
+                collector.recordChunk(data, ChunkSource.PTY_OUTPUT)
             }
         }
 
@@ -183,6 +214,7 @@ class TabController(
                     put("TERM", "xterm-256color")
                     put("COLORTERM", "truecolor")
                     put("TERM_PROGRAM", "JediTerm")
+                    put("TERM_FEATURES", "T2:M:H:Ts0:Ts1:Ts2:Sc0:Sc1:Sc2:B:U:Aw")
                 }
 
                 val config = PlatformServices.ProcessService.ProcessConfig(
@@ -206,18 +238,20 @@ class TabController(
                 tab.connectionState.value = ConnectionState.Connected(handle)
 
                 // Connect terminal output to PTY for bidirectional communication
-                tab.terminal.setTerminalOutput(ProcessTerminalOutput(handle))
+                tab.terminal.setTerminalOutput(ProcessTerminalOutput(handle, tab))
 
                 // Start emulator processing coroutine
+                // Note: Initial prompt will display via ModelListener → requestImmediateRedraw()
+                // when buffer content changes. No need for premature redraw here.
                 launch(Dispatchers.Default) {
                     try {
                         while (handle.isAlive()) {
                             try {
                                 tab.emulator.processChar(tab.dataStream.char, tab.terminal)
-                                if (tab.isVisible.value) {
-                                    tab.display.requestRedraw()
-                                }
-                            } catch (e: java.io.EOFException) {
+                                // Note: Redraws are triggered by scrollArea() when buffer changes
+                                // No need for explicit requestRedraw() here - it causes redundant requests
+                                // scrollArea() now uses smart priority (IMMEDIATE for interactive, debounced for bulk)
+                            } catch (_: EOFException) {
                                 break
                             } catch (e: Exception) {
                                 if (e !is com.jediterm.terminal.TerminalDataStream.EOF) {
@@ -239,8 +273,16 @@ class TabController(
                         val output = handle.read()
                         if (output != null) {
                             val processedOutput = if (output.length > maxChunkSize) {
-                                println("WARNING: Process output chunk (${output.length} chars) exceeds limit, truncating")
-                                output.substring(0, maxChunkSize)
+                                // Find the last complete grapheme boundary before maxChunkSize
+                                // to avoid splitting emoji, surrogate pairs, or ZWJ sequences
+                                val safeBoundary = GraphemeBoundaryUtils.findLastCompleteGraphemeBoundary(output, maxChunkSize)
+
+                                val truncatedLength = output.length - safeBoundary
+                                println("WARNING: Process output chunk (${output.length} chars) exceeds limit, " +
+                                        "truncating at grapheme boundary (safe: $safeBoundary chars, " +
+                                        "buffering $truncatedLength chars for next chunk)")
+
+                                output.substring(0, safeBoundary)
                             } else {
                                 output
                             }
@@ -268,6 +310,11 @@ class TabController(
                 // Monitor process exit
                 handle.waitFor()  // Blocks until process exits
                 println("INFO: Shell process exited for tab: ${tab.title.value}")
+
+                // Call onProcessExit callback for custom cleanup/logging (if provided)
+                withContext(Dispatchers.Main) {
+                    tab.onProcessExit?.invoke()
+                }
 
                 // Auto-close tab when shell exits (as per user requirements)
                 withContext(Dispatchers.Main) {
@@ -297,6 +344,7 @@ class TabController(
      *
      * @param index Index of the tab to close
      */
+    @OptIn(DelicateCoroutinesApi::class)
     fun closeTab(index: Int) {
         if (index < 0 || index >= tabs.size) return
 
@@ -398,17 +446,35 @@ class TabController(
 
     /**
      * Routes terminal responses back to the PTY process.
+     * Also records emulator-generated output in debug mode.
      */
     private class ProcessTerminalOutput(
-        private val processHandle: PlatformServices.ProcessService.ProcessHandle
+        private val processHandle: PlatformServices.ProcessService.ProcessHandle,
+        private val tab: TerminalTab
     ) : com.jediterm.terminal.TerminalOutputStream {
         override fun sendBytes(response: ByteArray, userInput: Boolean) {
+            // Record emulator-generated responses in debug mode
+            if (!userInput) {
+                tab.debugCollector?.recordChunk(
+                    String(response, Charsets.UTF_8),
+                    org.jetbrains.jediterm.compose.debug.ChunkSource.EMULATOR_GENERATED
+                )
+            }
+
             kotlinx.coroutines.runBlocking {
                 processHandle.write(String(response, Charsets.UTF_8))
             }
         }
 
         override fun sendString(string: String, userInput: Boolean) {
+            // Record emulator-generated responses in debug mode
+            if (!userInput) {
+                tab.debugCollector?.recordChunk(
+                    string,
+                    org.jetbrains.jediterm.compose.debug.ChunkSource.EMULATOR_GENERATED
+                )
+            }
+
             kotlinx.coroutines.runBlocking {
                 processHandle.write(string)
             }

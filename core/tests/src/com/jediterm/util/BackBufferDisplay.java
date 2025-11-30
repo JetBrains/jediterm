@@ -17,6 +17,7 @@ public class BackBufferDisplay implements TerminalDisplay {
   private final TerminalTextBuffer myTerminalTextBuffer;
   private TerminalSelection mySelection = null;
   private String myWindowTitle;
+  private String myIconTitle;
   private @Nullable Color myForegroundColor;
   private @Nullable Color myBackgroundColor;
   private @Nullable CursorShape myCursorShape;
@@ -61,6 +62,15 @@ public class BackBufferDisplay implements TerminalDisplay {
 
   public @Nullable String getWindowTitle() {
     return myWindowTitle;
+  }
+
+  @Override
+  public void setIconTitle(@NotNull String iconTitle) {
+    myIconTitle = iconTitle;
+  }
+
+  public @Nullable String getIconTitle() {
+    return myIconTitle;
   }
 
   @Override

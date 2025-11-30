@@ -34,6 +34,7 @@ kotlin {
         }
         val jvmMain by getting {
             dependencies {
+                implementation("com.ibm.icu:icu4j:74.1") // For grapheme cluster segmentation
             }
         }
         val jvmTest by getting {

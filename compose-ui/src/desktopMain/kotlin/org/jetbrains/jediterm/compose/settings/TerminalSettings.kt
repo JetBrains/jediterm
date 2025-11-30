@@ -175,6 +175,16 @@ data class TerminalSettings(
     val ambiguousCharsAreDoubleWidth: Boolean = false,
 
     /**
+     * Character encoding mode: "UTF-8" or "ISO-8859-1"
+     * UTF-8: GR range (160-255) passes through for multi-byte sequences (default, safe)
+     * ISO-8859-1: GR range maps through character sets (enables Latin-1 supplemental)
+     *
+     * Note: Auto-detected from locale (LANG/LC_ALL/LC_CTYPE) on PTY initialization.
+     * Can be manually overridden via settings.
+     */
+    val characterEncoding: String = "UTF-8",
+
+    /**
      * Simulate mouse scroll with arrow keys in alternate screen
      */
     val simulateMouseScrollInAlternateScreen: Boolean = true,

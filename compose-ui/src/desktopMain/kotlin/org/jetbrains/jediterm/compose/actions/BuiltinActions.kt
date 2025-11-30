@@ -20,7 +20,7 @@ import org.jetbrains.jediterm.compose.ime.IMEState
  * @param selectionEnd Mutable state for selection end position (col, row)
  * @param textBuffer The terminal text buffer
  * @param clipboardManager The clipboard manager for copy/paste
- * @param getProcessHandle Lambda that returns the current PTY process handle (allows dynamic access)
+ * @param writeUserInput Lambda that writes user input to the terminal (records in debug collector)
  * @param searchVisible Mutable state for search bar visibility
  * @param debugPanelVisible Mutable state for debug panel visibility
  * @param imeState IME state for CJK input
@@ -34,7 +34,7 @@ fun createBuiltinActions(
     selectionEnd: MutableState<Pair<Int, Int>?>,
     textBuffer: TerminalTextBuffer,
     clipboardManager: ClipboardManager,
-    getProcessHandle: () -> PlatformServices.ProcessService.ProcessHandle?,
+    writeUserInput: (String) -> Unit,
     searchVisible: MutableState<Boolean>,
     debugPanelVisible: MutableState<Boolean>,
     imeState: IMEState,
@@ -87,7 +87,7 @@ fun createBuiltinActions(
             val text = clipboardManager.getText()?.text
             if (!text.isNullOrEmpty()) {
                 scope.launch {
-                    getProcessHandle()?.write(text)
+                    writeUserInput(text)
                 }
                 true
             } else {

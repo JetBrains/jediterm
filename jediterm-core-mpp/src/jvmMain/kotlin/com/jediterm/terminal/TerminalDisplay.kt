@@ -26,6 +26,8 @@ interface TerminalDisplay {
 
     var windowTitle: String?
 
+    var iconTitle: String?
+
     val selection: TerminalSelection?
 
     fun terminalMouseModeSet(mouseMode: MouseMode)

@@ -46,7 +46,8 @@ open class TextStyle @JvmOverloads constructor(
         DIM,
         INVERSE,
         UNDERLINED,
-        HIDDEN;
+        HIDDEN,
+        PROTECTED;
 
         fun set(options: EnumSet<Option>, `val`: Boolean) {
             if (`val`) {

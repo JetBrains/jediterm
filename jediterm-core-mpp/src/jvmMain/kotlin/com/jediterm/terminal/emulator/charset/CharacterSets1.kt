@@ -176,7 +176,22 @@ object CharacterSets {
      * @return the mapped character.
      */
     fun getChar(original: Char, gl: GraphicSet, gr: GraphicSet?): Char {
-        val ch = getMappedChar(original, gl, gr)
+        return getChar(original, gl, gr, false)
+    }
+
+    /**
+     * Returns the character mapping for a given original value using the given
+     * graphic sets GL and GR.
+     *
+     * @param original the original character to map;
+     * @param gl       the GL graphic set, cannot be `null`;
+     * @param gr       the GR graphic set, cannot be `null`;
+     * @param useGRMapping whether to map GR range (160-255) through character sets.
+     *                     Use true for ISO-8859-1 mode, false for UTF-8 mode.
+     * @return the mapped character.
+     */
+    fun getChar(original: Char, gl: GraphicSet, gr: GraphicSet?, useGRMapping: Boolean): Char {
+        val ch = getMappedChar(original, gl, gr, useGRMapping)
         if (ch > 0) {
             return ch.toChar()
         }
@@ -204,16 +219,24 @@ object CharacterSets {
      *
      * @param original the original character to map;
      * @param gl       the GL graphic set, cannot be `null`;
-     * @param gr       the GR graphic set, cannot be `null`.
+     * @param gr       the GR graphic set, cannot be `null`;
+     * @param useGRMapping whether to map GR range (160-255) through character sets.
      * @return the mapped character.
      */
-    private fun getMappedChar(original: Char, gl: GraphicSet, gr: GraphicSet?): Int {
+    private fun getMappedChar(original: Char, gl: GraphicSet, gr: GraphicSet?, useGRMapping: Boolean): Int {
         val cMapping = getCMapping(original)
         if (cMapping != null) {
             return cMapping[0] as Int
         } else if (original.code >= GL_START && original.code <= GL_END) {
             val idx = original.code - GL_START
             return gl.map(original, idx)
+        }
+        // GR range mapping (160-255): Enabled for ISO-8859-1 mode, disabled for UTF-8 mode
+        // UTF-8 mode: Pass through GR range unchanged to preserve multi-byte sequences
+        // ISO-8859-1 mode: Map GR range through character sets (e.g., ISO_LATIN_1)
+        else if (useGRMapping && gr != null && original.code >= GR_START && original.code <= GR_END) {
+            val idx = original.code - GR_START
+            return gr.map(original, idx)
         } else {
             return original.code
         }

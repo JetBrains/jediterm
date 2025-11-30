@@ -46,16 +46,16 @@ class TerminalTextBuffer internal constructor(
 
   internal val historyLinesStorageOrBackup: LinesStorage
     get() = if (isUsingAlternateBuffer) {
-        historyLinesStorageBackup ?: historyLinesStorage
+      historyLinesStorageBackup ?: historyLinesStorage
     } else {
-        historyLinesStorage
+      historyLinesStorage
     }
 
   internal val screenLinesStorageOrBackup: LinesStorage
     get() = if (isUsingAlternateBuffer) {
-        screenLinesStorageBackup ?: screenLinesStorage
+      screenLinesStorageBackup ?: screenLinesStorage
     } else {
-        screenLinesStorage
+      screenLinesStorage
     }
 
   // Public accessors for Java interop
@@ -309,8 +309,7 @@ class TerminalTextBuffer internal constructor(
         changesMulticaster.linesChanged(index)
       }
       return line
-    }
-    else {
+    } else {
       if (index < -historyLinesCount) {
         LOG.error("Attempt to get line out of bounds: $index < ${-historyLinesCount}")
         return TerminalLine.createEmpty()
@@ -463,6 +462,21 @@ class TerminalTextBuffer internal constructor(
     }
     else {
       LOG.error("Attempt to erase characters in line: $y")
+    }
+  }
+
+  fun selectiveEraseCharacters(leftX: Int, rightX: Int, y: Int) {
+    val style = createEmptyStyleWithCurrentColor()
+    if (y >= 0) {
+      screenLinesStorage[y].selectiveClearArea(leftX, rightX, style)
+      fireModelChangeEvent()
+      changesMulticaster.linesChanged(fromIndex = y)
+      if (textProcessing != null && y < height) {
+        textProcessing.processHyperlinks(screenLinesStorage, getLine(y))
+      }
+    }
+    else {
+      LOG.error("Attempt to selectively erase characters in line: $y")
     }
   }
 

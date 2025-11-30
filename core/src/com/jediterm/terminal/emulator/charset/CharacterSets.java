@@ -178,7 +178,22 @@ public final class CharacterSets {
    * @return the mapped character.
    */
   public static char getChar(char original, GraphicSet gl, GraphicSet gr) {
-    int ch = getMappedChar(original, gl, gr);
+    return getChar(original, gl, gr, false);
+  }
+
+  /**
+   * Returns the character mapping for a given original value using the given
+   * graphic sets GL and GR.
+   *
+   * @param original the original character to map;
+   * @param gl       the GL graphic set, cannot be <code>null</code>;
+   * @param gr       the GR graphic set, cannot be <code>null</code>;
+   * @param useGRMapping whether to map GR range (160-255) through character sets.
+   *                      Use true for ISO-8859-1 mode, false for UTF-8 mode.
+   * @return the mapped character.
+   */
+  public static char getChar(char original, GraphicSet gl, GraphicSet gr, boolean useGRMapping) {
+    int ch = getMappedChar(original, gl, gr, useGRMapping);
     if (ch > 0) {
       return (char)ch;
     }
@@ -206,10 +221,11 @@ public final class CharacterSets {
    *
    * @param original the original character to map;
    * @param gl       the GL graphic set, cannot be <code>null</code>;
-   * @param gr       the GR graphic set, cannot be <code>null</code>.
+   * @param gr       the GR graphic set, cannot be <code>null</code>;
+   * @param useGRMapping whether to map GR range (160-255) through character sets.
    * @return the mapped character.
    */
-  private static int getMappedChar(char original, GraphicSet gl, GraphicSet gr) {
+  private static int getMappedChar(char original, GraphicSet gl, GraphicSet gr, boolean useGRMapping) {
     Object[] cMapping = getCMapping(original);
     if (cMapping != null) {
       return (int) cMapping[0];
@@ -218,13 +234,13 @@ public final class CharacterSets {
       int idx = original - GL_START;
       return gl.map(original, idx);
     }
-    //To support UTF-8 we don't use GR table
-    //TODO: verify that approach
-
-    //else if (original >= GR_START && original <= GR_END) {
-    //  int idx = original - GR_START;
-    //  return gr.map(original, idx);
-    //}
+    // GR range mapping (160-255): Enabled for ISO-8859-1 mode, disabled for UTF-8 mode
+    // UTF-8 mode: Pass through GR range unchanged to preserve multi-byte sequences
+    // ISO-8859-1 mode: Map GR range through character sets (e.g., ISO_LATIN_1)
+    else if (useGRMapping && original >= GR_START && original <= GR_END) {
+      int idx = original - GR_START;
+      return gr.map(original, idx);
+    }
     else {
       return original;
     }

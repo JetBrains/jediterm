@@ -14,6 +14,11 @@ public class GraphicSetState {
   //Override for next char (used by shift-in and shift-out)
   private GraphicSet myGlOverride;
 
+  // Whether to use GR mapping (160-255) through character sets
+  // false = UTF-8 mode (preserve multi-byte sequences)
+  // true = ISO-8859-1 mode (map through character sets)
+  private boolean myUseGRMapping = false;
+
   public GraphicSetState() {
     myGraphicSets = new GraphicSet[4];
     for (int i = 0; i < myGraphicSets.length; i++) {
@@ -76,7 +81,26 @@ public class GraphicSetState {
    * @return the mapped character.
    */
   public char map(char ch) {
-    return CharacterSets.getChar(ch, getGL(), getGR());
+    return CharacterSets.getChar(ch, getGL(), getGR(), myUseGRMapping);
+  }
+
+  /**
+   * Sets whether to use GR mapping (160-255) through character sets.
+   *
+   * @param useGRMapping false for UTF-8 mode (preserve multi-byte sequences),
+   *                     true for ISO-8859-1 mode (map through character sets)
+   */
+  public void setUseGRMapping(boolean useGRMapping) {
+    myUseGRMapping = useGRMapping;
+  }
+
+  /**
+   * Returns whether GR mapping is enabled.
+   *
+   * @return true if GR mapping is enabled (ISO-8859-1 mode), false otherwise (UTF-8 mode)
+   */
+  public boolean isUseGRMapping() {
+    return myUseGRMapping;
   }
 
   /**

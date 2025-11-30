@@ -7,6 +7,8 @@ import com.jediterm.terminal.*
 import com.jediterm.terminal.emulator.mouse.MouseFormat
 import com.jediterm.terminal.emulator.mouse.MouseMode
 import com.jediterm.terminal.util.CharUtils
+import com.jediterm.terminal.util.GraphemeCluster
+import com.jediterm.terminal.util.GraphemeUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.IOException
@@ -75,35 +77,57 @@ class JediEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
     @Throws(IOException::class)
     private fun readNonControlCharacters(maxChars: Int, ambiguousAreDWC: kotlin.Boolean): String {
         val result = myDataStream.readNonControlCharacters(maxChars) ?: return ""
+
+        // Segment into grapheme clusters to handle surrogate pairs, emoji, etc.
+        val graphemes = GraphemeUtils.segmentIntoGraphemes(result)
+
         var visualLength = 0
-        var end = 0
-        for (i in 0..<result.length) {
-            // TODO surrogate pair support missing, but it must be implemented in the entire library at once
-            val c = result[i]
-            val sourceLength = i + 1
-            visualLength += if (CharUtils.isDoubleWidthCharacter(c.code, ambiguousAreDWC)) 2 else 1
+        var endGraphemeIndex = 0
+
+        for ((index, grapheme) in graphemes.withIndex()) {
+            val graphemeWidth = grapheme.visualWidth
+
             // Three cases:
-            if (visualLength == maxChars) {
-                end = sourceLength // 1) found exactly maxChars
+            if (visualLength + graphemeWidth == maxChars) {
+                // 1) Found exactly maxChars
+                endGraphemeIndex = index + 1
                 break
-            } else if (visualLength < maxChars) {
-                end = sourceLength // 2) found less, continue searching
-            } else { // visualLength > maxChars
-                break // 3) found less on the previous iteration, but now it's too many (1 char of space left, but a DWC is found)
+            } else if (visualLength + graphemeWidth < maxChars) {
+                // 2) Found less, continue searching
+                endGraphemeIndex = index + 1
+                visualLength += graphemeWidth
+            } else {
+                // 3) Would exceed maxChars (e.g., 1 cell left but grapheme is 2 cells wide)
+                break
             }
         }
-        var nextIsDWC = false
-        if (end < result.length) {
-            val pushBack = CharArray(result.length - end)
-            result.toCharArray(pushBack, 0, end, result.length)
-            nextIsDWC = CharUtils.isDoubleWidthCharacter(pushBack[0].code, ambiguousAreDWC)
-            myDataStream.pushBackBuffer(pushBack, pushBack.size)
+
+        // Reconstruct output string from complete graphemes
+        val outputText = if (endGraphemeIndex > 0) {
+            graphemes.subList(0, endGraphemeIndex).joinToString("") { it.text }
+        } else {
+            ""
         }
-        // A special case: if the next char is DWC, but it doesn't fit on this line (case 3 above),
-        // then we must fill the line with an additional space to trigger line wrapping.
-        // Otherwise, it'll be an endless loop: read, realize it doesn't fit, push back, read again...
-        if (end == maxChars - 1 && nextIsDWC) return result.substring(0, end) + " "
-        return result.substring(0, end)
+
+        // Push back remaining graphemes that didn't fit
+        var nextGraphemeIsWide = false
+        if (endGraphemeIndex < graphemes.size) {
+            val remaining = graphemes.subList(endGraphemeIndex, graphemes.size)
+                .joinToString("") { it.text }
+            val remainingChars = remaining.toCharArray()
+            myDataStream.pushBackBuffer(remainingChars, remainingChars.size)
+
+            // Check if next grapheme is double-width
+            nextGraphemeIsWide = graphemes[endGraphemeIndex].isDoubleWidth
+        }
+
+        // Special case: if the next grapheme is wide but only 1 cell is left,
+        // fill with space to trigger line wrapping and avoid endless loop
+        if (visualLength == maxChars - 1 && nextGraphemeIsWide) {
+            return outputText + " "
+        }
+
+        return outputText
     }
 
     @Throws(IOException::class)
@@ -181,7 +205,22 @@ class JediEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
         // https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
         val ps = args.getIntAt(0, -1)
         when (ps) {
-            0, 1, 2 -> {
+            0 -> {  // Set both window and icon title
+                val name = args.getStringAt(1)
+                if (name != null) {
+                    myTerminal?.setWindowTitle(name)
+                    myTerminal?.setIconTitle(name)
+                    return true
+                }
+            }
+            1 -> {  // Set icon title only
+                val name = args.getStringAt(1)
+                if (name != null) {
+                    myTerminal?.setIconTitle(name)
+                    return true
+                }
+            }
+            2 -> {  // Set window title only
                 val name = args.getStringAt(1)
                 if (name != null) {
                     myTerminal?.setWindowTitle(name)
@@ -435,7 +474,18 @@ class JediEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
                 return false
             }
 
-            'q' -> return cursorShape(args) //DECSCUSR
+            'q' -> {
+                if (args.startsWithExclamationMark()) {
+                    // Existing: cursor shape (DECSCUSR)
+                    return cursorShape(args)
+                }
+                // NEW: DECSCA handler
+                if (args.intermediateChars.contains("\"")) {
+                    return processCharacterProtection(args)
+                }
+                // Fallback to cursor shape for compatibility
+                return cursorShape(args)
+            }
             'r' -> if (args.startsWithQuestionMark()) {
                 return restoreDecPrivateModeValues(args) //
             } else {
@@ -481,26 +531,40 @@ class JediEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
         }
     }
 
-    private fun csi22(args: ControlSequence): kotlin.Boolean { // TODO: support icon title
+    private fun csi22(args: ControlSequence): kotlin.Boolean {
         when (args.getArg(1, -1)) {
-            0, 2 -> {
+            0 -> {  // Save both window and icon title
+                myTerminal?.saveWindowTitleOnStack()
+                myTerminal?.saveIconTitleOnStack()
+                return true
+            }
+            1 -> {  // Save icon title only
+                myTerminal?.saveIconTitleOnStack()
+                return true
+            }
+            2 -> {  // Save window title only
                 myTerminal?.saveWindowTitleOnStack()
                 return true
             }
-
-            1 -> return true
             else -> return false
         }
     }
 
-    private fun csi23(args: ControlSequence): kotlin.Boolean { // TODO: support icon title
+    private fun csi23(args: ControlSequence): kotlin.Boolean {
         when (args.getArg(1, -1)) {
-            0, 2 -> {
+            0 -> {  // Restore both window and icon title
+                myTerminal?.restoreWindowTitleFromStack()
+                myTerminal?.restoreIconTitleFromStack()
+                return true
+            }
+            1 -> {  // Restore icon title only
+                myTerminal?.restoreIconTitleFromStack()
+                return true
+            }
+            2 -> {  // Restore window title only
                 myTerminal?.restoreWindowTitleFromStack()
                 return true
             }
-
-            1 -> return true
             else -> return false
         }
     }
@@ -788,6 +852,30 @@ class JediEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
         }
     }
 
+    private fun processCharacterProtection(args: ControlSequence): kotlin.Boolean {
+        // ESC [ Ps " q - DECSCA (Select Character Protection Attribute)
+        if (args.intermediateChars == " \"") {
+            val ps = args.getArg(0, 0)
+            when (ps) {
+                0, 2 -> {
+                    // DECSED and DECSEL can erase (unprotected)
+                    myTerminal?.setCharacterProtection(false)
+                    return true
+                }
+                1 -> {
+                    // Protected against DECSED and DECSEL
+                    myTerminal?.setCharacterProtection(true)
+                    return true
+                }
+                else -> {
+                    LOG.warn("Unknown DECSCA parameter: $ps")
+                    return false
+                }
+            }
+        }
+        return false
+    }
+
     private fun insertLines(args: ControlSequence): kotlin.Boolean {
         myTerminal?.insertLines(args.getArg(0, 1))
         return true
@@ -840,8 +928,9 @@ class JediEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
 
     private fun eraseInDisplay(args: ControlSequence): kotlin.Boolean {
         if (args.startsWithQuestionMark()) {
-            // Selective Erase (DECSED) is not supported
-            return false
+            // DECSED - Selective Erase in Display
+            myTerminal?.selectiveEraseInDisplay(args.getArg(0, 0))
+            return true
         }
         myTerminal?.eraseInDisplay(args.getArg(0, 0))
         return true
@@ -852,8 +941,9 @@ class JediEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
         val arg = args.getArg(0, 0)
 
         if (args.startsWithQuestionMark()) {
-            //TODO: support ESC [ ? Ps K - Selective Erase (DECSEL)
-            return false
+            // DECSEL - Selective Erase in Line
+            myTerminal?.selectiveEraseInLine(arg)
+            return true
         }
 
         myTerminal?.eraseInLine(arg)

@@ -11,6 +11,9 @@ import com.jediterm.terminal.emulator.mouse.MouseMode
 import com.jediterm.terminal.model.TerminalSelection
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.concurrent.timer
 
@@ -86,7 +89,8 @@ class ComposeTerminalDisplay : TerminalDisplay {
     private val _cursorShape = mutableStateOf<CursorShape?>(null)
     private val _bracketedPasteMode = mutableStateOf(false)
     private val _termSize = mutableStateOf(TermSize(80, 24))
-    private var _windowTitle = ""
+    private val _windowTitle = MutableStateFlow("")
+    private val _iconTitle = MutableStateFlow("")
     private val _mouseMode = mutableStateOf(MouseMode.MOUSE_REPORTING_NONE)
 
     // Compose state properties
@@ -97,6 +101,8 @@ class ComposeTerminalDisplay : TerminalDisplay {
     val bracketedPasteMode: State<Boolean> = _bracketedPasteMode
     val termSize: State<TermSize> = _termSize
     val mouseMode: State<MouseMode> = _mouseMode
+    val windowTitleFlow: StateFlow<String> = _windowTitle.asStateFlow()
+    val iconTitleFlow: StateFlow<String> = _iconTitle.asStateFlow()
 
     // Trigger for redraw - increment this to force redraw
     private val _redrawTrigger = mutableStateOf(0)
@@ -105,6 +111,22 @@ class ComposeTerminalDisplay : TerminalDisplay {
     // Cursor debugging (can be disabled by setting to false)
     private val debugCursor = System.getenv("JEDITERM_DEBUG_CURSOR")?.toBoolean() ?: false
 
+    /**
+     * Cursor state independence: Cursor position, shape, and visibility are managed
+     * independently from buffer snapshots and do NOT trigger redraws automatically.
+     *
+     * This is intentional behavior because:
+     * 1. Cursor can blink without buffer content changes
+     * 2. Cursor moves independently during editing operations
+     * 3. Cursor updates are frequent and don't require buffer re-snapshotting
+     *
+     * The UI layer observes cursor state via separate Compose State variables
+     * (cursorX, cursorY, cursorVisible, cursorShape) which trigger recomposition
+     * only of cursor-rendering code, not the entire buffer.
+     *
+     * Buffer content changes that move the cursor will trigger redraws via
+     * scrollArea() or other buffer modification methods.
+     */
     override fun setCursor(x: Int, y: Int) {
         if (debugCursor && (_cursorX.value != x || _cursorY.value != y)) {
             println("🔵 CURSOR MOVE: (${ _cursorX.value},${_cursorY.value}) → ($x,$y)")
@@ -132,8 +154,20 @@ class ComposeTerminalDisplay : TerminalDisplay {
     }
 
     override fun scrollArea(scrollRegionTop: Int, scrollRegionBottom: Int, dy: Int) {
-        // Trigger redraw when scrolling happens
-        _redrawTrigger.value += 1
+        // Note: This method is only called for actual scrolling operations (cursor past bottom, etc.)
+        // Regular text output is handled by the ModelListener registered on TerminalTextBuffer
+        // Smart priority detection: Use IMMEDIATE for interactive use, NORMAL for bulk output
+        val isHighVolume = synchronized(redrawTimestampsLock) {
+            currentMode == RedrawMode.HIGH_VOLUME
+        }
+
+        if (isHighVolume) {
+            // Bulk output detected (cat, streaming) - use debouncing for 98% reduction
+            requestRedraw()
+        } else {
+            // Interactive use (typing, prompts) - instant response for best UX
+            requestImmediateRedraw()
+        }
     }
 
     override fun useAlternateScreenBuffer(useAlternateScreenBuffer: Boolean) {
@@ -141,9 +175,15 @@ class ComposeTerminalDisplay : TerminalDisplay {
     }
 
     override var windowTitle: String?
-        get() = _windowTitle
+        get() = _windowTitle.value
         set(value) {
-            _windowTitle = value ?: ""
+            _windowTitle.value = value ?: ""
+        }
+
+    override var iconTitle: String?
+        get() = _iconTitle.value
+        set(value) {
+            _iconTitle.value = value ?: ""
         }
 
     override val selection: TerminalSelection?
@@ -266,8 +306,6 @@ class ComposeTerminalDisplay : TerminalDisplay {
      * Handle transitions between rendering modes.
      */
     private fun onModeTransition(from: RedrawMode, to: RedrawMode) {
-        println("🔄 Redraw mode: $from → $to (rate: ${recentRedraws.size}/sec)")
-
         // Schedule automatic return to INTERACTIVE after bulk output stops
         if (to == RedrawMode.HIGH_VOLUME) {
             returnToInteractiveJob?.cancel()
@@ -276,7 +314,6 @@ class ComposeTerminalDisplay : TerminalDisplay {
                 synchronized(redrawTimestampsLock) {
                     if (recentRedraws.size < 50) { // Less than 50 redraws/sec
                         currentMode = RedrawMode.INTERACTIVE
-                        println("🔄 Redraw mode: HIGH_VOLUME → INTERACTIVE (auto-recovery)")
                     }
                 }
             }
@@ -297,11 +334,17 @@ class ComposeTerminalDisplay : TerminalDisplay {
     /**
      * Trigger an immediate redraw (bypasses debouncing).
      * Use for user input (keyboard, mouse) to guarantee zero lag.
+     *
+     * CRITICAL FIX: This bypasses the Channel.CONFLATED to ensure IMMEDIATE requests
+     * are never dropped. During initialization, rapid redraw requests (10-20 in <50ms)
+     * were being conflated, causing the initial prompt to not display until user clicked.
+     * By calling actualRedraw() directly on Main thread, we ensure instant response.
      */
     fun requestImmediateRedraw() {
-        val sent = redrawChannel.trySend(RedrawRequest(priority = RedrawPriority.IMMEDIATE))
-        if (!sent.isSuccess) {
-            // Fallback: force immediate redraw
+        // Bypass channel entirely - call actualRedraw() directly on Main thread
+        // This ensures IMMEDIATE requests are never dropped during rapid initialization
+        // MUST use Main dispatcher because actualRedraw() modifies Compose state
+        redrawScope.launch(Dispatchers.Main) {
             actualRedraw()
         }
 
@@ -336,31 +379,12 @@ class ComposeTerminalDisplay : TerminalDisplay {
             (totalSkipped.toDouble() / totalRequests * 100)
         } else 0.0
 
-        if (totalRedraws > 0) {
-            val avgRedrawsPerSec = totalRedraws / totalTime
-            val currentRate = synchronized(redrawTimestampsLock) { recentRedraws.size }
-
-            println("┌─────────────────────────────────────────────────────────┐")
-            println("│ REDRAW PERFORMANCE (Phase 2 - Adaptive Debouncing)     │")
-            println("├─────────────────────────────────────────────────────────┤")
-            println("│ Mode:                 ${currentMode.name.padEnd(10)} (${currentMode.debounceMs}ms) │")
-            println("│ Current rate:         ${String.format("%,d", currentRate).padStart(10)} redraws/sec │")
-            println("│ Total redraws:        ${String.format("%,d", totalRedraws).padStart(10)} redraws │")
-            println("│ Coalesced redraws:    ${String.format("%,d", totalSkipped).padStart(10)} skipped │")
-            println("│ Efficiency:           ${String.format("%,.1f", efficiencyPercent).padStart(10)}% saved │")
-            println("│ Average rate:         ${String.format("%,.1f", avgRedrawsPerSec).padStart(10)} redraws/sec │")
-            println("│ Total runtime:        ${String.format("%,.1f", totalTime).padStart(10)} seconds │")
-            println("└─────────────────────────────────────────────────────────┘")
-        }
+        // Performance metrics reporting removed
 
         lastMetricsReport = now
     }
 
     fun printFinalMetrics() {
-        println("\n" + "=".repeat(60))
-        println("FINAL OPTIMIZED METRICS (Phase 2 Complete)")
-        println("=".repeat(60))
-        reportMetrics()
-        println("=".repeat(60) + "\n")
+        // Final metrics reporting removed
     }
 }

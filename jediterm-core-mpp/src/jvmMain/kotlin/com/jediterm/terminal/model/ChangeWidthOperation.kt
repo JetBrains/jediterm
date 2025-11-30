@@ -1,6 +1,7 @@
 package com.jediterm.terminal.model
 
 import com.jediterm.core.compatibility.Point
+import com.jediterm.terminal.util.GraphemeBoundaryUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.util.*
@@ -160,7 +161,24 @@ internal class ChangeWidthOperation(
                     myCurrentLineLength = 0
                     myAllLines.add(newLine)
                 }
-                val len = min(myNewWidth - myCurrentLineLength, entry.length - entryProcessedLength)
+
+                // Calculate maximum length we can take
+                val maxLen = min(myNewWidth - myCurrentLineLength, entry.length - entryProcessedLength)
+
+                // Get the text that we're about to split to analyze grapheme boundaries
+                val textToSplit = entry.text.subBuffer(entryProcessedLength, maxLen).toString()
+
+                // Find safe grapheme boundary to avoid splitting emoji, surrogate pairs, or ZWJ sequences
+                val safeLen = GraphemeBoundaryUtils.findLastCompleteGraphemeBoundary(textToSplit)
+
+                // Use the safe length, but ensure we make progress (use at least 1 char if safeLen is 0)
+                val len = if (safeLen > 0) {
+                    safeLen
+                } else {
+                    LOG.warn("Unable to find safe grapheme boundary in text of length ${textToSplit.length}, forcing split at position 1")
+                    1
+                }
+
                 val newEntry: TerminalLine.TextEntry = Companion.subEntry(entry, entryProcessedLength, len)
                 myCurrentLine?.appendEntry(newEntry)
                 myCurrentLineLength += len

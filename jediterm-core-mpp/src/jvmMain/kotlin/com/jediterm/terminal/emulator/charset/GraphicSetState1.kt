@@ -13,6 +13,11 @@ class GraphicSetState {
     //Override for next char (used by shift-in and shift-out)
     private var myGlOverride: GraphicSet? = null
 
+    // Whether to use GR mapping (160-255) through character sets
+    // false = UTF-8 mode (preserve multi-byte sequences)
+    // true = ISO-8859-1 mode (map through character sets)
+    private var myUseGRMapping = false
+
     init {
         myGraphicSets = Array<GraphicSet>(4) { i -> GraphicSet(i) }
 
@@ -69,7 +74,26 @@ class GraphicSetState {
      * @return the mapped character.
      */
     fun map(ch: Char): Char {
-        return CharacterSets.getChar(ch, this.gL, this.gR)
+        return CharacterSets.getChar(ch, this.gL, this.gR, myUseGRMapping)
+    }
+
+    /**
+     * Sets whether to use GR mapping (160-255) through character sets.
+     *
+     * @param useGRMapping false for UTF-8 mode (preserve multi-byte sequences),
+     *                     true for ISO-8859-1 mode (map through character sets)
+     */
+    fun setUseGRMapping(useGRMapping: Boolean) {
+        myUseGRMapping = useGRMapping
+    }
+
+    /**
+     * Returns whether GR mapping is enabled.
+     *
+     * @return true if GR mapping is enabled (ISO-8859-1 mode), false otherwise (UTF-8 mode)
+     */
+    fun isUseGRMapping(): Boolean {
+        return myUseGRMapping
     }
 
     /**

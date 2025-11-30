@@ -60,6 +60,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   private final TerminalKeyEncoder myTerminalKeyEncoder;
 
   private final Stack<String> myWindowTitlesStack = new Stack<>();
+  private final Stack<String> myIconTitlesStack = new Stack<>();
 
   private final Tabulator myTabulator;
 
@@ -251,7 +252,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     if (level == 1 || level == 2) {
       myGraphicSetState.designateGraphicSet(0, CharacterSet.ASCII); //ASCII designated as G0
       myGraphicSetState
-              .designateGraphicSet(1, CharacterSet.DEC_SUPPLEMENTAL); //TODO: not DEC supplemental, but ISO Latin-1 supplemental designated as G1
+              .designateGraphicSet(1, CharacterSet.ISO_LATIN_1); // ISO Latin-1 supplemental designated as G1
       mapCharsetToGL(0);
       mapCharsetToGR(1);
     } else if (level == 3) {
@@ -260,6 +261,17 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     } else {
       throw new IllegalArgumentException();
     }
+  }
+
+  /**
+   * Sets the character encoding mode, which controls GR range (160-255) mapping behavior.
+   *
+   * @param encoding "UTF-8" to disable GR mapping (preserve multi-byte sequences),
+   *                 "ISO-8859-1" to enable GR mapping through character sets
+   */
+  public void setCharacterEncoding(String encoding) {
+    boolean useGRMapping = "ISO-8859-1".equalsIgnoreCase(encoding);
+    myGraphicSetState.setUseGRMapping(useGRMapping);
   }
 
   @Override
@@ -296,6 +308,32 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
       String title = myWindowTitlesStack.pop();
       changeApplicationTitle(title);
     }
+  }
+
+  @Override
+  public void setIconTitle(@NotNull String name) {
+    changeApplicationIconTitle(name);
+  }
+
+  @Override
+  public void saveIconTitleOnStack() {
+    String title = myDisplay.getIconTitle();
+    myIconTitlesStack.push(title);
+  }
+
+  @Override
+  public void restoreIconTitleFromStack() {
+    if (!myIconTitlesStack.empty()) {
+      String title = myIconTitlesStack.pop();
+      changeApplicationIconTitle(title);
+    }
+  }
+
+  private void changeApplicationIconTitle(@Nls String newIconTitle) {
+    for (TerminalApplicationTitleListener listener : myApplicationTitleListeners) {
+      listener.onApplicationIconTitleChanged(newIconTitle);
+    }
+    myDisplay.setIconTitle(newIconTitle);
   }
 
   @Override

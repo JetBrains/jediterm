@@ -1,6 +1,8 @@
 package org.jetbrains.jediterm.compose.demo
 
 import com.jediterm.terminal.TerminalDataStream
+import com.jediterm.terminal.util.GraphemeUtils
+import com.jediterm.terminal.util.GraphemeBoundaryUtils
 import java.io.IOException
 import java.util.concurrent.BlockingQueue
 import java.util.concurrent.LinkedBlockingQueue
@@ -12,6 +14,9 @@ import java.util.concurrent.TimeUnit
  *
  * This solves the issue where CSI sequences spanning multiple output chunks
  * were being truncated and displayed as visible text.
+ *
+ * Also handles incomplete grapheme clusters at chunk boundaries (e.g., surrogate
+ * pairs, emoji ZWJ sequences) by buffering incomplete graphemes until the next chunk.
  */
 class BlockingTerminalDataStream : TerminalDataStream {
     private val buffer = StringBuilder()
@@ -21,19 +26,56 @@ class BlockingTerminalDataStream : TerminalDataStream {
     private val pushBackStack = mutableListOf<Char>()
 
     /**
+     * Buffer for incomplete grapheme clusters at chunk boundaries.
+     * When a chunk ends mid-grapheme (e.g., high surrogate without low surrogate,
+     * emoji without variation selector), the incomplete part is stored here
+     * and prepended to the next chunk.
+     */
+    private var incompleteGraphemeBuffer = ""
+
+    /**
      * Optional debug callback invoked when data is appended.
      * Used by debug tools to capture I/O for visualization.
      */
     var debugCallback: ((String) -> Unit)? = null
 
     /**
-     * Append a chunk of data to the stream
+     * Append a chunk of data to the stream.
+     *
+     * Handles incomplete grapheme clusters at chunk boundaries by:
+     * 1. Prepending any buffered incomplete grapheme from the previous chunk
+     * 2. Checking if this chunk ends with an incomplete grapheme
+     * 3. Buffering the incomplete part for the next chunk
+     * 4. Only queuing the complete grapheme portion
+     *
+     * This ensures surrogate pairs, emoji sequences, and combining characters
+     * are never split across chunk boundaries.
      */
     fun append(data: String) {
         if (closed) return
-        dataQueue.offer(data)
-        // Invoke debug callback if set
-        debugCallback?.invoke(data)
+
+        // Prepend any buffered incomplete grapheme from previous chunk
+        val fullData = incompleteGraphemeBuffer + data
+        incompleteGraphemeBuffer = ""
+
+        // Check if the chunk ends with an incomplete grapheme
+        val lastCompleteIndex = GraphemeBoundaryUtils.findLastCompleteGraphemeBoundary(fullData)
+
+        if (lastCompleteIndex < fullData.length) {
+            // Chunk ends mid-grapheme - buffer the incomplete part
+            incompleteGraphemeBuffer = fullData.substring(lastCompleteIndex)
+            val completeData = fullData.substring(0, lastCompleteIndex)
+
+            if (completeData.isNotEmpty()) {
+                dataQueue.offer(completeData)
+                // Invoke debug callback only for complete data
+                debugCallback?.invoke(completeData)
+            }
+        } else {
+            // All graphemes are complete
+            dataQueue.offer(fullData)
+            debugCallback?.invoke(fullData)
+        }
     }
 
     /**

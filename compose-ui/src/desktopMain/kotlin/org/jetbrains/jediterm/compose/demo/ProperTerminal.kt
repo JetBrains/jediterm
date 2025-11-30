@@ -4,10 +4,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -30,20 +28,11 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import org.jetbrains.jediterm.compose.ComposeTerminalDisplay
 import org.jetbrains.jediterm.compose.ConnectionState
-import org.jetbrains.jediterm.compose.PlatformServices
 import org.jetbrains.jediterm.compose.PreConnectScreen
-import org.jetbrains.jediterm.compose.getPlatformServices
 import com.jediterm.core.util.TermSize
-import com.jediterm.terminal.emulator.JediEmulator
 import com.jediterm.terminal.emulator.mouse.MouseMode
-import com.jediterm.terminal.model.JediTerminal
-import com.jediterm.terminal.model.StyleState
 import com.jediterm.terminal.model.TerminalTextBuffer
 import com.jediterm.terminal.RequestOrigin
 import com.jediterm.terminal.TextStyle as JediTextStyle
@@ -60,16 +49,23 @@ import org.jetbrains.jediterm.compose.debug.DebugPanel
 import org.jetbrains.jediterm.compose.hyperlinks.HyperlinkDetector
 import org.jetbrains.jediterm.compose.hyperlinks.Hyperlink
 import org.jetbrains.jediterm.compose.ime.IMEHandler
-import org.jetbrains.jediterm.compose.ime.IMEState
 import org.jetbrains.jediterm.compose.features.ContextMenuController
 import org.jetbrains.jediterm.compose.features.ContextMenuPopup
 import org.jetbrains.jediterm.compose.features.showTerminalContextMenu
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.input.pointer.PointerButton
+import androidx.compose.ui.text.ExperimentalTextApi
+import com.jediterm.core.compatibility.Point
 import org.jetbrains.jediterm.compose.actions.addTabManagementActions
 import org.jetbrains.jediterm.compose.actions.createBuiltinActions
 import org.jetbrains.jediterm.compose.scrollbar.rememberTerminalScrollbarAdapter
 import org.jetbrains.jediterm.compose.scrollbar.AlwaysVisibleScrollbar
 import com.jediterm.terminal.emulator.mouse.MouseButtonCodes
+import com.jediterm.terminal.model.SelectionUtil.getNextSeparator
+import com.jediterm.terminal.model.SelectionUtil.getPreviousSeparator
+import kotlinx.coroutines.delay
+import org.jetbrains.jediterm.compose.tabs.TerminalTab
 
 /**
  * Maps Compose Desktop Key constants to Java AWT VK (Virtual Key) codes.
@@ -112,7 +108,7 @@ private fun mapComposeKeyToVK(key: Key): Int? {
  * Note: Using JediTerm's InputEvent constants (SHIFT_MASK, etc.) not Java AWT's
  * SHIFT_DOWN_MASK, as TerminalKeyEncoder expects the old Event mask values.
  */
-private fun mapComposeModifiers(keyEvent: androidx.compose.ui.input.key.KeyEvent): Int {
+private fun mapComposeModifiers(keyEvent: KeyEvent): Int {
     var modifiers = 0
     if (keyEvent.isShiftPressed) modifiers = modifiers or InputEvent.SHIFT_MASK
     if (keyEvent.isCtrlPressed) modifiers = modifiers or InputEvent.CTRL_MASK
@@ -128,22 +124,21 @@ private fun mapComposeModifiers(keyEvent: androidx.compose.ui.input.key.KeyEvent
  * Refactored to support multiple tabs - accepts a TerminalTab with all per-tab state.
  */
 @OptIn(
-    androidx.compose.ui.ExperimentalComposeUiApi::class,
-    androidx.compose.ui.text.ExperimentalTextApi::class
+  ExperimentalComposeUiApi::class,
+  ExperimentalTextApi::class
 )
 @Composable
 fun ProperTerminal(
-    tab: org.jetbrains.jediterm.compose.tabs.TerminalTab,
-    isActiveTab: Boolean,
-    sharedFont: FontFamily,
-    onTabTitleChange: (String) -> Unit,
-    onProcessExit: () -> Unit,
-    onNewTab: () -> Unit = {},
-    onCloseTab: () -> Unit = {},
-    onNextTab: () -> Unit = {},
-    onPreviousTab: () -> Unit = {},
-    onSwitchToTab: (Int) -> Unit = {},
-    modifier: Modifier = Modifier
+  tab: TerminalTab,
+  isActiveTab: Boolean,
+  sharedFont: FontFamily,
+  onTabTitleChange: (String) -> Unit,
+  onNewTab: () -> Unit = {},
+  onCloseTab: () -> Unit = {},
+  onNextTab: () -> Unit = {},
+  onPreviousTab: () -> Unit = {},
+  onSwitchToTab: (Int) -> Unit = {},
+  modifier: Modifier = Modifier
 ) {
     // Extract tab state (no more remember {} blocks - state lives in TerminalTab)
     val processHandle = tab.processHandle.value
@@ -241,21 +236,18 @@ fun ProperTerminal(
         val buffer = terminal.terminalTextBuffer
         buffer.lock()
         try {
-            val lineCount = buffer.historyLinesCount + buffer.height
             for (row in -buffer.historyLinesCount until buffer.height) {
                 val line = buffer.getLine(row)
-                if (line != null) {
-                    val text = line.text
-                    val searchText = if (searchCaseSensitive) searchQuery else searchQuery.lowercase()
-                    val lineText = if (searchCaseSensitive) text else text.lowercase()
+                val text = line.text
+                val searchText = if (searchCaseSensitive) searchQuery else searchQuery.lowercase()
+                val lineText = if (searchCaseSensitive) text else text.lowercase()
 
-                    var index = 0
-                    while (index >= 0) {
-                        index = lineText.indexOf(searchText, index)
-                        if (index >= 0) {
-                            matches.add(Pair(index, row))
-                            index += searchQuery.length
-                        }
+                var index = 0
+                while (index >= 0) {
+                    index = lineText.indexOf(searchText, index)
+                    if (index >= 0) {
+                        matches.add(Pair(index, row))
+                        index += searchQuery.length
                     }
                 }
             }
@@ -282,11 +274,6 @@ fun ProperTerminal(
     var hoveredHyperlink by tab.hoveredHyperlink
     var cachedHyperlinks by remember { mutableStateOf<Map<Int, List<Hyperlink>>>(emptyMap()) }
 
-    // Use tab's long-lived data stream and emulator (preserves state across chunk boundaries)
-    // This prevents CSI sequences from being truncated when they span multiple output chunks
-    val dataStream = tab.dataStream
-    val emulator = tab.emulator
-
     // Terminal key encoder for proper escape sequence generation (function keys, modifiers, etc.)
     val keyEncoder = remember { TerminalKeyEncoder() }
 
@@ -294,7 +281,6 @@ fun ProperTerminal(
     // No longer needed here since terminal output routing is set up during tab initialization
 
     // Watch redraw trigger to force recomposition
-    val redrawTrigger = display.redrawTrigger.value
     val cursorX = display.cursorX.value
     val cursorY = display.cursorY.value
     val cursorVisible = display.cursorVisible.value
@@ -308,8 +294,16 @@ fun ProperTerminal(
     var isDragging by remember { mutableStateOf(false) }
     var dragStartPos by remember { mutableStateOf<Offset?>(null) }  // Track initial mouse position for drag detection
 
+    // Multi-click tracking for double-click (word select) and triple-click (line select)
+    var lastClickTime by remember { mutableStateOf(0L) }
+    var lastClickPosition by remember { mutableStateOf(Offset.Zero) }
+    var clickCount by remember { mutableIntStateOf(0) }
+
     // Drag threshold: pixels mouse must move before considering it a drag (not just a click)
     val DRAG_THRESHOLD = 5f
+    // Multi-click thresholds
+    val MULTI_CLICK_TIME_THRESHOLD = 500L  // milliseconds
+    val MULTI_CLICK_DISTANCE_THRESHOLD = 10f  // pixels
 
     // Context menu controller
     val contextMenuController = remember { ContextMenuController() }
@@ -317,7 +311,7 @@ fun ProperTerminal(
     // Helper functions for context menu actions
     fun clearBuffer() {
         scope.launch {
-            processHandle?.write("clear\n")
+            tab.writeUserInput("clear\n")
         }
     }
 
@@ -351,14 +345,14 @@ fun ProperTerminal(
     // Create action registry with all built-in actions
     val actionRegistry = remember(isMacOS) {
         val registry = createBuiltinActions(
-            selectionStart = object : androidx.compose.runtime.MutableState<Pair<Int, Int>?> {
+            selectionStart = object : MutableState<Pair<Int, Int>?> {
                 override var value: Pair<Int, Int>?
                     get() = selectionStart
                     set(value) { selectionStart = value }
                 override fun component1() = value
                 override fun component2(): (Pair<Int, Int>?) -> Unit = { selectionStart = it }
             },
-            selectionEnd = object : androidx.compose.runtime.MutableState<Pair<Int, Int>?> {
+            selectionEnd = object : MutableState<Pair<Int, Int>?> {
                 override var value: Pair<Int, Int>?
                     get() = selectionEnd
                     set(value) { selectionEnd = value }
@@ -367,15 +361,15 @@ fun ProperTerminal(
             },
             textBuffer = textBuffer,
             clipboardManager = clipboardManager,
-            getProcessHandle = { tab.processHandle.value },
-            searchVisible = object : androidx.compose.runtime.MutableState<Boolean> {
+            writeUserInput = tab::writeUserInput,
+            searchVisible = object : MutableState<Boolean> {
                 override var value: Boolean
                     get() = searchVisible
                     set(value) { searchVisible = value }
                 override fun component1() = value
                 override fun component2(): (Boolean) -> Unit = { searchVisible = it }
             },
-            debugPanelVisible = object : androidx.compose.runtime.MutableState<Boolean> {
+            debugPanelVisible = object : MutableState<Boolean> {
                 override var value: Boolean
                     get() = debugPanelVisible
                     set(value) { debugPanelVisible = value }
@@ -429,17 +423,10 @@ fun ProperTerminal(
     val cellWidth = cellMetrics.first
     val cellHeight = cellMetrics.second
 
-    // Auto-scroll to bottom on new output if already at bottom
-    LaunchedEffect(redrawTrigger) {
-        if (scrollOffset == 0) {
-            // Already at bottom, stay there (no action needed)
-        }
-    }
-
     // SLOW_BLINK animation timer (500ms intervals)
     LaunchedEffect(Unit) {
         while (true) {
-            kotlinx.coroutines.delay(500)
+            delay(500)
             slowBlinkVisible = !slowBlinkVisible
         }
     }
@@ -447,7 +434,7 @@ fun ProperTerminal(
     // RAPID_BLINK animation timer (250ms intervals)
     LaunchedEffect(Unit) {
         while (true) {
-            kotlinx.coroutines.delay(250)
+            delay(250)
             rapidBlinkVisible = !rapidBlinkVisible
         }
     }
@@ -455,7 +442,7 @@ fun ProperTerminal(
     // Cursor blink animation timer (500ms intervals)
     LaunchedEffect(Unit) {
         while (true) {
-            kotlinx.coroutines.delay(500)
+            delay(500)
             cursorBlinkVisible = !cursorBlinkVisible
         }
     }
@@ -466,8 +453,20 @@ fun ProperTerminal(
     // Request focus when tab becomes active or changes
     // Use tab.id as key so effect re-triggers when switching between tabs
     LaunchedEffect(tab.id) {
-        kotlinx.coroutines.delay(100)
+        delay(100)
         focusRequester.requestFocus()
+    }
+
+    // Observe icon title changes from OSC 1 sequence for tab labels (XTerm standard)
+    // Icon title (OSC 1) is used for tab labels in modern terminals
+    // Window title (OSC 2) is used for the main window title bar
+    // Using reactive Flow instead of polling for immediate updates and better resource efficiency
+    LaunchedEffect(Unit) {
+        display.iconTitleFlow.collect { newTitle ->
+            if (newTitle.isNotEmpty()) {
+                onTabTitleChange(newTitle)
+            }
+        }
     }
 
     // Scrollbar adapter that bridges terminal scroll state with Compose scrollbar
@@ -485,27 +484,16 @@ fun ProperTerminal(
     )
 
     /**
-     * Mouse reporting decision logic helpers (Issue #20)
+     * Mouse reporting decision logic (Issue #20)
      *
-     * Determines if mouse event should be handled locally (selection, scrolling) or
-     * forwarded to terminal application (vim, tmux, etc.).
+     * Determines if mouse event should be forwarded to terminal application (vim, tmux, etc.)
+     * or handled locally (selection, scrolling).
      *
      * Key behavior:
      * - Shift+Click ALWAYS forces local action, even when app has mouse mode
      * - Without Shift: respects application's mouse mode settings
-     */
-
-    /**
-     * Check if mouse action should be handled locally (selection, scrolling).
-     * Returns true when NOT in mouse reporting mode OR Shift is held.
-     */
-    fun isLocalMouseAction(shiftPressed: Boolean): Boolean {
-        return !display.isMouseReporting() || shiftPressed
-    }
-
-    /**
-     * Check if mouse action should be forwarded to terminal application.
-     * Returns true when: Mouse reporting enabled AND in mouse mode AND Shift NOT held.
+     *
+     * @return true when mouse event should be forwarded to terminal app
      */
     fun isRemoteMouseAction(shiftPressed: Boolean): Boolean {
         return settings.enableMouseReporting && display.isMouseReporting() && !shiftPressed
@@ -578,7 +566,7 @@ fun ProperTerminal(
                     }
 
                     // Check for right-click (secondary button)
-                    if (event.button == androidx.compose.ui.input.pointer.PointerButton.Secondary) {
+                    if (event.button == PointerButton.Secondary) {
                         // Show context menu
                         val pos = change.position
                         showTerminalContextMenu(
@@ -598,12 +586,13 @@ fun ProperTerminal(
                                 val text = clipboardManager.getText()?.text
                                 if (!text.isNullOrEmpty()) {
                                     scope.launch {
-                                        processHandle?.write(text)
+                                        tab.writeUserInput(text)
                                     }
                                 }
                             },
                             onSelectAll = { selectAll() },
                             onClearScreen = { clearBuffer() },
+                            onClearScrollback = { clearScrollback() },
                             onFind = { searchVisible = true },
                             onShowDebug = if (debugCollector != null) {
                                 { debugPanelVisible = !debugPanelVisible }
@@ -614,7 +603,7 @@ fun ProperTerminal(
                     }
 
                     // Check for middle-click paste (tertiary button)
-                    if (event.button == androidx.compose.ui.input.pointer.PointerButton.Tertiary && settings.pasteOnMiddleClick) {
+                    if (event.button == PointerButton.Tertiary && settings.pasteOnMiddleClick) {
                         val text = if (settings.emulateX11CopyPaste) {
                             // X11 mode: Paste from selection clipboard (middle-click buffer)
                             selectionClipboard
@@ -625,7 +614,7 @@ fun ProperTerminal(
                         if (!text.isNullOrEmpty() && processHandle != null) {
                             scope.launch {
                                 try {
-                                    processHandle?.write(text)
+                                    tab.writeUserInput(text)
                                 } catch (e: Exception) {
                                     println("ERROR: Failed to paste text via middle-click: ${e.message}")
                                     e.printStackTrace()
@@ -644,17 +633,71 @@ fun ProperTerminal(
                         return@onPointerEvent
                     }
 
+                    // Multi-click detection for word/line selection
+                    // Track click count based on time and position deltas
+                    val currentTime = System.currentTimeMillis()
+                    val currentPosition = change.position
+                    val timeDelta = currentTime - lastClickTime
+                    val dx = currentPosition.x - lastClickPosition.x
+                    val dy = currentPosition.y - lastClickPosition.y
+                    val distance = kotlin.math.sqrt(dx * dx + dy * dy)
+
+                    // Determine if this is a multi-click or a new click sequence
+                    if (timeDelta < MULTI_CLICK_TIME_THRESHOLD && distance < MULTI_CLICK_DISTANCE_THRESHOLD) {
+                        clickCount++
+                    } else {
+                        clickCount = 1
+                    }
+
+                    lastClickTime = currentTime
+                    lastClickPosition = currentPosition
+
                     // Track start position but don't create selection yet
                     // This allows distinguishing click (no selection) from drag (selection)
                     dragStartPos = change.position
 
-                    // Clear selection on LEFT-CLICK only (not right-click)
-                    // Also preserve selection during search navigation
-                    if (event.button != androidx.compose.ui.input.pointer.PointerButton.Secondary && !searchVisible) {
-                        selectionStart = null
-                        selectionEnd = null
+                    // Branch on click count for different selection modes
+                    when (clickCount) {
+                        1 -> {
+                            // Single click: Clear selection on LEFT-CLICK only (not right-click)
+                            // Also preserve selection during search navigation
+                            if (event.button != androidx.compose.ui.input.pointer.PointerButton.Secondary && !searchVisible) {
+                                selectionStart = null
+                                selectionEnd = null
+                            }
+                            isDragging = false
+                        }
+                        2 -> {
+                            // Double-click: Select word at cursor position
+                            val (col, row) = pixelToCharCoords(currentPosition)
+                            val (start, end) = selectWordAt(col, row, textBuffer)
+                            selectionStart = start
+                            selectionEnd = end
+                            isDragging = false
+
+                            // Clear search when user manually selects text
+                            if (searchVisible) {
+                                searchVisible = false
+                                searchQuery = ""
+                                searchMatches = emptyList()
+                            }
+                        }
+                        else -> {
+                            // Triple-click (or more): Select entire logical line
+                            val (col, row) = pixelToCharCoords(currentPosition)
+                            val (start, end) = selectLineAt(col, row, textBuffer)
+                            selectionStart = start
+                            selectionEnd = end
+                            isDragging = false
+
+                            // Clear search when user manually selects text
+                            if (searchVisible) {
+                                searchVisible = false
+                                searchQuery = ""
+                                searchMatches = emptyList()
+                            }
+                        }
                     }
-                    isDragging = false
 
                     // Phase 2: Immediate redraw for mouse input
                     display.requestImmediateRedraw()
@@ -755,7 +798,8 @@ fun ProperTerminal(
                 // If never started dragging (no movement beyond threshold),
                 // ensure selection is cleared - this was just a click, not a drag
                 // BUT: Don't clear on right-click to allow context menu → Copy
-                if (!isDragging && event.button != androidx.compose.ui.input.pointer.PointerButton.Secondary) {
+                // ALSO: Don't clear multi-click selections (double-click word, triple-click line)
+                if (!isDragging && clickCount == 1 && event.button != androidx.compose.ui.input.pointer.PointerButton.Secondary) {
                     selectionStart = null
                     selectionEnd = null
                 }
@@ -814,10 +858,17 @@ fun ProperTerminal(
                 scrollOffset = (scrollOffset - delta.toInt()).coerceIn(0, historySize)
             }
             .onPreviewKeyEvent { keyEvent ->
-                // Track Ctrl/Cmd key state for hyperlink clicks
+                // Track Ctrl/Cmd key state for hyperlink clicks and hover effects
                 when (keyEvent.key) {
                     Key.CtrlLeft, Key.CtrlRight, Key.MetaLeft, Key.MetaRight -> {
+                        val wasPressed = isModifierPressed
                         isModifierPressed = keyEvent.type == KeyEventType.KeyDown
+
+                        // Request immediate redraw if modifier state changed and hovering over hyperlink
+                        // This ensures the underline appears/disappears immediately when Cmd/Ctrl is pressed/released
+                        if (wasPressed != isModifierPressed && hoveredHyperlink != null) {
+                            display.requestImmediateRedraw()
+                        }
                     }
                 }
 
@@ -910,7 +961,7 @@ fun ProperTerminal(
                         }
 
                         if (text.isNotEmpty()) {
-                            processHandle?.write(text)
+                            tab.writeUserInput(text)
                             // Phase 2: Immediate redraw for user input (zero lag)
                             display.requestImmediateRedraw()
                         }
@@ -1066,27 +1117,268 @@ fun ProperTerminal(
                       }
                   }
 
-                  var col = 0
+                  var col = 0  // Character index in buffer
+                  var visualCol = 0  // Visual column position (accounts for double-width chars)
                   while (col < width) {
                       val char = line.charAt(col)
                       val style = line.getStyleAt(col)
 
                       // Skip double-width character continuation markers
+                      // CRITICAL FIX: DWC is a storage artifact, not a separate visual cell
+                      // Visual width is already accounted for via grapheme.visualWidth or isWcwidthDoubleWidth
+                      // Incrementing visualCol here would double-count and cause spacing issues with emoji
                       if (char == CharUtils.DWC) {
                           col++
+                          // Do NOT increment visualCol here
                           continue
                       }
 
-                      val x = col * cellWidth
+                      // GRAPHEME CLUSTER HANDLING: Check for ZWJ sequences
+                      // ZWJ (Zero-Width Joiner) U+200D combines multiple emoji into single visual unit
+                      // Examples: 👨‍👩‍👧‍👦 (family), 👨‍💻 (man technologist)
+                      // Problem: line.text contains DWC markers that break ZWJ sequences
+                      // Solution: Extract clean text by skipping DWC markers
+
+                      // Build clean text from current position (no DWC markers)
+                      val cleanText = buildString {
+                          var i = col
+                          var count = 0
+                          while (i < width && count < 20) {  // Look ahead max 20 chars
+                              val c = line.charAt(i)
+                              if (c != CharUtils.DWC) {
+                                  append(c)
+                                  count++
+                              }
+                              i++
+                          }
+                      }
+
+                      // Check if current character is IMMEDIATELY followed by skin tone modifier
+                      // Skin tone modifiers: U+1F3FB to U+1F3FF (stored as surrogate pairs)
+                      fun hasFollowingSkinTone(): Boolean {
+                          // Skip past current character (might be surrogate pair + DWC)
+                          var checkCol = col
+                          val currentChar = line.charAt(checkCol)
+
+                          // If current is high surrogate, skip past the pair
+                          if (Character.isHighSurrogate(currentChar)) {
+                              checkCol++  // Skip low surrogate
+                          }
+                          checkCol++  // Move to next position
+
+                          // Skip DWC if present (for double-width chars)
+                          if (checkCol < width && line.charAt(checkCol) == CharUtils.DWC) {
+                              checkCol++
+                          }
+
+                          // Now check if we're at a skin tone modifier
+                          if (checkCol < width - 1) {
+                              val c1 = line.charAt(checkCol)
+                              // Skin tone modifiers are surrogate pairs: high=\uD83C, low=\uDFFB-\uDFFF
+                              if (c1 == '\uD83C' && checkCol + 1 < width) {
+                                  val c2 = line.charAt(checkCol + 1)
+                                  if (c2.code in 0xDFFB..0xDFFF) {
+                                      return true
+                                  }
+                              }
+                          }
+
+                          return false
+                      }
+
+                      val hasZWJ = cleanText.contains('\u200D')
+                      val hasSkinTone = hasFollowingSkinTone()
+
+                      if (hasZWJ || hasSkinTone) {
+                          // Segment clean text into graphemes
+                          val graphemes = com.jediterm.terminal.util.GraphemeUtils.segmentIntoGraphemes(cleanText)
+
+                          if (graphemes.isNotEmpty()) {
+                              val grapheme = graphemes[0]
+
+                              // Handle if grapheme contains ZWJ or skin tone
+                              if (grapheme.hasZWJ || hasSkinTone) {
+                                  // Flush any pending batch before rendering ZWJ sequence
+                                  flushBatch()
+
+                                  val x = visualCol * cellWidth  // Use visual column for positioning
+                                  val y = row * cellHeight
+
+                                  // Get style for first character of grapheme
+                                  val isBold = style?.hasOption(JediTextStyle.Option.BOLD) ?: false
+                                  val isItalic = style?.hasOption(JediTextStyle.Option.ITALIC) ?: false
+                                  val isInverse = style?.hasOption(JediTextStyle.Option.INVERSE) ?: false
+                                  val isDim = style?.hasOption(JediTextStyle.Option.DIM) ?: false
+
+                                  // Apply color logic
+                                  val baseFg = style?.foreground?.let { convertTerminalColor(it) } ?: settings.defaultForegroundColor
+                                  val baseBg = style?.background?.let { convertTerminalColor(it) } ?: settings.defaultBackgroundColor
+                                  var fgColor = if (isInverse) baseBg else baseFg
+                                  if (isDim) fgColor = applyDimColor(fgColor)
+
+                                  // Use system font (FontFamily.Default) for ZWJ sequences
+                                  // This enables Apple Color Emoji on macOS which has combined glyphs
+                                  val textStyle = TextStyle(
+                                      color = fgColor,
+                                      fontFamily = FontFamily.Default,  // System font with ZWJ support
+                                      fontSize = settings.fontSize.sp,
+                                      fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
+                                      fontStyle = if (isItalic) androidx.compose.ui.text.font.FontStyle.Italic
+                                                 else androidx.compose.ui.text.font.FontStyle.Normal
+                                  )
+
+                                  // Render the complete ZWJ sequence as a single unit
+                                  val measurement = textMeasurer.measure(grapheme.text, textStyle)
+                                  val glyphWidth = measurement.size.width.toFloat()
+                                  val glyphHeight = measurement.size.height.toFloat()
+
+                                  // Calculate scale to fit in allocated space
+                                  val allocatedWidth = cellWidth * grapheme.visualWidth.toFloat()
+                                  val targetHeight = cellHeight * 1.0f
+
+                                  val widthScale = if (glyphWidth > 0) allocatedWidth / glyphWidth else 1.0f
+                                  val heightScale = if (glyphHeight > 0) targetHeight / glyphHeight else 1.0f
+                                  val scale = minOf(widthScale, heightScale).coerceIn(0.8f, 2.5f)
+
+                                  // Center in allocated space
+                                  val scaledWidth = glyphWidth * scale
+                                  val scaledHeight = glyphHeight * scale
+                                  val centerX = x + (allocatedWidth - scaledWidth) / 2f
+                                  val centerY = y + (cellHeight - scaledHeight) / 2f
+
+                                  scale(scaleX = scale, scaleY = scale, pivot = Offset(x, y + cellHeight / 2f)) {
+                                      drawText(
+                                          textMeasurer = textMeasurer,
+                                          text = grapheme.text,
+                                          topLeft = Offset(x + (centerX - x) / scale, y),
+                                          style = textStyle
+                                      )
+                                  }
+
+                                  // Advance by matching grapheme text against buffer cells
+                                  // We must consume ALL cells (including DWC markers) for this grapheme
+                                  val graphemeText = grapheme.text
+                                  var graphemeCharIndex = 0
+                                  var charsToSkip = 0
+                                  var i = col
+
+                                  while (i < width && graphemeCharIndex < graphemeText.length) {
+                                      val c = line.charAt(i)
+
+                                      if (c == CharUtils.DWC) {
+                                          // DWC markers are part of grapheme storage but not in grapheme.text
+                                          charsToSkip++
+                                          i++
+                                          continue
+                                      }
+
+                                      // Match this buffer character against grapheme.text
+                                      val expectedChar = graphemeText[graphemeCharIndex]
+
+                                      if (Character.isHighSurrogate(c) && i + 1 < width) {
+                                          val next = line.charAt(i + 1)
+                                          if (Character.isLowSurrogate(next)) {
+                                              // Verify surrogate pair matches
+                                              if (graphemeCharIndex + 1 < graphemeText.length &&
+                                                  graphemeText[graphemeCharIndex] == c &&
+                                                  graphemeText[graphemeCharIndex + 1] == next) {
+                                                  charsToSkip += 2
+                                                  i += 2
+                                                  graphemeCharIndex += 2
+                                                  continue
+                                              }
+                                          }
+                                      }
+
+                                      // Single character match
+                                      if (expectedChar == c) {
+                                          charsToSkip++
+                                          i++
+                                          graphemeCharIndex++
+                                      } else {
+                                          // Mismatch - stop to avoid consuming wrong cells
+                                          println("[WARN] Grapheme match break: grapheme='${grapheme.text}' expected='$expectedChar'(${expectedChar.code}) got='$c'(${c.code}) at col=$col i=$i")
+                                          println("[WARN]   charsToSkip=$charsToSkip graphemeCharIndex=$graphemeCharIndex/${graphemeText.length}")
+                                          println("[WARN]   This will cause desync: advancing col by $charsToSkip but visualCol by ${grapheme.visualWidth}")
+                                          break
+                                      }
+                                  }
+
+                                  // Check if we fully matched the grapheme
+                                  val fullyMatched = graphemeCharIndex == graphemeText.length
+                                  if (!fullyMatched) {
+                                      println("[ERROR] Partial grapheme match at row=$row col=$col:")
+                                      println("[ERROR]   grapheme='${grapheme.text}' visualWidth=${grapheme.visualWidth}")
+                                      println("[ERROR]   matched $graphemeCharIndex/${graphemeText.length} chars, skipped $charsToSkip buffer cells")
+                                      println("[ERROR]   Buffer will desync: col+=$charsToSkip visualCol+=${grapheme.visualWidth}")
+                                  }
+
+                                  // After matching grapheme, check if there are DWC markers we need to skip
+                                  while (i < width && line.charAt(i) == CharUtils.DWC) {
+                                      charsToSkip++
+                                      i++
+                                  }
+
+                                  col += charsToSkip
+                                  // Use grapheme's logical visual width, not buffer cell count
+                                  // Family emoji takes 8+ buffer cells but only 2 visual columns
+                                  visualCol += grapheme.visualWidth
+
+                                  continue
+                              }
+                          }
+                      }
+
+                      val x = visualCol * cellWidth  // Use visual column for positioning
                       val y = row * cellHeight
 
+                      // For surrogate pairs, we need to find the low surrogate FIRST
+                      // because we need the actual codepoint for wcwidth check
+                      // Check what's at col+1 and col+2
+                      val charAtCol1 = if (col + 1 < width) line.charAt(col + 1) else null
+                      val charAtCol2 = if (col + 2 < width) line.charAt(col + 2) else null
+
+                      // Find low surrogate: could be at col+1 (single-width) or col+2 (if col+1 is DWC)
+                      val lowSurrogate = if (Character.isHighSurrogate(char)) {
+                          when {
+                              charAtCol1 != null && Character.isLowSurrogate(charAtCol1) -> charAtCol1
+                              charAtCol1 == CharUtils.DWC && charAtCol2 != null && Character.isLowSurrogate(charAtCol2) -> charAtCol2
+                              else -> null
+                          }
+                      } else null
+                      val lowSurrogatePos = when (lowSurrogate) {
+                          charAtCol1 -> col + 1
+                          charAtCol2 -> col + 2
+                          else -> -1
+                      }
+
+                      // Calculate actual codepoint (combining surrogates if needed)
+                      val actualCodePoint = if (lowSurrogate != null && Character.isLowSurrogate(lowSurrogate)) {
+                          Character.toCodePoint(char, lowSurrogate)
+                      } else char.code
+
                       // Check if this is a double-width character according to wcwidth
-                      val isWcwidthDoubleWidth = char != ' ' && char != '\u0000' &&
-                              CharUtils.isDoubleWidthCharacter(char.code, display.ambiguousCharsAreDoubleWidth())
+                      // IMPORTANT: Use actualCodePoint, not char.code, for surrogate pairs!
+                      val wcwidthResult = char != ' ' && char != '\u0000' &&
+                              CharUtils.isDoubleWidthCharacter(actualCodePoint, display.ambiguousCharsAreDoubleWidth())
+
+                      // Detect actual width from buffer: if col+1 has DWC, it's stored as double-width
+                      val isWcwidthDoubleWidth = charAtCol1 == CharUtils.DWC || wcwidthResult
+
+                      // Determine the text to render - for surrogate pairs, combine high and low surrogates
+                      val charTextToRender = if (lowSurrogate != null && Character.isLowSurrogate(lowSurrogate)) {
+                          "$char$lowSurrogate"
+                      } else {
+                          char.toString()
+                      }
+
+                      // Detect cursive/mathematical characters - need system font but no special scaling
+                      val isCursiveOrMath = actualCodePoint in 0x1D400..0x1D7FF
 
                       // For emoji and symbols, we'll render them with slight scaling for better visibility
                       // These are Unicode blocks containing symbols that render poorly at normal size
-                      val isEmojiOrWideSymbol = when (char.code) {
+                      // IMPORTANT: Use actualCodePoint for surrogate pair emoji!
+                      val isEmojiOrWideSymbol = when (actualCodePoint) {
                           in 0x2600..0x26FF -> true  // Miscellaneous Symbols (☁️, ☀️, ★, etc.)
                           in 0x2700..0x27BF -> true  // Dingbats (✂, ✈, ❯, etc.)
                           in 0x1F300..0x1F9FF -> true  // Emoji & Pictographs
@@ -1095,11 +1387,19 @@ fun ProperTerminal(
                           else -> false
                       }
 
-                      val isDoubleWidth = isWcwidthDoubleWidth
+                      // Separate rendering width from buffer storage width
+                      // Emoji (>= 0x1F300) should render in 2 cells even if stored as single-width
+                      val isDoubleWidth = if (actualCodePoint >= 0x1F300) {
+                          true  // Force emoji to render in 2-cell space
+                      } else {
+                          isWcwidthDoubleWidth  // Use buffer storage width
+                      }
 
                       // Peek ahead to detect emoji + variation selector pairs
                       // When found, we'll handle them together with system font
-                      val nextChar = if (col + 1 < width) line.charAt(col + 1) else null
+                      // For double-width emoji, need to skip DWC marker at col+1 to check col+2
+                      val nextCharOffset = if (isWcwidthDoubleWidth) 2 else 1
+                      val nextChar = if (col + nextCharOffset < width) line.charAt(col + nextCharOffset) else null
                       val isEmojiWithVariationSelector = isEmojiOrWideSymbol &&
                           nextChar != null &&
                           (nextChar.code == 0xFE0F || nextChar.code == 0xFE0E)
@@ -1145,7 +1445,8 @@ fun ProperTerminal(
                       }
 
                       // Decide if this character can be batched or needs individual rendering
-                      val canBatch = !isDoubleWidth && !isEmojiOrWideSymbol &&
+                      // Cursive/math chars can't be batched (need system font), but emoji need special scaling
+                      val canBatch = !isDoubleWidth && !isEmojiOrWideSymbol && !isCursiveOrMath &&
                                      !isHidden && isBlinkVisible &&
                                      char != ' ' && char != '\u0000'
 
@@ -1159,7 +1460,7 @@ fun ProperTerminal(
                       if (canBatch && (batchText.isEmpty() || styleMatches)) {
                           // Add to batch
                           if (batchText.isEmpty()) {
-                              batchStartCol = col
+                              batchStartCol = visualCol  // Use visual column for rendering position
                               batchFgColor = fgColor
                               batchIsBold = isBold
                               batchIsItalic = isItalic
@@ -1172,11 +1473,11 @@ fun ProperTerminal(
 
                       // Only draw glyph if it's printable (not space or null), not HIDDEN, and visible in blink cycle
                       if (char != ' ' && char != '\u0000' && !isHidden && isBlinkVisible) {
-                          // For emoji+variation selector pairs, use system font (FontFamily.Default)
+                          // For emoji/symbols/cursive, use system font (FontFamily.Default)
                           // to enable proper emoji rendering on macOS (Apple Color Emoji)
-                          // Skia doesn't honor variation selectors, so we must switch fonts
-                          val fontForChar = if (isEmojiWithVariationSelector) {
-                              FontFamily.Default  // System font with emoji support
+                          // MesloLGSNF doesn't have glyphs for emoji or mathematical alphanumerics
+                          val fontForChar = if (isEmojiOrWideSymbol || isEmojiWithVariationSelector || isCursiveOrMath) {
+                              FontFamily.Default  // System font with emoji/Unicode support
                           } else {
                               measurementStyle.fontFamily  // Nerd Font
                           }
@@ -1196,7 +1497,7 @@ fun ProperTerminal(
                           // - If font doesn't (emoji in monospace), scale them to fill space
                           if (isDoubleWidth) {
                               // Measure the actual glyph width at natural font size
-                              val measurement = textMeasurer.measure(char.toString(), textStyle)
+                              val measurement = textMeasurer.measure(charTextToRender, textStyle)
                               val glyphWidth = measurement.size.width.toFloat()
 
                               // Calculate available space (2 cells)
@@ -1211,7 +1512,7 @@ fun ProperTerminal(
                                   scale(scaleX = scaleX, scaleY = 1f, pivot = Offset(x, y + cellWidth)) {
                                       drawText(
                                           textMeasurer = textMeasurer,
-                                          text = char.toString(),
+                                          text = charTextToRender,
                                           topLeft = Offset(x, y),
                                           style = textStyle
                                       )
@@ -1222,7 +1523,7 @@ fun ProperTerminal(
                                   val centeringOffset = emptySpace / 2f
                                   drawText(
                                       textMeasurer = textMeasurer,
-                                      text = char.toString(),
+                                      text = charTextToRender,
                                       topLeft = Offset(x + centeringOffset, y),
                                       style = textStyle
                                   )
@@ -1231,9 +1532,9 @@ fun ProperTerminal(
                               // For emoji/symbols: measure and scale to fit cell better
                               // If this is emoji+variation selector pair, render both together
                               val textToRender = if (isEmojiWithVariationSelector) {
-                                  "$char$nextChar"  // Render emoji + variation selector together
+                                  "$charTextToRender$nextChar"  // Render emoji + variation selector together
                               } else {
-                                  char.toString()
+                                  charTextToRender
                               }
 
                               val measurement = textMeasurer.measure(textToRender, textStyle)
@@ -1271,12 +1572,24 @@ fun ProperTerminal(
                               // If we rendered emoji+variation selector, skip the variation selector
                               if (isEmojiWithVariationSelector) {
                                   col++  // Skip the variation selector character
+                                  // Variation selector doesn't add visual width
                               }
+                          } else if (isCursiveOrMath) {
+                              // Cursive/math characters: center in cell to prevent overlap
+                              val measurement = textMeasurer.measure(charTextToRender, textStyle)
+                              val glyphWidth = measurement.size.width.toFloat()
+                              val centeringOffset = ((cellWidth - glyphWidth) / 2f).coerceAtLeast(0f)
+                              drawText(
+                                  textMeasurer = textMeasurer,
+                                  text = charTextToRender,
+                                  topLeft = Offset(x + centeringOffset, y),
+                                  style = textStyle
+                              )
                           } else {
                               // Normal single-width rendering
                               drawText(
                                   textMeasurer = textMeasurer,
-                                  text = char.toString(),
+                                  text = charTextToRender,
                                   topLeft = Offset(x, y),
                                   style = textStyle
                               )
@@ -1294,12 +1607,14 @@ fun ProperTerminal(
                               )
                           }
 
-                          // Draw hyperlink underline if hovered
+                          // Draw hyperlink underline if hovered with Ctrl/Cmd modifier
+                          // This provides standard IDE-like behavior: underline only shows when modifier is pressed
                           if (settings.hyperlinkUnderlineOnHover &&
                               hoveredHyperlink != null &&
                               hoveredHyperlink!!.row == row &&
                               col >= hoveredHyperlink!!.startCol &&
-                              col < hoveredHyperlink!!.endCol) {
+                              col < hoveredHyperlink!!.endCol &&
+                              isModifierPressed) {
                               val underlineY = y + cellHeight - 1f
                               drawLine(
                                   color = settings.hyperlinkColorValue,
@@ -1314,10 +1629,27 @@ fun ProperTerminal(
                       // If true double-width (wcwidth), skip the next column (contains DWC marker)
                       // For emoji/symbols, don't skip - they're single-width in the buffer but render wider
                       if (isWcwidthDoubleWidth) {
-                          col++
+                          col++  // Skip DWC marker in buffer
+                          // No visualCol++ here because we do it below
                       }
 
-                      col++
+                      col++  // Advance to next character in buffer
+
+                      // Skip the low surrogate if we found one
+                      // For single-width: [high][low] - we've advanced past high, now skip low
+                      // For double-width: [high][DWC][low] - we've skipped DWC and advanced, now skip low
+                      if (lowSurrogate != null) {
+                          col++  // Skip the low surrogate
+                      }
+
+                      visualCol++  // Advance visual column (1 for single-width, handled by DWC skip for double-width)
+
+                      // For double-width characters (rendering width, not buffer width),
+                      // add 1 more to visualCol since they occupy 2 visual columns
+                      // This includes emoji forced to double-width even if stored as single-width
+                      if (isDoubleWidth) {
+                          visualCol++  // Double-width takes 2 visual columns
+                      }
                   }
 
                   // Flush any remaining batch at end of line
@@ -1451,7 +1783,7 @@ fun ProperTerminal(
             onTextCommit = { text ->
                 // Forward composed text to terminal
                 scope.launch {
-                    processHandle?.write(text)
+                    tab.writeUserInput(text)
                 }
                 // Disable IME after successful input
                 imeState.disable()
@@ -1508,6 +1840,15 @@ fun ProperTerminal(
             onClose = { debugPanelVisible = false },
             modifier = Modifier.align(Alignment.BottomCenter)
         )
+
+        // Restore focus to terminal when debug panel closes
+        LaunchedEffect(debugPanelVisible) {
+            if (!debugPanelVisible) {
+                // Panel just closed - restore focus to terminal
+                kotlinx.coroutines.delay(50)  // Let DebugPanel unmount first
+                focusRequester.requestFocus()
+            }
+        }
         }
 
         // Vertical scrollbar on the right side - Always visible custom scrollbar
@@ -1537,6 +1878,73 @@ fun ProperTerminal(
         }
     }
         } // end else (Connected state)
+}
+
+/**
+ * Select word at the given character coordinates using SelectionUtil.
+ * Returns the selection as a pair of (start, end) coordinates.
+ */
+private fun selectWordAt(
+    col: Int,
+    row: Int,
+    textBuffer: TerminalTextBuffer
+): Pair<Pair<Int, Int>, Pair<Int, Int>> {
+    textBuffer.lock()
+    try {
+        // Convert Pair<Int, Int> to Point for SelectionUtil
+        val clickPoint = Point(col, row)
+
+        // Get word boundaries using SelectionUtil
+        val startPoint = getPreviousSeparator(clickPoint, textBuffer)
+        val endPoint = getNextSeparator(clickPoint, textBuffer)
+
+        // Convert Point back to Pair<Int, Int>
+        return Pair(Pair(startPoint.x, startPoint.y), Pair(endPoint.x, endPoint.y))
+    } finally {
+        textBuffer.unlock()
+    }
+}
+
+/**
+ * Select entire logical line at the given character coordinates.
+ * Handles wrapped lines by walking backwards and forwards through isWrapped property.
+ * Returns the selection as a pair of (start, end) coordinates.
+ */
+private fun selectLineAt(
+    col: Int,
+    row: Int,
+    textBuffer: TerminalTextBuffer
+): Pair<Pair<Int, Int>, Pair<Int, Int>> {
+    textBuffer.lock()
+    try {
+        var startLine = row
+        var endLine = row
+
+        // Walk backwards through wrapped lines to find logical line start
+        while (startLine > -textBuffer.historyLinesCount) {
+            val prevLine = textBuffer.getLine(startLine - 1)
+            if (prevLine.isWrapped) {
+                startLine--
+            } else {
+                break
+            }
+        }
+
+        // Walk forwards through wrapped lines to find logical line end
+        while (endLine < textBuffer.height - 1) {
+            val currentLine = textBuffer.getLine(endLine)
+            if (currentLine.isWrapped) {
+                endLine++
+            } else {
+                break
+            }
+        }
+
+        // Select from start of first line to end of last line
+        return Pair(Pair(0, startLine), Pair(textBuffer.width - 1, endLine))
+    } finally {
+        textBuffer.unlock()
+    }
 }
 
 /**

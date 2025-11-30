@@ -13,6 +13,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -175,11 +177,15 @@ fun ControlSequenceView(
         }
     }
 
+    val clipboardManager = LocalClipboardManager.current
+    var showCopyFeedback by remember { mutableStateOf(false) }
+
     Box(
         modifier = modifier
             .background(Color(0xFF1A1A1A), RoundedCornerShape(6.dp))
             .padding(12.dp)
     ) {
+        // Scrollable text content
         Text(
             text = visualized,
             color = if (chunks.isEmpty()) Color.Gray else Color(0xFFE0E0E0),
@@ -188,9 +194,57 @@ fun ControlSequenceView(
             lineHeight = 16.sp,
             modifier = Modifier
                 .fillMaxSize()
+                .padding(end = 40.dp) // Make room for copy button
                 .verticalScroll(rememberScrollState())
                 .horizontalScroll(rememberScrollState())
         )
+
+        // Copy button in top-right corner
+        if (chunks.isNotEmpty()) {
+            Button(
+                onClick = {
+                    clipboardManager.setText(AnnotatedString(visualized))
+                    showCopyFeedback = true
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF4A90E2)
+                ),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .height(28.dp)
+            ) {
+                Text(
+                    text = "Copy",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+
+        // Copy feedback tooltip
+        if (showCopyFeedback) {
+            LaunchedEffect(Unit) {
+                kotlinx.coroutines.delay(1500)
+                showCopyFeedback = false
+            }
+
+            Surface(
+                color = Color(0xFF4CAF50),
+                shape = RoundedCornerShape(4.dp),
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(y = 36.dp)
+            ) {
+                Text(
+                    text = "Copied!",
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
+        }
     }
 }
 

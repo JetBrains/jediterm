@@ -15,6 +15,7 @@ import com.jediterm.terminal.emulator.mouse.*
 import com.jediterm.terminal.model.hyperlinks.LinkInfo
 import com.jediterm.terminal.model.hyperlinks.LinkResultItem
 import com.jediterm.terminal.util.CharUtils
+import com.jediterm.terminal.util.GraphemeUtils
 import org.jetbrains.annotations.Nls
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -58,6 +59,7 @@ class JediTerminal(
     private val myTerminalKeyEncoder: TerminalKeyEncoder = TerminalKeyEncoder(current())
 
   private val myWindowTitlesStack = Stack<String>()
+    private val myIconTitlesStack = Stack<String>()
 
     private val myTabulator: Tabulator
 
@@ -232,8 +234,8 @@ class JediTerminal(
             myGraphicSetState
                 .designateGraphicSet(
                     1,
-                    CharacterSet.DEC_SUPPLEMENTAL
-                ) //TODO: not DEC supplemental, but ISO Latin-1 supplemental designated as G1
+                    CharacterSet.ISO_LATIN_1
+                ) // ISO Latin-1 supplemental designated as G1
             mapCharsetToGL(0)
             mapCharsetToGR(1)
         } else if (level == 3) {
@@ -242,6 +244,17 @@ class JediTerminal(
         } else {
             throw IllegalArgumentException()
         }
+    }
+
+    /**
+     * Sets the character encoding mode, which controls GR range (160-255) mapping behavior.
+     *
+     * @param encoding "UTF-8" to disable GR mapping (preserve multi-byte sequences),
+     *                 "ISO-8859-1" to enable GR mapping through character sets
+     */
+    fun setCharacterEncoding(encoding: String) {
+        val useGRMapping = encoding.equals("ISO-8859-1", ignoreCase = true)
+        myGraphicSetState.setUseGRMapping(useGRMapping)
     }
 
     override fun setWindowTitle(name: String) {
@@ -273,6 +286,29 @@ class JediTerminal(
             val title = myWindowTitlesStack.pop()
             changeApplicationTitle(title)
         }
+    }
+
+    override fun setIconTitle(name: String) {
+        changeApplicationIconTitle(name)
+    }
+
+    override fun saveIconTitleOnStack() {
+        val title = myDisplay.iconTitle
+        myIconTitlesStack.push(title)
+    }
+
+    override fun restoreIconTitleFromStack() {
+        if (!myIconTitlesStack.empty()) {
+            val title = myIconTitlesStack.pop()
+            changeApplicationIconTitle(title)
+        }
+    }
+
+    private fun changeApplicationIconTitle(newIconTitle: String) {
+        for (listener in myApplicationTitleListeners) {
+            listener.onApplicationIconTitleChanged(newIconTitle)
+        }
+        myDisplay.iconTitle = newIconTitle
     }
 
     override fun addResizeListener(listener: TerminalResizeListener) {
@@ -411,6 +447,52 @@ class JediTerminal(
         }
     }
 
+    override fun selectiveEraseInDisplay(arg: Int) {
+        terminalTextBuffer.lock()
+        try {
+            var beginY = 0
+            var endY = 0
+
+            when (arg) {
+                0 -> {
+                    // Cursor to end of display (selective)
+                    if (myCursorX < myTerminalWidth) {
+                        terminalTextBuffer.selectiveEraseCharacters(myCursorX, -1, myCursorY - 1)
+                    }
+                    beginY = myCursorY
+                    endY = myTerminalHeight - 1
+                }
+
+                1 -> {
+                    // Beginning to cursor (selective)
+                    terminalTextBuffer.selectiveEraseCharacters(0, myCursorX + 1, myCursorY - 1)
+                    beginY = 0
+                    endY = myCursorY - 1
+                }
+
+                2 -> {
+                    // Entire display (selective)
+                    beginY = 0
+                    endY = myTerminalHeight - 1
+                }
+
+                else -> {
+                    LOG.warn("Unsupported selective erase in display mode: $arg")
+                    return
+                }
+            }
+
+            // Selectively clear lines in range
+            for (y in beginY..endY) {
+                if (y != myCursorY - 1) {
+                    terminalTextBuffer.selectiveEraseCharacters(0, -1, y)
+                }
+            }
+        } finally {
+            terminalTextBuffer.unlock()
+        }
+    }
+
     fun clearLines(beginY: Int, endY: Int) {
         terminalTextBuffer.lock()
         try {
@@ -431,6 +513,11 @@ class JediTerminal(
     override fun useAlternateBuffer(enabled: Boolean) {
         terminalTextBuffer.useAlternateBuffer(enabled)
         myDisplay.useAlternateScreenBuffer(enabled)
+
+        // Clear protection when switching buffers
+        myStyleState.current = myStyleState.current.toBuilder()
+            .setOption(TextStyle.Option.PROTECTED, false)
+            .build()
     }
 
     override fun getCodeForKey(key: Int, modifiers: Int): ByteArray? {
@@ -476,6 +563,36 @@ class JediTerminal(
 
                 2 -> terminalTextBuffer.eraseCharacters(0, -1, myCursorY - 1)
                 else -> LOG.warn("Unsupported erase in line mode:" + arg)
+            }
+        } finally {
+            terminalTextBuffer.unlock()
+        }
+    }
+
+    override fun selectiveEraseInLine(arg: Int) {
+        terminalTextBuffer.lock()
+        try {
+            when (arg) {
+                0 -> {
+                    // Erase from cursor to end of line (selective)
+                    if (myCursorX < myTerminalWidth) {
+                        terminalTextBuffer.selectiveEraseCharacters(myCursorX, -1, myCursorY - 1)
+                    }
+                    terminalTextBuffer.setLineWrapped(myCursorY - 1, false)
+                }
+
+                1 -> {
+                    // Erase from start of line to cursor (selective)
+                    val extent = min(myCursorX + 1, myTerminalWidth)
+                    terminalTextBuffer.selectiveEraseCharacters(0, extent, myCursorY - 1)
+                }
+
+                2 -> {
+                    // Erase entire line (selective)
+                    terminalTextBuffer.selectiveEraseCharacters(0, -1, myCursorY - 1)
+                }
+
+                else -> LOG.warn("Unsupported selective erase in line mode: $arg")
             }
         } finally {
             terminalTextBuffer.unlock()
@@ -724,6 +841,18 @@ class JediTerminal(
         }
     }
 
+    override fun setCharacterProtection(enabled: Boolean) {
+        myStyleState.current = if (enabled) {
+            myStyleState.current.toBuilder()
+                .setOption(TextStyle.Option.PROTECTED, true)
+                .build()
+        } else {
+            myStyleState.current.toBuilder()
+                .setOption(TextStyle.Option.PROTECTED, false)
+                .build()
+        }
+    }
+
     override fun beep() {
         myDisplay.beep()
     }
@@ -801,6 +930,13 @@ class JediTerminal(
         initModes()
 
         initMouseModes()
+
+        // Clear character protection on full reset
+        if (clearScrollBackBuffer) {
+            myStyleState.current = myStyleState.current.toBuilder()
+                .setOption(TextStyle.Option.PROTECTED, false)
+                .build()
+        }
 
         cursorPosition(1, 1)
         cursorShapeNullable(null)
@@ -1111,30 +1247,32 @@ class JediTerminal(
     }
 
     private fun newCharBuf(str: CharArray): CharBuffer {
-        val dwcCount = CharUtils.countDoubleWidthCharacters(str, 0, str.size, myDisplay.ambiguousCharsAreDoubleWidth())
+        // Convert CharArray to String for grapheme segmentation
+        val inputString = String(str)
 
-        val buf: CharArray?
+        // Segment into grapheme clusters to handle surrogate pairs, emoji, etc.
+        val graphemes = GraphemeUtils.segmentIntoGraphemes(inputString)
+
+        // Count double-width graphemes to allocate buffer
+        val dwcCount = graphemes.count { it.isDoubleWidth }
 
         if (dwcCount > 0) {
-            // Leave gaps for the private use "DWC" character, which simply tells the rendering code to advance one cell.
-            buf = CharArray(str.size + dwcCount)
+            // Leave gaps for the private use "DWC" character, which tells rendering to advance one cell
+            val result = StringBuilder(inputString.length + dwcCount)
 
-            var j = 0
-            for (i in str.indices) {
-                buf[j] = str[i]
-                val codePoint = Character.codePointAt(str, i)
-                val doubleWidthCharacter =
-                    CharUtils.isDoubleWidthCharacter(codePoint, myDisplay.ambiguousCharsAreDoubleWidth())
-                if (doubleWidthCharacter) {
-                    j++
-                    buf[j] = CharUtils.DWC
+            for (grapheme in graphemes) {
+                result.append(grapheme.text)
+                if (grapheme.isDoubleWidth) {
+                    result.append(CharUtils.DWC)
                 }
-                j++
             }
+
+            val buf = result.toString().toCharArray()
+            return CharBuffer(buf, 0, buf.size)
         } else {
-            buf = str
+            // No double-width graphemes, return as-is
+            return CharBuffer(str, 0, str.size)
         }
-        return CharBuffer(buf, 0, buf.size)
     }
 
     override fun ambiguousCharsAreDoubleWidth(): Boolean {

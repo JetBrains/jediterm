@@ -118,6 +118,12 @@ public interface Terminal {
 
   void restoreWindowTitleFromStack();
 
+  void setIconTitle(@NotNull String name);
+
+  void saveIconTitleOnStack();
+
+  void restoreIconTitleFromStack();
+
   void clearScreen();
 
   void setCursorVisible(boolean visible);

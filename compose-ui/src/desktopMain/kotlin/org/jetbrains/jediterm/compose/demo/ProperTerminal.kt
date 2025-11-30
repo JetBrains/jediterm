@@ -42,7 +42,9 @@ import com.jediterm.terminal.model.SelectionUtil.getNextSeparator
 import com.jediterm.terminal.model.SelectionUtil.getPreviousSeparator
 import com.jediterm.terminal.model.TerminalTextBuffer
 import com.jediterm.terminal.util.CharUtils
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.jetbrains.jediterm.compose.ConnectionState
 import org.jetbrains.jediterm.compose.PreConnectScreen
@@ -290,6 +292,11 @@ fun ProperTerminal(
   var isDragging by remember { mutableStateOf(false) }
   var dragStartPos by remember { mutableStateOf<Offset?>(null) }  // Track initial mouse position for drag detection
 
+  // Auto-scroll state for drag selection beyond bounds
+  var autoScrollJob by remember { mutableStateOf<Job?>(null) }
+  var lastDragPosition by remember { mutableStateOf<Offset?>(null) }
+  var canvasSize by remember { mutableStateOf(Size.Zero) }
+
   // Multi-click tracking for double-click (word select) and triple-click (line select)
   var lastClickTime by remember { mutableStateOf(0L) }
   var lastClickPosition by remember { mutableStateOf(Offset.Zero) }
@@ -300,6 +307,9 @@ fun ProperTerminal(
   // Multi-click thresholds
   val MULTI_CLICK_TIME_THRESHOLD = 500L  // milliseconds
   val MULTI_CLICK_DISTANCE_THRESHOLD = 10f  // pixels
+  // Auto-scroll constants (matching Swing TerminalPanel.java:218)
+  val AUTO_SCROLL_SPEED = 0.05f  // Scroll coefficient: faster when further from bounds
+  val AUTO_SCROLL_INTERVAL = 50L  // 20 Hz scroll rate when outside bounds
 
   // Context menu controller
   val contextMenuController = remember { ContextMenuController() }
@@ -330,6 +340,52 @@ fun ProperTerminal(
     selectionStart = Pair(0, -snapshot.historyLinesCount)
     selectionEnd = Pair(snapshot.width - 1, snapshot.height - 1)
     display.requestImmediateRedraw()
+  }
+
+  // Auto-scroll function for drag selection beyond canvas bounds
+  // Scrolls proportionally to distance from bounds while mouse is held outside
+  // Note: cellWidthParam and cellHeightParam are passed because cellWidth/cellHeight are defined later in the composable
+  fun startAutoScroll(position: Offset, cellWidthParam: Float, cellHeightParam: Float) {
+    autoScrollJob?.cancel()
+    autoScrollJob = scope.launch {
+      while (isActive && isDragging) {
+        val historySize = textBuffer.historyLinesCount
+        val height = canvasSize.height
+
+        // Calculate scroll amount based on distance from bounds
+        val scrolled = when {
+          position.y < 0 -> {
+            // Dragging above canvas - scroll up into history
+            val scrollDelta = (-position.y * AUTO_SCROLL_SPEED).toInt().coerceAtLeast(1)
+            scrollOffset = (scrollOffset + scrollDelta).coerceIn(0, historySize)
+            true
+          }
+          position.y > height -> {
+            // Dragging below canvas - scroll down toward current
+            val scrollDelta = ((position.y - height) * AUTO_SCROLL_SPEED).toInt().coerceAtLeast(1)
+            scrollOffset = (scrollOffset - scrollDelta).coerceIn(0, historySize)
+            true
+          }
+          else -> false  // Back in bounds
+        }
+
+        if (!scrolled) break  // Stop auto-scroll when back in bounds
+
+        // Update selection end to track scroll position
+        lastDragPosition?.let { pos ->
+          val col = (pos.x / cellWidthParam).toInt().coerceIn(0, textBuffer.width - 1)
+          val effectiveRow = when {
+            pos.y < 0 -> 0  // Top of visible area
+            pos.y > height -> ((height / cellHeightParam).toInt()).coerceAtMost(textBuffer.height - 1)
+            else -> (pos.y / cellHeightParam).toInt()
+          }
+          selectionEnd = Pair(col, effectiveRow)
+        }
+
+        display.requestImmediateRedraw()
+        delay(AUTO_SCROLL_INTERVAL)
+      }
+    }
   }
 
   // Detect macOS for keyboard shortcut handling (Cmd vs Ctrl)
@@ -770,9 +826,27 @@ fun ProperTerminal(
               }
 
               // Update selection end point as mouse moves
-              val col = (pos.x / cellWidth).toInt()
-              val row = (pos.y / cellHeight).toInt()
-              selectionEnd = Pair(col, row)
+              // Handle out-of-bounds coordinates for auto-scroll
+              val col = (pos.x / cellWidth).toInt().coerceIn(0, textBuffer.width - 1)
+              val effectiveRow = when {
+                pos.y < 0 -> 0  // Above canvas: first visible row
+                pos.y > canvasSize.height -> ((canvasSize.height / cellHeight).toInt()).coerceAtMost(textBuffer.height - 1)
+                else -> (pos.y / cellHeight).toInt()
+              }
+              selectionEnd = Pair(col, effectiveRow)
+
+              // Track position for auto-scroll updates
+              lastDragPosition = pos
+
+              // Start auto-scroll if dragging outside bounds
+              if (pos.y < 0 || pos.y > canvasSize.height) {
+                if (autoScrollJob?.isActive != true) {
+                  startAutoScroll(pos, cellWidth, cellHeight)
+                }
+              } else {
+                // Back in bounds - cancel auto-scroll
+                autoScrollJob?.cancel()
+              }
 
               // Phase 2: Immediate redraw during drag
               display.requestImmediateRedraw()
@@ -829,9 +903,12 @@ fun ProperTerminal(
             }
           }
 
-          // Reset drag state
+          // Reset drag state and cancel auto-scroll
           isDragging = false
           dragStartPos = null
+          autoScrollJob?.cancel()
+          autoScrollJob = null
+          lastDragPosition = null
 
           // Phase 2: Immediate redraw on release
           display.requestImmediateRedraw()
@@ -1012,6 +1089,9 @@ fun ProperTerminal(
         Canvas(modifier = Modifier.fillMaxSize()) {
           // Guard against invalid canvas sizes during resize - prevents drawText constraint failures
           if (size.width < cellWidth || size.height < cellHeight) return@Canvas
+
+          // Capture canvas size for auto-scroll bounds detection in pointer event handlers
+          canvasSize = size
 
           // Two-pass rendering to fix z-index issue:
           // Pass 1: Draw all backgrounds first

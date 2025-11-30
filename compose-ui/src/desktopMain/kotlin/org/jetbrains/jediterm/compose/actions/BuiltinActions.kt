@@ -21,6 +21,7 @@ import org.jetbrains.jediterm.compose.ime.IMEState
  * @param textBuffer The terminal text buffer
  * @param clipboardManager The clipboard manager for copy/paste
  * @param writeUserInput Lambda that writes user input to the terminal (records in debug collector)
+ * @param pasteText Lambda that pastes text with bracketed paste mode handling
  * @param searchVisible Mutable state for search bar visibility
  * @param debugPanelVisible Mutable state for debug panel visibility
  * @param imeState IME state for CJK input
@@ -35,6 +36,7 @@ fun createBuiltinActions(
     textBuffer: TerminalTextBuffer,
     clipboardManager: ClipboardManager,
     writeUserInput: (String) -> Unit,
+    pasteText: (String) -> Unit,
     searchVisible: MutableState<Boolean>,
     debugPanelVisible: MutableState<Boolean>,
     imeState: IMEState,
@@ -74,7 +76,7 @@ fun createBuiltinActions(
     )
 
     // PASTE - Ctrl/Cmd+V
-    // Pastes clipboard text to the terminal
+    // Pastes clipboard text to the terminal with bracketed paste mode support
     val pasteAction = TerminalAction(
         id = "paste",
         name = "Paste",
@@ -87,7 +89,7 @@ fun createBuiltinActions(
             val text = clipboardManager.getText()?.text
             if (!text.isNullOrEmpty()) {
                 scope.launch {
-                    writeUserInput(text)
+                    pasteText(text)
                 }
                 true
             } else {

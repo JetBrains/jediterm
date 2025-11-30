@@ -19,6 +19,10 @@ import org.jetbrains.jediterm.compose.getPlatformServices
 import org.jetbrains.jediterm.compose.ime.IMEState
 import org.jetbrains.jediterm.compose.osc.WorkingDirectoryOSCListener
 import org.jetbrains.jediterm.compose.settings.TerminalSettings
+import org.jetbrains.jediterm.compose.typeahead.ComposeTypeAheadModel
+import org.jetbrains.jediterm.compose.typeahead.CoroutineDebouncer
+import com.jediterm.core.typeahead.TerminalTypeAheadManager
+import com.jediterm.core.typeahead.TypeAheadTerminalModel
 import com.jediterm.terminal.util.GraphemeBoundaryUtils
 import java.io.EOFException
 
@@ -132,6 +136,37 @@ class TabController(
             null
         }
 
+        // Create type-ahead model and manager if enabled
+        val typeAheadModel = if (settings.typeAheadEnabled) {
+            ComposeTypeAheadModel(
+                terminal = terminal,
+                textBuffer = textBuffer,
+                display = display,
+                settings = settings
+            ).also { model ->
+                // Detect shell type for word boundary calculation (bash vs zsh)
+                val shellType = TypeAheadTerminalModel.commandLineToShellType((listOf(command) + arguments).toMutableList())
+                model.setShellType(shellType)
+            }
+        } else {
+            null
+        }
+
+        // Create coroutine scope for type-ahead (will be shared with tab scope)
+        val tabCoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+        val typeAheadManager = typeAheadModel?.let { model ->
+            TerminalTypeAheadManager(model).also { manager ->
+                // Set up coroutine-based debouncer for clearing stale predictions
+                val debouncer = CoroutineDebouncer(
+                    action = manager::debounce,
+                    delayNanos = TerminalTypeAheadManager.MAX_TERMINAL_DELAY,
+                    scope = tabCoroutineScope
+                )
+                manager.setClearPredictionsDebouncer(debouncer)
+            }
+        }
+
         // Create tab with all state
         val tab = TerminalTab(
             id = java.util.UUID.randomUUID().toString(),
@@ -145,7 +180,7 @@ class TabController(
             workingDirectory = workingDirectoryState,
             connectionState = mutableStateOf(ConnectionState.Initializing),
             onProcessExit = onProcessExit,
-            coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+            coroutineScope = tabCoroutineScope,
             isFocused = mutableStateOf(false),
             scrollOffset = mutableStateOf(0),
             searchVisible = mutableStateOf(false),
@@ -160,7 +195,9 @@ class TabController(
             hyperlinks = mutableStateOf(emptyList()),
             hoveredHyperlink = mutableStateOf(null),
             debugEnabled = mutableStateOf(settings.debugModeEnabled),
-            debugCollector = debugCollector
+            debugCollector = debugCollector,
+            typeAheadModel = typeAheadModel,
+            typeAheadManager = typeAheadManager
         )
 
         // Complete debug collector initialization
@@ -171,6 +208,13 @@ class TabController(
             // Hook into data stream for PTY output capture
             dataStream.debugCallback = { data ->
                 collector.recordChunk(data, ChunkSource.PTY_OUTPUT)
+            }
+        }
+
+        // Connect type-ahead manager to PTY arrival notifications
+        typeAheadManager?.let { manager ->
+            dataStream.onTerminalStateChanged = {
+                manager.onTerminalStateChanged()
             }
         }
 

@@ -40,6 +40,12 @@ class BlockingTerminalDataStream : TerminalDataStream {
     var debugCallback: ((String) -> Unit)? = null
 
     /**
+     * Optional callback invoked when terminal state changes (data arrives from PTY).
+     * Used by type-ahead system to validate/clear predictions.
+     */
+    var onTerminalStateChanged: (() -> Unit)? = null
+
+    /**
      * Append a chunk of data to the stream.
      *
      * Handles incomplete grapheme clusters at chunk boundaries by:
@@ -95,6 +101,11 @@ class BlockingTerminalDataStream : TerminalDataStream {
 
             // If we have data in the buffer, return it
             while (position >= buffer.length) {
+                // Notify type-ahead system before blocking wait
+                // This allows the type-ahead manager to validate predictions
+                // against the current terminal state before we wait for more data
+                onTerminalStateChanged?.invoke()
+
                 // Need more data - block until available
                 val chunk = if (closed) {
                     dataQueue.poll() // Non-blocking if closed

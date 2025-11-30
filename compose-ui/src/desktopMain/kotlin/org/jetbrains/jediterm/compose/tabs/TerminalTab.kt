@@ -18,6 +18,8 @@ import com.jediterm.terminal.emulator.JediEmulator
 import com.jediterm.terminal.model.JediTerminal
 import com.jediterm.terminal.model.TerminalTextBuffer
 import org.jetbrains.jediterm.compose.debug.DebugDataCollector
+import org.jetbrains.jediterm.compose.typeahead.ComposeTypeAheadModel
+import com.jediterm.core.typeahead.TerminalTypeAheadManager
 import java.util.UUID
 
 /**
@@ -198,7 +200,21 @@ data class TerminalTab(
      * Debug data collector for capturing I/O chunks and terminal state snapshots.
      * Null when debug mode is disabled to avoid memory overhead.
      */
-    val debugCollector: DebugDataCollector? = null
+    val debugCollector: DebugDataCollector? = null,
+
+    // === Type-Ahead Prediction ===
+
+    /**
+     * Type-ahead terminal model for applying predictions to the buffer.
+     * Null when type-ahead is disabled.
+     */
+    val typeAheadModel: ComposeTypeAheadModel? = null,
+
+    /**
+     * Type-ahead manager that tracks predictions and latency statistics.
+     * Null when type-ahead is disabled.
+     */
+    val typeAheadManager: TerminalTypeAheadManager? = null
 ) {
     /**
      * Whether this tab is currently rendering to the UI.
@@ -239,6 +255,29 @@ data class TerminalTab(
 
         // Terminal cleanup (if needed)
         // terminal.close() may not be available in all JediTerm versions
+    }
+
+    /**
+     * Paste text with proper bracketed paste mode handling.
+     * When bracketed paste mode is enabled by the terminal application,
+     * wraps the text with ESC[200~ and ESC[201~ escape sequences.
+     *
+     * Also normalizes newlines: CRLF/LF → CR (terminal standard).
+     *
+     * @param text The text to paste from clipboard
+     */
+    fun pasteText(text: String) {
+        if (text.isEmpty()) return
+
+        // Normalize newlines: CRLF/LF → CR (terminal standard)
+        var normalized = text.replace("\r\n", "\n").replace('\n', '\r')
+
+        // Wrap with bracketed paste sequences if mode enabled
+        if (display.bracketedPasteMode.value) {
+            normalized = "\u001b[200~$normalized\u001b[201~"
+        }
+
+        writeUserInput(normalized)
     }
 
     /**

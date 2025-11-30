@@ -213,6 +213,21 @@ data class TerminalSettings(
      */
     val hyperlinkRequireModifier: Boolean = true,
 
+    // ===== Type-Ahead Settings =====
+
+    /**
+     * Enable type-ahead prediction for reduced perceived latency on SSH connections.
+     * Predictions are invisible on local terminals but latency statistics are collected.
+     */
+    val typeAheadEnabled: Boolean = true,
+
+    /**
+     * Latency threshold in nanoseconds to activate visible predictions.
+     * Predictions become visible when median round-trip latency exceeds this threshold.
+     * Default: 100ms (100_000_000 nanos)
+     */
+    val typeAheadLatencyThresholdNanos: Long = 100_000_000L,
+
     // ===== Debug Settings =====
 
     /**

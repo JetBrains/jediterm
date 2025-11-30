@@ -42,7 +42,9 @@ import com.jediterm.terminal.model.SelectionUtil.getNextSeparator
 import com.jediterm.terminal.model.SelectionUtil.getPreviousSeparator
 import com.jediterm.terminal.model.TerminalTextBuffer
 import com.jediterm.terminal.util.CharUtils
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.jetbrains.jediterm.compose.ConnectionState
 import org.jetbrains.jediterm.compose.PreConnectScreen
@@ -60,6 +62,7 @@ import org.jetbrains.jediterm.compose.scrollbar.rememberTerminalScrollbarAdapter
 import org.jetbrains.jediterm.compose.search.SearchBar
 import org.jetbrains.jediterm.compose.settings.SettingsManager
 import org.jetbrains.jediterm.compose.tabs.TerminalTab
+import com.jediterm.core.typeahead.TerminalTypeAheadManager
 import com.jediterm.terminal.TextStyle as JediTextStyle
 import java.awt.event.KeyEvent as JavaKeyEvent
 
@@ -210,12 +213,10 @@ fun ProperTerminal(
 
   // Highlight a search match using selection
   fun highlightMatch(matchCol: Int, matchRow: Int, matchLength: Int) {
-    // Convert buffer coordinates to screen coordinates
-    val screenRow = matchRow + scrollOffset
-
-    // Set selection to highlight the match
-    selectionStart = Pair(matchCol, screenRow)
-    selectionEnd = Pair(matchCol + matchLength - 1, screenRow)
+    // matchRow is already buffer-relative (from search), use directly
+    // Selection rendering will convert buffer to screen coords
+    selectionStart = Pair(matchCol, matchRow)
+    selectionEnd = Pair(matchCol + matchLength - 1, matchRow)
 
     display.requestImmediateRedraw()
   }
@@ -273,7 +274,10 @@ fun ProperTerminal(
   // No longer needed here since terminal output routing is set up during tab initialization
 
   // Watch redraw trigger to force recomposition
-  val cursorX = display.cursorX.value
+  // Use predicted cursor position from type-ahead manager if available
+  // This makes the cursor respond immediately to keystrokes even on high-latency connections
+  // Note: typeAheadManager.cursorX returns 1-based (for Swing), we need 0-based for Compose rendering
+  val cursorX = tab.typeAheadManager?.let { it.cursorX - 1 } ?: display.cursorX.value
   val cursorY = display.cursorY.value
   val cursorVisible = display.cursorVisible.value
   val cursorShape = display.cursorShape.value
@@ -286,6 +290,11 @@ fun ProperTerminal(
   var isDragging by remember { mutableStateOf(false) }
   var dragStartPos by remember { mutableStateOf<Offset?>(null) }  // Track initial mouse position for drag detection
 
+  // Auto-scroll state for drag selection beyond bounds
+  var autoScrollJob by remember { mutableStateOf<Job?>(null) }
+  var lastDragPosition by remember { mutableStateOf<Offset?>(null) }
+  var canvasSize by remember { mutableStateOf(Size.Zero) }
+
   // Multi-click tracking for double-click (word select) and triple-click (line select)
   var lastClickTime by remember { mutableStateOf(0L) }
   var lastClickPosition by remember { mutableStateOf(Offset.Zero) }
@@ -296,6 +305,9 @@ fun ProperTerminal(
   // Multi-click thresholds
   val MULTI_CLICK_TIME_THRESHOLD = 500L  // milliseconds
   val MULTI_CLICK_DISTANCE_THRESHOLD = 10f  // pixels
+  // Auto-scroll constants (matching Swing TerminalPanel.java:218)
+  val AUTO_SCROLL_SPEED = 0.05f  // Scroll coefficient: faster when further from bounds
+  val AUTO_SCROLL_INTERVAL = 50L  // 20 Hz scroll rate when outside bounds
 
   // Context menu controller
   val contextMenuController = remember { ContextMenuController() }
@@ -328,6 +340,53 @@ fun ProperTerminal(
     display.requestImmediateRedraw()
   }
 
+  // Auto-scroll function for drag selection beyond canvas bounds
+  // Scrolls proportionally to distance from bounds while mouse is held outside
+  // Note: cellWidthParam and cellHeightParam are passed because cellWidth/cellHeight are defined later in the composable
+  fun startAutoScroll(position: Offset, cellWidthParam: Float, cellHeightParam: Float) {
+    autoScrollJob?.cancel()
+    autoScrollJob = scope.launch {
+      while (isActive && isDragging) {
+        val historySize = textBuffer.historyLinesCount
+        val height = canvasSize.height
+
+        // Calculate scroll amount based on distance from bounds
+        val scrolled = when {
+          position.y < 0 -> {
+            // Dragging above canvas - scroll up into history
+            val scrollDelta = (-position.y * AUTO_SCROLL_SPEED).toInt().coerceAtLeast(1)
+            scrollOffset = (scrollOffset + scrollDelta).coerceIn(0, historySize)
+            true
+          }
+          position.y > height -> {
+            // Dragging below canvas - scroll down toward current
+            val scrollDelta = ((position.y - height) * AUTO_SCROLL_SPEED).toInt().coerceAtLeast(1)
+            scrollOffset = (scrollOffset - scrollDelta).coerceIn(0, historySize)
+            true
+          }
+          else -> false  // Back in bounds
+        }
+
+        if (!scrolled) break  // Stop auto-scroll when back in bounds
+
+        // Update selection end to track scroll position (using buffer-relative coordinates)
+        lastDragPosition?.let { pos ->
+          val col = (pos.x / cellWidthParam).toInt().coerceIn(0, textBuffer.width - 1)
+          val screenRow = when {
+            pos.y < 0 -> 0  // Top of visible area
+            pos.y > height -> ((height / cellHeightParam).toInt()).coerceAtMost(textBuffer.height - 1)
+            else -> (pos.y / cellHeightParam).toInt()
+          }
+          val bufferRow = screenRow - scrollOffset  // Convert screen to buffer-relative row
+          selectionEnd = Pair(col, bufferRow)
+        }
+
+        display.requestImmediateRedraw()
+        delay(AUTO_SCROLL_INTERVAL)
+      }
+    }
+  }
+
   // Detect macOS for keyboard shortcut handling (Cmd vs Ctrl)
   val isMacOS = remember { System.getProperty("os.name").lowercase().contains("mac") }
 
@@ -351,6 +410,7 @@ fun ProperTerminal(
       textBuffer = textBuffer,
       clipboardManager = clipboardManager,
       writeUserInput = tab::writeUserInput,
+      pasteText = tab::pasteText,
       searchVisible = object : MutableState<Boolean> {
         override var value: Boolean
           get() = searchVisible
@@ -532,6 +592,8 @@ fun ProperTerminal(
               val newTermSize = TermSize(newCols, newRows)
               // Resize terminal buffer and notify PTY process (sends SIGWINCH)
               terminal.resize(newTermSize, RequestOrigin.User)
+              // Clear type-ahead predictions on resize (terminal state is no longer predictable)
+              tab.typeAheadManager?.onResize()
               // Also notify the process handle if available (must be launched in coroutine)
               scope.launch {
                 processHandle?.resize(newCols, newRows)
@@ -584,7 +646,7 @@ fun ProperTerminal(
                   val text = clipboardManager.getText()?.text
                   if (!text.isNullOrEmpty()) {
                     scope.launch {
-                      tab.writeUserInput(text)
+                      tab.pasteText(text)
                     }
                   }
                 },
@@ -612,7 +674,7 @@ fun ProperTerminal(
               if (!text.isNullOrEmpty() && processHandle != null) {
                 scope.launch {
                   try {
-                    tab.writeUserInput(text)
+                    tab.pasteText(text)
                   } catch (e: Exception) {
                     println("ERROR: Failed to paste text via middle-click: ${e.message}")
                     e.printStackTrace()
@@ -667,8 +729,10 @@ fun ProperTerminal(
               }
               2 -> {
                 // Double-click: Select word at cursor position
-                val (col, row) = pixelToCharCoords(currentPosition)
-                val (start, end) = selectWordAt(col, row, textBuffer)
+                // Convert screen coords to buffer-relative for selection
+                val (col, screenRow) = pixelToCharCoords(currentPosition)
+                val bufferRow = screenRow - scrollOffset
+                val (start, end) = selectWordAt(col, bufferRow, textBuffer)
                 selectionStart = start
                 selectionEnd = end
                 isDragging = false
@@ -682,8 +746,10 @@ fun ProperTerminal(
               }
               else -> {
                 // Triple-click (or more): Select entire logical line
-                val (col, row) = pixelToCharCoords(currentPosition)
-                val (start, end) = selectLineAt(col, row, textBuffer)
+                // Convert screen coords to buffer-relative for selection
+                val (col, screenRow) = pixelToCharCoords(currentPosition)
+                val bufferRow = screenRow - scrollOffset
+                val (start, end) = selectLineAt(col, bufferRow, textBuffer)
                 selectionStart = start
                 selectionEnd = end
                 isDragging = false
@@ -758,14 +824,35 @@ fun ProperTerminal(
                 }
 
                 val startCol = (startPos.x / cellWidth).toInt()
-                val startRow = (startPos.y / cellHeight).toInt()
-                selectionStart = Pair(startCol, startRow)
+                val screenRow = (startPos.y / cellHeight).toInt()
+                val bufferRow = screenRow - scrollOffset  // Convert screen to buffer-relative row
+                selectionStart = Pair(startCol, bufferRow)
               }
 
               // Update selection end point as mouse moves
-              val col = (pos.x / cellWidth).toInt()
-              val row = (pos.y / cellHeight).toInt()
-              selectionEnd = Pair(col, row)
+              // Handle out-of-bounds coordinates for auto-scroll
+              // Convert to buffer-relative coordinates for consistent selection model
+              val col = (pos.x / cellWidth).toInt().coerceIn(0, textBuffer.width - 1)
+              val screenRow = when {
+                pos.y < 0 -> 0  // Above canvas: first visible row
+                pos.y > canvasSize.height -> ((canvasSize.height / cellHeight).toInt()).coerceAtMost(textBuffer.height - 1)
+                else -> (pos.y / cellHeight).toInt()
+              }
+              val bufferRow = screenRow - scrollOffset  // Convert screen to buffer-relative row
+              selectionEnd = Pair(col, bufferRow)
+
+              // Track position for auto-scroll updates
+              lastDragPosition = pos
+
+              // Start auto-scroll if dragging outside bounds
+              if (pos.y < 0 || pos.y > canvasSize.height) {
+                if (autoScrollJob?.isActive != true) {
+                  startAutoScroll(pos, cellWidth, cellHeight)
+                }
+              } else {
+                // Back in bounds - cancel auto-scroll
+                autoScrollJob?.cancel()
+              }
 
               // Phase 2: Immediate redraw during drag
               display.requestImmediateRedraw()
@@ -822,9 +909,12 @@ fun ProperTerminal(
             }
           }
 
-          // Reset drag state
+          // Reset drag state and cancel auto-scroll
           isDragging = false
           dragStartPos = null
+          autoScrollJob?.cancel()
+          autoScrollJob = null
+          lastDragPosition = null
 
           // Phase 2: Immediate redraw on release
           display.requestImmediateRedraw()
@@ -959,6 +1049,15 @@ fun ProperTerminal(
               }
 
               if (text.isNotEmpty()) {
+                // Feed keyboard event to type-ahead manager BEFORE sending to PTY
+                // This creates predictions that reduce perceived latency on SSH
+                tab.typeAheadManager?.let { manager ->
+                  val typeAheadEvents = TerminalTypeAheadManager.TypeAheadEvent.fromString(text)
+                  for (event in typeAheadEvents) {
+                    manager.onKeyEvent(event)
+                  }
+                }
+
                 tab.writeUserInput(text)
                 // Phase 2: Immediate redraw for user input (zero lag)
                 display.requestImmediateRedraw()
@@ -994,6 +1093,12 @@ fun ProperTerminal(
         }
 
         Canvas(modifier = Modifier.fillMaxSize()) {
+          // Guard against invalid canvas sizes during resize - prevents drawText constraint failures
+          if (size.width < cellWidth || size.height < cellHeight) return@Canvas
+
+          // Capture canvas size for auto-scroll bounds detection in pointer event handlers
+          canvasSize = size
+
           // Two-pass rendering to fix z-index issue:
           // Pass 1: Draw all backgrounds first
           // Pass 2: Draw all text on top
@@ -1003,13 +1108,18 @@ fun ProperTerminal(
           val height = bufferSnapshot.height
           val width = bufferSnapshot.width
 
+          // Calculate visible bounds - limit rendering to what fits in canvas
+          // This prevents crashes when buffer is wider/taller than current canvas during resize
+          val visibleCols = (size.width / cellWidth).toInt().coerceAtMost(width)
+          val visibleRows = (size.height / cellHeight).toInt().coerceAtMost(height)
+
           // ===== PASS 1: DRAW ALL BACKGROUNDS =====
-          for (row in 0 until height) {
+          for (row in 0 until visibleRows) {
             val lineIndex = row - scrollOffset
             val line = bufferSnapshot.getLine(lineIndex)
 
               var col = 0
-              while (col < width) {
+              while (col < visibleCols) {
                 val char = line.charAt(col)
                 val style = line.getStyleAt(col)
 
@@ -1062,7 +1172,7 @@ fun ProperTerminal(
             }
 
           // ===== PASS 2: DRAW ALL TEXT =====
-          for (row in 0 until height) {
+          for (row in 0 until visibleRows) {
             // Calculate actual line index based on scroll offset
             // scrollOffset = 0 means showing screen lines 0..height-1
             // scrollOffset > 0 means showing some history lines
@@ -1124,7 +1234,7 @@ fun ProperTerminal(
 
               var col = 0  // Character index in buffer
               var visualCol = 0  // Visual column position (accounts for double-width chars)
-              while (col < width) {
+              while (col < visibleCols) {
                 val char = line.charAt(col)
                 val style = line.getStyleAt(col)
 
@@ -1666,32 +1776,40 @@ fun ProperTerminal(
               val start = selectionStart!!
               val end = selectionEnd!!
 
-              // Normalize selection to handle backwards dragging
               val (startCol, startRow) = start
               val (endCol, endRow) = end
 
-              val (minRow, maxRow) = if (startRow < endRow) {
-                startRow to endRow
+              // Determine first (earlier row) and last (later row) points
+              // This is direction-aware: first point is always the one with smaller row
+              val (firstCol, firstRow, lastCol, lastRow) = if (startRow <= endRow) {
+                listOf(startCol, startRow, endCol, endRow)
               } else {
-                endRow to startRow
-              }
-
-              val (minCol, maxCol) = if (startCol < endCol) {
-                startCol to endCol
-              } else {
-                endCol to startCol
+                listOf(endCol, endRow, startCol, startRow)
               }
 
               // Draw selection highlight rectangles
-              for (row in minRow..maxRow) {
-                if (row in 0 until height) {
-                  val colStart = if (row == minRow) minCol else 0
-                  val colEnd = if (row == maxRow) maxCol else (width - 1)
+              // Selection coords are buffer-relative, convert to screen coords for rendering
+              for (bufferRow in firstRow..lastRow) {
+                val screenRow = bufferRow + scrollOffset  // Convert buffer to screen row
+                if (screenRow in 0 until visibleRows) {  // Check if visible on screen
+                  // For single-line selection, use min/max columns
+                  // For multi-line: first row from firstCol to end, middle rows full, last row from 0 to lastCol
+                  val (colStart, colEnd) = if (firstRow == lastRow) {
+                    // Single line: use min/max columns
+                    minOf(firstCol, lastCol) to maxOf(firstCol, lastCol)
+                  } else {
+                    // Multi-line: direction-aware columns
+                    when (bufferRow) {
+                      firstRow -> firstCol to (width - 1)  // First row: from start col to end
+                      lastRow -> 0 to lastCol              // Last row: from 0 to end col
+                      else -> 0 to (width - 1)             // Middle rows: full line
+                    }
+                  }
 
                   for (col in colStart..colEnd) {
                     if (col in 0 until width) {
                       val x = col * cellWidth
-                      val y = row * cellHeight
+                      val y = screenRow * cellHeight  // Use screen row for Y position
                       drawRect(
                         color = settings.selectionColorValue.copy(alpha = 0.3f),
                         topLeft = Offset(x, y),
@@ -1961,30 +2079,34 @@ private fun extractSelectedText(
   val (startCol, startRow) = start
   val (endCol, endRow) = end
 
-  // Normalize selection to handle backwards dragging
-  val (minRow, maxRow) = if (startRow < endRow) {
-    startRow to endRow
+  // Determine first (earlier row) and last (later row) points
+  // This is direction-aware: first point is always the one with smaller row
+  val (firstCol, firstRow, lastCol, lastRow) = if (startRow <= endRow) {
+    listOf(startCol, startRow, endCol, endRow)
   } else {
-    endRow to startRow
-  }
-
-  val (minCol, maxCol) = if (startRow == endRow) {
-    // Same row - compare columns
-    if (startCol < endCol) startCol to endCol else endCol to startCol
-  } else {
-    // Different rows - use natural order
-    if (startRow < endRow) startCol to endCol else endCol to startCol
+    listOf(endCol, endRow, startCol, startRow)
   }
 
   // Use snapshot for lock-free text extraction
   val snapshot = textBuffer.createSnapshot()
   val result = StringBuilder()
 
-  for (row in minRow..maxRow) {
+  for (row in firstRow..lastRow) {
     val line = snapshot.getLine(row)
 
-    val colStart = if (row == minRow) minCol else 0
-    val colEnd = if (row == maxRow) maxCol else (snapshot.width - 1)
+    // For single-line selection, use min/max columns
+    // For multi-line: first row from firstCol to end, middle rows full, last row from 0 to lastCol
+    val (colStart, colEnd) = if (firstRow == lastRow) {
+      // Single line: use min/max columns
+      minOf(firstCol, lastCol) to maxOf(firstCol, lastCol)
+    } else {
+      // Multi-line: direction-aware columns
+      when (row) {
+        firstRow -> firstCol to (snapshot.width - 1)  // First row: from start col to end
+        lastRow -> 0 to lastCol                        // Last row: from 0 to end col
+        else -> 0 to (snapshot.width - 1)              // Middle rows: full line
+      }
+    }
 
     for (col in colStart..colEnd) {
       if (col < snapshot.width) {
@@ -1997,7 +2119,7 @@ private fun extractSelectedText(
     }
 
     // Add newline between rows (except after last row)
-    if (row < maxRow) {
+    if (row < lastRow) {
       result.append('\n')
     }
   }

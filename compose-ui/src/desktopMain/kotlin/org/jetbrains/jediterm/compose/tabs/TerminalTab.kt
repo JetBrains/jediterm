@@ -242,6 +242,29 @@ data class TerminalTab(
     }
 
     /**
+     * Paste text with proper bracketed paste mode handling.
+     * When bracketed paste mode is enabled by the terminal application,
+     * wraps the text with ESC[200~ and ESC[201~ escape sequences.
+     *
+     * Also normalizes newlines: CRLF/LF → CR (terminal standard).
+     *
+     * @param text The text to paste from clipboard
+     */
+    fun pasteText(text: String) {
+        if (text.isEmpty()) return
+
+        // Normalize newlines: CRLF/LF → CR (terminal standard)
+        var normalized = text.replace("\r\n", "\n").replace('\n', '\r')
+
+        // Wrap with bracketed paste sequences if mode enabled
+        if (display.bracketedPasteMode.value) {
+            normalized = "\u001b[200~$normalized\u001b[201~"
+        }
+
+        writeUserInput(normalized)
+    }
+
+    /**
      * Write user input to the process and record in debug collector.
      * Centralizes input handling to ensure all user input is captured for debugging.
      *

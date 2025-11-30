@@ -351,6 +351,7 @@ fun ProperTerminal(
       textBuffer = textBuffer,
       clipboardManager = clipboardManager,
       writeUserInput = tab::writeUserInput,
+      pasteText = tab::pasteText,
       searchVisible = object : MutableState<Boolean> {
         override var value: Boolean
           get() = searchVisible
@@ -584,7 +585,7 @@ fun ProperTerminal(
                   val text = clipboardManager.getText()?.text
                   if (!text.isNullOrEmpty()) {
                     scope.launch {
-                      tab.writeUserInput(text)
+                      tab.pasteText(text)
                     }
                   }
                 },
@@ -612,7 +613,7 @@ fun ProperTerminal(
               if (!text.isNullOrEmpty() && processHandle != null) {
                 scope.launch {
                   try {
-                    tab.writeUserInput(text)
+                    tab.pasteText(text)
                   } catch (e: Exception) {
                     println("ERROR: Failed to paste text via middle-click: ${e.message}")
                     e.printStackTrace()

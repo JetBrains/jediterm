@@ -60,6 +60,7 @@ import org.jetbrains.jediterm.compose.scrollbar.rememberTerminalScrollbarAdapter
 import org.jetbrains.jediterm.compose.search.SearchBar
 import org.jetbrains.jediterm.compose.settings.SettingsManager
 import org.jetbrains.jediterm.compose.tabs.TerminalTab
+import com.jediterm.core.typeahead.TerminalTypeAheadManager
 import com.jediterm.terminal.TextStyle as JediTextStyle
 import java.awt.event.KeyEvent as JavaKeyEvent
 
@@ -273,7 +274,9 @@ fun ProperTerminal(
   // No longer needed here since terminal output routing is set up during tab initialization
 
   // Watch redraw trigger to force recomposition
-  val cursorX = display.cursorX.value
+  // Use predicted cursor position from type-ahead manager if available
+  // This makes the cursor respond immediately to keystrokes even on high-latency connections
+  val cursorX = tab.typeAheadManager?.cursorX ?: display.cursorX.value
   val cursorY = display.cursorY.value
   val cursorVisible = display.cursorVisible.value
   val cursorShape = display.cursorShape.value
@@ -533,6 +536,8 @@ fun ProperTerminal(
               val newTermSize = TermSize(newCols, newRows)
               // Resize terminal buffer and notify PTY process (sends SIGWINCH)
               terminal.resize(newTermSize, RequestOrigin.User)
+              // Clear type-ahead predictions on resize (terminal state is no longer predictable)
+              tab.typeAheadManager?.onResize()
               // Also notify the process handle if available (must be launched in coroutine)
               scope.launch {
                 processHandle?.resize(newCols, newRows)
@@ -960,6 +965,15 @@ fun ProperTerminal(
               }
 
               if (text.isNotEmpty()) {
+                // Feed keyboard event to type-ahead manager BEFORE sending to PTY
+                // This creates predictions that reduce perceived latency on SSH
+                tab.typeAheadManager?.let { manager ->
+                  val typeAheadEvents = TerminalTypeAheadManager.TypeAheadEvent.fromString(text)
+                  for (event in typeAheadEvents) {
+                    manager.onKeyEvent(event)
+                  }
+                }
+
                 tab.writeUserInput(text)
                 // Phase 2: Immediate redraw for user input (zero lag)
                 display.requestImmediateRedraw()

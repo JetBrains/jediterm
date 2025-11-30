@@ -18,6 +18,8 @@ import com.jediterm.terminal.emulator.JediEmulator
 import com.jediterm.terminal.model.JediTerminal
 import com.jediterm.terminal.model.TerminalTextBuffer
 import org.jetbrains.jediterm.compose.debug.DebugDataCollector
+import org.jetbrains.jediterm.compose.typeahead.ComposeTypeAheadModel
+import com.jediterm.core.typeahead.TerminalTypeAheadManager
 import java.util.UUID
 
 /**
@@ -198,7 +200,21 @@ data class TerminalTab(
      * Debug data collector for capturing I/O chunks and terminal state snapshots.
      * Null when debug mode is disabled to avoid memory overhead.
      */
-    val debugCollector: DebugDataCollector? = null
+    val debugCollector: DebugDataCollector? = null,
+
+    // === Type-Ahead Prediction ===
+
+    /**
+     * Type-ahead terminal model for applying predictions to the buffer.
+     * Null when type-ahead is disabled.
+     */
+    val typeAheadModel: ComposeTypeAheadModel? = null,
+
+    /**
+     * Type-ahead manager that tracks predictions and latency statistics.
+     * Null when type-ahead is disabled.
+     */
+    val typeAheadManager: TerminalTypeAheadManager? = null
 ) {
     /**
      * Whether this tab is currently rendering to the UI.

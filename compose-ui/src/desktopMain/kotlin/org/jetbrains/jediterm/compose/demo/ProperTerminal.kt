@@ -213,12 +213,10 @@ fun ProperTerminal(
 
   // Highlight a search match using selection
   fun highlightMatch(matchCol: Int, matchRow: Int, matchLength: Int) {
-    // Convert buffer coordinates to screen coordinates
-    val screenRow = matchRow + scrollOffset
-
-    // Set selection to highlight the match
-    selectionStart = Pair(matchCol, screenRow)
-    selectionEnd = Pair(matchCol + matchLength - 1, screenRow)
+    // matchRow is already buffer-relative (from search), use directly
+    // Selection rendering will convert buffer to screen coords
+    selectionStart = Pair(matchCol, matchRow)
+    selectionEnd = Pair(matchCol + matchLength - 1, matchRow)
 
     display.requestImmediateRedraw()
   }
@@ -371,15 +369,16 @@ fun ProperTerminal(
 
         if (!scrolled) break  // Stop auto-scroll when back in bounds
 
-        // Update selection end to track scroll position
+        // Update selection end to track scroll position (using buffer-relative coordinates)
         lastDragPosition?.let { pos ->
           val col = (pos.x / cellWidthParam).toInt().coerceIn(0, textBuffer.width - 1)
-          val effectiveRow = when {
+          val screenRow = when {
             pos.y < 0 -> 0  // Top of visible area
             pos.y > height -> ((height / cellHeightParam).toInt()).coerceAtMost(textBuffer.height - 1)
             else -> (pos.y / cellHeightParam).toInt()
           }
-          selectionEnd = Pair(col, effectiveRow)
+          val bufferRow = screenRow - scrollOffset  // Convert screen to buffer-relative row
+          selectionEnd = Pair(col, bufferRow)
         }
 
         display.requestImmediateRedraw()
@@ -730,8 +729,10 @@ fun ProperTerminal(
               }
               2 -> {
                 // Double-click: Select word at cursor position
-                val (col, row) = pixelToCharCoords(currentPosition)
-                val (start, end) = selectWordAt(col, row, textBuffer)
+                // Convert screen coords to buffer-relative for selection
+                val (col, screenRow) = pixelToCharCoords(currentPosition)
+                val bufferRow = screenRow - scrollOffset
+                val (start, end) = selectWordAt(col, bufferRow, textBuffer)
                 selectionStart = start
                 selectionEnd = end
                 isDragging = false
@@ -745,8 +746,10 @@ fun ProperTerminal(
               }
               else -> {
                 // Triple-click (or more): Select entire logical line
-                val (col, row) = pixelToCharCoords(currentPosition)
-                val (start, end) = selectLineAt(col, row, textBuffer)
+                // Convert screen coords to buffer-relative for selection
+                val (col, screenRow) = pixelToCharCoords(currentPosition)
+                val bufferRow = screenRow - scrollOffset
+                val (start, end) = selectLineAt(col, bufferRow, textBuffer)
                 selectionStart = start
                 selectionEnd = end
                 isDragging = false
@@ -821,19 +824,22 @@ fun ProperTerminal(
                 }
 
                 val startCol = (startPos.x / cellWidth).toInt()
-                val startRow = (startPos.y / cellHeight).toInt()
-                selectionStart = Pair(startCol, startRow)
+                val screenRow = (startPos.y / cellHeight).toInt()
+                val bufferRow = screenRow - scrollOffset  // Convert screen to buffer-relative row
+                selectionStart = Pair(startCol, bufferRow)
               }
 
               // Update selection end point as mouse moves
               // Handle out-of-bounds coordinates for auto-scroll
+              // Convert to buffer-relative coordinates for consistent selection model
               val col = (pos.x / cellWidth).toInt().coerceIn(0, textBuffer.width - 1)
-              val effectiveRow = when {
+              val screenRow = when {
                 pos.y < 0 -> 0  // Above canvas: first visible row
                 pos.y > canvasSize.height -> ((canvasSize.height / cellHeight).toInt()).coerceAtMost(textBuffer.height - 1)
                 else -> (pos.y / cellHeight).toInt()
               }
-              selectionEnd = Pair(col, effectiveRow)
+              val bufferRow = screenRow - scrollOffset  // Convert screen to buffer-relative row
+              selectionEnd = Pair(col, bufferRow)
 
               // Track position for auto-scroll updates
               lastDragPosition = pos
@@ -1787,15 +1793,17 @@ fun ProperTerminal(
               }
 
               // Draw selection highlight rectangles
-              for (row in minRow..maxRow) {
-                if (row in 0 until height) {
-                  val colStart = if (row == minRow) minCol else 0
-                  val colEnd = if (row == maxRow) maxCol else (width - 1)
+              // Selection coords are buffer-relative, convert to screen coords for rendering
+              for (bufferRow in minRow..maxRow) {
+                val screenRow = bufferRow + scrollOffset  // Convert buffer to screen row
+                if (screenRow in 0 until visibleRows) {  // Check if visible on screen
+                  val colStart = if (bufferRow == minRow) minCol else 0
+                  val colEnd = if (bufferRow == maxRow) maxCol else (width - 1)
 
                   for (col in colStart..colEnd) {
                     if (col in 0 until width) {
                       val x = col * cellWidth
-                      val y = row * cellHeight
+                      val y = screenRow * cellHeight  // Use screen row for Y position
                       drawRect(
                         color = settings.selectionColorValue.copy(alpha = 0.3f),
                         topLeft = Offset(x, y),

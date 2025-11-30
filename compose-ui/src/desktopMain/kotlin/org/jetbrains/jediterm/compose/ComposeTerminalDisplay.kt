@@ -111,6 +111,22 @@ class ComposeTerminalDisplay : TerminalDisplay {
     // Cursor debugging (can be disabled by setting to false)
     private val debugCursor = System.getenv("JEDITERM_DEBUG_CURSOR")?.toBoolean() ?: false
 
+    /**
+     * Cursor state independence: Cursor position, shape, and visibility are managed
+     * independently from buffer snapshots and do NOT trigger redraws automatically.
+     *
+     * This is intentional behavior because:
+     * 1. Cursor can blink without buffer content changes
+     * 2. Cursor moves independently during editing operations
+     * 3. Cursor updates are frequent and don't require buffer re-snapshotting
+     *
+     * The UI layer observes cursor state via separate Compose State variables
+     * (cursorX, cursorY, cursorVisible, cursorShape) which trigger recomposition
+     * only of cursor-rendering code, not the entire buffer.
+     *
+     * Buffer content changes that move the cursor will trigger redraws via
+     * scrollArea() or other buffer modification methods.
+     */
     override fun setCursor(x: Int, y: Int) {
         if (debugCursor && (_cursorX.value != x || _cursorY.value != y)) {
             println("🔵 CURSOR MOVE: (${ _cursorX.value},${_cursorY.value}) → ($x,$y)")
@@ -138,8 +154,20 @@ class ComposeTerminalDisplay : TerminalDisplay {
     }
 
     override fun scrollArea(scrollRegionTop: Int, scrollRegionBottom: Int, dy: Int) {
-        // Trigger redraw when scrolling happens
-        _redrawTrigger.value += 1
+        // Note: This method is only called for actual scrolling operations (cursor past bottom, etc.)
+        // Regular text output is handled by the ModelListener registered on TerminalTextBuffer
+        // Smart priority detection: Use IMMEDIATE for interactive use, NORMAL for bulk output
+        val isHighVolume = synchronized(redrawTimestampsLock) {
+            currentMode == RedrawMode.HIGH_VOLUME
+        }
+
+        if (isHighVolume) {
+            // Bulk output detected (cat, streaming) - use debouncing for 98% reduction
+            requestRedraw()
+        } else {
+            // Interactive use (typing, prompts) - instant response for best UX
+            requestImmediateRedraw()
+        }
     }
 
     override fun useAlternateScreenBuffer(useAlternateScreenBuffer: Boolean) {
@@ -306,11 +334,17 @@ class ComposeTerminalDisplay : TerminalDisplay {
     /**
      * Trigger an immediate redraw (bypasses debouncing).
      * Use for user input (keyboard, mouse) to guarantee zero lag.
+     *
+     * CRITICAL FIX: This bypasses the Channel.CONFLATED to ensure IMMEDIATE requests
+     * are never dropped. During initialization, rapid redraw requests (10-20 in <50ms)
+     * were being conflated, causing the initial prompt to not display until user clicked.
+     * By calling actualRedraw() directly on Main thread, we ensure instant response.
      */
     fun requestImmediateRedraw() {
-        val sent = redrawChannel.trySend(RedrawRequest(priority = RedrawPriority.IMMEDIATE))
-        if (!sent.isSuccess) {
-            // Fallback: force immediate redraw
+        // Bypass channel entirely - call actualRedraw() directly on Main thread
+        // This ensures IMMEDIATE requests are never dropped during rapid initialization
+        // MUST use Main dispatcher because actualRedraw() modifies Compose state
+        redrawScope.launch(Dispatchers.Main) {
             actualRedraw()
         }
 

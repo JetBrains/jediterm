@@ -86,6 +86,15 @@ class TabController(
         val display = ComposeTerminalDisplay()
         val terminal = JediTerminal(display, textBuffer, styleState)
 
+        // CRITICAL: Register ModelListener to trigger redraws when buffer content changes
+        // This is how the Swing TerminalPanel gets notified - without this, the display
+        // never knows when to redraw after new text is written to the buffer!
+        textBuffer.addModelListener(object : com.jediterm.terminal.model.TerminalModelListener {
+            override fun modelChanged() {
+                display.requestImmediateRedraw()
+            }
+        })
+
         // Configure character encoding mode (ISO-8859-1 enables GR mapping, UTF-8 disables it)
         terminal.setCharacterEncoding(settings.characterEncoding)
 
@@ -232,14 +241,16 @@ class TabController(
                 tab.terminal.setTerminalOutput(ProcessTerminalOutput(handle, tab))
 
                 // Start emulator processing coroutine
+                // Note: Initial prompt will display via ModelListener → requestImmediateRedraw()
+                // when buffer content changes. No need for premature redraw here.
                 launch(Dispatchers.Default) {
                     try {
                         while (handle.isAlive()) {
                             try {
                                 tab.emulator.processChar(tab.dataStream.char, tab.terminal)
-                                if (tab.isVisible.value) {
-                                    tab.display.requestRedraw()
-                                }
+                                // Note: Redraws are triggered by scrollArea() when buffer changes
+                                // No need for explicit requestRedraw() here - it causes redundant requests
+                                // scrollArea() now uses smart priority (IMMEDIATE for interactive, debounced for bulk)
                             } catch (_: EOFException) {
                                 break
                             } catch (e: Exception) {

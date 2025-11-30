@@ -276,7 +276,8 @@ fun ProperTerminal(
   // Watch redraw trigger to force recomposition
   // Use predicted cursor position from type-ahead manager if available
   // This makes the cursor respond immediately to keystrokes even on high-latency connections
-  val cursorX = tab.typeAheadManager?.cursorX ?: display.cursorX.value
+  // Note: typeAheadManager.cursorX returns 1-based (for Swing), we need 0-based for Compose rendering
+  val cursorX = tab.typeAheadManager?.let { it.cursorX - 1 } ?: display.cursorX.value
   val cursorY = display.cursorY.value
   val cursorVisible = display.cursorVisible.value
   val cursorShape = display.cursorShape.value

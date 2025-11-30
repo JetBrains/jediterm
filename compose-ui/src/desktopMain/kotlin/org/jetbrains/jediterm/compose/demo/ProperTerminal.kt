@@ -1776,29 +1776,35 @@ fun ProperTerminal(
               val start = selectionStart!!
               val end = selectionEnd!!
 
-              // Normalize selection to handle backwards dragging
               val (startCol, startRow) = start
               val (endCol, endRow) = end
 
-              val (minRow, maxRow) = if (startRow < endRow) {
-                startRow to endRow
+              // Determine first (earlier row) and last (later row) points
+              // This is direction-aware: first point is always the one with smaller row
+              val (firstCol, firstRow, lastCol, lastRow) = if (startRow <= endRow) {
+                listOf(startCol, startRow, endCol, endRow)
               } else {
-                endRow to startRow
-              }
-
-              val (minCol, maxCol) = if (startCol < endCol) {
-                startCol to endCol
-              } else {
-                endCol to startCol
+                listOf(endCol, endRow, startCol, startRow)
               }
 
               // Draw selection highlight rectangles
               // Selection coords are buffer-relative, convert to screen coords for rendering
-              for (bufferRow in minRow..maxRow) {
+              for (bufferRow in firstRow..lastRow) {
                 val screenRow = bufferRow + scrollOffset  // Convert buffer to screen row
                 if (screenRow in 0 until visibleRows) {  // Check if visible on screen
-                  val colStart = if (bufferRow == minRow) minCol else 0
-                  val colEnd = if (bufferRow == maxRow) maxCol else (width - 1)
+                  // For single-line selection, use min/max columns
+                  // For multi-line: first row from firstCol to end, middle rows full, last row from 0 to lastCol
+                  val (colStart, colEnd) = if (firstRow == lastRow) {
+                    // Single line: use min/max columns
+                    minOf(firstCol, lastCol) to maxOf(firstCol, lastCol)
+                  } else {
+                    // Multi-line: direction-aware columns
+                    when (bufferRow) {
+                      firstRow -> firstCol to (width - 1)  // First row: from start col to end
+                      lastRow -> 0 to lastCol              // Last row: from 0 to end col
+                      else -> 0 to (width - 1)             // Middle rows: full line
+                    }
+                  }
 
                   for (col in colStart..colEnd) {
                     if (col in 0 until width) {
@@ -2073,30 +2079,34 @@ private fun extractSelectedText(
   val (startCol, startRow) = start
   val (endCol, endRow) = end
 
-  // Normalize selection to handle backwards dragging
-  val (minRow, maxRow) = if (startRow < endRow) {
-    startRow to endRow
+  // Determine first (earlier row) and last (later row) points
+  // This is direction-aware: first point is always the one with smaller row
+  val (firstCol, firstRow, lastCol, lastRow) = if (startRow <= endRow) {
+    listOf(startCol, startRow, endCol, endRow)
   } else {
-    endRow to startRow
-  }
-
-  val (minCol, maxCol) = if (startRow == endRow) {
-    // Same row - compare columns
-    if (startCol < endCol) startCol to endCol else endCol to startCol
-  } else {
-    // Different rows - use natural order
-    if (startRow < endRow) startCol to endCol else endCol to startCol
+    listOf(endCol, endRow, startCol, startRow)
   }
 
   // Use snapshot for lock-free text extraction
   val snapshot = textBuffer.createSnapshot()
   val result = StringBuilder()
 
-  for (row in minRow..maxRow) {
+  for (row in firstRow..lastRow) {
     val line = snapshot.getLine(row)
 
-    val colStart = if (row == minRow) minCol else 0
-    val colEnd = if (row == maxRow) maxCol else (snapshot.width - 1)
+    // For single-line selection, use min/max columns
+    // For multi-line: first row from firstCol to end, middle rows full, last row from 0 to lastCol
+    val (colStart, colEnd) = if (firstRow == lastRow) {
+      // Single line: use min/max columns
+      minOf(firstCol, lastCol) to maxOf(firstCol, lastCol)
+    } else {
+      // Multi-line: direction-aware columns
+      when (row) {
+        firstRow -> firstCol to (snapshot.width - 1)  // First row: from start col to end
+        lastRow -> 0 to lastCol                        // Last row: from 0 to end col
+        else -> 0 to (snapshot.width - 1)              // Middle rows: full line
+      }
+    }
 
     for (col in colStart..colEnd) {
       if (col < snapshot.width) {
@@ -2109,7 +2119,7 @@ private fun extractSelectedText(
     }
 
     // Add newline between rows (except after last row)
-    if (row < maxRow) {
+    if (row < lastRow) {
       result.append('\n')
     }
   }

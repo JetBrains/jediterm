@@ -1,5 +1,6 @@
 package org.jetbrains.jediterm.compose.scrollbar
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -8,6 +9,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -17,6 +19,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.State
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -26,6 +30,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.ScrollbarAdapter
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -40,6 +45,11 @@ import kotlin.math.roundToInt
  * @param thumbColor Color of the scrollbar thumb
  * @param trackColor Color of the scrollbar track background
  * @param minThumbHeight Minimum height of the thumb in Dp
+ * @param matchPositions Normalized [0, 1] positions of search matches for scrollbar markers
+ * @param currentMatchIndex Index of the current match (-1 if none)
+ * @param matchMarkerColor Color for regular match markers (default: yellow)
+ * @param currentMatchMarkerColor Color for current match marker (default: orange)
+ * @param onMatchClicked Callback when a match marker is clicked (receives match index)
  */
 @Composable
 fun AlwaysVisibleScrollbar(
@@ -49,7 +59,12 @@ fun AlwaysVisibleScrollbar(
     thickness: Dp = 12.dp,
     thumbColor: Color = Color.White,
     trackColor: Color = Color.White.copy(alpha = 0.12f),
-    minThumbHeight: Dp = 32.dp
+    minThumbHeight: Dp = 32.dp,
+    matchPositions: List<Float> = emptyList(),
+    currentMatchIndex: Int = -1,
+    matchMarkerColor: Color = Color(0xFFFFFF00),
+    currentMatchMarkerColor: Color = Color(0xFFFF6600),
+    onMatchClicked: ((Int) -> Unit)? = null
 ) {
     var containerHeight by remember { mutableStateOf(0f) }
     val interactionSource = remember { MutableInteractionSource() }
@@ -78,25 +93,69 @@ fun AlwaysVisibleScrollbar(
     ) {
         // Only render visible scrollbar when there's content to scroll
         if (containerHeight > 0f && maxScroll > 0f) {
-            // Track background
+            // Track background with match markers
             Box(
                 modifier = Modifier
                     .width(thickness)
                     .fillMaxHeight()
                     .background(Color.Transparent, shape = RoundedCornerShape(4.dp))
                     .hoverable(interactionSource)
-                    .pointerInput(Unit) {
-                        // Handle clicks on track to jump to position
+                    .pointerInput(matchPositions, onMatchClicked) {
+                        // Handle clicks - either on match markers or track to jump to position
                         detectTapGestures { offset ->
-                            if (maxScroll > 0f && containerHeight > 0f) {
-                                val targetScroll = (offset.y / containerHeight) * maxScroll
-                                scope.launch {
-                                    adapter.scrollTo(containerSize, targetScroll)
+                            if (containerHeight > 0f) {
+                                val clickedPosition = offset.y / containerHeight
+
+                                // Check if clicking on a match marker (with click-to-jump enabled)
+                                if (matchPositions.isNotEmpty() && onMatchClicked != null) {
+                                    // Find closest match within a tolerance (5% of track height)
+                                    val tolerance = 0.05f
+                                    val closestMatchIndex = matchPositions.indices.minByOrNull {
+                                        abs(matchPositions[it] - clickedPosition)
+                                    }
+                                    if (closestMatchIndex != null &&
+                                        abs(matchPositions[closestMatchIndex] - clickedPosition) <= tolerance) {
+                                        onMatchClicked(closestMatchIndex)
+                                        return@detectTapGestures
+                                    }
+                                }
+
+                                // Default: scroll to clicked position
+                                if (maxScroll > 0f) {
+                                    val targetScroll = clickedPosition * maxScroll
+                                    scope.launch {
+                                        adapter.scrollTo(containerSize, targetScroll)
+                                    }
                                 }
                             }
                         }
                     }
-            )
+            ) {
+                // Draw match markers on the track
+                if (matchPositions.isNotEmpty()) {
+                    val density = LocalDensity.current
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val markerHeightPx = max(
+                            with(density) { 2.dp.toPx() },
+                            size.height / matchPositions.size.coerceAtLeast(1)
+                        ).coerceAtMost(with(density) { 4.dp.toPx() }) // Cap at 4dp for aesthetics
+
+                        matchPositions.forEachIndexed { index, position ->
+                            val y = position * size.height
+                            val color = if (index == currentMatchIndex) {
+                                currentMatchMarkerColor
+                            } else {
+                                matchMarkerColor
+                            }
+                            drawRect(
+                                color = color,
+                                topLeft = Offset(0f, y - markerHeightPx / 2),
+                                size = Size(size.width, markerHeightPx)
+                            )
+                        }
+                    }
+                }
+            }
 
             // Thumb
             val thumbHeightPx = run {

@@ -58,6 +58,7 @@ import org.jetbrains.jediterm.compose.hyperlinks.Hyperlink
 import org.jetbrains.jediterm.compose.hyperlinks.HyperlinkDetector
 import org.jetbrains.jediterm.compose.ime.IMEHandler
 import org.jetbrains.jediterm.compose.scrollbar.AlwaysVisibleScrollbar
+import org.jetbrains.jediterm.compose.scrollbar.computeMatchPositions
 import org.jetbrains.jediterm.compose.scrollbar.rememberTerminalScrollbarAdapter
 import org.jetbrains.jediterm.compose.search.SearchBar
 import org.jetbrains.jediterm.compose.settings.SettingsManager
@@ -181,33 +182,29 @@ fun ProperTerminal(
   // X11-style selection clipboard from tab
   var selectionClipboard by tab.selectionClipboard
 
-  // Scroll terminal to show a search match
+  // Scroll terminal to show a search match (only scroll if match not already visible)
   fun scrollToMatch(matchRow: Int) {
     val screenHeight = textBuffer.height
     val historySize = textBuffer.historyLinesCount
 
-    when {
-      matchRow < 0 -> {
-        // Match is in history, scroll up to center it
-        val targetOffset = -matchRow - (screenHeight / 2)
-        scrollOffset = targetOffset.coerceIn(0, historySize)
-      }
-      matchRow >= screenHeight -> {
-        // Match is below screen, scroll to bottom
-        scrollOffset = 0
-      }
-      else -> {
-        // Match is in screen buffer, check if visible
-        val visibleRowStart = -scrollOffset
-        val visibleRowEnd = visibleRowStart + screenHeight
+    // Calculate currently visible rows (in buffer coordinates)
+    // scrollOffset=0 means viewing current screen (rows 0 to screenHeight-1)
+    // scrollOffset=N means scrolled up N lines into history
+    val visibleRowStart = -scrollOffset  // First visible buffer row
+    val visibleRowEnd = visibleRowStart + screenHeight - 1  // Last visible buffer row
 
-        if (matchRow !in visibleRowStart until visibleRowEnd) {
-          // Not visible, center it
-          val targetOffset = kotlin.math.max(0, -matchRow + (screenHeight / 2))
-          scrollOffset = targetOffset.coerceIn(0, historySize)
-        }
-      }
+    // Only scroll if match is not visible
+    if (matchRow < visibleRowStart) {
+      // Match is above visible area, scroll up to show it (with 2-line margin from top)
+      val targetOffset = -matchRow + 2
+      scrollOffset = targetOffset.coerceIn(0, historySize)
+    } else if (matchRow > visibleRowEnd) {
+      // Match is below visible area, scroll down to show it (with 2-line margin from bottom)
+      val targetOffset = -(matchRow - screenHeight + 3)
+      scrollOffset = targetOffset.coerceIn(0, historySize)
     }
+    // If match is already visible, don't scroll
+
     display.requestImmediateRedraw()
   }
 
@@ -570,7 +567,28 @@ fun ProperTerminal(
     return Pair(col, row)
   }
 
-  Box(modifier = modifier.fillMaxSize()) {
+  Box(
+    modifier = modifier
+      .fillMaxSize()
+      .onPreviewKeyEvent { keyEvent ->
+        // Handle Cmd+F toggle at the top level so it works regardless of which child has focus
+        if (keyEvent.type == KeyEventType.KeyDown) {
+          val action = actionRegistry.getAction("search")
+          if (action != null && action.matchesKeyEvent(keyEvent, isMacOS)) {
+            action.execute(keyEvent)
+            // When closing search, restore focus to terminal
+            if (!searchVisible) {
+              scope.launch {
+                kotlinx.coroutines.delay(50)
+                focusRequester.requestFocus()
+              }
+            }
+            return@onPreviewKeyEvent true
+          }
+        }
+        false
+      }
+  ) {
     Box(
       modifier = Modifier
         .fillMaxSize()
@@ -606,6 +624,8 @@ fun ProperTerminal(
         .background(settings.defaultBackgroundColor)
         .onPointerEvent(PointerEventType.Press) { event ->
           val change = event.changes.first()
+          // Skip if event was already consumed by an overlay (SearchBar, DebugPanel, etc.)
+          if (change.isConsumed) return@onPointerEvent
           if (change.pressed && change.previousPressed.not()) {
             // Check if mouse event should be forwarded to terminal application
             val shiftPressed = event.isShiftPressed()
@@ -743,6 +763,8 @@ fun ProperTerminal(
                   searchQuery = ""
                   searchMatches = emptyList()
                 }
+                // Ensure focus is on terminal canvas after click
+                focusRequester.requestFocus()
               }
               else -> {
                 // Triple-click (or more): Select entire logical line
@@ -760,6 +782,8 @@ fun ProperTerminal(
                   searchQuery = ""
                   searchMatches = emptyList()
                 }
+                // Ensure focus is on terminal canvas after click
+                focusRequester.requestFocus()
               }
             }
 
@@ -769,6 +793,8 @@ fun ProperTerminal(
         }
         .onPointerEvent(PointerEventType.Move) { event ->
           val change = event.changes.first()
+          // Skip if event was already consumed by an overlay
+          if (change.isConsumed) return@onPointerEvent
           val pos = change.position
           val startPos = dragStartPos
 
@@ -822,6 +848,8 @@ fun ProperTerminal(
                   searchQuery = ""
                   searchMatches = emptyList()
                 }
+                // Ensure focus is on terminal canvas after click
+                focusRequester.requestFocus()
 
                 val startCol = (startPos.x / cellWidth).toInt()
                 val screenRow = (startPos.y / cellHeight).toInt()
@@ -861,6 +889,8 @@ fun ProperTerminal(
         }
         .onPointerEvent(PointerEventType.Release) { event ->
           val change = event.changes.first()
+          // Skip if event was already consumed by an overlay
+          if (change.isConsumed) return@onPointerEvent
 
           // Check if mouse event should be forwarded to terminal application
           val shiftPressed = event.isShiftPressed()
@@ -921,6 +951,8 @@ fun ProperTerminal(
         }
         .onPointerEvent(PointerEventType.Scroll) { event ->
           val change = event.changes.first()
+          // Skip if event was already consumed by an overlay
+          if (change.isConsumed) return@onPointerEvent
           val delta = change.scrollDelta.y
           val shiftPressed = event.isShiftPressed()
 
@@ -1771,8 +1803,39 @@ fun ProperTerminal(
               flushBatch()
             }
 
-            // Draw selection highlight
-            if (selectionStart != null && selectionEnd != null) {
+            // Draw search match highlights (all matches)
+            if (searchVisible && searchMatches.isNotEmpty()) {
+              val matchLength = searchQuery.length
+              searchMatches.forEachIndexed { index, (matchCol, matchRow) ->
+                // Convert buffer-relative row to screen row
+                val screenRow = matchRow + scrollOffset
+                if (screenRow in 0 until visibleRows) {
+                  // Use orange for current match, yellow for others
+                  val matchColor = if (index == currentMatchIndex) {
+                    settings.currentSearchMarkerColorValue.copy(alpha = 0.6f)  // Orange for current
+                  } else {
+                    settings.searchMarkerColorValue.copy(alpha = 0.4f)  // Yellow for others
+                  }
+
+                  // Draw highlight for each character in the match
+                  for (charOffset in 0 until matchLength) {
+                    val col = matchCol + charOffset
+                    if (col in 0 until width) {
+                      val x = col * cellWidth
+                      val y = screenRow * cellHeight
+                      drawRect(
+                        color = matchColor,
+                        topLeft = Offset(x, y),
+                        size = Size(cellWidth, cellHeight)
+                      )
+                    }
+                  }
+                }
+              }
+            }
+
+            // Draw selection highlight (for manual selection, not search)
+            if (selectionStart != null && selectionEnd != null && !(searchVisible && searchMatches.isNotEmpty())) {
               val start = selectionStart!!
               val end = selectionEnd!!
 
@@ -1785,6 +1848,13 @@ fun ProperTerminal(
                 listOf(startCol, startRow, endCol, endRow)
               } else {
                 listOf(endCol, endRow, startCol, startRow)
+              }
+
+              // Use foundPatternColor (yellow) for search results, selectionColor (blue) for manual selection
+              val highlightColor = if (searchVisible && searchMatches.isNotEmpty()) {
+                settings.foundPatternColorValue.copy(alpha = 0.5f)  // Yellow for search
+              } else {
+                settings.selectionColorValue.copy(alpha = 0.3f)     // Blue for selection
               }
 
               // Draw selection highlight rectangles
@@ -1811,7 +1881,7 @@ fun ProperTerminal(
                       val x = col * cellWidth
                       val y = screenRow * cellHeight  // Use screen row for Y position
                       drawRect(
-                        color = settings.selectionColorValue.copy(alpha = 0.3f),
+                        color = highlightColor,
                         topLeft = Offset(x, y),
                         size = Size(cellWidth, cellHeight)
                       )
@@ -1951,7 +2021,7 @@ fun ProperTerminal(
               focusRequester.requestFocus()
             }
           },
-          modifier = Modifier.align(Alignment.TopCenter)
+          modifier = Modifier.align(Alignment.TopEnd)
         )
 
         // Debug panel UI (bottom overlay)
@@ -1974,6 +2044,19 @@ fun ProperTerminal(
 
       // Vertical scrollbar on the right side - Always visible custom scrollbar
       if (settings.showScrollbar) {
+        // Compute match positions for scrollbar markers
+        val matchPositions = remember(searchMatches, textBuffer.historyLinesCount, textBuffer.height) {
+          if (searchVisible && settings.showSearchMarkersInScrollbar) {
+            computeMatchPositions(
+              matches = searchMatches,
+              historyLinesCount = textBuffer.historyLinesCount,
+              screenHeight = textBuffer.height
+            )
+          } else {
+            emptyList()
+          }
+        }
+
         AlwaysVisibleScrollbar(
           adapter = scrollbarAdapter,
           redrawTrigger = display.redrawTrigger,
@@ -1983,7 +2066,19 @@ fun ProperTerminal(
           thickness = settings.scrollbarWidth.dp,
           thumbColor = Color.White,
           trackColor = Color.White.copy(alpha = 0.12f),
-          minThumbHeight = 32.dp
+          minThumbHeight = 32.dp,
+          matchPositions = matchPositions,
+          currentMatchIndex = currentMatchIndex,
+          matchMarkerColor = settings.searchMarkerColorValue,
+          currentMatchMarkerColor = settings.currentSearchMarkerColorValue,
+          onMatchClicked = { matchIndex ->
+            if (matchIndex in searchMatches.indices) {
+              currentMatchIndex = matchIndex
+              val (col, row) = searchMatches[matchIndex]
+              scrollToMatch(row)
+              highlightMatch(col, row, searchQuery.length)
+            }
+          }
         )
       }
     } // end Box

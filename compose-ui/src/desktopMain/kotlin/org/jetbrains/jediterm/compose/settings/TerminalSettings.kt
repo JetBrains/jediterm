@@ -135,6 +135,21 @@ data class TerminalSettings(
      */
     val scrollbarThumbColor: String = "0xFFAAAAAA",
 
+    /**
+     * Show search match markers in scrollbar
+     */
+    val showSearchMarkersInScrollbar: Boolean = true,
+
+    /**
+     * Search marker color for regular matches (serialized as ARGB hex)
+     */
+    val searchMarkerColor: String = "0xFFFFFF00",
+
+    /**
+     * Search marker color for current match (serialized as ARGB hex)
+     */
+    val currentSearchMarkerColor: String = "0xFFFF6600",
+
     // ===== Performance Settings =====
 
     /**
@@ -292,6 +307,12 @@ data class TerminalSettings(
 
     @Transient
     val scrollbarThumbColorValue: Color = Color(scrollbarThumbColor.removePrefix("0x").toULong(16).toLong())
+
+    @Transient
+    val searchMarkerColorValue: Color = Color(searchMarkerColor.removePrefix("0x").toULong(16).toLong())
+
+    @Transient
+    val currentSearchMarkerColorValue: Color = Color(currentSearchMarkerColor.removePrefix("0x").toULong(16).toLong())
 
     companion object {
         /**

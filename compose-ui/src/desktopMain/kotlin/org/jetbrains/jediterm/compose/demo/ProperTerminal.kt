@@ -469,7 +469,21 @@ fun ProperTerminal(
     Triple(width, height, baseline)
   }
   val cellWidth = cellMetrics.first
-  val cellHeight = cellMetrics.second
+  val baseCellHeight = cellMetrics.second  // Raw height without line spacing
+
+  // Calculate effective line spacing based on settings and alternate buffer state
+  val isUsingAlternateBuffer = textBuffer.isUsingAlternateBuffer
+  val effectiveLineSpacing = if (settings.disableLineSpacingInAlternateBuffer && isUsingAlternateBuffer) {
+    1.0f  // No line spacing in alternate buffer
+  } else {
+    settings.lineSpacing
+  }
+
+  // Apply line spacing to cell height
+  val cellHeight = baseCellHeight * effectiveLineSpacing
+
+  // Calculate line spacing gap (extra space added by line spacing)
+  val lineSpacingGap = cellHeight - baseCellHeight
 
   // SLOW_BLINK animation timer (configurable via settings.slowTextBlinkMs)
   // Wrapped with enableTextBlinking master toggle for accessibility
@@ -1262,11 +1276,13 @@ fun ProperTerminal(
                 }
 
                 // Draw background (single or double width)
+                // When fillBackgroundInLineSpacing is false, only fill baseCellHeight
                 val bgWidth = if (isWcwidthDoubleWidth) cellWidth * 2 else cellWidth
+                val bgHeight = if (settings.fillBackgroundInLineSpacing) cellHeight else baseCellHeight
                 drawRect(
                   color = bgColor,
                   topLeft = Offset(x, y),
-                  size = Size(bgWidth, cellHeight)
+                  size = Size(bgWidth, bgHeight)
                 )
 
                 // Skip next column if double-width

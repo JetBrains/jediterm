@@ -65,6 +65,7 @@ import org.jetbrains.jediterm.compose.search.SearchBar
 import org.jetbrains.jediterm.compose.settings.SettingsManager
 import org.jetbrains.jediterm.compose.tabs.TerminalTab
 import com.jediterm.core.typeahead.TerminalTypeAheadManager
+import org.jetbrains.skia.FontMgr
 import com.jediterm.terminal.TextStyle as JediTextStyle
 import java.awt.event.KeyEvent as JavaKeyEvent
 
@@ -1566,7 +1567,7 @@ fun ProperTerminal(
                 // IMPORTANT: Use actualCodePoint for surrogate pair emoji!
                 val isEmojiOrWideSymbol = when (actualCodePoint) {
                   in 0x2600..0x26FF -> true  // Miscellaneous Symbols (☁️, ☀️, ★, etc.)
-                  in 0x2700..0x27BF -> true  // Dingbats (✂, ✈, ❯, etc.)
+                  // Note: Dingbats (0x2700-0x27BF) removed - Nerd Font has monochrome glyphs (✳, ❯, etc.)
                   in 0x1F300..0x1F9FF -> true  // Emoji & Pictographs
                   in 0x1F600..0x1F64F -> true  // Emoticons
                   in 0x1F680..0x1F6FF -> true  // Transport & Map Symbols
@@ -1664,6 +1665,15 @@ fun ProperTerminal(
                     // MesloLGSNF doesn't have glyphs for emoji or mathematical alphanumerics
                     val fontForChar = if (isEmojiOrWideSymbol || isEmojiWithVariationSelector || isCursiveOrMath) {
                       FontFamily.Default  // System font with emoji/Unicode support
+                    } else if (isTechnicalSymbol) {
+                      // Use STIX Two Math for monochrome technical symbols (avoids Apple Color Emoji)
+                      // Load system font via Skia FontMgr
+                      val skiaTypeface = FontMgr.default.matchFamilyStyle("STIX Two Math", org.jetbrains.skia.FontStyle.NORMAL)
+                      if (skiaTypeface != null) {
+                        FontFamily(androidx.compose.ui.text.platform.Typeface(skiaTypeface))
+                      } else {
+                        measurementStyle.fontFamily  // Fallback to Nerd Font
+                      }
                     } else {
                       measurementStyle.fontFamily  // Nerd Font
                     }
@@ -1772,8 +1782,7 @@ fun ProperTerminal(
                         style = textStyle
                       )
                     } else if (isTechnicalSymbol) {
-                      // Technical symbols: horizontal center + baseline-aligned
-                      // Different fonts/glyphs have different baselines - we need to align them
+                      // Technical symbols: horizontal center + baseline-aligned using STIX Two Math font
                       val measurement = textMeasurer.measure(charTextToRender, textStyle)
                       val glyphWidth = measurement.size.width.toFloat()
                       val glyphBaseline = measurement.firstBaseline  // Symbol's baseline from top

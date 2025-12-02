@@ -403,9 +403,10 @@ gh pr create --base master --head dev --title "Your PR title" --body "Descriptio
 ## Development Guidelines
 
 ### Testing
-1. Build and run: `./gradlew :compose-ui:run`
-2. Capture screenshot: `python3 capture_jediterm_only.py`
-3. Verify rendering and functionality
+**IMPORTANT**: Do NOT run the application or capture screenshots. The user will handle running and testing.
+1. Make code changes
+2. Wait for user to run and provide feedback/screenshots
+3. Iterate based on user feedback
 
 ### Performance
 - Use `remember {}` for expensive computations
@@ -442,8 +443,8 @@ gh pr create --base master --head dev --title "Your PR title" --body "Descriptio
 ### Continuous Improvement Cycle
 1. Identify issue or improvement opportunity
 2. Implement fix or enhancement
-3. Test with screenshot capture
-4. Commit to dev branch
+3. Wait for user to test and provide feedback
+4. Commit to dev branch (when user approves)
 5. Push to GitHub
 6. Create PR when feature complete
 7. Merge to master when stable

@@ -494,6 +494,18 @@ class JediEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
             }
 
             't' -> return windowManipulation(args)
+            's' -> {
+                // CSI s - Save Cursor Position (ANSI.SYS / SCO style)
+                // Used by zsh-autosuggestions and other shell plugins
+                myTerminal?.saveCursor()
+                return true
+            }
+            'u' -> {
+                // CSI u - Restore Cursor Position (ANSI.SYS / SCO style)
+                // Used by zsh-autosuggestions and other shell plugins
+                myTerminal?.restoreCursor()
+                return true
+            }
             else -> return false
         }
     }

@@ -162,6 +162,7 @@ fun BufferView(
 
 /**
  * Control sequence visualization view with color-coded escape sequences.
+ * Supports both built-in visualizer and external teseq tool.
  */
 @Composable
 fun ControlSequenceView(
@@ -169,11 +170,27 @@ fun ControlSequenceView(
     settings: VisualizationSettings,
     modifier: Modifier = Modifier
 ) {
-    val visualized = remember(chunks, settings) {
-        if (chunks.isEmpty()) {
-            "No data captured"
+    // State for teseq async output
+    var teseqOutput by remember { mutableStateOf<String?>(null) }
+    var isLoadingTeseq by remember { mutableStateOf(false) }
+
+    // Run teseq visualization asynchronously when enabled
+    LaunchedEffect(chunks, settings.useTeseq) {
+        if (settings.useTeseq && chunks.isNotEmpty()) {
+            isLoadingTeseq = true
+            teseqOutput = TeseqVisualizer.visualize(chunks)
+            isLoadingTeseq = false
         } else {
-            DebugControlSequenceVisualizer.visualize(chunks, settings)
+            teseqOutput = null
+        }
+    }
+
+    val visualized = remember(chunks, settings, teseqOutput, isLoadingTeseq) {
+        when {
+            chunks.isEmpty() -> "No data captured"
+            settings.useTeseq && isLoadingTeseq -> "Running teseq..."
+            settings.useTeseq && teseqOutput != null -> teseqOutput!!
+            else -> DebugControlSequenceVisualizer.visualize(chunks, settings)
         }
     }
 
@@ -257,6 +274,9 @@ fun VisualizationControls(
     onSettingsChange: (VisualizationSettings) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Check teseq availability once
+    val teseqAvailable = remember { TeseqVisualizer.isAvailable() }
+
     Row(
         modifier = modifier
             .background(Color(0xFF2A2A2A), RoundedCornerShape(6.dp))
@@ -291,6 +311,15 @@ fun VisualizationControls(
             onCheckedChange = { onSettingsChange(settings.copy(colorCodeSequences = it)) },
             label = "Color Code"
         )
+
+        // Use external teseq tool (only shown if available)
+        if (teseqAvailable) {
+            CheckboxWithLabel(
+                checked = settings.useTeseq,
+                onCheckedChange = { onSettingsChange(settings.copy(useTeseq = it)) },
+                label = "Use teseq"
+            )
+        }
     }
 }
 

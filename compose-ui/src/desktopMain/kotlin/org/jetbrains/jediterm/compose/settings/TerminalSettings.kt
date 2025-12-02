@@ -301,7 +301,28 @@ data class TerminalSettings(
     /**
      * Color-code escape sequences in debug view
      */
-    val debugColorCodeSequences: Boolean = true
+    val debugColorCodeSequences: Boolean = true,
+
+    // ===== File Logging Settings =====
+
+    /**
+     * Enable automatic file logging on terminal start.
+     * When enabled, all terminal I/O is written to a log file.
+     */
+    val fileLoggingEnabled: Boolean = false,
+
+    /**
+     * Directory for log files. If empty, uses ~/.jediterm/logs/
+     */
+    val fileLoggingDirectory: String = "",
+
+    /**
+     * Log file name pattern. Supports placeholders:
+     * {timestamp} - ISO 8601 timestamp
+     * {tab} - Tab ID (first 8 chars)
+     * {pid} - Process ID
+     */
+    val fileLoggingPattern: String = "jediterm_{timestamp}_{tab}.log"
 ) {
     // Non-serialized computed properties
 

@@ -407,6 +407,13 @@ fun ProperTerminal(
         override fun component1() = value
         override fun component2(): (Pair<Int, Int>?) -> Unit = { selectionEnd = it }
       },
+      selectionMode = object : MutableState<SelectionMode> {
+        override var value: SelectionMode
+          get() = selectionMode
+          set(value) { selectionMode = value }
+        override fun component1() = value
+        override fun component2(): (SelectionMode) -> Unit = { selectionMode = it }
+      },
       textBuffer = textBuffer,
       clipboardManager = clipboardManager,
       writeUserInput = tab::writeUserInput,

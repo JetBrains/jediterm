@@ -128,6 +128,150 @@ fun TerminalApp(
                     val workingDir = tabController.getActiveWorkingDirectory()
                     tabController.createTab(workingDir = workingDir)
                 },
+                onNewPreConnectTab = {
+                    // Demo: Realistic pre-connection flow (Cmd/Ctrl+Shift+T)
+                    tabController.createTabWithPreConnect { questioner ->
+                        // Step 1: Ask for connection type using dropdown
+                        val connectionType = questioner.questionSelection(
+                            prompt = "Select connection type:",
+                            options = listOf(
+                                org.jetbrains.jediterm.compose.ConnectionState.SelectOption("ssh", "SSH Connection"),
+                                org.jetbrains.jediterm.compose.ConnectionState.SelectOption("db", "Database"),
+                                org.jetbrains.jediterm.compose.ConnectionState.SelectOption("k8s", "Kubernetes Pod"),
+                                org.jetbrains.jediterm.compose.ConnectionState.SelectOption("local", "Local Shell")
+                            )
+                        )
+                        if (connectionType == null) {
+                            return@createTabWithPreConnect null
+                        }
+
+                        when (connectionType) {
+                            "ssh" -> {
+                                // SSH Connection Flow - uses native ssh command
+                                val host = questioner.questionVisible("SSH Host:", "")
+                                if (host.isNullOrBlank()) return@createTabWithPreConnect null
+
+                                val port = questioner.questionVisible("Port:", "22")
+                                if (port.isNullOrBlank()) return@createTabWithPreConnect null
+
+                                val username = questioner.questionVisible("Username:", System.getProperty("user.name"))
+                                if (username.isNullOrBlank()) return@createTabWithPreConnect null
+
+                                questioner.showMessage("Connecting to $username@$host:$port...")
+
+                                // Use native ssh command - handles password/key auth interactively
+                                TabController.PreConnectConfig(
+                                    command = "/usr/bin/ssh",
+                                    arguments = listOf("-p", port, "$username@$host"),
+                                    workingDir = tabController.getActiveWorkingDirectory()
+                                )
+                            }
+                            "db" -> {
+                                // Database Connection Flow - uses native CLI tools
+                                val dbType = questioner.questionVisible("Database type (mysql/postgres/mongo):", "postgres")
+                                if (dbType.isNullOrBlank()) return@createTabWithPreConnect null
+
+                                val host = questioner.questionVisible("Database Host:", "localhost")
+                                if (host.isNullOrBlank()) return@createTabWithPreConnect null
+
+                                val port = questioner.questionVisible("Port:", when(dbType.lowercase()) {
+                                    "mysql" -> "3306"
+                                    "postgres" -> "5432"
+                                    "mongo" -> "27017"
+                                    else -> "5432"
+                                })
+                                if (port.isNullOrBlank()) return@createTabWithPreConnect null
+
+                                val username = questioner.questionVisible("Username:", when(dbType.lowercase()) {
+                                    "postgres" -> "postgres"
+                                    else -> "root"
+                                })
+                                if (username.isNullOrBlank()) return@createTabWithPreConnect null
+
+                                val database = questioner.questionVisible("Database name:", "")
+                                if (database.isNullOrBlank()) return@createTabWithPreConnect null
+
+                                questioner.showMessage("Connecting to $dbType://$host:$port/$database...")
+
+                                // Use native DB CLI - handles password interactively
+                                when (dbType.lowercase()) {
+                                    "mysql" -> TabController.PreConnectConfig(
+                                        command = "mysql",
+                                        arguments = listOf("-h", host, "-P", port, "-u", username, "-p", database),
+                                        workingDir = tabController.getActiveWorkingDirectory()
+                                    )
+                                    "postgres" -> TabController.PreConnectConfig(
+                                        command = "psql",
+                                        arguments = listOf("-h", host, "-p", port, "-U", username, "-d", database),
+                                        workingDir = tabController.getActiveWorkingDirectory()
+                                    )
+                                    "mongo" -> TabController.PreConnectConfig(
+                                        command = "mongosh",
+                                        arguments = listOf("--host", host, "--port", port, "-u", username, database),
+                                        workingDir = tabController.getActiveWorkingDirectory()
+                                    )
+                                    else -> TabController.PreConnectConfig(
+                                        command = "psql",
+                                        arguments = listOf("-h", host, "-p", port, "-U", username, "-d", database),
+                                        workingDir = tabController.getActiveWorkingDirectory()
+                                    )
+                                }
+                            }
+                            "k8s" -> {
+                                // Kubernetes Connection Flow - uses kubectl exec
+                                val namespace = questioner.questionVisible("Namespace:", "default")
+                                if (namespace.isNullOrBlank()) return@createTabWithPreConnect null
+
+                                val pod = questioner.questionVisible("Pod name:", "")
+                                if (pod.isNullOrBlank()) return@createTabWithPreConnect null
+
+                                val container = questioner.questionVisible("Container (leave empty for default):", "")
+
+                                val shell = questioner.questionVisible("Shell:", "/bin/sh")
+                                if (shell.isNullOrBlank()) return@createTabWithPreConnect null
+
+                                questioner.showMessage("Connecting to pod $pod in namespace $namespace...")
+
+                                // Use kubectl exec for real connection
+                                val args = mutableListOf("exec", "-it", "-n", namespace, pod)
+                                if (!container.isNullOrBlank()) {
+                                    args.addAll(listOf("-c", container))
+                                }
+                                args.addAll(listOf("--", shell))
+
+                                TabController.PreConnectConfig(
+                                    command = "kubectl",
+                                    arguments = args,
+                                    workingDir = tabController.getActiveWorkingDirectory()
+                                )
+                            }
+                            "local" -> {
+                                // Local Shell - just start with custom shell selection
+                                val shell = questioner.questionVisible(
+                                    "Shell:",
+                                    System.getenv("SHELL") ?: "/bin/bash"
+                                )
+                                if (shell.isNullOrBlank()) return@createTabWithPreConnect null
+
+                                questioner.showMessage("Starting $shell...")
+
+                                TabController.PreConnectConfig(
+                                    command = shell,
+                                    arguments = listOf("-l"),
+                                    workingDir = tabController.getActiveWorkingDirectory()
+                                )
+                            }
+                            else -> {
+                                questioner.showMessage("Invalid selection. Starting default shell...")
+                                TabController.PreConnectConfig(
+                                    command = System.getenv("SHELL") ?: "/bin/bash",
+                                    arguments = emptyList(),
+                                    workingDir = tabController.getActiveWorkingDirectory()
+                                )
+                            }
+                        }
+                    }
+                },
                 onCloseTab = {
                     // Close current tab (Phase 5)
                     tabController.closeTab(tabController.activeTabIndex)

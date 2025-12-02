@@ -273,6 +273,7 @@ private fun extractSelectedText(
 fun addTabManagementActions(
     registry: ActionRegistry,
     onNewTab: () -> Unit,
+    onNewPreConnectTab: () -> Unit = {},  // Test pre-connection input
     onCloseTab: () -> Unit,
     onNextTab: () -> Unit,
     onPreviousTab: () -> Unit,
@@ -289,6 +290,21 @@ fun addTabManagementActions(
         ),
         handler = { event ->
             onNewTab()
+            true  // Consume event
+        }
+    ))
+
+    // NEW PRE-CONNECT TAB - Cmd/Ctrl+Shift+T
+    // Opens a new tab with pre-connection input prompts (for testing)
+    registry.register(TerminalAction(
+        id = "new_preconnect_tab",
+        name = "New Pre-Connect Tab",
+        keyStrokes = listOf(
+            KeyStroke(key = Key.T, ctrl = true, shift = true),  // Windows/Linux
+            KeyStroke(key = Key.T, meta = true, shift = true)   // macOS
+        ),
+        handler = { event ->
+            onNewPreConnectTab()
             true  // Consume event
         }
     ))

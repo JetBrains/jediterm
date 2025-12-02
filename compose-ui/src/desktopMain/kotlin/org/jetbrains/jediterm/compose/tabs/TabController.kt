@@ -9,6 +9,7 @@ import com.jediterm.terminal.model.StyleState
 import com.jediterm.terminal.model.TerminalApplicationTitleListener
 import com.jediterm.terminal.model.TerminalTextBuffer
 import kotlinx.coroutines.*
+import org.jetbrains.jediterm.compose.ComposeQuestioner
 import org.jetbrains.jediterm.compose.ComposeTerminalDisplay
 import org.jetbrains.jediterm.compose.ConnectionState
 import org.jetbrains.jediterm.compose.PlatformServices
@@ -228,6 +229,340 @@ class TabController(
         switchToTab(tabs.size - 1)
 
         return tab
+    }
+
+    /**
+     * Pre-connection configuration collected from user input.
+     */
+    data class PreConnectConfig(
+        val command: String,
+        val arguments: List<String> = emptyList(),
+        val workingDir: String? = null,
+        val environment: Map<String, String> = emptyMap()
+    )
+
+    /**
+     * Create a new terminal tab with pre-connection user prompts.
+     *
+     * This method allows interactive setup before the PTY is spawned, useful for:
+     * - SSH connections requiring passwords or 2FA
+     * - Custom host/port selection
+     * - Environment variable configuration
+     *
+     * The preConnectHandler receives a ComposeQuestioner that can prompt for input.
+     * The handler returns either a PreConnectConfig to proceed, or null to cancel.
+     *
+     * Example:
+     * ```kotlin
+     * tabController.createTabWithPreConnect { questioner ->
+     *     // Use dropdown for connection type selection
+     *     val connectionType = questioner.questionSelection(
+     *         prompt = "Select connection type:",
+     *         options = listOf(
+     *             ConnectionState.SelectOption("ssh", "SSH"),
+     *             ConnectionState.SelectOption("local", "Local Shell")
+     *         )
+     *     ) ?: return@createTabWithPreConnect null  // Cancelled
+     *
+     *     val host = questioner.questionVisible("Enter SSH host:", "localhost")
+     *     val password = questioner.questionHidden("Enter password:")
+     *     if (password == null) return@createTabWithPreConnect null
+     *
+     *     questioner.showMessage("Connecting to $host...")
+     *     PreConnectConfig(
+     *         command = "ssh",
+     *         arguments = listOf("-l", "user", host)
+     *     )
+     * }
+     * ```
+     *
+     * @param onProcessExit Optional callback invoked when shell process exits
+     * @param preConnectHandler Suspend function to gather configuration via user prompts
+     * @return The newly created TerminalTab, or null if user cancelled
+     */
+    @Suppress("DEPRECATION")
+    fun createTabWithPreConnect(
+        onProcessExit: (() -> Unit)? = null,
+        preConnectHandler: suspend (ComposeQuestioner) -> PreConnectConfig?
+    ): TerminalTab {
+        tabCounter++
+
+        // Initialize terminal components (same as createTab)
+        val styleState = StyleState()
+        val textBuffer = TerminalTextBuffer(80, 24, styleState, settings.bufferMaxLines)
+        val display = ComposeTerminalDisplay()
+        val terminal = JediTerminal(display, textBuffer, styleState)
+
+        textBuffer.addModelListener(object : com.jediterm.terminal.model.TerminalModelListener {
+            override fun modelChanged() {
+                display.requestImmediateRedraw()
+            }
+        })
+
+        terminal.setCharacterEncoding(settings.characterEncoding)
+
+        val dataStream = BlockingTerminalDataStream()
+        val workingDirectoryState = mutableStateOf<String?>(null)
+
+        val oscListener = WorkingDirectoryOSCListener(workingDirectoryState)
+        terminal.addCustomCommandListener(oscListener)
+
+        terminal.addApplicationTitleListener(object : TerminalApplicationTitleListener {
+            override fun onApplicationTitleChanged(newApplicationTitle: String) {
+                display.windowTitle = newApplicationTitle
+            }
+
+            override fun onApplicationIconTitleChanged(newIconTitle: String) {
+                display.iconTitle = newIconTitle
+            }
+        })
+
+        val emulator = JediEmulator(dataStream, terminal)
+
+        val debugCollector = if (settings.debugModeEnabled) {
+            org.jetbrains.jediterm.compose.debug.DebugDataCollector(
+                tab = null,
+                maxChunks = settings.debugMaxChunks,
+                maxSnapshots = settings.debugMaxSnapshots
+            )
+        } else {
+            null
+        }
+
+        val tabCoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+        // Create tab with Initializing state
+        val tab = TerminalTab(
+            id = java.util.UUID.randomUUID().toString(),
+            title = mutableStateOf("Shell $tabCounter"),
+            terminal = terminal,
+            textBuffer = textBuffer,
+            display = display,
+            dataStream = dataStream,
+            emulator = emulator,
+            processHandle = mutableStateOf(null),
+            workingDirectory = workingDirectoryState,
+            connectionState = mutableStateOf(ConnectionState.Initializing),
+            onProcessExit = onProcessExit,
+            coroutineScope = tabCoroutineScope,
+            isFocused = mutableStateOf(false),
+            scrollOffset = mutableStateOf(0),
+            searchVisible = mutableStateOf(false),
+            searchQuery = mutableStateOf(""),
+            searchMatches = mutableStateOf(emptyList()),
+            currentSearchMatchIndex = mutableStateOf(-1),
+            selectionStart = mutableStateOf(null),
+            selectionEnd = mutableStateOf(null),
+            selectionClipboard = mutableStateOf(null),
+            imeState = IMEState(),
+            contextMenuController = ContextMenuController(),
+            hyperlinks = mutableStateOf(emptyList()),
+            hoveredHyperlink = mutableStateOf(null),
+            debugEnabled = mutableStateOf(settings.debugModeEnabled),
+            debugCollector = debugCollector,
+            typeAheadModel = null,  // Type-ahead configured after preConnect
+            typeAheadManager = null
+        )
+
+        debugCollector?.let { collector ->
+            collector.setTab(tab)
+            dataStream.debugCallback = { data ->
+                collector.recordChunk(data, ChunkSource.PTY_OUTPUT)
+            }
+        }
+
+        // Add to tabs list
+        tabs.add(tab)
+        switchToTab(tabs.size - 1)
+
+        // Run pre-connection handler in coroutine
+        tab.coroutineScope.launch(Dispatchers.IO) {
+            try {
+                // Create questioner that updates tab's connection state
+                val questioner = ComposeQuestioner { newState ->
+                    tab.connectionState.value = newState
+                }
+
+                // Get configuration from user (may prompt for input)
+                val config = preConnectHandler(questioner)
+
+                if (config == null) {
+                    // User cancelled - close tab
+                    withContext(Dispatchers.Main) {
+                        val tabIndex = tabs.indexOf(tab)
+                        if (tabIndex != -1) {
+                            closeTab(tabIndex)
+                        }
+                    }
+                    return@launch
+                }
+
+                // Update working directory from config
+                if (config.workingDir != null) {
+                    workingDirectoryState.value = config.workingDir
+                }
+
+                // Initialize terminal session with collected config
+                initializeTerminalSessionWithConfig(tab, config)
+
+            } catch (e: Exception) {
+                tab.connectionState.value = ConnectionState.Error(
+                    message = "Pre-connection setup failed: ${e.message ?: "Unknown error"}",
+                    cause = e
+                )
+            }
+        }
+
+        return tab
+    }
+
+    /**
+     * Initialize terminal session with pre-collected configuration.
+     */
+    private suspend fun initializeTerminalSessionWithConfig(
+        tab: TerminalTab,
+        config: PreConnectConfig
+    ) {
+        try {
+            val services = getPlatformServices()
+
+            // Set TERM environment variables for TUI compatibility
+            val terminalEnvironment = buildMap {
+                putAll(filterEnvironmentVariables(System.getenv()))
+                put("TERM", "xterm-256color")
+                put("COLORTERM", "truecolor")
+                put("TERM_PROGRAM", "JediTerm")
+                put("TERM_FEATURES", "T2:M:H:Ts0:Ts1:Ts2:Sc0:Sc1:Sc2:B:U:Aw")
+                putAll(config.environment)
+            }
+
+            val processConfig = PlatformServices.ProcessService.ProcessConfig(
+                command = config.command,
+                arguments = config.arguments,
+                environment = terminalEnvironment,
+                workingDirectory = config.workingDir ?: System.getProperty("user.home")
+            )
+
+            val handle = services.getProcessService().spawnProcess(processConfig)
+
+            if (handle == null) {
+                tab.connectionState.value = ConnectionState.Error(
+                    message = "Failed to spawn process",
+                    cause = null
+                )
+                return
+            }
+
+            tab.processHandle.value = handle
+            tab.connectionState.value = ConnectionState.Connected(handle)
+
+            // Connect terminal output to PTY
+            tab.terminal.setTerminalOutput(ProcessTerminalOutput(handle, tab))
+
+            // Configure type-ahead if enabled
+            if (settings.typeAheadEnabled) {
+                val typeAheadModel = ComposeTypeAheadModel(
+                    terminal = tab.terminal,
+                    textBuffer = tab.textBuffer,
+                    display = tab.display,
+                    settings = settings
+                ).also { model ->
+                    val shellType = TypeAheadTerminalModel.commandLineToShellType(
+                        (listOf(config.command) + config.arguments).toMutableList()
+                    )
+                    model.setShellType(shellType)
+                }
+
+                val typeAheadManager = TerminalTypeAheadManager(typeAheadModel).also { manager ->
+                    val debouncer = CoroutineDebouncer(
+                        action = manager::debounce,
+                        delayNanos = TerminalTypeAheadManager.MAX_TERMINAL_DELAY,
+                        scope = tab.coroutineScope
+                    )
+                    manager.setClearPredictionsDebouncer(debouncer)
+                }
+
+                tab.dataStream.onTerminalStateChanged = {
+                    typeAheadManager.onTerminalStateChanged()
+                }
+            }
+
+            // Start emulator processing coroutine
+            tab.coroutineScope.launch(Dispatchers.Default) {
+                try {
+                    while (handle.isAlive()) {
+                        try {
+                            tab.emulator.processChar(tab.dataStream.char, tab.terminal)
+                        } catch (_: EOFException) {
+                            break
+                        } catch (e: Exception) {
+                            if (e !is com.jediterm.terminal.TerminalDataStream.EOF) {
+                                println("WARNING: Error processing terminal output: ${e.message}")
+                            }
+                            break
+                        }
+                    }
+                } finally {
+                    tab.dataStream.close()
+                }
+            }
+
+            // Read PTY output in background
+            tab.coroutineScope.launch(Dispatchers.IO) {
+                val maxChunkSize = 64 * 1024
+
+                while (handle.isAlive()) {
+                    val output = handle.read()
+                    if (output != null) {
+                        val processedOutput = if (output.length > maxChunkSize) {
+                            val safeBoundary = GraphemeBoundaryUtils.findLastCompleteGraphemeBoundary(output, maxChunkSize)
+                            output.substring(0, safeBoundary)
+                        } else {
+                            output
+                        }
+                        tab.dataStream.append(processedOutput)
+                    }
+                }
+                tab.dataStream.close()
+            }
+
+            // Start debug state capture coroutine if enabled
+            tab.debugCollector?.let { collector ->
+                tab.coroutineScope.launch(Dispatchers.IO) {
+                    try {
+                        while (handle.isAlive() && isActive) {
+                            delay(settings.debugCaptureInterval)
+                            collector.captureState()
+                        }
+                    } catch (e: Exception) {
+                        println("DEBUG: State capture coroutine stopped: ${e.message}")
+                    }
+                }
+            }
+
+            // Monitor process exit
+            handle.waitFor()
+            println("INFO: Shell process exited for tab: ${tab.title.value}")
+
+            withContext(Dispatchers.Main) {
+                tab.onProcessExit?.invoke()
+            }
+
+            withContext(Dispatchers.Main) {
+                val tabIndex = tabs.indexOf(tab)
+                if (tabIndex != -1) {
+                    closeTab(tabIndex)
+                }
+            }
+
+        } catch (e: Exception) {
+            tab.connectionState.value = ConnectionState.Error(
+                message = "Terminal initialization failed: ${e.message ?: "Unknown error"}",
+                cause = e
+            )
+            println("ERROR: Terminal initialization failed for tab ${tab.title.value}: ${e.message}")
+            e.printStackTrace()
+        }
     }
 
     /**

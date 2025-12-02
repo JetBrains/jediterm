@@ -138,6 +138,7 @@ fun ProperTerminal(
   sharedFont: FontFamily,
   onTabTitleChange: (String) -> Unit,
   onNewTab: () -> Unit = {},
+  onNewPreConnectTab: () -> Unit = {},  // Ctrl+Shift+T: Test pre-connection input
   onCloseTab: () -> Unit = {},
   onNextTab: () -> Unit = {},
   onPreviousTab: () -> Unit = {},
@@ -433,6 +434,7 @@ fun ProperTerminal(
     addTabManagementActions(
       registry = registry,
       onNewTab = onNewTab,
+      onNewPreConnectTab = onNewPreConnectTab,
       onCloseTab = onCloseTab,
       onNextTab = onNextTab,
       onPreviousTab = onPreviousTab,

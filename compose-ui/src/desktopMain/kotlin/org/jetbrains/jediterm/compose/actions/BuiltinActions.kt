@@ -10,6 +10,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.jetbrains.jediterm.compose.ComposeTerminalDisplay
 import org.jetbrains.jediterm.compose.PlatformServices
+import org.jetbrains.jediterm.compose.SelectionMode
 import org.jetbrains.jediterm.compose.ime.IMEState
 
 /**
@@ -33,6 +34,7 @@ import org.jetbrains.jediterm.compose.ime.IMEState
 fun createBuiltinActions(
     selectionStart: MutableState<Pair<Int, Int>?>,
     selectionEnd: MutableState<Pair<Int, Int>?>,
+    selectionMode: MutableState<SelectionMode>,
     textBuffer: TerminalTextBuffer,
     clipboardManager: ClipboardManager,
     writeUserInput: (String) -> Unit,
@@ -62,7 +64,7 @@ fun createBuiltinActions(
             val start = selectionStart.value
             val end = selectionEnd.value
             if (start != null && end != null) {
-                val selectedText = extractSelectedText(textBuffer, start, end)
+                val selectedText = extractSelectedText(textBuffer, start, end, selectionMode.value)
                 if (selectedText.isNotEmpty()) {
                     clipboardManager.setText(AnnotatedString(selectedText))
                     true  // Consume event
@@ -195,29 +197,23 @@ fun createBuiltinActions(
  * @param textBuffer The terminal text buffer
  * @param start Selection start position (col, row)
  * @param end Selection end position (col, row)
+ * @param mode Selection mode (NORMAL for line-based, BLOCK for rectangular)
  * @return The selected text with newlines between rows
  */
 private fun extractSelectedText(
     textBuffer: TerminalTextBuffer,
     start: Pair<Int, Int>,
-    end: Pair<Int, Int>
+    end: Pair<Int, Int>,
+    mode: SelectionMode = SelectionMode.NORMAL
 ): String {
     val (startCol, startRow) = start
     val (endCol, endRow) = end
 
-    // Normalize selection to handle backwards dragging
-    val (minRow, maxRow) = if (startRow < endRow) {
-        startRow to endRow
+    // Determine first (earlier row) and last (later row) points
+    val (firstCol, firstRow, lastCol, lastRow) = if (startRow <= endRow) {
+        listOf(startCol, startRow, endCol, endRow)
     } else {
-        endRow to startRow
-    }
-
-    val (minCol, maxCol) = if (startRow == endRow) {
-        // Same row - compare columns
-        if (startCol < endCol) startCol to endCol else endCol to startCol
-    } else {
-        // Different rows - use natural order
-        if (startRow < endRow) startCol to endCol else endCol to startCol
+        listOf(endCol, endRow, startCol, startRow)
     }
 
     // Create immutable snapshot (fast, <1ms with lock, then lock released)
@@ -226,11 +222,30 @@ private fun extractSelectedText(
 
     val result = StringBuilder()
 
-    for (row in minRow..maxRow) {
+    for (row in firstRow..lastRow) {
         val line = snapshot.getLine(row)
 
-        val colStart = if (row == minRow) minCol else 0
-        val colEnd = if (row == maxRow) maxCol else (snapshot.width - 1)
+        // Calculate column bounds based on selection mode
+        val (colStart, colEnd) = when (mode) {
+            // BLOCK mode: rectangular selection - same columns for all rows
+            SelectionMode.BLOCK -> {
+                minOf(firstCol, lastCol) to maxOf(firstCol, lastCol)
+            }
+            // NORMAL mode: line-based selection
+            SelectionMode.NORMAL -> {
+                if (firstRow == lastRow) {
+                    // Single line: use min/max columns
+                    minOf(firstCol, lastCol) to maxOf(firstCol, lastCol)
+                } else {
+                    // Multi-line: direction-aware columns
+                    when (row) {
+                        firstRow -> firstCol to (snapshot.width - 1)  // First row: from start col to end
+                        lastRow -> 0 to lastCol                        // Last row: from 0 to end col
+                        else -> 0 to (snapshot.width - 1)              // Middle rows: full line
+                    }
+                }
+            }
+        }
 
         for (col in colStart..colEnd) {
             if (col < snapshot.width) {
@@ -243,7 +258,7 @@ private fun extractSelectedText(
         }
 
         // Add newline between rows (except after last row)
-        if (row < maxRow) {
+        if (row < lastRow) {
             result.append('\n')
         }
     }

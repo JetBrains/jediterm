@@ -72,6 +72,15 @@ fun PointerEvent.isShiftPressed(): Boolean {
 }
 
 /**
+ * Checks if Alt/Option key is pressed in a PointerEvent.
+ * Uses AWT event to access modifiers since Compose doesn't expose Alt directly.
+ */
+fun PointerEvent.isAltPressed(): Boolean {
+    val awtEvent = nativeEvent as? java.awt.event.MouseEvent
+    return awtEvent?.isAltDown ?: false
+}
+
+/**
  * Creates a JediTerm MouseEvent from a Compose PointerEvent.
  *
  * @param event The Compose pointer event

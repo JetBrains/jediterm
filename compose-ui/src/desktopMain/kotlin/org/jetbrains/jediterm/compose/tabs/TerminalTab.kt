@@ -164,6 +164,12 @@ data class TerminalTab(
     override val selectionClipboard: MutableState<String?>,
 
     /**
+     * Current selection mode (NORMAL for line-based, BLOCK for rectangular).
+     * Defaults to NORMAL. Set to BLOCK when Alt+Drag is detected.
+     */
+    override val selectionMode: MutableState<org.jetbrains.jediterm.compose.SelectionMode> = mutableStateOf(org.jetbrains.jediterm.compose.SelectionMode.NORMAL),
+
+    /**
      * IME (Input Method Editor) state for CJK input support.
      */
     override val imeState: IMEState,

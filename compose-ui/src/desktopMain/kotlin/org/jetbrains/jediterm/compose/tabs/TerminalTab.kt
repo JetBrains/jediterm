@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.jediterm.compose.ComposeTerminalDisplay
 import org.jetbrains.jediterm.compose.ConnectionState
 import org.jetbrains.jediterm.compose.PlatformServices
+import org.jetbrains.jediterm.compose.TerminalSession
 import org.jetbrains.jediterm.compose.demo.BlockingTerminalDataStream
 import org.jetbrains.jediterm.compose.features.ContextMenuController
 import org.jetbrains.jediterm.compose.hyperlinks.Hyperlink
@@ -41,30 +42,30 @@ data class TerminalTab(
     /**
      * Unique identifier for this tab (UUID).
      */
-    val id: String = UUID.randomUUID().toString(),
+    override val id: String = UUID.randomUUID().toString(),
 
     /**
      * Display title shown in the tab bar (mutable, can be updated based on shell activity).
      * Default format: "Shell 1", "Shell 2", etc.
      */
-    val title: MutableState<String>,
+    override val title: MutableState<String>,
 
     // === Core Terminal Components ===
 
     /**
      * The main terminal instance that handles terminal operations and rendering.
      */
-    val terminal: JediTerminal,
+    override val terminal: JediTerminal,
 
     /**
      * The text buffer that stores terminal content and scrollback history.
      */
-    val textBuffer: TerminalTextBuffer,
+    override val textBuffer: TerminalTextBuffer,
 
     /**
      * The display adapter that handles terminal rendering and redraw requests.
      */
-    val display: ComposeTerminalDisplay,
+    override val display: ComposeTerminalDisplay,
 
     /**
      * Blocking data stream that feeds character data to the emulator.
@@ -83,18 +84,18 @@ data class TerminalTab(
     /**
      * Handle to the shell process (PTY). Null during initialization.
      */
-    val processHandle: MutableState<PlatformServices.ProcessService.ProcessHandle?>,
+    override val processHandle: MutableState<PlatformServices.ProcessService.ProcessHandle?>,
 
     /**
      * Current working directory of the shell, tracked via OSC 7 sequences.
      * Used for inheriting CWD when creating new tabs.
      */
-    val workingDirectory: MutableState<String?>,
+    override val workingDirectory: MutableState<String?>,
 
     /**
      * Connection state of the terminal (Initializing, Connected, Disconnected).
      */
-    val connectionState: MutableState<ConnectionState>,
+    override val connectionState: MutableState<ConnectionState>,
 
     /**
      * Callback invoked when the shell process exits.
@@ -120,67 +121,67 @@ data class TerminalTab(
     /**
      * Whether this tab currently has keyboard focus.
      */
-    val isFocused: MutableState<Boolean>,
+    override val isFocused: MutableState<Boolean>,
 
     /**
      * Current scroll offset in lines from the bottom of the buffer.
      */
-    val scrollOffset: MutableState<Int>,
+    override val scrollOffset: MutableState<Int>,
 
     /**
      * Whether the search bar is visible for this tab.
      */
-    val searchVisible: MutableState<Boolean>,
+    override val searchVisible: MutableState<Boolean>,
 
     /**
      * Current search query text.
      */
-    val searchQuery: MutableState<String>,
+    override val searchQuery: MutableState<String>,
 
     /**
      * List of search match positions (row, column) in the terminal buffer.
      */
-    val searchMatches: MutableState<List<Pair<Int, Int>>>,
+    override val searchMatches: MutableState<List<Pair<Int, Int>>>,
 
     /**
      * Current search match index (for next/previous navigation).
      */
-    val currentSearchMatchIndex: MutableState<Int>,
+    override val currentSearchMatchIndex: MutableState<Int>,
 
     /**
      * Selection start position (row, column) or null if no selection.
      */
-    val selectionStart: MutableState<Pair<Int, Int>?>,
+    override val selectionStart: MutableState<Pair<Int, Int>?>,
 
     /**
      * Selection end position (row, column) or null if no selection.
      */
-    val selectionEnd: MutableState<Pair<Int, Int>?>,
+    override val selectionEnd: MutableState<Pair<Int, Int>?>,
 
     /**
      * Selection clipboard for X11 emulation mode (copy-on-select).
      */
-    val selectionClipboard: MutableState<String?>,
+    override val selectionClipboard: MutableState<String?>,
 
     /**
      * IME (Input Method Editor) state for CJK input support.
      */
-    val imeState: IMEState,
+    override val imeState: IMEState,
 
     /**
      * Context menu controller for right-click menu.
      */
-    val contextMenuController: ContextMenuController,
+    override val contextMenuController: ContextMenuController,
 
     /**
      * Detected hyperlinks in the terminal buffer with their positions and URLs.
      */
-    val hyperlinks: MutableState<List<Hyperlink>>,
+    override val hyperlinks: MutableState<List<Hyperlink>>,
 
     /**
      * Currently hovered hyperlink (for cursor styling and click handling).
      */
-    val hoveredHyperlink: MutableState<Hyperlink?>,
+    override val hoveredHyperlink: MutableState<Hyperlink?>,
 
     // === Debug Tools ===
 
@@ -189,19 +190,19 @@ data class TerminalTab(
      * When enabled, I/O data is captured for visualization in the debug panel.
      * This controls data collection (background), not UI visibility.
      */
-    val debugEnabled: MutableState<Boolean> = mutableStateOf(false),
+    override val debugEnabled: MutableState<Boolean> = mutableStateOf(false),
 
     /**
      * Whether the debug panel UI is currently visible.
      * Defaults to false even when debugEnabled is true (toggled with Cmd/Ctrl+Shift+D).
      */
-    val debugPanelVisible: MutableState<Boolean> = mutableStateOf(false),
+    override val debugPanelVisible: MutableState<Boolean> = mutableStateOf(false),
 
     /**
      * Debug data collector for capturing I/O chunks and terminal state snapshots.
      * Null when debug mode is disabled to avoid memory overhead.
      */
-    val debugCollector: DebugDataCollector? = null,
+    override val debugCollector: DebugDataCollector? = null,
 
     // === Type-Ahead Prediction ===
 
@@ -209,20 +210,20 @@ data class TerminalTab(
      * Type-ahead terminal model for applying predictions to the buffer.
      * Null when type-ahead is disabled.
      */
-    val typeAheadModel: ComposeTypeAheadModel? = null,
+    override val typeAheadModel: ComposeTypeAheadModel? = null,
 
     /**
      * Type-ahead manager that tracks predictions and latency statistics.
      * Null when type-ahead is disabled.
      */
-    val typeAheadManager: TerminalTypeAheadManager? = null
-) {
+    override val typeAheadManager: TerminalTypeAheadManager? = null
+) : TerminalSession {
     /**
      * Whether this tab is currently rendering to the UI.
      * False for background tabs (still processing output, but UI updates paused).
      * Thread-safe: Uses MutableState for safe access from multiple coroutines.
      */
-    val isVisible: MutableState<Boolean> = mutableStateOf(false)
+    override val isVisible: MutableState<Boolean> = mutableStateOf(false)
 
     // === Hyperlink Hover Consumers ===
 
@@ -235,13 +236,13 @@ data class TerminalTab(
     /**
      * Read-only view of registered hover consumers.
      */
-    val hoverConsumers: List<HyperlinkHoverConsumer> get() = _hoverConsumers
+    override val hoverConsumers: List<HyperlinkHoverConsumer> get() = _hoverConsumers
 
     /**
      * Register a hover consumer to receive hyperlink hover events.
      * @param consumer The consumer to register
      */
-    fun addHoverConsumer(consumer: HyperlinkHoverConsumer) {
+    override fun addHoverConsumer(consumer: HyperlinkHoverConsumer) {
         _hoverConsumers.add(consumer)
     }
 
@@ -249,7 +250,7 @@ data class TerminalTab(
      * Unregister a hover consumer.
      * @param consumer The consumer to remove
      */
-    fun removeHoverConsumer(consumer: HyperlinkHoverConsumer) {
+    override fun removeHoverConsumer(consumer: HyperlinkHoverConsumer) {
         _hoverConsumers.remove(consumer)
     }
 
@@ -258,7 +259,7 @@ data class TerminalTab(
      * Note: Redraw optimization is already implemented via Phase 2 adaptive debouncing.
      * TabController checks isVisible flag to skip redraws for hidden tabs.
      */
-    fun onVisible() {
+    override fun onVisible() {
         isVisible.value = true
     }
 
@@ -267,7 +268,7 @@ data class TerminalTab(
      * Note: Redraw optimization is already implemented via Phase 2 adaptive debouncing.
      * TabController checks isVisible flag to skip redraws for hidden tabs.
      */
-    fun onHidden() {
+    override fun onHidden() {
         isVisible.value = false
     }
 
@@ -279,7 +280,7 @@ data class TerminalTab(
      * Note: Process termination is handled by TabController.closeTab() to prevent
      * potential GC issues where the tab might be collected before kill() completes.
      */
-    fun dispose() {
+    override fun dispose() {
         // Cancel all coroutines in this scope
         coroutineScope.cancel()
 
@@ -296,7 +297,7 @@ data class TerminalTab(
      *
      * @param text The text to paste from clipboard
      */
-    fun pasteText(text: String) {
+    override fun pasteText(text: String) {
         if (text.isEmpty()) return
 
         // Normalize newlines: CRLF/LF → CR (terminal standard)
@@ -316,7 +317,7 @@ data class TerminalTab(
      *
      * @param text The text to send to the shell
      */
-    fun writeUserInput(text: String) {
+    override fun writeUserInput(text: String) {
         // Record in debug collector
         debugCollector?.recordChunk(text, org.jetbrains.jediterm.compose.debug.ChunkSource.USER_INPUT)
 

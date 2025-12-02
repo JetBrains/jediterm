@@ -469,26 +469,26 @@ fun ProperTerminal(
   val cellWidth = cellMetrics.first
   val cellHeight = cellMetrics.second
 
-  // SLOW_BLINK animation timer (500ms intervals)
-  LaunchedEffect(Unit) {
+  // SLOW_BLINK animation timer (configurable via settings.slowTextBlinkMs)
+  LaunchedEffect(settings.slowTextBlinkMs) {
     while (true) {
-      delay(500)
+      delay(settings.slowTextBlinkMs.toLong())
       slowBlinkVisible = !slowBlinkVisible
     }
   }
 
-  // RAPID_BLINK animation timer (250ms intervals)
-  LaunchedEffect(Unit) {
+  // RAPID_BLINK animation timer (configurable via settings.rapidTextBlinkMs)
+  LaunchedEffect(settings.rapidTextBlinkMs) {
     while (true) {
-      delay(250)
+      delay(settings.rapidTextBlinkMs.toLong())
       rapidBlinkVisible = !rapidBlinkVisible
     }
   }
 
-  // Cursor blink animation timer (500ms intervals)
-  LaunchedEffect(Unit) {
+  // Cursor blink animation timer (configurable via settings.caretBlinkMs)
+  LaunchedEffect(settings.caretBlinkMs) {
     while (true) {
-      delay(500)
+      delay(settings.caretBlinkMs.toLong())
       cursorBlinkVisible = !cursorBlinkVisible
     }
   }

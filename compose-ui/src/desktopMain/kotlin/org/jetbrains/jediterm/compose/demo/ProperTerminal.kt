@@ -1777,22 +1777,6 @@ fun ProperTerminal(
                       )
                     }
 
-                    // Draw hyperlink underline if hovered with Ctrl/Cmd modifier
-                    // This provides standard IDE-like behavior: underline only shows when modifier is pressed
-                    if (settings.hyperlinkUnderlineOnHover &&
-                      hoveredHyperlink != null &&
-                      hoveredHyperlink!!.row == row &&
-                      col >= hoveredHyperlink!!.startCol &&
-                      col < hoveredHyperlink!!.endCol &&
-                      isModifierPressed) {
-                      val underlineY = y + cellHeight - 1f
-                      drawLine(
-                        color = settings.hyperlinkColorValue,
-                        start = Offset(x, underlineY),
-                        end = Offset(x + cellWidth, underlineY),
-                        strokeWidth = 1f
-                      )
-                    }
                   }
                 }  // Close else block
 
@@ -1824,6 +1808,29 @@ fun ProperTerminal(
 
               // Flush any remaining batch at end of line
               flushBatch()
+            }
+
+            // ===== PASS 3: DRAW HYPERLINK UNDERLINE =====
+            // Draw hyperlink underline if hovered with Ctrl/Cmd modifier
+            // This provides standard IDE-like behavior: underline only shows when modifier is pressed
+            // Must be done as separate pass since text batching would otherwise skip the underline check
+            if (settings.hyperlinkUnderlineOnHover &&
+              hoveredHyperlink != null &&
+              isModifierPressed) {
+              val link = hoveredHyperlink!!
+              // Only draw if hyperlink is visible on screen
+              if (link.row in 0 until visibleRows) {
+                val y = link.row * cellHeight
+                val underlineY = y + cellHeight - 1f
+                val startX = link.startCol * cellWidth
+                val endX = link.endCol * cellWidth
+                drawLine(
+                  color = settings.hyperlinkColorValue,
+                  start = Offset(startX, underlineY),
+                  end = Offset(endX, underlineY),
+                  strokeWidth = 1f
+                )
+              }
             }
 
             // Draw search match highlights (all matches)

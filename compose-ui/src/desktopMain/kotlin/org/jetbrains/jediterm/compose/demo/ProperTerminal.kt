@@ -2176,6 +2176,7 @@ fun ProperTerminal(
         DebugPanel(
           visible = debugPanelVisible,
           collector = debugCollector,
+          textBuffer = textBuffer,
           onClose = { debugPanelVisible = false },
           modifier = Modifier.align(Alignment.BottomCenter)
         )

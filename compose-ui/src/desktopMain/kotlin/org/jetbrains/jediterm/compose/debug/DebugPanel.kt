@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jediterm.terminal.model.TerminalTextBuffer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -38,6 +39,7 @@ import kotlinx.coroutines.launch
 fun DebugPanel(
     visible: Boolean,
     collector: DebugDataCollector?,
+    textBuffer: TerminalTextBuffer?,
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -53,6 +55,7 @@ fun DebugPanel(
     val snapshots = remember { mutableStateOf(collector.getSnapshots()) }
     val chunks = remember { mutableStateOf(collector.getDebugChunks()) }
     val stats = remember { mutableStateOf(collector.getStats()) }
+    val snapshotBuilderStats = remember { mutableStateOf(textBuffer?.getSnapshotBuilderStats()) }
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -60,6 +63,7 @@ fun DebugPanel(
             snapshots.value = collector.getSnapshots()
             chunks.value = collector.getDebugChunks()
             stats.value = collector.getStats()
+            snapshotBuilderStats.value = textBuffer?.getSnapshotBuilderStats()
         }
     }
 
@@ -175,7 +179,10 @@ fun DebugPanel(
 
             // Stats view (collapsible)
             if (showStats) {
-                DebugStatsView(stats = stats.value)
+                DebugStatsView(
+                    stats = stats.value,
+                    snapshotBuilderStats = snapshotBuilderStats.value
+                )
             }
 
             // Split view: Buffer content | Control sequences

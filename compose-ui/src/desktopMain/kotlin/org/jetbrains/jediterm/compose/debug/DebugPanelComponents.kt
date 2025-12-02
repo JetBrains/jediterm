@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jediterm.terminal.model.pool.SnapshotBuilderStats
 
 /**
  * Segmented button control for selecting buffer type (SCREEN/STYLE/HISTORY).
@@ -357,11 +358,12 @@ private fun CheckboxWithLabel(
 }
 
 /**
- * Statistics display component showing debug collector stats.
+ * Statistics display component showing debug collector stats and snapshot builder stats.
  */
 @Composable
 fun DebugStatsView(
     stats: DebugStats,
+    snapshotBuilderStats: SnapshotBuilderStats? = null,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -369,26 +371,55 @@ fun DebugStatsView(
         color = Color(0xFF2A2A2A),
         shape = RoundedCornerShape(6.dp)
     ) {
-        Column(
+        Row(
             modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            Text(
-                text = "Debug Statistics",
-                color = Color.White,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
+            // Debug stats column
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = "Debug Statistics",
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
 
-            Divider(color = Color(0xFF3A3A3A), thickness = 1.dp)
+                Divider(color = Color(0xFF3A3A3A), thickness = 1.dp)
 
-            Text(
-                text = stats.toDisplayString(),
-                color = Color(0xFFE0E0E0),
-                fontSize = 12.sp,
-                fontFamily = FontFamily.Monospace,
-                lineHeight = 18.sp
-            )
+                Text(
+                    text = stats.toDisplayString(),
+                    color = Color(0xFFE0E0E0),
+                    fontSize = 12.sp,
+                    fontFamily = FontFamily.Monospace,
+                    lineHeight = 18.sp
+                )
+            }
+
+            // Snapshot builder stats column (if available)
+            if (snapshotBuilderStats != null) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "Snapshot Builder (COW)",
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Divider(color = Color(0xFF3A3A3A), thickness = 1.dp)
+
+                    Text(
+                        text = snapshotBuilderStats.toString(),
+                        color = Color(0xFFE0E0E0),
+                        fontSize = 12.sp,
+                        fontFamily = FontFamily.Monospace,
+                        lineHeight = 18.sp
+                    )
+                }
+            }
         }
     }
 }

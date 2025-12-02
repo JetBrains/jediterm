@@ -58,6 +58,7 @@ import org.jetbrains.jediterm.compose.features.showHyperlinkContextMenu
 import org.jetbrains.jediterm.compose.features.showTerminalContextMenu
 import org.jetbrains.jediterm.compose.hyperlinks.Hyperlink
 import org.jetbrains.jediterm.compose.hyperlinks.HyperlinkDetector
+import org.jetbrains.jediterm.compose.SelectionMode
 import org.jetbrains.jediterm.compose.ime.IMEHandler
 import org.jetbrains.jediterm.compose.search.RabinKarpSearch
 import org.jetbrains.jediterm.compose.scrollbar.AlwaysVisibleScrollbar
@@ -183,6 +184,7 @@ fun ProperTerminal(
   // Selection state from tab
   var selectionStart by tab.selectionStart
   var selectionEnd by tab.selectionEnd
+  var selectionMode by tab.selectionMode
 
   // X11-style selection clipboard from tab
   var selectionClipboard by tab.selectionClipboard
@@ -693,7 +695,7 @@ fun ProperTerminal(
                   hasSelection = selectionStart != null && selectionEnd != null,
                   onCopy = {
                     if (selectionStart != null && selectionEnd != null) {
-                      val selectedText = extractSelectedText(textBuffer, selectionStart!!, selectionEnd!!)
+                      val selectedText = extractSelectedText(textBuffer, selectionStart!!, selectionEnd!!, selectionMode)
                       if (selectedText.isNotEmpty()) {
                         clipboardManager.setText(AnnotatedString(selectedText))
                       }
@@ -723,7 +725,7 @@ fun ProperTerminal(
                   hasSelection = selectionStart != null && selectionEnd != null,
                   onCopy = {
                     if (selectionStart != null && selectionEnd != null) {
-                      val selectedText = extractSelectedText(textBuffer, selectionStart!!, selectionEnd!!)
+                      val selectedText = extractSelectedText(textBuffer, selectionStart!!, selectionEnd!!, selectionMode)
                       if (selectedText.isNotEmpty()) {
                         clipboardManager.setText(AnnotatedString(selectedText))
                       }
@@ -939,6 +941,9 @@ fun ProperTerminal(
                 // Ensure focus is on terminal canvas after click
                 focusRequester.requestFocus()
 
+                // Detect Alt+Drag for block selection mode
+                selectionMode = if (event.isAltPressed()) SelectionMode.BLOCK else SelectionMode.NORMAL
+
                 val startCol = (startPos.x / cellWidth).toInt()
                 val screenRow = (startPos.y / cellHeight).toInt()
                 val bufferRow = screenRow - scrollOffset  // Convert screen to buffer-relative row
@@ -1012,7 +1017,7 @@ fun ProperTerminal(
           val start = selectionStart
           val end = selectionEnd
           if (settings.copyOnSelect && start != null && end != null) {
-            val selectedText = extractSelectedText(textBuffer, start, end)
+            val selectedText = extractSelectedText(textBuffer, start, end, selectionMode)
             if (selectedText.isNotEmpty()) {
               if (settings.emulateX11CopyPaste) {
                 // X11 mode: Copy to selection clipboard (middle-click buffer)
@@ -1990,17 +1995,25 @@ fun ProperTerminal(
               for (bufferRow in firstRow..lastRow) {
                 val screenRow = bufferRow + scrollOffset  // Convert buffer to screen row
                 if (screenRow in 0 until visibleRows) {  // Check if visible on screen
-                  // For single-line selection, use min/max columns
-                  // For multi-line: first row from firstCol to end, middle rows full, last row from 0 to lastCol
-                  val (colStart, colEnd) = if (firstRow == lastRow) {
-                    // Single line: use min/max columns
-                    minOf(firstCol, lastCol) to maxOf(firstCol, lastCol)
-                  } else {
-                    // Multi-line: direction-aware columns
-                    when (bufferRow) {
-                      firstRow -> firstCol to (width - 1)  // First row: from start col to end
-                      lastRow -> 0 to lastCol              // Last row: from 0 to end col
-                      else -> 0 to (width - 1)             // Middle rows: full line
+                  // Calculate column bounds based on selection mode
+                  val (colStart, colEnd) = when (selectionMode) {
+                    // BLOCK mode: rectangular selection - same columns for all rows
+                    SelectionMode.BLOCK -> {
+                      minOf(firstCol, lastCol) to maxOf(firstCol, lastCol)
+                    }
+                    // NORMAL mode: line-based selection
+                    SelectionMode.NORMAL -> {
+                      if (firstRow == lastRow) {
+                        // Single line: use min/max columns
+                        minOf(firstCol, lastCol) to maxOf(firstCol, lastCol)
+                      } else {
+                        // Multi-line: direction-aware columns
+                        when (bufferRow) {
+                          firstRow -> firstCol to (width - 1)  // First row: from start col to end
+                          lastRow -> 0 to lastCol              // Last row: from 0 to end col
+                          else -> 0 to (width - 1)             // Middle rows: full line
+                        }
+                      }
                     }
                   }
 
@@ -2297,11 +2310,17 @@ private fun selectLineAt(
 /**
  * Extract selected text from the terminal text buffer.
  * Handles multi-line selection and normalizes coordinates.
+ *
+ * @param textBuffer The terminal text buffer
+ * @param start Selection start position (col, row)
+ * @param end Selection end position (col, row)
+ * @param mode Selection mode (NORMAL for line-based, BLOCK for rectangular)
  */
 private fun extractSelectedText(
   textBuffer: TerminalTextBuffer,
   start: Pair<Int, Int>,
-  end: Pair<Int, Int>
+  end: Pair<Int, Int>,
+  mode: SelectionMode = SelectionMode.NORMAL
 ): String {
   val (startCol, startRow) = start
   val (endCol, endRow) = end
@@ -2321,17 +2340,25 @@ private fun extractSelectedText(
   for (row in firstRow..lastRow) {
     val line = snapshot.getLine(row)
 
-    // For single-line selection, use min/max columns
-    // For multi-line: first row from firstCol to end, middle rows full, last row from 0 to lastCol
-    val (colStart, colEnd) = if (firstRow == lastRow) {
-      // Single line: use min/max columns
-      minOf(firstCol, lastCol) to maxOf(firstCol, lastCol)
-    } else {
-      // Multi-line: direction-aware columns
-      when (row) {
-        firstRow -> firstCol to (snapshot.width - 1)  // First row: from start col to end
-        lastRow -> 0 to lastCol                        // Last row: from 0 to end col
-        else -> 0 to (snapshot.width - 1)              // Middle rows: full line
+    // Calculate column bounds based on selection mode
+    val (colStart, colEnd) = when (mode) {
+      // BLOCK mode: rectangular selection - same columns for all rows
+      SelectionMode.BLOCK -> {
+        minOf(firstCol, lastCol) to maxOf(firstCol, lastCol)
+      }
+      // NORMAL mode: line-based selection
+      SelectionMode.NORMAL -> {
+        if (firstRow == lastRow) {
+          // Single line: use min/max columns
+          minOf(firstCol, lastCol) to maxOf(firstCol, lastCol)
+        } else {
+          // Multi-line: direction-aware columns
+          when (row) {
+            firstRow -> firstCol to (snapshot.width - 1)  // First row: from start col to end
+            lastRow -> 0 to lastCol                        // Last row: from 0 to end col
+            else -> 0 to (snapshot.width - 1)              // Middle rows: full line
+          }
+        }
       }
     }
 

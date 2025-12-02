@@ -129,6 +129,11 @@ interface TerminalSession {
      */
     val selectionClipboard: MutableState<String?>
 
+    /**
+     * Current selection mode (NORMAL for line-based, BLOCK for rectangular).
+     */
+    val selectionMode: MutableState<SelectionMode>
+
     // === Input Method (IME) ===
 
     /**

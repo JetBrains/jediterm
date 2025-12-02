@@ -24,6 +24,19 @@ data class TerminalSettings(
     val lineSpacing: Float = 1.0f,
 
     /**
+     * Disable line spacing when in alternate screen buffer.
+     * Full-screen apps (vim, htop, less) may look better without extra spacing.
+     */
+    val disableLineSpacingInAlternateBuffer: Boolean = false,
+
+    /**
+     * Fill character background color through line spacing area.
+     * When true, background colors extend into line spacing.
+     * When false, line spacing shows terminal background only.
+     */
+    val fillBackgroundInLineSpacing: Boolean = true,
+
+    /**
      * Use antialiasing for text rendering
      */
     val useAntialiasing: Boolean = true,

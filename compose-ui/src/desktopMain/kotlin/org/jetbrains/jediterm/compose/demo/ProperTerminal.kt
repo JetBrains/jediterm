@@ -472,18 +472,21 @@ fun ProperTerminal(
   val cellHeight = cellMetrics.second
 
   // SLOW_BLINK animation timer (configurable via settings.slowTextBlinkMs)
-  LaunchedEffect(settings.slowTextBlinkMs) {
-    while (true) {
-      delay(settings.slowTextBlinkMs.toLong())
-      slowBlinkVisible = !slowBlinkVisible
+  // Wrapped with enableTextBlinking master toggle for accessibility
+  if (settings.enableTextBlinking) {
+    LaunchedEffect(settings.slowTextBlinkMs) {
+      while (true) {
+        delay(settings.slowTextBlinkMs.toLong())
+        slowBlinkVisible = !slowBlinkVisible
+      }
     }
-  }
 
-  // RAPID_BLINK animation timer (configurable via settings.rapidTextBlinkMs)
-  LaunchedEffect(settings.rapidTextBlinkMs) {
-    while (true) {
-      delay(settings.rapidTextBlinkMs.toLong())
-      rapidBlinkVisible = !rapidBlinkVisible
+    // RAPID_BLINK animation timer (configurable via settings.rapidTextBlinkMs)
+    LaunchedEffect(settings.rapidTextBlinkMs) {
+      while (true) {
+        delay(settings.rapidTextBlinkMs.toLong())
+        rapidBlinkVisible = !rapidBlinkVisible
+      }
     }
   }
 

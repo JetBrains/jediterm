@@ -168,6 +168,11 @@ data class TerminalSettings(
     val caretBlinkMs: Int = 500,
 
     /**
+     * Master toggle to enable/disable all text blinking (accessibility feature)
+     */
+    val enableTextBlinking: Boolean = true,
+
+    /**
      * Slow text blink rate in milliseconds
      */
     val slowTextBlinkMs: Int = 1000,

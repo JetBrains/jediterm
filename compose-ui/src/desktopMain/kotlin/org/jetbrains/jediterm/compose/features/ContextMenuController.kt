@@ -177,6 +177,73 @@ fun showTerminalContextMenu(
 }
 
 /**
+ * Create hyperlink-specific context menu items
+ */
+fun createHyperlinkContextMenuItems(
+    url: String,
+    onOpenLink: () -> Unit,
+    onCopyLinkAddress: () -> Unit
+): List<ContextMenuController.MenuItem> {
+    return listOf(
+        ContextMenuController.MenuItem(
+            id = "open_link",
+            label = "Open Link",
+            enabled = true,
+            action = onOpenLink
+        ),
+        ContextMenuController.MenuItem(
+            id = "copy_link",
+            label = "Copy Link Address",
+            enabled = true,
+            action = onCopyLinkAddress
+        ),
+        ContextMenuController.MenuItem(
+            id = "separator_hyperlink",
+            label = "",
+            enabled = false,
+            action = {}
+        )
+    )
+}
+
+/**
+ * Show context menu with hyperlink actions followed by standard terminal items
+ */
+fun showHyperlinkContextMenu(
+    controller: ContextMenuController,
+    x: Float,
+    y: Float,
+    url: String,
+    onOpenLink: () -> Unit,
+    onCopyLinkAddress: () -> Unit,
+    hasSelection: Boolean,
+    onCopy: () -> Unit,
+    onPaste: () -> Unit,
+    onSelectAll: () -> Unit,
+    onClearScreen: () -> Unit,
+    onClearScrollback: () -> Unit,
+    onFind: () -> Unit,
+    onShowDebug: (() -> Unit)? = null
+) {
+    val hyperlinkItems = createHyperlinkContextMenuItems(
+        url = url,
+        onOpenLink = onOpenLink,
+        onCopyLinkAddress = onCopyLinkAddress
+    )
+    val terminalItems = createTerminalContextMenuItems(
+        hasSelection = hasSelection,
+        onCopy = onCopy,
+        onPaste = onPaste,
+        onSelectAll = onSelectAll,
+        onClearScreen = onClearScreen,
+        onClearScrollback = onClearScrollback,
+        onFind = onFind,
+        onShowDebug = onShowDebug
+    )
+    controller.showMenu(x, y, hyperlinkItems + terminalItems)
+}
+
+/**
  * Context menu popup composable
  */
 @Composable

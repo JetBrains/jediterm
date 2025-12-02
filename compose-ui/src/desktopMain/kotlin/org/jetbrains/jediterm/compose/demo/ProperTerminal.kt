@@ -54,6 +54,7 @@ import org.jetbrains.jediterm.compose.actions.createBuiltinActions
 import org.jetbrains.jediterm.compose.debug.DebugPanel
 import org.jetbrains.jediterm.compose.features.ContextMenuController
 import org.jetbrains.jediterm.compose.features.ContextMenuPopup
+import org.jetbrains.jediterm.compose.features.showHyperlinkContextMenu
 import org.jetbrains.jediterm.compose.features.showTerminalContextMenu
 import org.jetbrains.jediterm.compose.hyperlinks.Hyperlink
 import org.jetbrains.jediterm.compose.hyperlinks.HyperlinkDetector
@@ -659,35 +660,73 @@ fun ProperTerminal(
             if (event.button == PointerButton.Secondary) {
               // Show context menu
               val pos = change.position
-              showTerminalContextMenu(
-                controller = contextMenuController,
-                x = pos.x,
-                y = pos.y,
-                hasSelection = selectionStart != null && selectionEnd != null,
-                onCopy = {
-                  if (selectionStart != null && selectionEnd != null) {
-                    val selectedText = extractSelectedText(textBuffer, selectionStart!!, selectionEnd!!)
-                    if (selectedText.isNotEmpty()) {
-                      clipboardManager.setText(AnnotatedString(selectedText))
+
+              // Check if we're hovering over a hyperlink
+              if (hoveredHyperlink != null) {
+                val link = hoveredHyperlink!!
+                showHyperlinkContextMenu(
+                  controller = contextMenuController,
+                  x = pos.x,
+                  y = pos.y,
+                  url = link.url,
+                  onOpenLink = { HyperlinkDetector.openUrl(link.url) },
+                  onCopyLinkAddress = { clipboardManager.setText(AnnotatedString(link.url)) },
+                  hasSelection = selectionStart != null && selectionEnd != null,
+                  onCopy = {
+                    if (selectionStart != null && selectionEnd != null) {
+                      val selectedText = extractSelectedText(textBuffer, selectionStart!!, selectionEnd!!)
+                      if (selectedText.isNotEmpty()) {
+                        clipboardManager.setText(AnnotatedString(selectedText))
+                      }
                     }
-                  }
-                },
-                onPaste = {
-                  val text = clipboardManager.getText()?.text
-                  if (!text.isNullOrEmpty()) {
-                    scope.launch {
-                      tab.pasteText(text)
+                  },
+                  onPaste = {
+                    val text = clipboardManager.getText()?.text
+                    if (!text.isNullOrEmpty()) {
+                      scope.launch {
+                        tab.pasteText(text)
+                      }
                     }
-                  }
-                },
-                onSelectAll = { selectAll() },
-                onClearScreen = { clearBuffer() },
-                onClearScrollback = { clearScrollback() },
-                onFind = { searchVisible = true },
-                onShowDebug = if (debugCollector != null) {
-                  { debugPanelVisible = !debugPanelVisible }
-                } else null
-              )
+                  },
+                  onSelectAll = { selectAll() },
+                  onClearScreen = { clearBuffer() },
+                  onClearScrollback = { clearScrollback() },
+                  onFind = { searchVisible = true },
+                  onShowDebug = if (debugCollector != null) {
+                    { debugPanelVisible = !debugPanelVisible }
+                  } else null
+                )
+              } else {
+                showTerminalContextMenu(
+                  controller = contextMenuController,
+                  x = pos.x,
+                  y = pos.y,
+                  hasSelection = selectionStart != null && selectionEnd != null,
+                  onCopy = {
+                    if (selectionStart != null && selectionEnd != null) {
+                      val selectedText = extractSelectedText(textBuffer, selectionStart!!, selectionEnd!!)
+                      if (selectedText.isNotEmpty()) {
+                        clipboardManager.setText(AnnotatedString(selectedText))
+                      }
+                    }
+                  },
+                  onPaste = {
+                    val text = clipboardManager.getText()?.text
+                    if (!text.isNullOrEmpty()) {
+                      scope.launch {
+                        tab.pasteText(text)
+                      }
+                    }
+                  },
+                  onSelectAll = { selectAll() },
+                  onClearScreen = { clearBuffer() },
+                  onClearScrollback = { clearScrollback() },
+                  onFind = { searchVisible = true },
+                  onShowDebug = if (debugCollector != null) {
+                    { debugPanelVisible = !debugPanelVisible }
+                  } else null
+                )
+              }
               change.consume()
               return@onPointerEvent
             }

@@ -65,7 +65,7 @@ import org.jetbrains.jediterm.compose.scrollbar.computeMatchPositions
 import org.jetbrains.jediterm.compose.scrollbar.rememberTerminalScrollbarAdapter
 import org.jetbrains.jediterm.compose.search.SearchBar
 import org.jetbrains.jediterm.compose.settings.SettingsManager
-import org.jetbrains.jediterm.compose.tabs.TerminalTab
+import org.jetbrains.jediterm.compose.TerminalSession
 import com.jediterm.core.typeahead.TerminalTypeAheadManager
 import org.jetbrains.skia.FontMgr
 import com.jediterm.terminal.TextStyle as JediTextStyle
@@ -133,7 +133,7 @@ private fun mapComposeModifiers(keyEvent: KeyEvent): Int {
 )
 @Composable
 fun ProperTerminal(
-  tab: TerminalTab,
+  tab: TerminalSession,
   isActiveTab: Boolean,
   sharedFont: FontFamily,
   onTabTitleChange: (String) -> Unit,
@@ -145,7 +145,7 @@ fun ProperTerminal(
   onSwitchToTab: (Int) -> Unit = {},
   modifier: Modifier = Modifier
 ) {
-  // Extract tab state (no more remember {} blocks - state lives in TerminalTab)
+  // Extract session state (no more remember {} blocks - state lives in TerminalSession)
   val processHandle = tab.processHandle.value
   var connectionState by tab.connectionState
   var isFocused by tab.isFocused

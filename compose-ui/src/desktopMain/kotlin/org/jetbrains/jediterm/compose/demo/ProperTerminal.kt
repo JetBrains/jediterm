@@ -58,6 +58,7 @@ import org.jetbrains.jediterm.compose.features.showTerminalContextMenu
 import org.jetbrains.jediterm.compose.hyperlinks.Hyperlink
 import org.jetbrains.jediterm.compose.hyperlinks.HyperlinkDetector
 import org.jetbrains.jediterm.compose.ime.IMEHandler
+import org.jetbrains.jediterm.compose.search.RabinKarpSearch
 import org.jetbrains.jediterm.compose.scrollbar.AlwaysVisibleScrollbar
 import org.jetbrains.jediterm.compose.scrollbar.computeMatchPositions
 import org.jetbrains.jediterm.compose.scrollbar.rememberTerminalScrollbarAdapter
@@ -220,7 +221,7 @@ fun ProperTerminal(
     display.requestImmediateRedraw()
   }
 
-  // Search function
+  // Search function using Rabin-Karp algorithm for O(n+m) performance
   fun performSearch() {
     if (searchQuery.isEmpty()) {
       searchMatches = emptyList()
@@ -228,24 +229,18 @@ fun ProperTerminal(
       return
     }
 
-    val matches = mutableListOf<Pair<Int, Int>>()
     // Use snapshot for lock-free search - no blocking during search operation
     val snapshot = terminal.terminalTextBuffer.createSnapshot()
-    for (row in -snapshot.historyLinesCount until snapshot.height) {
-      val line = snapshot.getLine(row)
-      val text = line.text
-      val searchText = if (searchCaseSensitive) searchQuery else searchQuery.lowercase()
-      val lineText = if (searchCaseSensitive) text else text.lowercase()
 
-      var index = 0
-      while (index >= 0) {
-        index = lineText.indexOf(searchText, index)
-        if (index >= 0) {
-          matches.add(Pair(index, row))
-          index += searchQuery.length
-        }
-      }
-    }
+    // Use Rabin-Karp search for O(n+m) average case vs O(n*m) naive indexOf
+    val rabinMatches = RabinKarpSearch.searchBuffer(
+      snapshot = snapshot,
+      pattern = searchQuery,
+      ignoreCase = !searchCaseSensitive
+    )
+
+    // Convert to the expected Pair<Int, Int> format (column, row)
+    val matches = rabinMatches.map { Pair(it.column, it.row) }
 
     searchMatches = matches
     currentMatchIndex = if (matches.isNotEmpty()) {

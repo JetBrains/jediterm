@@ -63,6 +63,69 @@ class TabController(
     private var tabCounter = 0
 
     /**
+     * Registered session lifecycle listeners.
+     * Thread-safe: uses CopyOnWriteArrayList for safe iteration during modification.
+     */
+    private val sessionListeners = java.util.concurrent.CopyOnWriteArrayList<TerminalSessionListener>()
+
+    /**
+     * Add a session lifecycle listener.
+     *
+     * @param listener The listener to add
+     */
+    fun addSessionListener(listener: TerminalSessionListener) {
+        sessionListeners.add(listener)
+    }
+
+    /**
+     * Remove a session lifecycle listener.
+     *
+     * @param listener The listener to remove
+     */
+    fun removeSessionListener(listener: TerminalSessionListener) {
+        sessionListeners.remove(listener)
+    }
+
+    /**
+     * Notify all listeners that a session was created.
+     */
+    private fun notifySessionCreated(session: TerminalTab) {
+        sessionListeners.forEach { listener ->
+            try {
+                listener.onSessionCreated(session)
+            } catch (e: Exception) {
+                println("WARN: Session listener threw exception in onSessionCreated: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Notify all listeners that a session was closed.
+     */
+    private fun notifySessionClosed(session: TerminalTab) {
+        sessionListeners.forEach { listener ->
+            try {
+                listener.onSessionClosed(session)
+            } catch (e: Exception) {
+                println("WARN: Session listener threw exception in onSessionClosed: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Notify all listeners that all sessions have been closed.
+     */
+    private fun notifyAllSessionsClosed() {
+        sessionListeners.forEach { listener ->
+            try {
+                listener.onAllSessionsClosed()
+            } catch (e: Exception) {
+                println("WARN: Session listener threw exception in onAllSessionsClosed: ${e.message}")
+            }
+        }
+    }
+
+    /**
      * Get the currently active tab, or null if no tabs exist.
      */
     val activeTab: TerminalTab?
@@ -225,6 +288,9 @@ class TabController(
         // Add to tabs list
         tabs.add(tab)
 
+        // Notify listeners about new session
+        notifySessionCreated(tab)
+
         // Switch to newly created tab
         switchToTab(tabs.size - 1)
 
@@ -373,6 +439,10 @@ class TabController(
 
         // Add to tabs list
         tabs.add(tab)
+
+        // Notify listeners about new session
+        notifySessionCreated(tab)
+
         switchToTab(tabs.size - 1)
 
         // Run pre-connection handler in coroutine
@@ -738,6 +808,9 @@ class TabController(
         // Remove from list
         tabs.removeAt(index)
 
+        // Notify listeners about session closure (after removal so tab count is accurate)
+        notifySessionClosed(tab)
+
         // Kill process asynchronously with guaranteed reference
         // This prevents theoretical GC issue where tab might be GC'd before kill() completes
         if (processToKill != null) {
@@ -752,7 +825,9 @@ class TabController(
 
         // Handle tab switching
         if (tabs.isEmpty()) {
-            // Last tab closed - exit application
+            // Notify listeners that all sessions are closed
+            notifyAllSessionsClosed()
+            // Last tab closed - exit application (legacy callback)
             onLastTabClosed()
         } else {
             // Adjust active tab index

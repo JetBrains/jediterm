@@ -51,14 +51,14 @@ fun DebugPanel(
 
     // Auto-refresh: Update snapshot list periodically
     val snapshots = remember { mutableStateOf(collector.getSnapshots()) }
-    val chunks = remember { mutableStateOf(collector.getChunks()) }
+    val chunks = remember { mutableStateOf(collector.getDebugChunks()) }
     val stats = remember { mutableStateOf(collector.getStats()) }
 
     LaunchedEffect(Unit) {
         while (true) {
             delay(1000)  // Refresh every second
             snapshots.value = collector.getSnapshots()
-            chunks.value = collector.getChunks()
+            chunks.value = collector.getDebugChunks()
             stats.value = collector.getStats()
         }
     }

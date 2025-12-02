@@ -14,6 +14,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.scale
@@ -263,6 +264,8 @@ fun ProperTerminal(
   // Hyperlink state from tab
   var hoveredHyperlink by tab.hoveredHyperlink
   var cachedHyperlinks by remember { mutableStateOf<Map<Int, List<Hyperlink>>>(emptyMap()) }
+  // Track previous hover state for consumer callbacks
+  var previousHoveredHyperlink by remember { mutableStateOf<Hyperlink?>(null) }
 
   // Terminal key encoder for proper escape sequence generation (function keys, modifiers, etc.)
   val keyEncoder = remember { TerminalKeyEncoder() }
@@ -827,6 +830,26 @@ fun ProperTerminal(
           val hyperlinksForRow = cachedHyperlinks[absoluteRow]
           hoveredHyperlink = hyperlinksForRow?.firstOrNull { link ->
             link.row == absoluteRow && col >= link.startCol && col < link.endCol
+          }
+
+          // Notify hover consumers when hyperlink hover state changes
+          if (hoveredHyperlink != previousHoveredHyperlink) {
+            // Exit callback for previous hyperlink - notify all consumers
+            if (previousHoveredHyperlink != null) {
+              tab.hoverConsumers.forEach { it.onMouseExited() }
+            }
+            // Enter callback for new hyperlink with bounds - notify all consumers
+            if (hoveredHyperlink != null) {
+              val link = hoveredHyperlink!!
+              val bounds = Rect(
+                left = link.startCol * cellWidth,
+                top = (link.row - scrollOffset) * cellHeight,
+                right = link.endCol * cellWidth,
+                bottom = (link.row - scrollOffset + 1) * cellHeight
+              )
+              tab.hoverConsumers.forEach { it.onMouseEntered(bounds, link.url) }
+            }
+            previousHoveredHyperlink = hoveredHyperlink
           }
 
           if (startPos != null) {
@@ -1754,22 +1777,6 @@ fun ProperTerminal(
                       )
                     }
 
-                    // Draw hyperlink underline if hovered with Ctrl/Cmd modifier
-                    // This provides standard IDE-like behavior: underline only shows when modifier is pressed
-                    if (settings.hyperlinkUnderlineOnHover &&
-                      hoveredHyperlink != null &&
-                      hoveredHyperlink!!.row == row &&
-                      col >= hoveredHyperlink!!.startCol &&
-                      col < hoveredHyperlink!!.endCol &&
-                      isModifierPressed) {
-                      val underlineY = y + cellHeight - 1f
-                      drawLine(
-                        color = settings.hyperlinkColorValue,
-                        start = Offset(x, underlineY),
-                        end = Offset(x + cellWidth, underlineY),
-                        strokeWidth = 1f
-                      )
-                    }
                   }
                 }  // Close else block
 
@@ -1801,6 +1808,29 @@ fun ProperTerminal(
 
               // Flush any remaining batch at end of line
               flushBatch()
+            }
+
+            // ===== PASS 3: DRAW HYPERLINK UNDERLINE =====
+            // Draw hyperlink underline if hovered with Ctrl/Cmd modifier
+            // This provides standard IDE-like behavior: underline only shows when modifier is pressed
+            // Must be done as separate pass since text batching would otherwise skip the underline check
+            if (settings.hyperlinkUnderlineOnHover &&
+              hoveredHyperlink != null &&
+              isModifierPressed) {
+              val link = hoveredHyperlink!!
+              // Only draw if hyperlink is visible on screen
+              if (link.row in 0 until visibleRows) {
+                val y = link.row * cellHeight
+                val underlineY = y + cellHeight - 1f
+                val startX = link.startCol * cellWidth
+                val endX = link.endCol * cellWidth
+                drawLine(
+                  color = settings.hyperlinkColorValue,
+                  start = Offset(startX, underlineY),
+                  end = Offset(endX, underlineY),
+                  strokeWidth = 1f
+                )
+              }
             }
 
             // Draw search match highlights (all matches)
@@ -2088,6 +2118,10 @@ fun ProperTerminal(
 
     DisposableEffect(Unit) {
       onDispose {
+        // Notify hover consumers when terminal is disposed
+        if (previousHoveredHyperlink != null) {
+          tab.hoverConsumers.forEach { it.onMouseExited() }
+        }
         scope.launch {
           processHandle?.kill()
         }

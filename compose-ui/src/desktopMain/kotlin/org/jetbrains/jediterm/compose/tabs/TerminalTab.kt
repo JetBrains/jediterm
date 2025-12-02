@@ -13,6 +13,7 @@ import org.jetbrains.jediterm.compose.PlatformServices
 import org.jetbrains.jediterm.compose.demo.BlockingTerminalDataStream
 import org.jetbrains.jediterm.compose.features.ContextMenuController
 import org.jetbrains.jediterm.compose.hyperlinks.Hyperlink
+import org.jetbrains.jediterm.compose.hyperlinks.HyperlinkHoverConsumer
 import org.jetbrains.jediterm.compose.ime.IMEState
 import com.jediterm.terminal.emulator.JediEmulator
 import com.jediterm.terminal.model.JediTerminal
@@ -222,6 +223,35 @@ data class TerminalTab(
      * Thread-safe: Uses MutableState for safe access from multiple coroutines.
      */
     val isVisible: MutableState<Boolean> = mutableStateOf(false)
+
+    // === Hyperlink Hover Consumers ===
+
+    /**
+     * List of registered hover consumers for hyperlink hover events.
+     * External clients can register to receive onMouseEntered/onMouseExited callbacks.
+     */
+    private val _hoverConsumers = mutableListOf<HyperlinkHoverConsumer>()
+
+    /**
+     * Read-only view of registered hover consumers.
+     */
+    val hoverConsumers: List<HyperlinkHoverConsumer> get() = _hoverConsumers
+
+    /**
+     * Register a hover consumer to receive hyperlink hover events.
+     * @param consumer The consumer to register
+     */
+    fun addHoverConsumer(consumer: HyperlinkHoverConsumer) {
+        _hoverConsumers.add(consumer)
+    }
+
+    /**
+     * Unregister a hover consumer.
+     * @param consumer The consumer to remove
+     */
+    fun removeHoverConsumer(consumer: HyperlinkHoverConsumer) {
+        _hoverConsumers.remove(consumer)
+    }
 
     /**
      * Lifecycle callback invoked when this tab becomes visible (user switches to it).

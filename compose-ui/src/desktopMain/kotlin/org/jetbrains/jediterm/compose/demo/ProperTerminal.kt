@@ -1557,6 +1557,10 @@ fun ProperTerminal(
                 // Detect cursive/mathematical characters - need system font but no special scaling
                 val isCursiveOrMath = actualCodePoint in 0x1D400..0x1D7FF
 
+                // Detect technical/prompt symbols - need system font, horizontal centering, baseline-aligned
+                // These symbols should align with text baseline, not be bounding-box centered like emoji
+                val isTechnicalSymbol = actualCodePoint in 0x23E9..0x23FF  // Media/prompt symbols (⏩⏪⏫⏬⏭⏮⏯⏰⏱⏲⏳⏴⏵⏶⏷⏸⏹⏺)
+
                 // For emoji and symbols, we'll render them with slight scaling for better visibility
                 // These are Unicode blocks containing symbols that render poorly at normal size
                 // IMPORTANT: Use actualCodePoint for surrogate pair emoji!
@@ -1627,8 +1631,8 @@ fun ProperTerminal(
                 }
 
                 // Decide if this character can be batched or needs individual rendering
-                // Cursive/math chars can't be batched (need system font), but emoji need special scaling
-                val canBatch = !isDoubleWidth && !isEmojiOrWideSymbol && !isCursiveOrMath &&
+                // Cursive/math/technical chars can't be batched (need system font), emoji need special scaling
+                val canBatch = !isDoubleWidth && !isEmojiOrWideSymbol && !isCursiveOrMath && !isTechnicalSymbol &&
                   !isHidden && isBlinkVisible &&
                   char != ' ' && char != '\u0000'
 
@@ -1765,6 +1769,24 @@ fun ProperTerminal(
                         textMeasurer = textMeasurer,
                         text = charTextToRender,
                         topLeft = Offset(x + centeringOffset, y),
+                        style = textStyle
+                      )
+                    } else if (isTechnicalSymbol) {
+                      // Technical symbols: horizontal center + baseline-aligned
+                      // Different fonts/glyphs have different baselines - we need to align them
+                      val measurement = textMeasurer.measure(charTextToRender, textStyle)
+                      val glyphWidth = measurement.size.width.toFloat()
+                      val glyphBaseline = measurement.firstBaseline  // Symbol's baseline from top
+                      val cellBaseline = cellMetrics.third           // Cell's expected baseline from 'W'
+
+                      // Offset Y so the symbol's baseline aligns with the cell's baseline
+                      val baselineAlignmentOffset = cellBaseline - glyphBaseline
+                      val centeringOffset = ((cellWidth - glyphWidth) / 2f).coerceAtLeast(0f)
+
+                      drawText(
+                        textMeasurer = textMeasurer,
+                        text = charTextToRender,
+                        topLeft = Offset(x + centeringOffset, y + baselineAlignmentOffset),
                         style = textStyle
                       )
                     } else {

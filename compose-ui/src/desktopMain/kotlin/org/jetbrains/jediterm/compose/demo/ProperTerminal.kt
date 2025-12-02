@@ -506,6 +506,15 @@ fun ProperTerminal(
     focusRequester.requestFocus()
   }
 
+  // Resize PTY when it becomes available
+  // This fixes the initial size issue: onGloballyPositioned fires and resizes the terminal buffer,
+  // but processHandle is NULL at that point. When the PTY connects, we need to sync its size.
+  LaunchedEffect(processHandle) {
+    processHandle?.let { handle ->
+      handle.resize(textBuffer.width, textBuffer.height)
+    }
+  }
+
   // Observe icon title changes from OSC 1 sequence for tab labels (XTerm standard)
   // Icon title (OSC 1) is used for tab labels in modern terminals
   // Window title (OSC 2) is used for the main window title bar
@@ -619,6 +628,8 @@ fun ProperTerminal(
               scope.launch {
                 processHandle?.resize(newCols, newRows)
               }
+              // Force redraw with new buffer dimensions (critical for initial size)
+              display.requestImmediateRedraw()
               hasPerformedInitialResize = true
             }
           }
@@ -1141,9 +1152,10 @@ fun ProperTerminal(
         // Only show terminal UI when connected
 
         // Create immutable snapshot for lock-free rendering
-        // Snapshot cached by Compose - only recreated when display triggers redraw
+        // Snapshot cached by Compose - recreated when display triggers redraw OR buffer dimensions change
         // This eliminates the 15ms lock hold that was blocking PTY writers (94% reduction in contention)
-        val bufferSnapshot = remember(display.redrawTrigger.value) {
+        // Adding buffer dimensions as keys ensures snapshot updates after initial resize
+        val bufferSnapshot = remember(display.redrawTrigger.value, textBuffer.width, textBuffer.height) {
           textBuffer.createSnapshot()
         }
 

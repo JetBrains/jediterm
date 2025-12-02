@@ -65,6 +65,7 @@ import org.jetbrains.jediterm.compose.search.SearchBar
 import org.jetbrains.jediterm.compose.settings.SettingsManager
 import org.jetbrains.jediterm.compose.tabs.TerminalTab
 import com.jediterm.core.typeahead.TerminalTypeAheadManager
+import org.jetbrains.skia.FontMgr
 import com.jediterm.terminal.TextStyle as JediTextStyle
 import java.awt.event.KeyEvent as JavaKeyEvent
 
@@ -1557,12 +1558,16 @@ fun ProperTerminal(
                 // Detect cursive/mathematical characters - need system font but no special scaling
                 val isCursiveOrMath = actualCodePoint in 0x1D400..0x1D7FF
 
+                // Detect technical/prompt symbols - need system font, horizontal centering, baseline-aligned
+                // These symbols should align with text baseline, not be bounding-box centered like emoji
+                val isTechnicalSymbol = actualCodePoint in 0x23E9..0x23FF  // Media/prompt symbols (⏩⏪⏫⏬⏭⏮⏯⏰⏱⏲⏳⏴⏵⏶⏷⏸⏹⏺)
+
                 // For emoji and symbols, we'll render them with slight scaling for better visibility
                 // These are Unicode blocks containing symbols that render poorly at normal size
                 // IMPORTANT: Use actualCodePoint for surrogate pair emoji!
                 val isEmojiOrWideSymbol = when (actualCodePoint) {
                   in 0x2600..0x26FF -> true  // Miscellaneous Symbols (☁️, ☀️, ★, etc.)
-                  in 0x2700..0x27BF -> true  // Dingbats (✂, ✈, ❯, etc.)
+                  // Note: Dingbats (0x2700-0x27BF) removed - Nerd Font has monochrome glyphs (✳, ❯, etc.)
                   in 0x1F300..0x1F9FF -> true  // Emoji & Pictographs
                   in 0x1F600..0x1F64F -> true  // Emoticons
                   in 0x1F680..0x1F6FF -> true  // Transport & Map Symbols
@@ -1627,8 +1632,8 @@ fun ProperTerminal(
                 }
 
                 // Decide if this character can be batched or needs individual rendering
-                // Cursive/math chars can't be batched (need system font), but emoji need special scaling
-                val canBatch = !isDoubleWidth && !isEmojiOrWideSymbol && !isCursiveOrMath &&
+                // Cursive/math/technical chars can't be batched (need system font), emoji need special scaling
+                val canBatch = !isDoubleWidth && !isEmojiOrWideSymbol && !isCursiveOrMath && !isTechnicalSymbol &&
                   !isHidden && isBlinkVisible &&
                   char != ' ' && char != '\u0000'
 
@@ -1660,6 +1665,15 @@ fun ProperTerminal(
                     // MesloLGSNF doesn't have glyphs for emoji or mathematical alphanumerics
                     val fontForChar = if (isEmojiOrWideSymbol || isEmojiWithVariationSelector || isCursiveOrMath) {
                       FontFamily.Default  // System font with emoji/Unicode support
+                    } else if (isTechnicalSymbol) {
+                      // Use STIX Two Math for monochrome technical symbols (avoids Apple Color Emoji)
+                      // Load system font via Skia FontMgr
+                      val skiaTypeface = FontMgr.default.matchFamilyStyle("STIX Two Math", org.jetbrains.skia.FontStyle.NORMAL)
+                      if (skiaTypeface != null) {
+                        FontFamily(androidx.compose.ui.text.platform.Typeface(skiaTypeface))
+                      } else {
+                        measurementStyle.fontFamily  // Fallback to Nerd Font
+                      }
                     } else {
                       measurementStyle.fontFamily  // Nerd Font
                     }
@@ -1765,6 +1779,23 @@ fun ProperTerminal(
                         textMeasurer = textMeasurer,
                         text = charTextToRender,
                         topLeft = Offset(x + centeringOffset, y),
+                        style = textStyle
+                      )
+                    } else if (isTechnicalSymbol) {
+                      // Technical symbols: horizontal center + baseline-aligned using STIX Two Math font
+                      val measurement = textMeasurer.measure(charTextToRender, textStyle)
+                      val glyphWidth = measurement.size.width.toFloat()
+                      val glyphBaseline = measurement.firstBaseline  // Symbol's baseline from top
+                      val cellBaseline = cellMetrics.third           // Cell's expected baseline from 'W'
+
+                      // Offset Y so the symbol's baseline aligns with the cell's baseline
+                      val baselineAlignmentOffset = cellBaseline - glyphBaseline
+                      val centeringOffset = ((cellWidth - glyphWidth) / 2f).coerceAtLeast(0f)
+
+                      drawText(
+                        textMeasurer = textMeasurer,
+                        text = charTextToRender,
+                        topLeft = Offset(x + centeringOffset, y + baselineAlignmentOffset),
                         style = textStyle
                       )
                     } else {

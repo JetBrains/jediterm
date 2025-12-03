@@ -10,7 +10,7 @@ plugins {
     `maven-publish`
 }
 
-group = "org.jetbrains.jediterm"
+group = "ai.rever.bossterm"
 
 repositories {
     mavenCentral()
@@ -41,7 +41,7 @@ kotlin {
         iosSimulatorArm64()
     ).forEach { iosTarget ->
         iosTarget.binaries.framework {
-            baseName = "JediTermCompose"
+            baseName = "BossTermCompose"
             isStatic = true
         }
     }
@@ -61,7 +61,7 @@ kotlin {
     js(IR) {
         browser {
             commonWebpackConfig {
-                outputFileName = "jediterm-compose.js"
+                outputFileName = "bossterm-compose.js"
             }
         }
         binaries.executable()
@@ -71,7 +71,7 @@ kotlin {
     wasmJs {
         browser {
             commonWebpackConfig {
-                outputFileName = "jediterm-compose.wasm.js"
+                outputFileName = "bossterm-compose.wasm.js"
             }
         }
         binaries.executable()
@@ -110,7 +110,7 @@ kotlin {
         // Android source set
         val androidMain by getting {
             dependencies {
-                implementation(project(":jediterm-core-mpp"))
+                implementation(project(":bossterm-core-mpp"))
                 implementation("androidx.activity:activity-compose:1.9.3")
                 implementation("androidx.appcompat:appcompat:1.7.0")
                 implementation("androidx.core:core-ktx:1.15.0")
@@ -121,7 +121,7 @@ kotlin {
         // Desktop source set
         val desktopMain by getting {
             dependencies {
-                implementation(project(":jediterm-core-mpp"))
+                implementation(project(":bossterm-core-mpp"))
                 implementation(compose.desktop.currentOs)
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.9.0")
                 implementation("org.jetbrains.pty4j:pty4j:0.12.13")
@@ -147,7 +147,7 @@ kotlin {
 }
 
 android {
-    namespace = "org.jetbrains.jediterm.compose"
+    namespace = "ai.rever.bossterm.compose"
     compileSdk = 34
 
     defaultConfig {
@@ -165,7 +165,7 @@ android {
 
 compose.desktop {
     application {
-        mainClass = "org.jetbrains.jediterm.compose.demo.MainKt"
+        mainClass = "ai.rever.bossterm.compose.demo.MainKt"
     }
 }
 
@@ -176,11 +176,11 @@ compose.experimental {
 publishing {
     publications {
         create<MavenPublication>("composeUi") {
-            artifactId = "jediterm-compose-ui"
+            artifactId = "bossterm-compose-ui"
             pom {
-                name.set("JediTerm Compose UI")
-                description.set("Compose Multiplatform UI for JediTerm")
-                url.set("https://github.com/JetBrains/jediterm")
+                name.set("BossTerm Compose UI")
+                description.set("Compose Multiplatform UI for BossTerm")
+                url.set("https://github.com/JetBrains/bossterm")
                 licenses {
                     license {
                         name.set("LGPL 3.0")

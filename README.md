@@ -1,9 +1,9 @@
-JediTerm
+BossTerm
 ========
 
 [![official JetBrains project](http://jb.gg/badges/official.svg)](https://confluence.jetbrains.com/display/ALL/JetBrains+on+GitHub)
 
-[![Build Status](https://travis-ci.org/JetBrains/jediterm.png?branch=master)](https://travis-ci.org/JetBrains/jediterm)
+[![Build Status](https://travis-ci.org/JetBrains/bossterm.png?branch=master)](https://travis-ci.org/JetBrains/bossterm)
 
 
 The main purpose of the project is to provide a pure Java terminal widget that can be easily embedded 
@@ -13,18 +13,18 @@ It supports terminal sessions both for SSH connections and local PTY on Mac OSX,
 
 The library is used by JetBrains IDEs like PyCharm, IDEA, PhpStorm, WebStorm, AppCode, CLion, and Rider.
 
-Since version 2.5 there is a standalone version of the JediTerm terminal, provided as Mac OSX distribution.
+Since version 2.5 there is a standalone version of the BossTerm terminal, provided as Mac OSX distribution.
 
 
-The name JediTerm origins from J(from `Java`) + edi(reversed `IDE`) + Term(obviously from `terminal`).
-Also the word Jedi itself gives some confidence and hope in the Universe of thousands of different terminal implementations.
+The name BossTerm origins from J(from `Java`) + edi(reversed `IDE`) + Term(obviously from `terminal`).
+Also the word Boss itself gives some confidence and hope in the Universe of thousands of different terminal implementations.
 
 
 Run
 -------
 
-To run the standalone JediTerm terminal from sources just execute _jediterm.sh_ or _jediterm.bat_.
-Or use the binary distribution from the [Releases](https://github.com/JetBrains/jediterm/releases/) page.
+To run the standalone BossTerm terminal from sources just execute _bossterm.sh_ or _bossterm.bat_.
+Or use the binary distribution from the [Releases](https://github.com/JetBrains/bossterm/releases/) page.
 
 
 
@@ -38,11 +38,11 @@ Gradle is used to build this project. The project consists of 4 sub-projects:
 
 * **pty**
 
-    The jediterm-pty.jar library that, by using the [Pty4J](https://github.com/traff/pty4j) library, enables a terminal for local PTY terminal sessions.
+    The bossterm-pty.jar library that, by using the [Pty4J](https://github.com/traff/pty4j) library, enables a terminal for local PTY terminal sessions.
 
-* **JediTerm**
+* **BossTerm**
 
-    The standalone version of the JediTerm terminal distributed as a .dmg for Mac OSX.
+    The standalone version of the BossTerm terminal distributed as a .dmg for Mac OSX.
 
 
 Features
@@ -79,7 +79,7 @@ Links
 
 Open Source Origin and History
 ------
-The initial version of the JediTerm was a reworked terminal emulator Gritty, which was in it's own turn a reworked JCTerm 
+The initial version of the BossTerm was a reworked terminal emulator Gritty, which was in it's own turn a reworked JCTerm 
 terminal implementation. Now there is nothing in the source code left from Gritty and JCTerm. Everything was 
 rewritten from scratch. A lot of new features were added.
 
@@ -93,5 +93,5 @@ Standalone distribution relies heavily on customized Swing UI widgets taken from
 
 Licenses
 -------
-JediTerm is dual-licensed under both the LGPLv3 (found in the LICENSE-LGPLv3.txt file in the root directory) and Apache 2.0 License (found in the LICENSE-APACHE-2.0.txt file in the root directory). 
+BossTerm is dual-licensed under both the LGPLv3 (found in the LICENSE-LGPLv3.txt file in the root directory) and Apache 2.0 License (found in the LICENSE-APACHE-2.0.txt file in the root directory). 
 You may select, at your option, one of the above-listed licenses.

@@ -367,16 +367,17 @@ fun DebugStatsView(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier,
+        modifier = modifier.fillMaxWidth(),
         color = Color(0xFF2A2A2A),
         shape = RoundedCornerShape(6.dp)
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
             horizontalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             // Debug stats column
             Column(
+                modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
@@ -400,6 +401,7 @@ fun DebugStatsView(
             // Snapshot builder stats column (if available)
             if (snapshotBuilderStats != null) {
                 Column(
+                    modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(

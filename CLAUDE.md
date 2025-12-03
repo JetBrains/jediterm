@@ -148,6 +148,27 @@ Canvas(modifier = Modifier.fillMaxSize()) {
 - `createSnapshot()`: Original full-copy snapshot (for search, selection, text extraction)
 - `createIncrementalSnapshot()`: Optimized versioned snapshot (for rendering loop)
 
+## Shell Integration Setup
+
+### OSC 7 Working Directory Tracking
+
+Enable automatic working directory detection in your shell. When configured, new tabs will inherit the current working directory from the active tab.
+
+**For Bash** (add to `~/.bashrc`):
+```bash
+PROMPT_COMMAND='echo -ne "\033]7;file://${HOSTNAME}${PWD}\007"'
+```
+
+**For Zsh** (add to `~/.zshrc`):
+```bash
+precmd() { echo -ne "\033]7;file://${HOST}${PWD}\007" }
+```
+
+This enables:
+- New tabs inherit CWD from active tab
+- Tab titles display current directory
+- Dynamic shell integration for directory awareness
+
 ## Build & Run Commands
 
 ```bash
@@ -210,10 +231,10 @@ gh pr create --base master --head dev --title "Your PR title" --body "Descriptio
 - **TabBar UI**: Material 3 design with close buttons
 - **Auto-close**: Tabs close when shell exits
 - **Working Directory Inheritance**: New tabs can inherit CWD from active tab
+- **Keyboard Shortcuts**: Ctrl+T (new tab), Ctrl+W (close), Ctrl+Tab (next), Ctrl+Shift+Tab (prev), Ctrl+1-9 (jump to tab)
+- **OSC 7 Tracking**: Working directory updates via shell integration
 
-**Key Files**: `TabController.kt` (336 lines), `TerminalTab.kt` (223 lines), `TabBar.kt` (135 lines)
-
-**Remaining**: Keyboard shortcuts (Ctrl+T, Ctrl+W, Ctrl+Tab), OSC 7 tracking
+**Key Files**: `TabController.kt` (336 lines), `TerminalTab.kt` (223 lines), `TabBar.kt` (135 lines), `BuiltinActions.kt` (269-395 lines for tab shortcuts), `WorkingDirectoryOSCListener.kt` (44-72 lines for OSC 7)
 
 ### 2. Extensible Terminal Actions (#11)
 - **ActionRegistry**: Thread-safe action management
@@ -367,14 +388,17 @@ gh pr create --base master --head dev --title "Your PR title" --body "Descriptio
 ## Known Issues & Todos
 
 ### In Progress
-1. Manual testing of debug panel features
+None - feature complete for current phase
 
 ### Remaining Work
-- Tab keyboard shortcuts (Ctrl+T, Ctrl+W, Ctrl+Tab) - Phase 5
-- OSC 7 working directory tracking - Phase 4
-- Background tab performance optimization - Phase 8
+- Background tab performance optimization (low priority)
+- Extended CSI codes (as needed for specific use cases)
+- Terminal multiplexer UI (future research, out of scope)
+- SSH key management UI (future enhancement)
 
 ### Completed (Recent)
+✅ Tab Keyboard Shortcuts (Ctrl+T, Ctrl+W, Ctrl+Tab, Ctrl+1-9) - December 3, 2025
+✅ OSC 7 Working Directory Tracking - December 3, 2025
 ✅ Auto-Scroll During Selection Drag (November 30, 2025, issue #24)
 ✅ Type-Ahead Prediction System (November 30, 2025, issue #23)
 ✅ Snapshot-Based Rendering - 94% lock contention reduction (November 29, 2025)
@@ -441,9 +465,19 @@ gh pr create --base master --head dev --title "Your PR title" --body "Descriptio
 ---
 
 ## Last Updated
-December 2, 2025
+December 3, 2025
 
 ### Recent Changes
+- **December 3, 2025**: Verified keyboard shortcuts and OSC 7 implementation
+  - **Tab Keyboard Shortcuts**: CONFIRMED - Ctrl+T (new), Ctrl+W (close), Ctrl+Tab (next), Ctrl+Shift+Tab (prev), Ctrl+1-9 (jump)
+    - Location: `BuiltinActions.kt` lines 269-395
+    - All shortcuts fully registered with platform-aware key bindings
+  - **OSC 7 Working Directory Tracking**: CONFIRMED - Full implementation
+    - Location: `WorkingDirectoryOSCListener.kt` lines 1-72
+    - Parses OSC 7 sequences and updates reactive state
+    - Shell setup instructions documented in CLAUDE.md
+  - **Status**: Both features complete and ready for production use
+  - **Updated CLAUDE.md**: Removed from "Remaining Work", added to "Completed", documented shell setup
 - **December 2, 2025**: Incremental Snapshot Builder with Copy-on-Write Optimization
   - **Problem**: GC pressure from 430KB allocations per frame at 60fps (26 MB/sec allocation churn)
   - **Solution**: Copy-on-write snapshots with version tracking

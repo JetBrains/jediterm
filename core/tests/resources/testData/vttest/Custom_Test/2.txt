@@ -1,3 +1,0 @@
-[2J[1;1H[?7ha你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你你This line should start with exactly two Chinese characters.
-And the first line should end with a space.
-Push <RETURN>

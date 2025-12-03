@@ -19,10 +19,38 @@ import kotlin.math.min
 class TerminalLine {
     private var myTextEntries = TextEntries()
     var isWrapped: Boolean = false
+        set(value) {
+            if (field != value) {
+                field = value
+                incrementSnapshotVersion()
+            }
+        }
     private val myCustomHighlightings: MutableList<TerminalLineIntervalHighlighting?> =
         CopyOnWriteArrayList<TerminalLineIntervalHighlighting?>()
     private val myModificationCount = AtomicInteger(0)
     var myTypeAheadLine: TerminalLine? = null
+
+    /**
+     * Version counter for copy-on-write snapshot optimization.
+     * Incremented on every mutation to enable version-based change detection.
+     * Used by IncrementalSnapshotBuilder to skip copying unchanged lines.
+     */
+    @Volatile
+    private var snapshotVersion: Long = 0L
+
+    /**
+     * Get the current snapshot version for copy-on-write optimization.
+     * @return current version number (increments on every mutation)
+     */
+    fun getSnapshotVersion(): Long = snapshotVersion
+
+    /**
+     * Increment the snapshot version after any mutation.
+     * Must be called at the END of every mutating method.
+     */
+    private fun incrementSnapshotVersion() {
+        snapshotVersion++
+    }
 
     constructor()
 
@@ -73,6 +101,7 @@ class TerminalLine {
     fun clear(filler: TextEntry) {
         myTextEntries.clear()
         myTextEntries.add(filler)
+        incrementSnapshotVersion()
     }
 
     fun writeString(x: Int, str: CharBuffer, style: TextStyle) {
@@ -96,12 +125,13 @@ class TerminalLine {
             len = max(len, x + characters.length)
             myTextEntries = merge(x, characters, style, myTextEntries, len)
         }
+        incrementSnapshotVersion()
     }
 
     private fun insertCharacters(x: Int, style: TextStyle, characters: CharBuffer) {
         val length = myTextEntries.length()
         if (x > length) {
-            writeCharacters(x, style, characters)
+            writeCharacters(x, style, characters)  // Already calls incrementSnapshotVersion()
             return
         }
 
@@ -116,6 +146,7 @@ class TerminalLine {
             pair.second[i + x] = style
         }
         myTextEntries = Companion.collectFromBuffer(pair.first, pair.second)
+        incrementSnapshotVersion()
     }
 
     @JvmOverloads
@@ -160,6 +191,7 @@ class TerminalLine {
         }
 
         myTextEntries = newEntries
+        incrementSnapshotVersion()
     }
 
     fun insertBlankCharacters(x: Int, count: Int, maxLen: Int, style: TextStyle) {
@@ -209,6 +241,7 @@ class TerminalLine {
         }
 
         myTextEntries = collectFromBuffer(buf, styles)
+        incrementSnapshotVersion()
     }
 
     fun clearArea(leftX: Int, rightX: Int, style: TextStyle) {
@@ -292,6 +325,7 @@ class TerminalLine {
         for (entry in newEntries) {
             myTextEntries.add(entry)
         }
+        incrementSnapshotVersion()
     }
 
     fun getStyleAt(x: Int): TextStyle? {
@@ -402,6 +436,7 @@ class TerminalLine {
 
     fun appendEntry(entry: TextEntry) {
         myTextEntries.add(entry)
+        incrementSnapshotVersion()
     }
 
     val modificationCount: Int

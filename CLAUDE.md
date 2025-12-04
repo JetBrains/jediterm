@@ -1,21 +1,21 @@
-# Claude Code Development Guide for JediTermKt
+# Claude Code Development Guide for BossTermKt
 
 This document contains critical information for Claude Code instances working on this project.
 
 ## Project Overview
 
-**Repository**: jediTermCompose (JediTerm Kotlin/Compose Desktop)
+**Repository**: BossTerm (BossTerm Kotlin/Compose Desktop)
 **Main Branch**: `master`
 **Development Branch**: `dev` (use this for ongoing work)
 **Goal**: Modern terminal emulator with Kotlin/Compose Desktop
 
 ## Critical Scripts
 
-### `capture_jediterm_only.py`
+### `capture_bossterm_only.py`
 - **Location**: Project root
-- **Purpose**: Captures screenshot of JediTerm window ONLY
-- **Output**: `/tmp/jediterm_window.png`
-- **Usage**: `python3 capture_jediterm_only.py`
+- **Purpose**: Captures screenshot of BossTerm window ONLY
+- **Output**: `/tmp/bossterm_window.png`
+- **Usage**: `python3 capture_bossterm_only.py`
 
 ## Critical Technical Patterns
 
@@ -61,18 +61,18 @@ val nerdFont = remember {
 
 **Blocking Data Stream Architecture**: Prevents CSI code truncation.
 
-**Problem**: Creating new `JediEmulator` per chunk caused state loss and truncated CSI sequences.
+**Problem**: Creating new `BossEmulator` per chunk caused state loss and truncated CSI sequences.
 
 **Solution**: `BlockingTerminalDataStream.kt` with single long-lived emulator:
 - Implements `TerminalDataStream` with blocking behavior
 - Uses queue to buffer chunks, blocks on `getChar()` instead of EOF
-- Single `JediEmulator` instance preserves state across chunks
+- Single `BossEmulator` instance preserves state across chunks
 
 **Architecture**:
 ```kotlin
 // Single long-lived instances
 val dataStream = remember { BlockingTerminalDataStream() }
-val emulator = remember { JediEmulator(dataStream, terminal) }
+val emulator = remember { BossEmulator(dataStream, terminal) }
 
 // Two coroutines:
 // 1. Emulator processing (Dispatchers.Default) - blocks on getChar()
@@ -179,7 +179,7 @@ This enables:
 pkill -9 -f "gradle"
 
 # Check running instance
-ps aux | grep "org.jetbrains.jediterm.compose.demo.MainKt"
+ps aux | grep "ai.rever.bossterm.compose.demo.MainKt"
 ```
 
 ## Git Workflow
@@ -206,7 +206,7 @@ gh pr create --base master --head dev --title "Your PR title" --body "Descriptio
 ## Key Files
 
 ### Terminal Rendering
-- `compose-ui/src/desktopMain/kotlin/org/jetbrains/jediterm/compose/demo/ProperTerminal.kt`
+- `compose-ui/src/desktopMain/kotlin/org/jetbrains/bossterm/compose/demo/ProperTerminal.kt`
   - Lines 97-125: Font loading
   - Lines 585-597, 670-684, 725-767: Emoji + variation selector handling
   - Lines 215-264: Dual-coroutine output processing
@@ -216,7 +216,7 @@ gh pr create --base master --head dev --title "Your PR title" --body "Descriptio
   - Lines 1972-1998: Snapshot-based text extraction
 
 ### Buffer Management
-- `jediterm-core-mpp/src/jvmMain/kotlin/com/jediterm/terminal/model/TerminalTextBuffer.kt`
+- `bossterm-core-mpp/src/jvmMain/kotlin/com/bossterm/terminal/model/TerminalTextBuffer.kt`
   - Added `createSnapshot()`: Creates immutable buffer snapshot in <1ms
   - Added `BufferSnapshot` data class: Lock-free line accessor
 
@@ -252,7 +252,7 @@ gh pr create --base master --head dev --title "Your PR title" --body "Descriptio
 **Settings**: `copyOnSelect`, `pasteOnMiddleClick`, `emulateX11CopyPaste`
 
 ### 4. Settings System (#4)
-- **JSON persistence**: `~/.jediterm/settings.json`
+- **JSON persistence**: `~/.bossterm/settings.json`
 - **30+ options**: Visual, behavior, performance, debug settings
 - **Hot reload**: Settings load on startup
 
@@ -295,7 +295,7 @@ gh pr create --base master --head dev --title "Your PR title" --body "Descriptio
 - **Coordinate Mapping**: Accurate pixel-to-character cell conversion with boundary clamping
 
 **Architecture**:
-- `ComposeMouseEvent.kt`: Event adapter layer converting Compose PointerEvent to JediTerm MouseEvent/MouseWheelEvent
+- `ComposeMouseEvent.kt`: Event adapter layer converting Compose PointerEvent to BossTerm MouseEvent/MouseWheelEvent
 - `ComposeTerminalDisplay.kt`: Tracks current mouse mode state from terminal
 - `ProperTerminal.kt`: Decision logic in all pointer event handlers (Press, Move, Release, Scroll)
 
@@ -337,12 +337,12 @@ gh pr create --base master --head dev --title "Your PR title" --body "Descriptio
 - ICU4J dependency (74.1): Industry-standard Unicode library
 
 **Critical Bug Fixes**:
-1. **JediEmulator1.readNonControlCharacters()** (lines 76-132)
+1. **BossEmulator1.readNonControlCharacters()** (lines 76-132)
    - BEFORE: Char-by-char iteration split surrogate pairs
    - AFTER: Grapheme-aware iteration preserves multi-code-point sequences
    - IMPACT: Characters >U+FFFF now display correctly
 
-2. **JediTerminal.newCharBuf()** (lines 1148-1175)
+2. **BossTerminal.newCharBuf()** (lines 1148-1175)
    - BEFORE: DWC insertion destroyed surrogate pairs
    - AFTER: Grapheme-aware DWC marking preserves surrogate pair integrity
    - IMPACT: Wide characters >U+FFFF render with correct spacing
@@ -366,8 +366,8 @@ gh pr create --base master --head dev --title "Your PR title" --body "Descriptio
 **Key Files Modified**:
 - build.gradle.kts: Added ICU4J 74.1
 - CharUtils.kt: +66 lines (grapheme-aware methods, surrogate pair fix)
-- JediEmulator1.kt: Complete rewrite of readNonControlCharacters()
-- JediTerminal.kt: Complete rewrite of newCharBuf()
+- BossEmulator1.kt: Complete rewrite of readNonControlCharacters()
+- BossTerminal.kt: Complete rewrite of newCharBuf()
 - BlockingTerminalDataStream.kt: +119 lines (incomplete grapheme buffering)
 
 **Performance**:
@@ -378,7 +378,7 @@ gh pr create --base master --head dev --title "Your PR title" --body "Descriptio
 
 **Remaining Work**:
 - ProperTerminal.kt rendering refactor (grapheme-aware iteration)
-- JediTerminal.kt cursor movement (grapheme boundaries)
+- BossTerminal.kt cursor movement (grapheme boundaries)
 - ProperTerminal.kt selection (grapheme boundaries)
 - Comprehensive test suite (200+ tests planned)
 - CharBuffer.kt refactoring (deferred - not critical after bug fixes)
@@ -424,7 +424,7 @@ None - feature complete for current phase
 ### Performance
 - Use `remember {}` for expensive computations
 - Cache TextStyle and font measurements
-- Profile with `/tmp/jediterm_*.log` files
+- Profile with `/tmp/bossterm_*.log` files
 
 ### Code Quality
 - Add clear comments for non-obvious logic
@@ -489,7 +489,7 @@ December 3, 2025
   - **New Files**: `pool/IncrementalSnapshotBuilder.kt`, `pool/CharArrayPool.kt`
   - **Modified**: `TerminalLine.kt` (+version tracking), `TerminalTextBuffer.kt` (+API), `ProperTerminal.kt` (uses new API)
   - **API**: `createIncrementalSnapshot()` for rendering, `createSnapshot()` for search/selection
-  - **Feature Flag**: `JEDITERM_DISABLE_SNAPSHOT_POOLING=true` to disable
+  - **Feature Flag**: `BOSSTERM_DISABLE_SNAPSHOT_POOLING=true` to disable
   - **Status**: Build successful, ready for testing
 - **November 29, 2025**: Snapshot-Based Rendering for Lock-Free UI
   - **Problem**: UI freezing during streaming output (Claude responses, large file cats)
@@ -508,8 +508,8 @@ December 3, 2025
     - GraphemeMetadata.kt: Sparse boundary tracking for random access
     - GraphemeUtils.kt: Core segmentation with LRU cache (1024 entries)
   - **Critical Bug Fixes**: Fixed 4 major surrogate pair bugs
-    - JediEmulator1.readNonControlCharacters(): Char-by-char → grapheme iteration
-    - JediTerminal.newCharBuf(): Fixed DWC insertion destroying surrogate pairs
+    - BossEmulator1.readNonControlCharacters(): Char-by-char → grapheme iteration
+    - BossTerminal.newCharBuf(): Fixed DWC insertion destroying surrogate pairs
     - BlockingTerminalDataStream.append(): Added incomplete grapheme buffering
     - CharUtils.countDoubleWidthCharacters(): Fixed codePoint iteration bug
   - **New APIs**: CharUtils.getTextLengthGraphemeAware() for proper width calculation

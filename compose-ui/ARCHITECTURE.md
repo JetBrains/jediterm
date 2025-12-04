@@ -1,4 +1,4 @@
-# JediTerm Compose Rendering Architecture
+# BossTerm Compose Rendering Architecture
 
 ## High-Level Architecture
 
@@ -329,19 +329,19 @@ Result: Render only 10 cells instead of 1920
 
 ```
 ┌────────────────────────────────────┐
-│     JediTerm Core (Java)           │
+│     BossTerm Core (Java)           │
 │                                    │
 │  • Terminal                        │
 │  • TextBuffer                      │
 │  • TextStyle                       │
 │  • TerminalColor                   │
-│  • JediEmulator                    │
+│  • BossEmulator                    │
 └──────────────┬─────────────────────┘
                │
                │ Data model
                ▼
 ┌────────────────────────────────────┐
-│   JediTerm Compose UI (Kotlin)     │
+│   BossTerm Compose UI (Kotlin)     │
 │                                    │
 │  • TerminalRenderer (interface)    │
 │  • ComposeTerminalRenderer (impl)  │
@@ -356,7 +356,7 @@ Result: Render only 10 cells instead of 1920
 ```
 compose-ui/
 ├── src/
-│   ├── commonMain/kotlin/org/jetbrains/jediterm/compose/
+│   ├── commonMain/kotlin/org/jetbrains/bossterm/compose/
 │   │   ├── TerminalRenderer.kt         (Interface)
 │   │   ├── rendering/
 │   │   │   ├── ComposeTerminalRenderer.kt  ← Main renderer

@@ -6,13 +6,9 @@ pluginManagement {
     }
 }
 
-rootProject.name = "jediterm"
+rootProject.name = "bossterm"
 include(
-    ":core",
-    ":ui",
-    ":JediTerm",
-    ":jediterm-pty",
-    ":jediterm-core-mpp",
+    ":bossterm-core-mpp",
     ":compose-ui"
 )
 

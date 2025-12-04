@@ -1,1 +1,0 @@
-gradlew.bat :JediTerm:run

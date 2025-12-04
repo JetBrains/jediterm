@@ -132,4 +132,4 @@ BossTerm is a fork of [JediTerm](https://github.com/JetBrains/jediterm) by JetBr
 
 ---
 
-**Built by [Rever AI](https://rever.ai)**
+**Built by [Risa AI](https://risalabs.ai)**

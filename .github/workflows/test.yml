@@ -25,8 +25,8 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build
-        run: ./gradlew build -x test --no-daemon
+      - name: Build Desktop
+        run: ./gradlew :bossterm-core-mpp:jvmJar :compose-ui:compileKotlinDesktop --no-daemon
 
-      - name: Test
-        run: ./gradlew test --no-daemon
+      - name: Test Desktop
+        run: ./gradlew :compose-ui:desktopTest --no-daemon

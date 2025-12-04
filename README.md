@@ -1,97 +1,135 @@
-BossTerm
-========
+# BossTerm
 
-[![official JetBrains project](http://jb.gg/badges/official.svg)](https://confluence.jetbrains.com/display/ALL/JetBrains+on+GitHub)
+[![CI](https://github.com/kshivang/BossTerm/actions/workflows/test.yml/badge.svg)](https://github.com/kshivang/BossTerm/actions/workflows/test.yml)
 
-[![Build Status](https://travis-ci.org/JetBrains/bossterm.png?branch=master)](https://travis-ci.org/JetBrains/bossterm)
+A modern terminal emulator built with **Kotlin** and **Compose Desktop**.
 
+BossTerm is a high-performance terminal emulator designed for developers who want a fast, customizable, and feature-rich terminal experience on macOS, Linux, and Windows.
 
-The main purpose of the project is to provide a pure Java terminal widget that can be easily embedded 
-into an IDE.
-It supports terminal sessions both for SSH connections and local PTY on Mac OSX, Linux and Windows.
+## Features
 
+- **Native Performance** - Built with Kotlin/Compose Desktop for smooth rendering
+- **Multiple Tabs** - Ctrl+T new tab, Ctrl+W close, Ctrl+Tab switch
+- **Xterm Emulation** - Full VT100/Xterm compatibility
+- **256 Colors** - Full color support including true color (24-bit)
+- **Mouse Support** - Click, scroll, and drag support for terminal apps (vim, tmux, htop)
+- **Search** - Ctrl/Cmd+F to search terminal history
+- **Hyperlink Detection** - Auto-detect URLs, file paths, emails with Ctrl+Click to open
+- **Copy/Paste** - Standard clipboard operations + copy-on-select option
+- **IME Support** - Full Chinese/Japanese/Korean input method support
+- **Debug Tools** - Built-in terminal debugging with Ctrl+Shift+D
+- **OSC 7 Support** - Working directory tracking for new tabs
+- **Customizable** - JSON-based settings at `~/.bossterm/settings.json`
 
-The library is used by JetBrains IDEs like PyCharm, IDEA, PhpStorm, WebStorm, AppCode, CLion, and Rider.
+## Quick Start
 
-Since version 2.5 there is a standalone version of the BossTerm terminal, provided as Mac OSX distribution.
+### Prerequisites
 
+- JDK 17 or later
+- macOS, Linux, or Windows
 
-The name BossTerm origins from J(from `Java`) + edi(reversed `IDE`) + Term(obviously from `terminal`).
-Also the word Boss itself gives some confidence and hope in the Universe of thousands of different terminal implementations.
+### Build & Run
 
+```bash
+# Clone the repository
+git clone https://github.com/kshivang/BossTerm.git
+cd BossTerm
 
-Run
--------
+# Run the terminal
+./gradlew :compose-ui:run
+```
 
-To run the standalone BossTerm terminal from sources just execute _bossterm.sh_ or _bossterm.bat_.
-Or use the binary distribution from the [Releases](https://github.com/JetBrains/bossterm/releases/) page.
+### Build Distribution
 
+```bash
+# Create distributable package
+./gradlew :compose-ui:packageDistributionForCurrentOS
+```
 
+## Keyboard Shortcuts
 
-Build
------
+| Shortcut | Action |
+|----------|--------|
+| Ctrl+T | New tab |
+| Ctrl+W | Close tab |
+| Ctrl+Tab | Next tab |
+| Ctrl+Shift+Tab | Previous tab |
+| Ctrl+1-9 | Jump to tab |
+| Ctrl/Cmd+F | Search |
+| Ctrl/Cmd+C | Copy |
+| Ctrl/Cmd+V | Paste |
+| Ctrl+Shift+D | Toggle debug panel |
+| Ctrl+Space | Toggle IME |
 
-Gradle is used to build this project. The project consists of 4 sub-projects:
-* **terminal**
+## Shell Integration
 
-    The core library that provides VT100 compatible terminal emulator and Java Swing based implementation of terminal panel UI.
+Enable working directory tracking for new tabs:
 
-* **pty**
+**Bash** (`~/.bashrc`):
+```bash
+PROMPT_COMMAND='echo -ne "\033]7;file://${HOSTNAME}${PWD}\007"'
+```
 
-    The bossterm-pty.jar library that, by using the [Pty4J](https://github.com/traff/pty4j) library, enables a terminal for local PTY terminal sessions.
+**Zsh** (`~/.zshrc`):
+```bash
+precmd() { echo -ne "\033]7;file://${HOST}${PWD}\007" }
+```
 
-* **BossTerm**
+## Project Structure
 
-    The standalone version of the BossTerm terminal distributed as a .dmg for Mac OSX.
+```
+BossTerm/
+├── bossterm-core-mpp/     # Core terminal emulation library
+│   └── src/jvmMain/kotlin/ai/rever/bossterm/
+│       ├── core/          # Core utilities and types
+│       └── terminal/      # Terminal emulator implementation
+├── compose-ui/            # Compose Desktop UI
+│   └── src/desktopMain/kotlin/ai/rever/bossterm/compose/
+│       ├── demo/          # Main application
+│       ├── tabs/          # Tab management
+│       ├── search/        # Search functionality
+│       ├── debug/         # Debug tools
+│       └── settings/      # Settings management
+└── .github/workflows/     # CI configuration
+```
 
+## Configuration
 
-Features
---------
-* Local terminal for Unix, Mac and Windows using [Pty4J](https://github.com/traff/pty4j)
-* Xterm emulation - passes most of tests from vttest
-* Xterm 256 colours
-* Scrolling
-* Copy/Paste
-* Mouse support
-* Terminal resizing from client or server side
-* Terminal tabs
+Settings are stored in `~/.bossterm/settings.json`:
 
+```json
+{
+  "copyOnSelect": true,
+  "pasteOnMiddleClick": true,
+  "scrollbackLines": 10000,
+  "cursorBlinkRate": 500,
+  "enableMouseReporting": true
+}
+```
 
+## Technology Stack
 
-Authors
--------
-Dmitry Trofimov <dmitry.trofimov@jetbrains.com>, Clément Poulain
+- **Kotlin** - Modern JVM language
+- **Compose Desktop** - Declarative UI framework
+- **Pty4J** - PTY support for local terminal sessions
+- **ICU4J** - Unicode/grapheme cluster support
 
+## Contributing
 
+Contributions are welcome! Please feel free to submit issues and pull requests.
 
-Links
------
- * Terminal protocol description: http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
- * Terminal Character Set Terminology and Mechanics: http://www.columbia.edu/kermit/k95manual/iso2022.html
- * VT420 Programmer Reference Manual: http://manx.classiccmp.org/collections/mds-199909/cd3/term/vt420rm2.pdf
- * Pty4J library: https://github.com/traff/pty4j
- * JSch library: http://www.jcraft.com/jsch
- * UTF8 Demo: http://www.cl.cam.ac.uk/~mgk25/ucs/examples/UTF-8-demo.txt
- * Control sequences visualization: http://www.gnu.org/software/teseq/
- * Terminal protocol tests: http://invisible-island.net/vttest/
+## License
 
+BossTerm is dual-licensed under:
+- [LGPLv3](LICENSE-LGPLv3.txt)
+- [Apache 2.0](LICENSE-APACHE-2.0.txt)
 
+You may select either license at your option.
 
-Open Source Origin and History
-------
-The initial version of the BossTerm was a reworked terminal emulator Gritty, which was in it's own turn a reworked JCTerm 
-terminal implementation. Now there is nothing in the source code left from Gritty and JCTerm. Everything was 
-rewritten from scratch. A lot of new features were added.
+## Acknowledgments
 
-Character sets designation and mapping implementation is based on
-respective classes from jVT220 (https://github.com/jawi/jVT220, Apache 2.0 licensed) by J.W. Janssen.
+BossTerm is a fork of [JediTerm](https://github.com/JetBrains/jediterm) by JetBrains, completely rewritten with Kotlin and Compose Desktop.
 
+---
 
-Standalone distribution relies heavily on customized Swing UI widgets taken from IntelliJ Community platform repository
-(https://github.com/JetBrains/intellij-community) by JetBrains.
-
-
-Licenses
--------
-BossTerm is dual-licensed under both the LGPLv3 (found in the LICENSE-LGPLv3.txt file in the root directory) and Apache 2.0 License (found in the LICENSE-APACHE-2.0.txt file in the root directory). 
-You may select, at your option, one of the above-listed licenses.
+**Built by [Rever AI](https://rever.ai)**

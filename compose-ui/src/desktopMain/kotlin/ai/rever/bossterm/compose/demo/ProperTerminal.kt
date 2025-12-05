@@ -29,18 +29,12 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import ai.rever.bossterm.core.compatibility.Point
-import ai.rever.bossterm.core.input.InputEvent
 import ai.rever.bossterm.core.util.TermSize
 import ai.rever.bossterm.terminal.CursorShape
 import ai.rever.bossterm.terminal.RequestOrigin
-import ai.rever.bossterm.terminal.TerminalColor
 import ai.rever.bossterm.terminal.TerminalKeyEncoder
-import ai.rever.bossterm.terminal.emulator.ColorPaletteImpl
 import ai.rever.bossterm.terminal.emulator.mouse.MouseButtonCodes
 import ai.rever.bossterm.terminal.emulator.mouse.MouseMode
-import ai.rever.bossterm.terminal.model.SelectionUtil.getNextSeparator
-import ai.rever.bossterm.terminal.model.SelectionUtil.getPreviousSeparator
 import ai.rever.bossterm.terminal.model.TerminalTextBuffer
 import ai.rever.bossterm.terminal.util.CharUtils
 import kotlinx.coroutines.Job
@@ -65,63 +59,16 @@ import ai.rever.bossterm.compose.scrollbar.AlwaysVisibleScrollbar
 import ai.rever.bossterm.compose.scrollbar.computeMatchPositions
 import ai.rever.bossterm.compose.scrollbar.rememberTerminalScrollbarAdapter
 import ai.rever.bossterm.compose.search.SearchBar
+import ai.rever.bossterm.compose.rendering.RenderingContext
+import ai.rever.bossterm.compose.rendering.TerminalCanvasRenderer
+import ai.rever.bossterm.compose.selection.SelectionEngine
 import ai.rever.bossterm.compose.settings.SettingsManager
 import ai.rever.bossterm.compose.TerminalSession
+import ai.rever.bossterm.compose.util.ColorUtils
+import ai.rever.bossterm.compose.util.KeyMappingUtils
 import ai.rever.bossterm.core.typeahead.TerminalTypeAheadManager
 import org.jetbrains.skia.FontMgr
 import ai.rever.bossterm.terminal.TextStyle as BossTextStyle
-import java.awt.event.KeyEvent as JavaKeyEvent
-
-/**
- * Maps Compose Desktop Key constants to Java AWT VK (Virtual Key) codes.
- * Returns null for keys that don't have a direct VK mapping.
- */
-private fun mapComposeKeyToVK(key: Key): Int? {
-  return when (key) {
-    Key.Enter -> JavaKeyEvent.VK_ENTER
-    Key.Backspace -> JavaKeyEvent.VK_BACK_SPACE
-    Key.Tab -> JavaKeyEvent.VK_TAB
-    Key.Escape -> JavaKeyEvent.VK_ESCAPE
-    Key.DirectionUp -> JavaKeyEvent.VK_UP
-    Key.DirectionDown -> JavaKeyEvent.VK_DOWN
-    Key.DirectionLeft -> JavaKeyEvent.VK_LEFT
-    Key.DirectionRight -> JavaKeyEvent.VK_RIGHT
-    Key.Home -> JavaKeyEvent.VK_HOME
-    Key.MoveEnd -> JavaKeyEvent.VK_END
-    Key.PageUp -> JavaKeyEvent.VK_PAGE_UP
-    Key.PageDown -> JavaKeyEvent.VK_PAGE_DOWN
-    Key.Insert -> JavaKeyEvent.VK_INSERT
-    Key.Delete -> JavaKeyEvent.VK_DELETE
-    Key.F1 -> JavaKeyEvent.VK_F1
-    Key.F2 -> JavaKeyEvent.VK_F2
-    Key.F3 -> JavaKeyEvent.VK_F3
-    Key.F4 -> JavaKeyEvent.VK_F4
-    Key.F5 -> JavaKeyEvent.VK_F5
-    Key.F6 -> JavaKeyEvent.VK_F6
-    Key.F7 -> JavaKeyEvent.VK_F7
-    Key.F8 -> JavaKeyEvent.VK_F8
-    Key.F9 -> JavaKeyEvent.VK_F9
-    Key.F10 -> JavaKeyEvent.VK_F10
-    Key.F11 -> JavaKeyEvent.VK_F11
-    Key.F12 -> JavaKeyEvent.VK_F12
-    else -> null
-  }
-}
-
-/**
- * Maps Compose Desktop key event modifiers to BossTerm InputEvent modifier masks.
- * Note: Using BossTerm's InputEvent constants (SHIFT_MASK, etc.) not Java AWT's
- * SHIFT_DOWN_MASK, as TerminalKeyEncoder expects the old Event mask values.
- */
-private fun mapComposeModifiers(keyEvent: KeyEvent): Int {
-  var modifiers = 0
-  if (keyEvent.isShiftPressed) modifiers = modifiers or InputEvent.SHIFT_MASK
-  if (keyEvent.isCtrlPressed) modifiers = modifiers or InputEvent.CTRL_MASK
-  if (keyEvent.isAltPressed) modifiers = modifiers or InputEvent.ALT_MASK
-  if (keyEvent.isMetaPressed) modifiers = modifiers or InputEvent.META_MASK
-  return modifiers
-}
-
 /**
  * Proper terminal implementation using BossTerm's emulator.
  * This uses the real BossTerminal, BossEmulator, and TerminalTextBuffer from the core module.
@@ -705,7 +652,7 @@ fun ProperTerminal(
                   hasSelection = selectionStart != null && selectionEnd != null,
                   onCopy = {
                     if (selectionStart != null && selectionEnd != null) {
-                      val selectedText = extractSelectedText(textBuffer, selectionStart!!, selectionEnd!!, selectionMode)
+                      val selectedText = SelectionEngine.extractSelectedText(textBuffer, selectionStart!!, selectionEnd!!, selectionMode)
                       if (selectedText.isNotEmpty()) {
                         clipboardManager.setText(AnnotatedString(selectedText))
                       }
@@ -735,7 +682,7 @@ fun ProperTerminal(
                   hasSelection = selectionStart != null && selectionEnd != null,
                   onCopy = {
                     if (selectionStart != null && selectionEnd != null) {
-                      val selectedText = extractSelectedText(textBuffer, selectionStart!!, selectionEnd!!, selectionMode)
+                      val selectedText = SelectionEngine.extractSelectedText(textBuffer, selectionStart!!, selectionEnd!!, selectionMode)
                       if (selectedText.isNotEmpty()) {
                         clipboardManager.setText(AnnotatedString(selectedText))
                       }
@@ -832,7 +779,7 @@ fun ProperTerminal(
                 // Convert screen coords to buffer-relative for selection
                 val (col, screenRow) = pixelToCharCoords(currentPosition)
                 val bufferRow = screenRow - scrollOffset
-                val (start, end) = selectWordAt(col, bufferRow, textBuffer)
+                val (start, end) = SelectionEngine.selectWordAt(col, bufferRow, textBuffer)
                 selectionStart = start
                 selectionEnd = end
                 isDragging = false
@@ -851,7 +798,7 @@ fun ProperTerminal(
                 // Convert screen coords to buffer-relative for selection
                 val (col, screenRow) = pixelToCharCoords(currentPosition)
                 val bufferRow = screenRow - scrollOffset
-                val (start, end) = selectLineAt(col, bufferRow, textBuffer)
+                val (start, end) = SelectionEngine.selectLineAt(col, bufferRow, textBuffer)
                 selectionStart = start
                 selectionEnd = end
                 isDragging = false
@@ -1027,7 +974,7 @@ fun ProperTerminal(
           val start = selectionStart
           val end = selectionEnd
           if (settings.copyOnSelect && start != null && end != null) {
-            val selectedText = extractSelectedText(textBuffer, start, end, selectionMode)
+            val selectedText = SelectionEngine.extractSelectedText(textBuffer, start, end, selectionMode)
             if (selectedText.isNotEmpty()) {
               if (settings.emulateX11CopyPaste) {
                 // X11 mode: Copy to selection clipboard (middle-click buffer)
@@ -1166,9 +1113,9 @@ fun ProperTerminal(
               val text = run {
                 // Try to map key to VK code and use TerminalKeyEncoder
                 // This handles function keys, navigation keys, and all modifier combinations
-                val vkCode = mapComposeKeyToVK(keyEvent.key)
+                val vkCode = KeyMappingUtils.mapComposeKeyToVK(keyEvent.key)
                 if (vkCode != null) {
-                  val modifiers = mapComposeModifiers(keyEvent)
+                  val modifiers = KeyMappingUtils.mapComposeModifiers(keyEvent)
                   val bytes = keyEncoder.getCode(vkCode, modifiers)
                   if (bytes != null) {
                     return@run String(bytes, Charsets.UTF_8)
@@ -1235,883 +1182,55 @@ fun ProperTerminal(
           // Capture canvas size for auto-scroll bounds detection in pointer event handlers
           canvasSize = size
 
-          // Two-pass rendering to fix z-index issue:
-          // Pass 1: Draw all backgrounds first
-          // Pass 2: Draw all text on top
-          // This prevents backgrounds from overlapping emoji that extend beyond cell boundaries
-
-          // NO LOCK HELD - rendering from immutable snapshot instead
-          val height = bufferSnapshot.height
-          val width = bufferSnapshot.width
-
           // Calculate visible bounds - limit rendering to what fits in canvas
-          // This prevents crashes when buffer is wider/taller than current canvas during resize
-          val visibleCols = (size.width / cellWidth).toInt().coerceAtMost(width)
-          val visibleRows = (size.height / cellHeight).toInt().coerceAtMost(height)
-
-          // ===== PASS 1: DRAW ALL BACKGROUNDS =====
-          for (row in 0 until visibleRows) {
-            val lineIndex = row - scrollOffset
-            val line = bufferSnapshot.getLine(lineIndex)
-
-              var col = 0
-              while (col < visibleCols) {
-                val char = line.charAt(col)
-                val style = line.getStyleAt(col)
-
-                // Skip DWC markers
-                if (char == CharUtils.DWC) {
-                  col++
-                  continue
-                }
-
-                val x = col * cellWidth
-                val y = row * cellHeight
-
-                // Check if double-width
-                val isWcwidthDoubleWidth = char != ' ' && char != '\u0000' &&
-                  CharUtils.isDoubleWidthCharacter(char.code, display.ambiguousCharsAreDoubleWidth())
-
-                // Get attributes
-                val isInverse = style?.hasOption(BossTextStyle.Option.INVERSE) ?: false
-                val isDim = style?.hasOption(BossTextStyle.Option.DIM) ?: false
-
-                // Apply defaults FIRST, then swap if INVERSE
-                // This ensures INVERSE works correctly even when colors are null
-                val baseFg = style?.foreground?.let { convertTerminalColor(it) } ?: settings.defaultForegroundColor
-                val baseBg = style?.background?.let { convertTerminalColor(it) } ?: settings.defaultBackgroundColor
-
-                // THEN swap if INVERSE attribute is set
-                var fgColor = if (isInverse) baseBg else baseFg
-                var bgColor = if (isInverse) baseFg else baseBg
-
-                // Apply DIM to foreground
-                if (isDim) {
-                  fgColor = applyDimColor(fgColor)
-                }
-
-                // Draw background (single or double width)
-                // When fillBackgroundInLineSpacing is false, only fill baseCellHeight
-                val bgWidth = if (isWcwidthDoubleWidth) cellWidth * 2 else cellWidth
-                val bgHeight = if (settings.fillBackgroundInLineSpacing) cellHeight else baseCellHeight
-                drawRect(
-                  color = bgColor,
-                  topLeft = Offset(x, y),
-                  size = Size(bgWidth, bgHeight)
-                )
-
-                // Skip next column if double-width
-                if (isWcwidthDoubleWidth) {
-                  col++
-                }
-
-                col++
-              }
-            }
-
-          // ===== PASS 2: DRAW ALL TEXT =====
-          for (row in 0 until visibleRows) {
-            // Calculate actual line index based on scroll offset
-            // scrollOffset = 0 means showing screen lines 0..height-1
-            // scrollOffset > 0 means showing some history lines
-            val lineIndex = row - scrollOffset
-            val line = bufferSnapshot.getLine(lineIndex)
-
-              // Detect hyperlinks in current line
-              val hyperlinks = HyperlinkDetector.detectHyperlinks(line.text, row)
-              // Cache hyperlinks for mouse hover detection
-              if (hyperlinks.isNotEmpty()) {
-                cachedHyperlinks = cachedHyperlinks + (row to hyperlinks)
-              }
-
-              // Text batching: accumulate consecutive characters with same style
-              val batchText = StringBuilder()
-              var batchStartCol = 0
-              var batchFgColor: Color? = null
-              var batchIsBold = false
-              var batchIsItalic = false
-              var batchIsUnderline = false
-
-              // Helper function to flush accumulated batch
-              fun flushBatch() {
-                if (batchText.isNotEmpty()) {
-                  val x = batchStartCol * cellWidth
-                  val y = row * cellHeight
-
-                  val textStyle = TextStyle(
-                    color = batchFgColor ?: settings.defaultForegroundColor,
-                    fontFamily = measurementStyle.fontFamily,
-                    fontSize = settings.fontSize.sp,
-                    fontWeight = if (batchIsBold) FontWeight.Bold else FontWeight.Normal,
-                    fontStyle = if (batchIsItalic) androidx.compose.ui.text.font.FontStyle.Italic
-                    else androidx.compose.ui.text.font.FontStyle.Normal
-                  )
-
-                  drawText(
-                    textMeasurer = textMeasurer,
-                    text = batchText.toString(),
-                    topLeft = Offset(x, y),
-                    style = textStyle
-                  )
-
-                  // Draw underline for entire batch if needed
-                  if (batchIsUnderline) {
-                    val underlineY = y + cellHeight - 2f
-                    val underlineWidth = batchText.length * cellWidth
-                    drawLine(
-                      color = batchFgColor ?: Color.White,
-                      start = Offset(x, underlineY),
-                      end = Offset(x + underlineWidth, underlineY),
-                      strokeWidth = 1f
-                    )
-                  }
-
-                  batchText.clear()
-                }
-              }
-
-              var col = 0  // Character index in buffer
-              var visualCol = 0  // Visual column position (accounts for double-width chars)
-              while (col < visibleCols) {
-                val char = line.charAt(col)
-                val style = line.getStyleAt(col)
-
-                // Skip double-width character continuation markers
-                // CRITICAL FIX: DWC is a storage artifact, not a separate visual cell
-                // Visual width is already accounted for via grapheme.visualWidth or isWcwidthDoubleWidth
-                // Incrementing visualCol here would double-count and cause spacing issues with emoji
-                if (char == CharUtils.DWC) {
-                  col++
-                  // Do NOT increment visualCol here
-                  continue
-                }
-
-                // GRAPHEME CLUSTER HANDLING: Check for ZWJ sequences
-                // ZWJ (Zero-Width Joiner) U+200D combines multiple emoji into single visual unit
-                // Examples: 👨‍👩‍👧‍👦 (family), 👨‍💻 (man technologist)
-                // Problem: line.text contains DWC markers that break ZWJ sequences
-                // Solution: Extract clean text by skipping DWC markers
-
-                // Build clean text from current position (no DWC markers)
-                val cleanText = buildString {
-                  var i = col
-                  var count = 0
-                  while (i < width && count < 20) {  // Look ahead max 20 chars
-                    val c = line.charAt(i)
-                    if (c != CharUtils.DWC) {
-                      append(c)
-                      count++
-                    }
-                    i++
-                  }
-                }
-
-                // Check if current character is IMMEDIATELY followed by skin tone modifier
-                // Skin tone modifiers: U+1F3FB to U+1F3FF (stored as surrogate pairs)
-                fun hasFollowingSkinTone(): Boolean {
-                  // Skip past current character (might be surrogate pair + DWC)
-                  var checkCol = col
-                  val currentChar = line.charAt(checkCol)
-
-                  // If current is high surrogate, skip past the pair
-                  if (Character.isHighSurrogate(currentChar)) {
-                    checkCol++  // Skip low surrogate
-                  }
-                  checkCol++  // Move to next position
-
-                  // Skip DWC if present (for double-width chars)
-                  if (checkCol < width && line.charAt(checkCol) == CharUtils.DWC) {
-                    checkCol++
-                  }
-
-                  // Now check if we're at a skin tone modifier
-                  if (checkCol < width - 1) {
-                    val c1 = line.charAt(checkCol)
-                    // Skin tone modifiers are surrogate pairs: high=\uD83C, low=\uDFFB-\uDFFF
-                    if (c1 == '\uD83C' && checkCol + 1 < width) {
-                      val c2 = line.charAt(checkCol + 1)
-                      if (c2.code in 0xDFFB..0xDFFF) {
-                        return true
-                      }
-                    }
-                  }
-
-                  return false
-                }
-
-                val hasZWJ = cleanText.contains('\u200D')
-                val hasSkinTone = hasFollowingSkinTone()
-
-                if (hasZWJ || hasSkinTone) {
-                  // Segment clean text into graphemes
-                  val graphemes = ai.rever.bossterm.terminal.util.GraphemeUtils.segmentIntoGraphemes(cleanText)
-
-                  if (graphemes.isNotEmpty()) {
-                    val grapheme = graphemes[0]
-
-                    // Handle if grapheme contains ZWJ or skin tone
-                    if (grapheme.hasZWJ || hasSkinTone) {
-                      // Flush any pending batch before rendering ZWJ sequence
-                      flushBatch()
-
-                      val x = visualCol * cellWidth  // Use visual column for positioning
-                      val y = row * cellHeight
-
-                      // Get style for first character of grapheme
-                      val isBold = style?.hasOption(BossTextStyle.Option.BOLD) ?: false
-                      val isItalic = style?.hasOption(BossTextStyle.Option.ITALIC) ?: false
-                      val isInverse = style?.hasOption(BossTextStyle.Option.INVERSE) ?: false
-                      val isDim = style?.hasOption(BossTextStyle.Option.DIM) ?: false
-
-                      // Apply color logic
-                      val baseFg = style?.foreground?.let { convertTerminalColor(it) } ?: settings.defaultForegroundColor
-                      val baseBg = style?.background?.let { convertTerminalColor(it) } ?: settings.defaultBackgroundColor
-                      var fgColor = if (isInverse) baseBg else baseFg
-                      if (isDim) fgColor = applyDimColor(fgColor)
-
-                      // Use system font (FontFamily.Default) for ZWJ sequences
-                      // This enables Apple Color Emoji on macOS which has combined glyphs
-                      val textStyle = TextStyle(
-                        color = fgColor,
-                        fontFamily = FontFamily.Default,  // System font with ZWJ support
-                        fontSize = settings.fontSize.sp,
-                        fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
-                        fontStyle = if (isItalic) androidx.compose.ui.text.font.FontStyle.Italic
-                        else androidx.compose.ui.text.font.FontStyle.Normal
-                      )
-
-                      // Render the complete ZWJ sequence as a single unit
-                      val measurement = textMeasurer.measure(grapheme.text, textStyle)
-                      val glyphWidth = measurement.size.width.toFloat()
-                      val glyphHeight = measurement.size.height.toFloat()
-
-                      // Calculate scale to fit in allocated space
-                      val allocatedWidth = cellWidth * grapheme.visualWidth.toFloat()
-                      val targetHeight = cellHeight * 1.0f
-
-                      val widthScale = if (glyphWidth > 0) allocatedWidth / glyphWidth else 1.0f
-                      val heightScale = if (glyphHeight > 0) targetHeight / glyphHeight else 1.0f
-                      val scale = minOf(widthScale, heightScale).coerceIn(0.8f, 2.5f)
-
-                      // Center in allocated space
-                      val scaledWidth = glyphWidth * scale
-                      val scaledHeight = glyphHeight * scale
-                      val centerX = x + (allocatedWidth - scaledWidth) / 2f
-                      val centerY = y + (cellHeight - scaledHeight) / 2f
-
-                      scale(scaleX = scale, scaleY = scale, pivot = Offset(x, y + cellHeight / 2f)) {
-                        drawText(
-                          textMeasurer = textMeasurer,
-                          text = grapheme.text,
-                          topLeft = Offset(x + (centerX - x) / scale, y),
-                          style = textStyle
-                        )
-                      }
-
-                      // Advance by matching grapheme text against buffer cells
-                      // We must consume ALL cells (including DWC markers) for this grapheme
-                      val graphemeText = grapheme.text
-                      var graphemeCharIndex = 0
-                      var charsToSkip = 0
-                      var i = col
-
-                      while (i < width && graphemeCharIndex < graphemeText.length) {
-                        val c = line.charAt(i)
-
-                        if (c == CharUtils.DWC) {
-                          // DWC markers are part of grapheme storage but not in grapheme.text
-                          charsToSkip++
-                          i++
-                          continue
-                        }
-
-                        // Match this buffer character against grapheme.text
-                        val expectedChar = graphemeText[graphemeCharIndex]
-
-                        if (Character.isHighSurrogate(c) && i + 1 < width) {
-                          val next = line.charAt(i + 1)
-                          if (Character.isLowSurrogate(next)) {
-                            // Verify surrogate pair matches
-                            if (graphemeCharIndex + 1 < graphemeText.length &&
-                              graphemeText[graphemeCharIndex] == c &&
-                              graphemeText[graphemeCharIndex + 1] == next) {
-                              charsToSkip += 2
-                              i += 2
-                              graphemeCharIndex += 2
-                              continue
-                            }
-                          }
-                        }
-
-                        // Single character match
-                        if (expectedChar == c) {
-                          charsToSkip++
-                          i++
-                          graphemeCharIndex++
-                        } else {
-                          // Mismatch - stop to avoid consuming wrong cells
-                          println("[WARN] Grapheme match break: grapheme='${grapheme.text}' expected='$expectedChar'(${expectedChar.code}) got='$c'(${c.code}) at col=$col i=$i")
-                          println("[WARN]   charsToSkip=$charsToSkip graphemeCharIndex=$graphemeCharIndex/${graphemeText.length}")
-                          println("[WARN]   This will cause desync: advancing col by $charsToSkip but visualCol by ${grapheme.visualWidth}")
-                          break
-                        }
-                      }
-
-                      // Check if we fully matched the grapheme
-                      val fullyMatched = graphemeCharIndex == graphemeText.length
-                      if (!fullyMatched) {
-                        println("[ERROR] Partial grapheme match at row=$row col=$col:")
-                        println("[ERROR]   grapheme='${grapheme.text}' visualWidth=${grapheme.visualWidth}")
-                        println("[ERROR]   matched $graphemeCharIndex/${graphemeText.length} chars, skipped $charsToSkip buffer cells")
-                        println("[ERROR]   Buffer will desync: col+=$charsToSkip visualCol+=${grapheme.visualWidth}")
-                      }
-
-                      // After matching grapheme, check if there are DWC markers we need to skip
-                      while (i < width && line.charAt(i) == CharUtils.DWC) {
-                        charsToSkip++
-                        i++
-                      }
-
-                      col += charsToSkip
-                      // Use grapheme's logical visual width, not buffer cell count
-                      // Family emoji takes 8+ buffer cells but only 2 visual columns
-                      visualCol += grapheme.visualWidth
-
-                      continue
-                    }
-                  }
-                }
-
-                val x = visualCol * cellWidth  // Use visual column for positioning
-                val y = row * cellHeight
-
-                // For surrogate pairs, we need to find the low surrogate FIRST
-                // because we need the actual codepoint for wcwidth check
-                // Check what's at col+1 and col+2
-                val charAtCol1 = if (col + 1 < width) line.charAt(col + 1) else null
-                val charAtCol2 = if (col + 2 < width) line.charAt(col + 2) else null
-
-                // Find low surrogate: could be at col+1 (single-width) or col+2 (if col+1 is DWC)
-                val lowSurrogate = if (Character.isHighSurrogate(char)) {
-                  when {
-                    charAtCol1 != null && Character.isLowSurrogate(charAtCol1) -> charAtCol1
-                    charAtCol1 == CharUtils.DWC && charAtCol2 != null && Character.isLowSurrogate(charAtCol2) -> charAtCol2
-                    else -> null
-                  }
-                } else null
-                val lowSurrogatePos = when (lowSurrogate) {
-                  charAtCol1 -> col + 1
-                  charAtCol2 -> col + 2
-                  else -> -1
-                }
-
-                // Calculate actual codepoint (combining surrogates if needed)
-                val actualCodePoint = if (lowSurrogate != null && Character.isLowSurrogate(lowSurrogate)) {
-                  Character.toCodePoint(char, lowSurrogate)
-                } else char.code
-
-                // Check if this is a double-width character according to wcwidth
-                // IMPORTANT: Use actualCodePoint, not char.code, for surrogate pairs!
-                val wcwidthResult = char != ' ' && char != '\u0000' &&
-                  CharUtils.isDoubleWidthCharacter(actualCodePoint, display.ambiguousCharsAreDoubleWidth())
-
-                // Detect actual width from buffer: if col+1 has DWC, it's stored as double-width
-                val isWcwidthDoubleWidth = charAtCol1 == CharUtils.DWC || wcwidthResult
-
-                // Determine the text to render - for surrogate pairs, combine high and low surrogates
-                val charTextToRender = if (lowSurrogate != null && Character.isLowSurrogate(lowSurrogate)) {
-                  "$char$lowSurrogate"
-                } else {
-                  char.toString()
-                }
-
-                // Detect cursive/mathematical characters - need system font but no special scaling
-                val isCursiveOrMath = actualCodePoint in 0x1D400..0x1D7FF
-
-                // Detect technical/prompt symbols - need system font, horizontal centering, baseline-aligned
-                // These symbols should align with text baseline, not be bounding-box centered like emoji
-                val isTechnicalSymbol = actualCodePoint in 0x23E9..0x23FF  // Media/prompt symbols (⏩⏪⏫⏬⏭⏮⏯⏰⏱⏲⏳⏴⏵⏶⏷⏸⏹⏺)
-
-                // For emoji and symbols, we'll render them with slight scaling for better visibility
-                // These are Unicode blocks containing symbols that render poorly at normal size
-                // IMPORTANT: Use actualCodePoint for surrogate pair emoji!
-                val isEmojiOrWideSymbol = when (actualCodePoint) {
-                  in 0x2600..0x26FF -> true  // Miscellaneous Symbols (☁️, ☀️, ★, etc.)
-                  // Note: Dingbats (0x2700-0x27BF) removed - Nerd Font has monochrome glyphs (✳, ❯, etc.)
-                  in 0x1F100..0x1F1FF -> true  // Enclosed Alphanumeric Supplement (🅰, 🅱, 🅶, 🅺, etc.)
-                  in 0x1F300..0x1F9FF -> true  // Emoji & Pictographs
-                  in 0x1F600..0x1F64F -> true  // Emoticons
-                  in 0x1F680..0x1F6FF -> true  // Transport & Map Symbols
-                  else -> false
-                }
-
-                // Separate rendering width from buffer storage width
-                // Emoji (>= 0x1F100) should render in 2 cells even if stored as single-width
-                val isDoubleWidth = if (actualCodePoint >= 0x1F100) {
-                  true  // Force emoji/enclosed alphanumerics to render in 2-cell space
-                } else {
-                  isWcwidthDoubleWidth  // Use buffer storage width
-                }
-
-                // Peek ahead to detect emoji + variation selector pairs
-                // When found, we'll handle them together with system font
-                // For double-width emoji, need to skip DWC marker at col+1 to check col+2
-                val nextCharOffset = if (isWcwidthDoubleWidth) 2 else 1
-                val nextChar = if (col + nextCharOffset < width) line.charAt(col + nextCharOffset) else null
-                val isEmojiWithVariationSelector = isEmojiOrWideSymbol &&
-                  nextChar != null &&
-                  (nextChar.code == 0xFE0F || nextChar.code == 0xFE0E)
-
-                // Skip standalone variation selectors (fallback for non-emoji pairs)
-                // These will be handled as part of emoji+variation pairs above
-                if ((char.code == 0xFE0F || char.code == 0xFE0E) && !isEmojiOrWideSymbol) {
-                  col++
-                  continue
-                }
-
-                // Check text attributes (use false if style is null)
-                val isBold = style?.hasOption(BossTextStyle.Option.BOLD) ?: false
-                val isItalic = style?.hasOption(BossTextStyle.Option.ITALIC) ?: false
-                val isInverse = style?.hasOption(BossTextStyle.Option.INVERSE) ?: false
-                val isDim = style?.hasOption(BossTextStyle.Option.DIM) ?: false
-                val isUnderline = style?.hasOption(BossTextStyle.Option.UNDERLINED) ?: false
-                val isHidden = style?.hasOption(BossTextStyle.Option.HIDDEN) ?: false
-                val isSlowBlink = style?.hasOption(BossTextStyle.Option.SLOW_BLINK) ?: false
-                val isRapidBlink = style?.hasOption(BossTextStyle.Option.RAPID_BLINK) ?: false
-
-                // Apply defaults FIRST, then swap if INVERSE
-                // This ensures INVERSE works correctly even when colors are null
-                val baseFg = style?.foreground?.let { convertTerminalColor(it) } ?: settings.defaultForegroundColor
-                val baseBg = style?.background?.let { convertTerminalColor(it) } ?: settings.defaultBackgroundColor
-
-                // THEN swap if INVERSE attribute is set
-                var fgColor = if (isInverse) baseBg else baseFg
-                var bgColor = if (isInverse) baseFg else baseBg
-
-                // Apply DIM to foreground color (reduce brightness to 50%)
-                if (isDim) {
-                  fgColor = applyDimColor(fgColor)
-                }
-
-                // Note: Backgrounds are already drawn in Pass 1
-
-                // Determine if text should be visible based on blink state
-                val isBlinkVisible = when {
-                  isSlowBlink -> slowBlinkVisible
-                  isRapidBlink -> rapidBlinkVisible
-                  else -> true
-                }
-
-                // Decide if this character can be batched or needs individual rendering
-                // Cursive/math/technical chars can't be batched (need system font), emoji need special scaling
-                val canBatch = !isDoubleWidth && !isEmojiOrWideSymbol && !isCursiveOrMath && !isTechnicalSymbol &&
-                  !isHidden && isBlinkVisible &&
-                  char != ' ' && char != '\u0000'
-
-                // Check if style matches current batch
-                val styleMatches = batchText.isNotEmpty() &&
-                  batchFgColor == fgColor &&
-                  batchIsBold == isBold &&
-                  batchIsItalic == isItalic &&
-                  batchIsUnderline == isUnderline
-
-                if (canBatch && (batchText.isEmpty() || styleMatches)) {
-                  // Add to batch
-                  if (batchText.isEmpty()) {
-                    batchStartCol = visualCol  // Use visual column for rendering position
-                    batchFgColor = fgColor
-                    batchIsBold = isBold
-                    batchIsItalic = isItalic
-                    batchIsUnderline = isUnderline
-                  }
-                  batchText.append(char)
-                } else {
-                  // Flush current batch before rendering this character
-                  flushBatch()
-
-                  // Only draw glyph if it's printable (not space or null), not HIDDEN, and visible in blink cycle
-                  if (char != ' ' && char != '\u0000' && !isHidden && isBlinkVisible) {
-                    // For emoji/symbols/cursive, use system font (FontFamily.Default)
-                    // to enable proper emoji rendering on macOS (Apple Color Emoji)
-                    // MesloLGSNF doesn't have glyphs for emoji or mathematical alphanumerics
-                    val fontForChar = if (isEmojiOrWideSymbol || isEmojiWithVariationSelector || isCursiveOrMath) {
-                      FontFamily.Default  // System font with emoji/Unicode support
-                    } else if (isTechnicalSymbol) {
-                      // Use STIX Two Math for monochrome technical symbols (avoids Apple Color Emoji)
-                      // Load system font via Skia FontMgr
-                      val skiaTypeface = FontMgr.default.matchFamilyStyle("STIX Two Math", org.jetbrains.skia.FontStyle.NORMAL)
-                      if (skiaTypeface != null) {
-                        FontFamily(androidx.compose.ui.text.platform.Typeface(skiaTypeface))
-                      } else {
-                        measurementStyle.fontFamily  // Fallback to Nerd Font
-                      }
-                    } else {
-                      measurementStyle.fontFamily  // Nerd Font
-                    }
-
-                    // Create text style using the appropriate font
-                    val textStyle = TextStyle(
-                      color = fgColor,
-                      fontFamily = fontForChar,
-                      fontSize = settings.fontSize.sp,
-                      fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
-                      fontStyle = if (isItalic) androidx.compose.ui.text.font.FontStyle.Italic
-                      else androidx.compose.ui.text.font.FontStyle.Normal
-                    )
-
-                    // For double-width characters: hybrid approach
-                    // - If font provides proper double-width glyphs (CJK), center them
-                    // - If font doesn't (emoji in monospace), scale them to fill space
-                    if (isDoubleWidth) {
-                      // Measure the actual glyph width at natural font size
-                      val measurement = textMeasurer.measure(charTextToRender, textStyle)
-                      val glyphWidth = measurement.size.width.toFloat()
-
-                      // Calculate available space (2 cells)
-                      val allocatedWidth = cellWidth * 2
-
-                      // Decide whether to scale or center based on glyph width
-                      // If glyph is less than 1.5 cells, assume font doesn't support DWC properly - scale it
-                      // If glyph is >= 1.5 cells, assume it's proper DWC (like CJK) - center it
-                      if (glyphWidth < cellWidth * 1.5f) {
-                        // Font doesn't provide proper double-width glyph - scale it
-                        val scaleX = allocatedWidth / glyphWidth.coerceAtLeast(1f)
-                        scale(scaleX = scaleX, scaleY = 1f, pivot = Offset(x, y + cellWidth)) {
-                          drawText(
-                            textMeasurer = textMeasurer,
-                            text = charTextToRender,
-                            topLeft = Offset(x, y),
-                            style = textStyle
-                          )
-                        }
-                      } else {
-                        // Font provides proper double-width glyph - center it
-                        val emptySpace = (allocatedWidth - glyphWidth).coerceAtLeast(0f)
-                        val centeringOffset = emptySpace / 2f
-                        drawText(
-                          textMeasurer = textMeasurer,
-                          text = charTextToRender,
-                          topLeft = Offset(x + centeringOffset, y),
-                          style = textStyle
-                        )
-                      }
-                    } else if (isEmojiOrWideSymbol) {
-                      // For emoji/symbols: measure and scale to fit cell better
-                      // If this is emoji+variation selector pair, render both together
-                      val textToRender = if (isEmojiWithVariationSelector) {
-                        "$charTextToRender$nextChar"  // Render emoji + variation selector together
-                      } else {
-                        charTextToRender
-                      }
-
-                      val measurement = textMeasurer.measure(textToRender, textStyle)
-                      val glyphWidth = measurement.size.width.toFloat()
-                      val glyphHeight = measurement.size.height.toFloat()
-
-                      // Calculate scale based on BOTH dimensions to prevent clipping
-                      // Target size: fill entire cell (100% width and height)
-                      val targetWidth = cellWidth * 1.0f
-                      val targetHeight = cellHeight * 1.0f
-
-                      // Calculate scales for both dimensions
-                      val widthScale = if (glyphWidth > 0) targetWidth / glyphWidth else 1.0f
-                      val heightScale = if (glyphHeight > 0) targetHeight / glyphHeight else 1.0f
-
-                      // Use minimum scale to ensure emoji fits in BOTH dimensions
-                      // Constrain to minimum 100% (no downsizing), maximum 250% (prevent excessive enlargement)
-                      val scale = minOf(widthScale, heightScale).coerceIn(1.0f, 2.5f)
-
-                      // Center emoji in cell with calculated scale
-                      val scaledWidth = glyphWidth * scale
-                      val scaledHeight = glyphHeight * scale
-                      val xOffset = (cellWidth - scaledWidth) / 2f
-                      val yOffset = (cellHeight - scaledHeight) / 2f
-
-                      scale(scaleX = scale, scaleY = scale, pivot = Offset(x + cellWidth/2, y + cellHeight/2)) {
-                        drawText(
-                          textMeasurer = textMeasurer,
-                          text = textToRender,
-                          topLeft = Offset(x + xOffset, y + yOffset),
-                          style = textStyle
-                        )
-                      }
-
-                      // If we rendered emoji+variation selector, skip the variation selector
-                      if (isEmojiWithVariationSelector) {
-                        col++  // Skip the variation selector character
-                        // Variation selector doesn't add visual width
-                      }
-                    } else if (isCursiveOrMath) {
-                      // Cursive/math characters: center in cell to prevent overlap
-                      val measurement = textMeasurer.measure(charTextToRender, textStyle)
-                      val glyphWidth = measurement.size.width.toFloat()
-                      val centeringOffset = ((cellWidth - glyphWidth) / 2f).coerceAtLeast(0f)
-                      drawText(
-                        textMeasurer = textMeasurer,
-                        text = charTextToRender,
-                        topLeft = Offset(x + centeringOffset, y),
-                        style = textStyle
-                      )
-                    } else if (isTechnicalSymbol) {
-                      // Technical symbols: horizontal center + baseline-aligned using STIX Two Math font
-                      val measurement = textMeasurer.measure(charTextToRender, textStyle)
-                      val glyphWidth = measurement.size.width.toFloat()
-                      val glyphBaseline = measurement.firstBaseline  // Symbol's baseline from top
-                      val cellBaseline = cellMetrics.third           // Cell's expected baseline from 'W'
-
-                      // Offset Y so the symbol's baseline aligns with the cell's baseline
-                      val baselineAlignmentOffset = cellBaseline - glyphBaseline
-                      val centeringOffset = ((cellWidth - glyphWidth) / 2f).coerceAtLeast(0f)
-
-                      drawText(
-                        textMeasurer = textMeasurer,
-                        text = charTextToRender,
-                        topLeft = Offset(x + centeringOffset, y + baselineAlignmentOffset),
-                        style = textStyle
-                      )
-                    } else {
-                      // Normal single-width rendering
-                      drawText(
-                        textMeasurer = textMeasurer,
-                        text = charTextToRender,
-                        topLeft = Offset(x, y),
-                        style = textStyle
-                      )
-                    }
-
-                    // Draw underline if UNDERLINE attribute is set
-                    if (isUnderline) {
-                      val underlineY = y + cellHeight - 2f  // 2 pixels from bottom
-                      val underlineWidth = if (isDoubleWidth) cellWidth * 2 else cellWidth
-                      drawLine(
-                        color = fgColor,
-                        start = Offset(x, underlineY),
-                        end = Offset(x + underlineWidth, underlineY),
-                        strokeWidth = 1f
-                      )
-                    }
-
-                  }
-                }  // Close else block
-
-                // If true double-width (wcwidth), skip the next column (contains DWC marker)
-                // For emoji/symbols, don't skip - they're single-width in the buffer but render wider
-                if (isWcwidthDoubleWidth) {
-                  col++  // Skip DWC marker in buffer
-                  // No visualCol++ here because we do it below
-                }
-
-                col++  // Advance to next character in buffer
-
-                // Skip the low surrogate if we found one
-                // For single-width: [high][low] - we've advanced past high, now skip low
-                // For double-width: [high][DWC][low] - we've skipped DWC and advanced, now skip low
-                if (lowSurrogate != null) {
-                  col++  // Skip the low surrogate
-                }
-
-                visualCol++  // Advance visual column (1 for single-width, handled by DWC skip for double-width)
-
-                // For double-width characters (rendering width, not buffer width),
-                // add 1 more to visualCol since they occupy 2 visual columns
-                // This includes emoji forced to double-width even if stored as single-width
-                if (isDoubleWidth) {
-                  visualCol++  // Double-width takes 2 visual columns
-                }
-              }
-
-              // Flush any remaining batch at end of line
-              flushBatch()
-            }
-
-            // ===== PASS 3: DRAW HYPERLINK UNDERLINE =====
-            // Draw hyperlink underline if hovered with Ctrl/Cmd modifier
-            // This provides standard IDE-like behavior: underline only shows when modifier is pressed
-            // Must be done as separate pass since text batching would otherwise skip the underline check
-            if (settings.hyperlinkUnderlineOnHover &&
-              hoveredHyperlink != null &&
-              isModifierPressed) {
-              val link = hoveredHyperlink!!
-              // Only draw if hyperlink is visible on screen
-              if (link.row in 0 until visibleRows) {
-                val y = link.row * cellHeight
-                val underlineY = y + cellHeight - 1f
-                val startX = link.startCol * cellWidth
-                val endX = link.endCol * cellWidth
-                drawLine(
-                  color = settings.hyperlinkColorValue,
-                  start = Offset(startX, underlineY),
-                  end = Offset(endX, underlineY),
-                  strokeWidth = 1f
-                )
-              }
-            }
-
-            // Draw search match highlights (all matches)
-            if (searchVisible && searchMatches.isNotEmpty()) {
-              val matchLength = searchQuery.length
-              searchMatches.forEachIndexed { index, (matchCol, matchRow) ->
-                // Convert buffer-relative row to screen row
-                val screenRow = matchRow + scrollOffset
-                if (screenRow in 0 until visibleRows) {
-                  // Use orange for current match, yellow for others
-                  val matchColor = if (index == currentMatchIndex) {
-                    settings.currentSearchMarkerColorValue.copy(alpha = 0.6f)  // Orange for current
-                  } else {
-                    settings.searchMarkerColorValue.copy(alpha = 0.4f)  // Yellow for others
-                  }
-
-                  // Draw highlight for each character in the match
-                  for (charOffset in 0 until matchLength) {
-                    val col = matchCol + charOffset
-                    if (col in 0 until width) {
-                      val x = col * cellWidth
-                      val y = screenRow * cellHeight
-                      drawRect(
-                        color = matchColor,
-                        topLeft = Offset(x, y),
-                        size = Size(cellWidth, cellHeight)
-                      )
-                    }
-                  }
-                }
-              }
-            }
-
-            // Draw selection highlight (for manual selection, not search)
-            if (selectionStart != null && selectionEnd != null && !(searchVisible && searchMatches.isNotEmpty())) {
-              val start = selectionStart!!
-              val end = selectionEnd!!
-
-              val (startCol, startRow) = start
-              val (endCol, endRow) = end
-
-              // Determine first (earlier row) and last (later row) points
-              // This is direction-aware: first point is always the one with smaller row
-              val (firstCol, firstRow, lastCol, lastRow) = if (startRow <= endRow) {
-                listOf(startCol, startRow, endCol, endRow)
-              } else {
-                listOf(endCol, endRow, startCol, startRow)
-              }
-
-              // Use foundPatternColor (yellow) for search results, selectionColor (blue) for manual selection
-              val highlightColor = if (searchVisible && searchMatches.isNotEmpty()) {
-                settings.foundPatternColorValue.copy(alpha = 0.5f)  // Yellow for search
-              } else {
-                settings.selectionColorValue.copy(alpha = 0.3f)     // Blue for selection
-              }
-
-              // Draw selection highlight rectangles
-              // Selection coords are buffer-relative, convert to screen coords for rendering
-              for (bufferRow in firstRow..lastRow) {
-                val screenRow = bufferRow + scrollOffset  // Convert buffer to screen row
-                if (screenRow in 0 until visibleRows) {  // Check if visible on screen
-                  // Calculate column bounds based on selection mode
-                  val (colStart, colEnd) = when (selectionMode) {
-                    // BLOCK mode: rectangular selection - same columns for all rows
-                    SelectionMode.BLOCK -> {
-                      minOf(firstCol, lastCol) to maxOf(firstCol, lastCol)
-                    }
-                    // NORMAL mode: line-based selection
-                    SelectionMode.NORMAL -> {
-                      if (firstRow == lastRow) {
-                        // Single line: use min/max columns
-                        minOf(firstCol, lastCol) to maxOf(firstCol, lastCol)
-                      } else {
-                        // Multi-line: direction-aware columns
-                        when (bufferRow) {
-                          firstRow -> firstCol to (width - 1)  // First row: from start col to end
-                          lastRow -> 0 to lastCol              // Last row: from 0 to end col
-                          else -> 0 to (width - 1)             // Middle rows: full line
-                        }
-                      }
-                    }
-                  }
-
-                  for (col in colStart..colEnd) {
-                    if (col in 0 until width) {
-                      val x = col * cellWidth
-                      val y = screenRow * cellHeight  // Use screen row for Y position
-                      drawRect(
-                        color = highlightColor,
-                        topLeft = Offset(x, y),
-                        size = Size(cellWidth, cellHeight)
-                      )
-                    }
-                  }
-                }
-              }
-            }
-
-            // Draw cursor (visible even when unfocused, but dimmed)
-            if (cursorVisible) {
-              // Check if cursor should be visible based on blink state
-              val shouldShowCursor = when (cursorShape) {
-                CursorShape.BLINK_BLOCK, CursorShape.BLINK_UNDERLINE, CursorShape.BLINK_VERTICAL_BAR -> cursorBlinkVisible
-                else -> true  // STEADY_* shapes are always visible
-              }
-
-              if (shouldShowCursor) {
-                val x = cursorX * cellWidth
-                // Adjust cursor Y position: BossTerm reports cursor in 1-indexed coordinates
-                // but our rendering is 0-indexed, so we need to subtract 1
-                val adjustedCursorY = (cursorY - 1).coerceAtLeast(0)
-                val y = adjustedCursorY * cellHeight
-                // Dimmed cursor when unfocused for better UX
-                val cursorAlpha = if (isFocused) 0.7f else 0.3f
-                // Use custom cursor color from OSC 12, or default to white
-                val customCursorColor = terminal.cursorColor
-                val baseCursorColor = if (customCursorColor != null) {
-                  Color(customCursorColor.red, customCursorColor.green, customCursorColor.blue)
-                } else {
-                  Color.White
-                }
-                val cursorColor = baseCursorColor.copy(alpha = cursorAlpha)
-
-                when (cursorShape) {
-                  CursorShape.BLINK_BLOCK, CursorShape.STEADY_BLOCK, null -> {
-                    // Block cursor - fill entire cell
-                    drawRect(
-                      color = cursorColor,
-                      topLeft = Offset(x, y),
-                      size = Size(cellWidth, cellHeight)
-                    )
-                  }
-                  CursorShape.BLINK_UNDERLINE, CursorShape.STEADY_UNDERLINE -> {
-                    // Underline cursor - draw line at bottom of cell
-                    val underlineHeight = cellHeight * 0.2f  // 20% of cell height
-                    drawRect(
-                      color = cursorColor,
-                      topLeft = Offset(x, y + cellHeight - underlineHeight),
-                      size = Size(cellWidth, underlineHeight)
-                    )
-                  }
-                  CursorShape.BLINK_VERTICAL_BAR, CursorShape.STEADY_VERTICAL_BAR -> {
-                    // Vertical bar cursor - draw thin line on left side
-                    val barWidth = cellWidth * 0.15f  // 15% of cell width
-                    drawRect(
-                      color = cursorColor,
-                      topLeft = Offset(x, y),
-                      size = Size(barWidth, cellHeight)
-                    )
-                  }
-                }
-              }
-            }
-          // No unlock needed - snapshot was created outside Canvas, lock already released
-
-          // Show focus indicator at bottom
-          if (!isFocused) {
-            drawText(
-              textMeasurer = textMeasurer,
-              text = "[Click to focus terminal]",
-              topLeft = Offset(0f, size.height - 30f),
-              style = TextStyle(
-                color = Color.Gray,
-                fontFamily = FontFamily.Monospace,
-                fontSize = 12.sp
-              )
-            )
+          val visibleCols = (size.width / cellWidth).toInt().coerceAtMost(bufferSnapshot.width)
+          val visibleRows = (size.height / cellHeight).toInt().coerceAtMost(bufferSnapshot.height)
+
+          // Get cursor color from terminal (OSC 12)
+          val customCursorColor = terminal.cursorColor
+          val baseCursorColor = if (customCursorColor != null) {
+            Color(customCursorColor.red, customCursorColor.green, customCursorColor.blue)
+          } else null
+
+          // Build rendering context with all state
+          val renderingContext = RenderingContext(
+            bufferSnapshot = bufferSnapshot,
+            cellWidth = cellWidth,
+            cellHeight = cellHeight,
+            baseCellHeight = baseCellHeight,
+            cellBaseline = cellMetrics.third,
+            scrollOffset = scrollOffset,
+            visibleCols = visibleCols,
+            visibleRows = visibleRows,
+            textMeasurer = textMeasurer,
+            measurementFontFamily = sharedFont,
+            fontSize = settings.fontSize,
+            settings = settings,
+            ambiguousCharsAreDoubleWidth = display.ambiguousCharsAreDoubleWidth(),
+            selectionStart = selectionStart,
+            selectionEnd = selectionEnd,
+            selectionMode = selectionMode,
+            searchVisible = searchVisible,
+            searchQuery = searchQuery,
+            searchMatches = searchMatches,
+            currentMatchIndex = currentMatchIndex,
+            cursorX = cursorX,
+            cursorY = cursorY,
+            cursorVisible = cursorVisible,
+            cursorBlinkVisible = cursorBlinkVisible,
+            cursorShape = cursorShape,
+            cursorColor = baseCursorColor,
+            isFocused = isFocused,
+            hoveredHyperlink = hoveredHyperlink,
+            isModifierPressed = isModifierPressed,
+            slowBlinkVisible = slowBlinkVisible,
+            rapidBlinkVisible = rapidBlinkVisible
+          )
+
+          // Render terminal using extracted renderer - returns detected hyperlinks
+          with(TerminalCanvasRenderer) {
+            val detectedHyperlinks = renderTerminal(renderingContext)
+            cachedHyperlinks = detectedHyperlinks
           }
         }
 
@@ -2251,181 +1370,4 @@ fun ProperTerminal(
       }
     }
   } // end else (Connected state)
-}
-
-/**
- * Select word at the given character coordinates using SelectionUtil.
- * Returns the selection as a pair of (start, end) coordinates.
- *
- * Note: SelectionUtil functions (getPreviousSeparator/getNextSeparator) expect TerminalTextBuffer
- * and may handle locking internally. We removed explicit lock/unlock here to avoid redundant locking.
- * Future enhancement: Create snapshot-compatible versions of SelectionUtil functions.
- */
-private fun selectWordAt(
-  col: Int,
-  row: Int,
-  textBuffer: TerminalTextBuffer
-): Pair<Pair<Int, Int>, Pair<Int, Int>> {
-  // Convert Pair<Int, Int> to Point for SelectionUtil
-  val clickPoint = Point(col, row)
-
-  // Get word boundaries using SelectionUtil
-  // SelectionUtil may handle its own locking internally
-  val startPoint = getPreviousSeparator(clickPoint, textBuffer)
-  val endPoint = getNextSeparator(clickPoint, textBuffer)
-
-  // Convert Point back to Pair<Int, Int>
-  return Pair(Pair(startPoint.x, startPoint.y), Pair(endPoint.x, endPoint.y))
-}
-
-/**
- * Select entire logical line at the given character coordinates.
- * Handles wrapped lines by walking backwards and forwards through isWrapped property.
- * Returns the selection as a pair of (start, end) coordinates.
- */
-private fun selectLineAt(
-  col: Int,
-  row: Int,
-  textBuffer: TerminalTextBuffer
-): Pair<Pair<Int, Int>, Pair<Int, Int>> {
-  // Create immutable snapshot (fast, <1ms with lock, then lock released)
-  // This allows PTY writers to continue during line selection calculation
-  val snapshot = textBuffer.createSnapshot()
-
-  var startLine = row
-  var endLine = row
-
-  // Walk backwards through wrapped lines to find logical line start
-  while (startLine > -snapshot.historyLinesCount) {
-    val prevLine = snapshot.getLine(startLine - 1)
-    if (prevLine.isWrapped) {
-      startLine--
-    } else {
-      break
-    }
-  }
-
-  // Walk forwards through wrapped lines to find logical line end
-  while (endLine < snapshot.height - 1) {
-    val currentLine = snapshot.getLine(endLine)
-    if (currentLine.isWrapped) {
-      endLine++
-    } else {
-      break
-    }
-  }
-
-  // Select from start of first line to end of last line
-  return Pair(Pair(0, startLine), Pair(snapshot.width - 1, endLine))
-}
-
-/**
- * Extract selected text from the terminal text buffer.
- * Handles multi-line selection and normalizes coordinates.
- *
- * @param textBuffer The terminal text buffer
- * @param start Selection start position (col, row)
- * @param end Selection end position (col, row)
- * @param mode Selection mode (NORMAL for line-based, BLOCK for rectangular)
- */
-private fun extractSelectedText(
-  textBuffer: TerminalTextBuffer,
-  start: Pair<Int, Int>,
-  end: Pair<Int, Int>,
-  mode: SelectionMode = SelectionMode.NORMAL
-): String {
-  val (startCol, startRow) = start
-  val (endCol, endRow) = end
-
-  // Determine first (earlier row) and last (later row) points
-  // This is direction-aware: first point is always the one with smaller row
-  val (firstCol, firstRow, lastCol, lastRow) = if (startRow <= endRow) {
-    listOf(startCol, startRow, endCol, endRow)
-  } else {
-    listOf(endCol, endRow, startCol, startRow)
-  }
-
-  // Use snapshot for lock-free text extraction
-  val snapshot = textBuffer.createSnapshot()
-  val result = StringBuilder()
-
-  for (row in firstRow..lastRow) {
-    val line = snapshot.getLine(row)
-
-    // Calculate column bounds based on selection mode
-    val (colStart, colEnd) = when (mode) {
-      // BLOCK mode: rectangular selection - same columns for all rows
-      SelectionMode.BLOCK -> {
-        minOf(firstCol, lastCol) to maxOf(firstCol, lastCol)
-      }
-      // NORMAL mode: line-based selection
-      SelectionMode.NORMAL -> {
-        if (firstRow == lastRow) {
-          // Single line: use min/max columns
-          minOf(firstCol, lastCol) to maxOf(firstCol, lastCol)
-        } else {
-          // Multi-line: direction-aware columns
-          when (row) {
-            firstRow -> firstCol to (snapshot.width - 1)  // First row: from start col to end
-            lastRow -> 0 to lastCol                        // Last row: from 0 to end col
-            else -> 0 to (snapshot.width - 1)              // Middle rows: full line
-          }
-        }
-      }
-    }
-
-    for (col in colStart..colEnd) {
-      if (col < snapshot.width) {
-        val char = line.charAt(col)
-        // Skip DWC markers
-        if (char != CharUtils.DWC) {
-          result.append(char)
-        }
-      }
-    }
-
-    // Add newline between rows (except after last row)
-    if (row < lastRow) {
-      result.append('\n')
-    }
-  }
-
-  return result.toString()
-}
-
-// filterEnvironmentVariables function moved to TabController.kt
-
-// Use XTerm color palette for consistency with original BossTerm
-private val colorPalette = ColorPaletteImpl.XTERM_PALETTE
-
-/**
- * Convert BossTerm TerminalColor to Compose Color using the official ColorPalette
- */
-private fun convertTerminalColor(terminalColor: TerminalColor?): Color {
-  if (terminalColor == null) return Color.Black
-
-  // Use ColorPalette for colors 0-15 to support themes, otherwise use toColor()
-  val bossColor = if (terminalColor.isIndexed && terminalColor.colorIndex < 16) {
-    colorPalette.getForeground(terminalColor)
-  } else {
-    terminalColor.toColor()
-  }
-
-  return Color(
-    red = bossColor.red / 255f,
-    green = bossColor.green / 255f,
-    blue = bossColor.blue / 255f
-  )
-}
-
-/**
- * Apply DIM attribute by reducing color brightness to 50%
- */
-private fun applyDimColor(color: Color): Color {
-  return Color(
-    red = color.red * 0.5f,
-    green = color.green * 0.5f,
-    blue = color.blue * 0.5f,
-    alpha = color.alpha
-  )
 }

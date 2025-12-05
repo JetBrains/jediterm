@@ -649,6 +649,9 @@ fun ProperTerminal(
               terminal.resize(newTermSize, RequestOrigin.User)
               // Clear type-ahead predictions on resize (terminal state is no longer predictable)
               tab.typeAheadManager?.onResize()
+              // Reset scroll to bottom on resize - history size may have changed, making old offset invalid
+              // This ensures the user sees the current screen content after resize
+              scrollOffset = 0
               // Also notify the process handle if available (must be launched in coroutine)
               scope.launch {
                 processHandle?.resize(newCols, newRows)

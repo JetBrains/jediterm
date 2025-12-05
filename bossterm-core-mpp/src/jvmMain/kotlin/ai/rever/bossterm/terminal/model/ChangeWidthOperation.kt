@@ -20,7 +20,7 @@ internal class ChangeWidthOperation(
 
     fun addPointToTrack(point: Point, isForceVisible: Boolean) {
         if (isForceVisible && (point.y < 0 || point.y >= myTextBuffer.height)) {
-            LOG.warn("Registered visible point " + point + " is outside screen: [0, " + (myTextBuffer.height - 1) + "]")
+            LOG.warn("Registered visible point {} is outside screen: [0, {}]", point, myTextBuffer.height - 1)
             point.y = min(max(point.y, 0), myTextBuffer.height - 1)
         }
         myTrackingPoints.put(TrackingPoint(point, isForceVisible), null)
@@ -35,16 +35,24 @@ internal class ChangeWidthOperation(
         if (result != null) {
             return result
         }
-        LOG.warn("Not tracked point: " + original)
+        LOG.warn("Not tracked point: {}", original)
         return original
     }
 
     fun run() {
         val historyLinesStorage = myTextBuffer.getHistoryLinesStorageOrBackup()
+
         for (i in 0..<historyLinesStorage.size) {
             val line = historyLinesStorage.get(i)
             addLine(line)
         }
+        // CRITICAL FIX: Reset current line after processing history.
+        // History and screen are separate storage - the last history line should NOT
+        // merge with the first screen line, even if the last history line was wrapped.
+        // Without this reset, wrapped history lines would incorrectly absorb screen content.
+        myCurrentLine = null
+        myCurrentLineLength = 0
+
         var screenStartInd = myAllLines.size - 1
         if (myCurrentLine == null || myCurrentLineLength == myNewWidth) {
             screenStartInd++
@@ -53,10 +61,12 @@ internal class ChangeWidthOperation(
             throw IndexOutOfBoundsException("screenStartInd < 0: " + screenStartInd)
         }
         val screenLinesStorage = myTextBuffer.getScreenLinesStorageOrBackup()
+
         if (screenLinesStorage.size > myTextBuffer.height) {
-            LOG.warn("Terminal height < screen buffer line count: " + myTextBuffer.height + " < " + screenLinesStorage.size)
+            LOG.warn("Terminal height < screen buffer line count: {} < {}", myTextBuffer.height, screenLinesStorage.size)
         }
         val oldScreenLineCount = min(screenLinesStorage.size, myTextBuffer.height)
+
         for (i in 0..<oldScreenLineCount) {
             val points = findPointsAtY(i)
             for (point in points) {
@@ -69,6 +79,7 @@ internal class ChangeWidthOperation(
             }
             addLine(screenLinesStorage.get(i))
         }
+
         for (i in oldScreenLineCount..<myTextBuffer.height) {
             val points = findPointsAtY(i)
             for (point in points) {
@@ -87,18 +98,32 @@ internal class ChangeWidthOperation(
             }
         }
 
-        screenStartInd = max(screenStartInd, myAllLines.size - min(myAllLines.size, myNewHeight) - emptyBottomLineCount)
-        screenStartInd = min(screenStartInd, myAllLines.size - min(myAllLines.size, myNewHeight))
-        screenStartInd = max(screenStartInd, bottomMostPointY - myNewHeight + 1)
+        // CRITICAL: screenStartInd must be >= myAllLines.size - myNewHeight to prevent data loss
+        // Screen shows [screenStartInd, screenStartInd + myNewHeight), history gets [0, screenStartInd)
+        // If screenStartInd is too low, lines at the end would be lost!
+        val minScreenStartToPreserveAll = max(0, myAllLines.size - myNewHeight)
+
+        // Start with showing the last myNewHeight lines (most recent content)
+        screenStartInd = minScreenStartToPreserveAll
+
+        // If cursor is within the screen range, we're fine
+        // If cursor is above screen (in history after rewrap), cursor will be clamped later
+        // We prioritize NOT LOSING DATA over showing cursor
+
+        // screenEndInd will equal myAllLines.size since screenStartInd = myAllLines.size - myNewHeight
+        // This ensures ALL content from screenStartInd to end is on screen (no loss)
+        val screenEndInd = min(screenStartInd + myNewHeight, myAllLines.size)
+
+        // History gets ALL lines before screen [0, screenStartInd)
+        val historySublist = myAllLines.subList(0, screenStartInd).filterNotNull()
         historyLinesStorage.clear()
-        historyLinesStorage.addAllToBottom(myAllLines.subList(0, screenStartInd).filterNotNull())
+        historyLinesStorage.addAllToBottom(historySublist)
+
+        // Screen gets lines [screenStartInd, screenEndInd) - always the LAST lines
+        val screenSublist = myAllLines.subList(screenStartInd, screenEndInd).filterNotNull()
         screenLinesStorage.clear()
-        screenLinesStorage.addAllToBottom(
-            myAllLines.subList(
-                screenStartInd,
-                min(screenStartInd + myNewHeight, myAllLines.size)
-            ).filterNotNull()
-        )
+        screenLinesStorage.addAllToBottom(screenSublist)
+
         for (entry in myTrackingPoints.entries) {
             var p = entry.value
             if (p != null) {
@@ -143,6 +168,9 @@ internal class ChangeWidthOperation(
             myAllLines.add(TerminalLine.Companion.createEmpty())
             return
         }
+
+        // Track if we added any content from this line
+        var addedContent = false
         line.forEachEntry(Consumer { entry: TerminalLine.TextEntry? ->
             if (entry?.isNul != false) {
                 return@Consumer
@@ -175,7 +203,7 @@ internal class ChangeWidthOperation(
                 val len = if (safeLen > 0) {
                     safeLen
                 } else {
-                    LOG.warn("Unable to find safe grapheme boundary in text of length ${textToSplit.length}, forcing split at position 1")
+                    LOG.warn("Unable to find safe grapheme boundary in text of length {}, forcing split at position 1", textToSplit.length)
                     1
                 }
 
@@ -183,8 +211,17 @@ internal class ChangeWidthOperation(
                 myCurrentLine?.appendEntry(newEntry)
                 myCurrentLineLength += len
                 entryProcessedLength += len
+                addedContent = true
             }
         })
+
+        // CRITICAL FIX: If this line had no content (empty entries) but is NOT nul,
+        // we still need to create a line for it. Otherwise it gets silently dropped,
+        // causing data loss on resize.
+        if (!addedContent && myCurrentLine == null) {
+            myAllLines.add(TerminalLine.Companion.createEmpty())
+        }
+
         if (!line.isWrapped) {
             myCurrentLine = null
             myCurrentLineLength = 0

@@ -1638,6 +1638,7 @@ fun ProperTerminal(
                 val isEmojiOrWideSymbol = when (actualCodePoint) {
                   in 0x2600..0x26FF -> true  // Miscellaneous Symbols (☁️, ☀️, ★, etc.)
                   // Note: Dingbats (0x2700-0x27BF) removed - Nerd Font has monochrome glyphs (✳, ❯, etc.)
+                  in 0x1F100..0x1F1FF -> true  // Enclosed Alphanumeric Supplement (🅰, 🅱, 🅶, 🅺, etc.)
                   in 0x1F300..0x1F9FF -> true  // Emoji & Pictographs
                   in 0x1F600..0x1F64F -> true  // Emoticons
                   in 0x1F680..0x1F6FF -> true  // Transport & Map Symbols
@@ -1645,9 +1646,9 @@ fun ProperTerminal(
                 }
 
                 // Separate rendering width from buffer storage width
-                // Emoji (>= 0x1F300) should render in 2 cells even if stored as single-width
-                val isDoubleWidth = if (actualCodePoint >= 0x1F300) {
-                  true  // Force emoji to render in 2-cell space
+                // Emoji (>= 0x1F100) should render in 2 cells even if stored as single-width
+                val isDoubleWidth = if (actualCodePoint >= 0x1F100) {
+                  true  // Force emoji/enclosed alphanumerics to render in 2-cell space
                 } else {
                   isWcwidthDoubleWidth  // Use buffer storage width
                 }

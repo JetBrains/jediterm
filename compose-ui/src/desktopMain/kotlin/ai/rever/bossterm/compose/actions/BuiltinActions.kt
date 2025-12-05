@@ -144,14 +144,13 @@ fun createBuiltinActions(
         }
     )
 
-    // SELECT_ALL - Ctrl/Cmd+A
-    // Selects all text in the terminal (history + screen)
+    // SELECT_ALL - Cmd+A (macOS only)
+    // Ctrl+A passes through to terminal (tmux prefix, bash beginning-of-line, etc.)
     val selectAllAction = TerminalAction(
         id = "select_all",
         name = "Select All",
         keyStrokes = listOf(
-            KeyStroke(key = Key.A, ctrl = true),  // Windows/Linux
-            KeyStroke(key = Key.A, meta = true)   // macOS
+            KeyStroke(key = Key.A, meta = true)   // macOS only, Ctrl+A passes through
         ),
         enabled = { true },
         handler = { _ ->

@@ -17,8 +17,8 @@ import ai.rever.bossterm.compose.hyperlinks.HyperlinkDetector
 import ai.rever.bossterm.compose.settings.TerminalSettings
 import ai.rever.bossterm.compose.util.ColorUtils
 import ai.rever.bossterm.terminal.CursorShape
-import ai.rever.bossterm.terminal.model.BufferSnapshot
 import ai.rever.bossterm.terminal.model.TerminalLine
+import ai.rever.bossterm.terminal.model.pool.VersionedBufferSnapshot
 import ai.rever.bossterm.terminal.util.CharUtils
 import ai.rever.bossterm.terminal.TextStyle as BossTextStyle
 import org.jetbrains.skia.FontMgr
@@ -29,7 +29,7 @@ import org.jetbrains.skia.FontMgr
  */
 data class RenderingContext(
     // Buffer and dimensions
-    val bufferSnapshot: BufferSnapshot,
+    val bufferSnapshot: VersionedBufferSnapshot,
     val cellWidth: Float,
     val cellHeight: Float,
     val baseCellHeight: Float,

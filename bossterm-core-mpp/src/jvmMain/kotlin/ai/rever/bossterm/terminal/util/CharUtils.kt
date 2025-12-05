@@ -30,8 +30,13 @@ object CharUtils {
     var VT102_RESPONSE: ByteArray = makeCode(ESC, '['.code, '?'.code, '6'.code, 'c'.code)
 
     // VT220 with color support for better TUI compatibility (Neovim, vim, less)
-    // CSI ? 62 ; 1 c = VT220 terminal with 132 column mode
+    // CSI ? 62 ; 1 c = VT220 terminal with 132 column mode (Primary DA)
     var VT220_RESPONSE: ByteArray = makeCode(ESC, '['.code, '?'.code, '6'.code, '2'.code, ';'.code, '1'.code, 'c'.code)
+
+    // Secondary DA response: CSI > 1 ; 10 ; 0 c
+    // Format: >Pp;Pv;Pc c where Pp=terminal type (1=VT220), Pv=version, Pc=ROM cartridge (0=none)
+    // This is required for tmux and other apps that query terminal capabilities
+    var VT220_SECONDARY_RESPONSE: ByteArray = makeCode(ESC, '['.code, '>'.code, '1'.code, ';'.code, '1'.code, '0'.code, ';'.code, '0'.code, 'c'.code)
 
     fun getNonControlCharacters(maxChars: Int, buf: CharArray, offset: Int, charsLength: Int): String {
         var offset = offset

@@ -439,12 +439,11 @@ class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
             'c' -> {
                 if (args.startsWithMoreMark()) { //Send Device Attributes (Secondary DA)
                     if (args.getArg(0, 0) == 0) { //apply on to VT220 but xterm extends this to VT100
-                        sendDeviceAttributes()
-                        return true
+                        return sendSecondaryDeviceAttributes()
                     }
                     return false
                 }
-                return sendDeviceAttributes()
+                return sendDeviceAttributes()  // Primary DA
             }
 
             'd' -> return linePositionAbsolute(args)
@@ -895,10 +894,21 @@ class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
 
     private fun sendDeviceAttributes(): kotlin.Boolean {
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Identifying to remote system as VT220")
+            LOG.debug("Identifying to remote system as VT220 (Primary DA)")
         }
         // Use VT220 instead of VT102 for better TUI app compatibility (Neovim, vim, less, etc.)
         myTerminal?.deviceAttributes(CharUtils.VT220_RESPONSE)
+
+        return true
+    }
+
+    private fun sendSecondaryDeviceAttributes(): kotlin.Boolean {
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Responding to Secondary DA request as VT220")
+        }
+        // Secondary DA response: ESC[>1;10;0c (VT220, version 10, no ROM)
+        // This is required for tmux and other terminal apps that query capabilities
+        myTerminal?.deviceAttributes(CharUtils.VT220_SECONDARY_RESPONSE)
 
         return true
     }

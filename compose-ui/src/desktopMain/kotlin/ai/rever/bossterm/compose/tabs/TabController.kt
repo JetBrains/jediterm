@@ -148,6 +148,16 @@ class TabController(
     ): TerminalTab {
         tabCounter++
 
+        // Ensure shell is started as login shell to get proper PATH from /etc/zprofile
+        // This is critical for GUI apps that don't inherit terminal environment
+        val effectiveArguments = if (arguments.isEmpty() &&
+            (command.endsWith("/zsh") || command.endsWith("/bash") ||
+             command == "zsh" || command == "bash")) {
+            listOf("-l")  // Login shell flag
+        } else {
+            arguments
+        }
+
         // Initialize terminal components
         val styleState = StyleState()
         val textBuffer = TerminalTextBuffer(80, 24, styleState, settings.bufferMaxLines)
@@ -209,7 +219,7 @@ class TabController(
                 settings = settings
             ).also { model ->
                 // Detect shell type for word boundary calculation (bash vs zsh)
-                val shellType = TypeAheadTerminalModel.commandLineToShellType((listOf(command) + arguments).toMutableList())
+                val shellType = TypeAheadTerminalModel.commandLineToShellType((listOf(command) + effectiveArguments).toMutableList())
                 model.setShellType(shellType)
             }
         } else {
@@ -283,7 +293,7 @@ class TabController(
         }
 
         // Initialize the terminal session (spawn PTY, start coroutines)
-        initializeTerminalSession(tab, workingDir, command, arguments)
+        initializeTerminalSession(tab, workingDir, command, effectiveArguments)
 
         // Add to tabs list
         tabs.add(tab)
@@ -496,6 +506,16 @@ class TabController(
         try {
             val services = getPlatformServices()
 
+            // Ensure shell is started as login shell to get proper PATH from /etc/zprofile
+            // This is critical for GUI apps that don't inherit terminal environment
+            val effectiveArguments = if (config.arguments.isEmpty() &&
+                (config.command.endsWith("/zsh") || config.command.endsWith("/bash") ||
+                 config.command == "zsh" || config.command == "bash")) {
+                listOf("-l")  // Login shell flag
+            } else {
+                config.arguments
+            }
+
             // Set TERM environment variables for TUI compatibility
             val terminalEnvironment = buildMap {
                 putAll(filterEnvironmentVariables(System.getenv()))
@@ -508,7 +528,7 @@ class TabController(
 
             val processConfig = PlatformServices.ProcessService.ProcessConfig(
                 command = config.command,
-                arguments = config.arguments,
+                arguments = effectiveArguments,
                 environment = terminalEnvironment,
                 workingDirectory = config.workingDir ?: System.getProperty("user.home")
             )
@@ -538,7 +558,7 @@ class TabController(
                     settings = settings
                 ).also { model ->
                     val shellType = TypeAheadTerminalModel.commandLineToShellType(
-                        (listOf(config.command) + config.arguments).toMutableList()
+                        (listOf(config.command) + effectiveArguments).toMutableList()
                     )
                     model.setShellType(shellType)
                 }

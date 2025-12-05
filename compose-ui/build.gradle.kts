@@ -166,6 +166,41 @@ android {
 compose.desktop {
     application {
         mainClass = "ai.rever.bossterm.compose.demo.MainKt"
+
+        nativeDistributions {
+            targetFormats(org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg)
+
+            packageName = "BossTerm"
+            packageVersion = "1.0.0"
+            description = "Modern terminal emulator built with Kotlin/Compose Desktop"
+            vendor = "Rever AI"
+            copyright = "© 2025 Rever AI. All rights reserved."
+
+            macOS {
+                // iconFile.set(project.file("src/desktopMain/resources/icons/bossterm.icns"))
+                bundleID = "ai.rever.bossterm"
+                dockName = "BossTerm"
+                // Allow access to all files for terminal operations
+                entitlementsFile.set(project.file("src/desktopMain/resources/entitlements.plist"))
+                infoPlist {
+                    extraKeysRawXml = """
+                        <key>NSHighResolutionCapable</key>
+                        <true/>
+                        <key>LSMinimumSystemVersion</key>
+                        <string>11.0</string>
+                    """.trimIndent()
+                }
+            }
+
+            // Include required JVM modules
+            modules("java.sql", "jdk.unsupported", "jdk.management.agent")
+
+            // JVM args for better performance
+            jvmArgs += listOf(
+                "-Xmx2G",
+                "-Dapple.awt.application.appearance=system"
+            )
+        }
     }
 }
 

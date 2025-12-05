@@ -29,18 +29,12 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import ai.rever.bossterm.core.compatibility.Point
-import ai.rever.bossterm.core.input.InputEvent
 import ai.rever.bossterm.core.util.TermSize
 import ai.rever.bossterm.terminal.CursorShape
 import ai.rever.bossterm.terminal.RequestOrigin
-import ai.rever.bossterm.terminal.TerminalColor
 import ai.rever.bossterm.terminal.TerminalKeyEncoder
-import ai.rever.bossterm.terminal.emulator.ColorPaletteImpl
 import ai.rever.bossterm.terminal.emulator.mouse.MouseButtonCodes
 import ai.rever.bossterm.terminal.emulator.mouse.MouseMode
-import ai.rever.bossterm.terminal.model.SelectionUtil.getNextSeparator
-import ai.rever.bossterm.terminal.model.SelectionUtil.getPreviousSeparator
 import ai.rever.bossterm.terminal.model.TerminalTextBuffer
 import ai.rever.bossterm.terminal.util.CharUtils
 import kotlinx.coroutines.Job
@@ -65,63 +59,14 @@ import ai.rever.bossterm.compose.scrollbar.AlwaysVisibleScrollbar
 import ai.rever.bossterm.compose.scrollbar.computeMatchPositions
 import ai.rever.bossterm.compose.scrollbar.rememberTerminalScrollbarAdapter
 import ai.rever.bossterm.compose.search.SearchBar
+import ai.rever.bossterm.compose.selection.SelectionEngine
 import ai.rever.bossterm.compose.settings.SettingsManager
 import ai.rever.bossterm.compose.TerminalSession
+import ai.rever.bossterm.compose.util.ColorUtils
+import ai.rever.bossterm.compose.util.KeyMappingUtils
 import ai.rever.bossterm.core.typeahead.TerminalTypeAheadManager
 import org.jetbrains.skia.FontMgr
 import ai.rever.bossterm.terminal.TextStyle as BossTextStyle
-import java.awt.event.KeyEvent as JavaKeyEvent
-
-/**
- * Maps Compose Desktop Key constants to Java AWT VK (Virtual Key) codes.
- * Returns null for keys that don't have a direct VK mapping.
- */
-private fun mapComposeKeyToVK(key: Key): Int? {
-  return when (key) {
-    Key.Enter -> JavaKeyEvent.VK_ENTER
-    Key.Backspace -> JavaKeyEvent.VK_BACK_SPACE
-    Key.Tab -> JavaKeyEvent.VK_TAB
-    Key.Escape -> JavaKeyEvent.VK_ESCAPE
-    Key.DirectionUp -> JavaKeyEvent.VK_UP
-    Key.DirectionDown -> JavaKeyEvent.VK_DOWN
-    Key.DirectionLeft -> JavaKeyEvent.VK_LEFT
-    Key.DirectionRight -> JavaKeyEvent.VK_RIGHT
-    Key.Home -> JavaKeyEvent.VK_HOME
-    Key.MoveEnd -> JavaKeyEvent.VK_END
-    Key.PageUp -> JavaKeyEvent.VK_PAGE_UP
-    Key.PageDown -> JavaKeyEvent.VK_PAGE_DOWN
-    Key.Insert -> JavaKeyEvent.VK_INSERT
-    Key.Delete -> JavaKeyEvent.VK_DELETE
-    Key.F1 -> JavaKeyEvent.VK_F1
-    Key.F2 -> JavaKeyEvent.VK_F2
-    Key.F3 -> JavaKeyEvent.VK_F3
-    Key.F4 -> JavaKeyEvent.VK_F4
-    Key.F5 -> JavaKeyEvent.VK_F5
-    Key.F6 -> JavaKeyEvent.VK_F6
-    Key.F7 -> JavaKeyEvent.VK_F7
-    Key.F8 -> JavaKeyEvent.VK_F8
-    Key.F9 -> JavaKeyEvent.VK_F9
-    Key.F10 -> JavaKeyEvent.VK_F10
-    Key.F11 -> JavaKeyEvent.VK_F11
-    Key.F12 -> JavaKeyEvent.VK_F12
-    else -> null
-  }
-}
-
-/**
- * Maps Compose Desktop key event modifiers to BossTerm InputEvent modifier masks.
- * Note: Using BossTerm's InputEvent constants (SHIFT_MASK, etc.) not Java AWT's
- * SHIFT_DOWN_MASK, as TerminalKeyEncoder expects the old Event mask values.
- */
-private fun mapComposeModifiers(keyEvent: KeyEvent): Int {
-  var modifiers = 0
-  if (keyEvent.isShiftPressed) modifiers = modifiers or InputEvent.SHIFT_MASK
-  if (keyEvent.isCtrlPressed) modifiers = modifiers or InputEvent.CTRL_MASK
-  if (keyEvent.isAltPressed) modifiers = modifiers or InputEvent.ALT_MASK
-  if (keyEvent.isMetaPressed) modifiers = modifiers or InputEvent.META_MASK
-  return modifiers
-}
-
 /**
  * Proper terminal implementation using BossTerm's emulator.
  * This uses the real BossTerminal, BossEmulator, and TerminalTextBuffer from the core module.
@@ -705,7 +650,7 @@ fun ProperTerminal(
                   hasSelection = selectionStart != null && selectionEnd != null,
                   onCopy = {
                     if (selectionStart != null && selectionEnd != null) {
-                      val selectedText = extractSelectedText(textBuffer, selectionStart!!, selectionEnd!!, selectionMode)
+                      val selectedText = SelectionEngine.extractSelectedText(textBuffer, selectionStart!!, selectionEnd!!, selectionMode)
                       if (selectedText.isNotEmpty()) {
                         clipboardManager.setText(AnnotatedString(selectedText))
                       }
@@ -735,7 +680,7 @@ fun ProperTerminal(
                   hasSelection = selectionStart != null && selectionEnd != null,
                   onCopy = {
                     if (selectionStart != null && selectionEnd != null) {
-                      val selectedText = extractSelectedText(textBuffer, selectionStart!!, selectionEnd!!, selectionMode)
+                      val selectedText = SelectionEngine.extractSelectedText(textBuffer, selectionStart!!, selectionEnd!!, selectionMode)
                       if (selectedText.isNotEmpty()) {
                         clipboardManager.setText(AnnotatedString(selectedText))
                       }
@@ -832,7 +777,7 @@ fun ProperTerminal(
                 // Convert screen coords to buffer-relative for selection
                 val (col, screenRow) = pixelToCharCoords(currentPosition)
                 val bufferRow = screenRow - scrollOffset
-                val (start, end) = selectWordAt(col, bufferRow, textBuffer)
+                val (start, end) = SelectionEngine.selectWordAt(col, bufferRow, textBuffer)
                 selectionStart = start
                 selectionEnd = end
                 isDragging = false
@@ -851,7 +796,7 @@ fun ProperTerminal(
                 // Convert screen coords to buffer-relative for selection
                 val (col, screenRow) = pixelToCharCoords(currentPosition)
                 val bufferRow = screenRow - scrollOffset
-                val (start, end) = selectLineAt(col, bufferRow, textBuffer)
+                val (start, end) = SelectionEngine.selectLineAt(col, bufferRow, textBuffer)
                 selectionStart = start
                 selectionEnd = end
                 isDragging = false
@@ -1027,7 +972,7 @@ fun ProperTerminal(
           val start = selectionStart
           val end = selectionEnd
           if (settings.copyOnSelect && start != null && end != null) {
-            val selectedText = extractSelectedText(textBuffer, start, end, selectionMode)
+            val selectedText = SelectionEngine.extractSelectedText(textBuffer, start, end, selectionMode)
             if (selectedText.isNotEmpty()) {
               if (settings.emulateX11CopyPaste) {
                 // X11 mode: Copy to selection clipboard (middle-click buffer)
@@ -1166,9 +1111,9 @@ fun ProperTerminal(
               val text = run {
                 // Try to map key to VK code and use TerminalKeyEncoder
                 // This handles function keys, navigation keys, and all modifier combinations
-                val vkCode = mapComposeKeyToVK(keyEvent.key)
+                val vkCode = KeyMappingUtils.mapComposeKeyToVK(keyEvent.key)
                 if (vkCode != null) {
-                  val modifiers = mapComposeModifiers(keyEvent)
+                  val modifiers = KeyMappingUtils.mapComposeModifiers(keyEvent)
                   val bytes = keyEncoder.getCode(vkCode, modifiers)
                   if (bytes != null) {
                     return@run String(bytes, Charsets.UTF_8)
@@ -1278,8 +1223,8 @@ fun ProperTerminal(
 
                 // Apply defaults FIRST, then swap if INVERSE
                 // This ensures INVERSE works correctly even when colors are null
-                val baseFg = style?.foreground?.let { convertTerminalColor(it) } ?: settings.defaultForegroundColor
-                val baseBg = style?.background?.let { convertTerminalColor(it) } ?: settings.defaultBackgroundColor
+                val baseFg = style?.foreground?.let { ColorUtils.convertTerminalColor(it) } ?: settings.defaultForegroundColor
+                val baseBg = style?.background?.let { ColorUtils.convertTerminalColor(it) } ?: settings.defaultBackgroundColor
 
                 // THEN swap if INVERSE attribute is set
                 var fgColor = if (isInverse) baseBg else baseFg
@@ -1287,7 +1232,7 @@ fun ProperTerminal(
 
                 // Apply DIM to foreground
                 if (isDim) {
-                  fgColor = applyDimColor(fgColor)
+                  fgColor = ColorUtils.applyDimColor(fgColor)
                 }
 
                 // Draw background (single or double width)
@@ -1464,10 +1409,10 @@ fun ProperTerminal(
                       val isDim = style?.hasOption(BossTextStyle.Option.DIM) ?: false
 
                       // Apply color logic
-                      val baseFg = style?.foreground?.let { convertTerminalColor(it) } ?: settings.defaultForegroundColor
-                      val baseBg = style?.background?.let { convertTerminalColor(it) } ?: settings.defaultBackgroundColor
+                      val baseFg = style?.foreground?.let { ColorUtils.convertTerminalColor(it) } ?: settings.defaultForegroundColor
+                      val baseBg = style?.background?.let { ColorUtils.convertTerminalColor(it) } ?: settings.defaultBackgroundColor
                       var fgColor = if (isInverse) baseBg else baseFg
-                      if (isDim) fgColor = applyDimColor(fgColor)
+                      if (isDim) fgColor = ColorUtils.applyDimColor(fgColor)
 
                       // Use system font (FontFamily.Default) for ZWJ sequences
                       // This enables Apple Color Emoji on macOS which has combined glyphs
@@ -1681,8 +1626,8 @@ fun ProperTerminal(
 
                 // Apply defaults FIRST, then swap if INVERSE
                 // This ensures INVERSE works correctly even when colors are null
-                val baseFg = style?.foreground?.let { convertTerminalColor(it) } ?: settings.defaultForegroundColor
-                val baseBg = style?.background?.let { convertTerminalColor(it) } ?: settings.defaultBackgroundColor
+                val baseFg = style?.foreground?.let { ColorUtils.convertTerminalColor(it) } ?: settings.defaultForegroundColor
+                val baseBg = style?.background?.let { ColorUtils.convertTerminalColor(it) } ?: settings.defaultBackgroundColor
 
                 // THEN swap if INVERSE attribute is set
                 var fgColor = if (isInverse) baseBg else baseFg
@@ -1690,7 +1635,7 @@ fun ProperTerminal(
 
                 // Apply DIM to foreground color (reduce brightness to 50%)
                 if (isDim) {
-                  fgColor = applyDimColor(fgColor)
+                  fgColor = ColorUtils.applyDimColor(fgColor)
                 }
 
                 // Note: Backgrounds are already drawn in Pass 1
@@ -2251,181 +2196,4 @@ fun ProperTerminal(
       }
     }
   } // end else (Connected state)
-}
-
-/**
- * Select word at the given character coordinates using SelectionUtil.
- * Returns the selection as a pair of (start, end) coordinates.
- *
- * Note: SelectionUtil functions (getPreviousSeparator/getNextSeparator) expect TerminalTextBuffer
- * and may handle locking internally. We removed explicit lock/unlock here to avoid redundant locking.
- * Future enhancement: Create snapshot-compatible versions of SelectionUtil functions.
- */
-private fun selectWordAt(
-  col: Int,
-  row: Int,
-  textBuffer: TerminalTextBuffer
-): Pair<Pair<Int, Int>, Pair<Int, Int>> {
-  // Convert Pair<Int, Int> to Point for SelectionUtil
-  val clickPoint = Point(col, row)
-
-  // Get word boundaries using SelectionUtil
-  // SelectionUtil may handle its own locking internally
-  val startPoint = getPreviousSeparator(clickPoint, textBuffer)
-  val endPoint = getNextSeparator(clickPoint, textBuffer)
-
-  // Convert Point back to Pair<Int, Int>
-  return Pair(Pair(startPoint.x, startPoint.y), Pair(endPoint.x, endPoint.y))
-}
-
-/**
- * Select entire logical line at the given character coordinates.
- * Handles wrapped lines by walking backwards and forwards through isWrapped property.
- * Returns the selection as a pair of (start, end) coordinates.
- */
-private fun selectLineAt(
-  col: Int,
-  row: Int,
-  textBuffer: TerminalTextBuffer
-): Pair<Pair<Int, Int>, Pair<Int, Int>> {
-  // Create immutable snapshot (fast, <1ms with lock, then lock released)
-  // This allows PTY writers to continue during line selection calculation
-  val snapshot = textBuffer.createSnapshot()
-
-  var startLine = row
-  var endLine = row
-
-  // Walk backwards through wrapped lines to find logical line start
-  while (startLine > -snapshot.historyLinesCount) {
-    val prevLine = snapshot.getLine(startLine - 1)
-    if (prevLine.isWrapped) {
-      startLine--
-    } else {
-      break
-    }
-  }
-
-  // Walk forwards through wrapped lines to find logical line end
-  while (endLine < snapshot.height - 1) {
-    val currentLine = snapshot.getLine(endLine)
-    if (currentLine.isWrapped) {
-      endLine++
-    } else {
-      break
-    }
-  }
-
-  // Select from start of first line to end of last line
-  return Pair(Pair(0, startLine), Pair(snapshot.width - 1, endLine))
-}
-
-/**
- * Extract selected text from the terminal text buffer.
- * Handles multi-line selection and normalizes coordinates.
- *
- * @param textBuffer The terminal text buffer
- * @param start Selection start position (col, row)
- * @param end Selection end position (col, row)
- * @param mode Selection mode (NORMAL for line-based, BLOCK for rectangular)
- */
-private fun extractSelectedText(
-  textBuffer: TerminalTextBuffer,
-  start: Pair<Int, Int>,
-  end: Pair<Int, Int>,
-  mode: SelectionMode = SelectionMode.NORMAL
-): String {
-  val (startCol, startRow) = start
-  val (endCol, endRow) = end
-
-  // Determine first (earlier row) and last (later row) points
-  // This is direction-aware: first point is always the one with smaller row
-  val (firstCol, firstRow, lastCol, lastRow) = if (startRow <= endRow) {
-    listOf(startCol, startRow, endCol, endRow)
-  } else {
-    listOf(endCol, endRow, startCol, startRow)
-  }
-
-  // Use snapshot for lock-free text extraction
-  val snapshot = textBuffer.createSnapshot()
-  val result = StringBuilder()
-
-  for (row in firstRow..lastRow) {
-    val line = snapshot.getLine(row)
-
-    // Calculate column bounds based on selection mode
-    val (colStart, colEnd) = when (mode) {
-      // BLOCK mode: rectangular selection - same columns for all rows
-      SelectionMode.BLOCK -> {
-        minOf(firstCol, lastCol) to maxOf(firstCol, lastCol)
-      }
-      // NORMAL mode: line-based selection
-      SelectionMode.NORMAL -> {
-        if (firstRow == lastRow) {
-          // Single line: use min/max columns
-          minOf(firstCol, lastCol) to maxOf(firstCol, lastCol)
-        } else {
-          // Multi-line: direction-aware columns
-          when (row) {
-            firstRow -> firstCol to (snapshot.width - 1)  // First row: from start col to end
-            lastRow -> 0 to lastCol                        // Last row: from 0 to end col
-            else -> 0 to (snapshot.width - 1)              // Middle rows: full line
-          }
-        }
-      }
-    }
-
-    for (col in colStart..colEnd) {
-      if (col < snapshot.width) {
-        val char = line.charAt(col)
-        // Skip DWC markers
-        if (char != CharUtils.DWC) {
-          result.append(char)
-        }
-      }
-    }
-
-    // Add newline between rows (except after last row)
-    if (row < lastRow) {
-      result.append('\n')
-    }
-  }
-
-  return result.toString()
-}
-
-// filterEnvironmentVariables function moved to TabController.kt
-
-// Use XTerm color palette for consistency with original BossTerm
-private val colorPalette = ColorPaletteImpl.XTERM_PALETTE
-
-/**
- * Convert BossTerm TerminalColor to Compose Color using the official ColorPalette
- */
-private fun convertTerminalColor(terminalColor: TerminalColor?): Color {
-  if (terminalColor == null) return Color.Black
-
-  // Use ColorPalette for colors 0-15 to support themes, otherwise use toColor()
-  val bossColor = if (terminalColor.isIndexed && terminalColor.colorIndex < 16) {
-    colorPalette.getForeground(terminalColor)
-  } else {
-    terminalColor.toColor()
-  }
-
-  return Color(
-    red = bossColor.red / 255f,
-    green = bossColor.green / 255f,
-    blue = bossColor.blue / 255f
-  )
-}
-
-/**
- * Apply DIM attribute by reducing color brightness to 50%
- */
-private fun applyDimColor(color: Color): Color {
-  return Color(
-    red = color.red * 0.5f,
-    green = color.green * 0.5f,
-    blue = color.blue * 0.5f,
-    alpha = color.alpha
-  )
 }

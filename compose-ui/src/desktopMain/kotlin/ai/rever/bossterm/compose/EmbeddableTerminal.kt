@@ -9,8 +9,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import ai.rever.bossterm.compose.demo.BlockingTerminalDataStream
-import ai.rever.bossterm.compose.demo.ProperTerminal
+import ai.rever.bossterm.compose.terminal.BlockingTerminalDataStream
+import ai.rever.bossterm.compose.ui.ProperTerminal
 import ai.rever.bossterm.compose.features.ContextMenuController
 import ai.rever.bossterm.compose.ime.IMEState
 import ai.rever.bossterm.compose.settings.SettingsLoader

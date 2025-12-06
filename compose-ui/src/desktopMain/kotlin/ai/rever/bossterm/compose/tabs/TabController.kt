@@ -14,7 +14,7 @@ import ai.rever.bossterm.compose.ComposeTerminalDisplay
 import ai.rever.bossterm.compose.ConnectionState
 import ai.rever.bossterm.compose.PlatformServices
 import ai.rever.bossterm.compose.debug.ChunkSource
-import ai.rever.bossterm.compose.demo.BlockingTerminalDataStream
+import ai.rever.bossterm.compose.terminal.BlockingTerminalDataStream
 import ai.rever.bossterm.compose.features.ContextMenuController
 import ai.rever.bossterm.compose.getPlatformServices
 import ai.rever.bossterm.compose.ime.IMEState

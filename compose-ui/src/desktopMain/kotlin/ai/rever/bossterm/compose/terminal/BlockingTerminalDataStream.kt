@@ -1,4 +1,4 @@
-package ai.rever.bossterm.compose.demo
+package ai.rever.bossterm.compose.terminal
 
 import ai.rever.bossterm.terminal.TerminalDataStream
 import ai.rever.bossterm.terminal.util.GraphemeUtils

@@ -1,4 +1,4 @@
-package ai.rever.bossterm.compose.demo
+package ai.rever.bossterm.compose.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -66,6 +66,12 @@ import ai.rever.bossterm.compose.settings.SettingsManager
 import ai.rever.bossterm.compose.TerminalSession
 import ai.rever.bossterm.compose.util.ColorUtils
 import ai.rever.bossterm.compose.util.KeyMappingUtils
+import ai.rever.bossterm.compose.input.createComposeMouseEvent
+import ai.rever.bossterm.compose.input.createComposeMouseWheelEvent
+import ai.rever.bossterm.compose.input.createMouseEvent
+import ai.rever.bossterm.compose.input.toMouseModifierFlags
+import ai.rever.bossterm.compose.input.isShiftPressed
+import ai.rever.bossterm.compose.input.isAltPressed
 import ai.rever.bossterm.core.typeahead.TerminalTypeAheadManager
 import org.jetbrains.skia.FontMgr
 import ai.rever.bossterm.terminal.TextStyle as BossTextStyle

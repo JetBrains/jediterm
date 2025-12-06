@@ -1,4 +1,4 @@
-package ai.rever.bossterm.compose.demo
+package ai.rever.bossterm.compose.input
 
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEvent

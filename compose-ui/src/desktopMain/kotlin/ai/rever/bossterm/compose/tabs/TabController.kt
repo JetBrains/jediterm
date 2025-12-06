@@ -883,6 +883,41 @@ class TabController(
     }
 
     /**
+     * Dispose all tabs and cleanup resources.
+     * Call this when the window is being closed to prevent memory leaks.
+     */
+    @OptIn(DelicateCoroutinesApi::class)
+    fun disposeAll() {
+        // Collect all processes before disposal to prevent GC issues
+        val processesToKill = tabs.mapNotNull { it.processHandle.value }
+
+        // Dispose all tabs (cancels coroutines)
+        tabs.forEach { tab ->
+            tab.dispose()
+            notifySessionClosed(tab)
+        }
+
+        // Clear the list
+        tabs.clear()
+
+        // Kill all processes asynchronously
+        if (processesToKill.isNotEmpty()) {
+            GlobalScope.launch(Dispatchers.IO) {
+                processesToKill.forEach { process ->
+                    try {
+                        process.kill()
+                    } catch (e: Exception) {
+                        println("WARN: Error killing process: ${e.message}")
+                    }
+                }
+            }
+        }
+
+        // Notify listeners
+        notifyAllSessionsClosed()
+    }
+
+    /**
      * Switch to a specific tab by index.
      *
      * @param index Index of the tab to switch to (0-based)

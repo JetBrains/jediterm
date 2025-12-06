@@ -6,6 +6,7 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -97,6 +98,7 @@ fun ProperTerminal(
   onNextTab: () -> Unit = {},
   onPreviousTab: () -> Unit = {},
   onSwitchToTab: (Int) -> Unit = {},
+  onNewWindow: () -> Unit = {},  // Cmd/Ctrl+N: New window
   modifier: Modifier = Modifier
 ) {
   // Extract session state (no more remember {} blocks - state lives in TerminalSession)
@@ -401,6 +403,7 @@ fun ProperTerminal(
       onNextTab = onNextTab,
       onPreviousTab = onPreviousTab,
       onSwitchToTab = onSwitchToTab,
+      onNewWindow = onNewWindow,
       isMacOS = isMacOS
     )
 
@@ -1181,7 +1184,7 @@ fun ProperTerminal(
           textBuffer.createIncrementalSnapshot()
         }
 
-        Canvas(modifier = Modifier.fillMaxSize()) {
+        Canvas(modifier = Modifier.padding(start = 4.dp, top = 4.dp).fillMaxSize()) {
           // Guard against invalid canvas sizes during resize - prevents drawText constraint failures
           if (size.width < cellWidth || size.height < cellHeight) return@Canvas
 

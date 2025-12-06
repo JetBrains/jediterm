@@ -275,6 +275,7 @@ private fun extractSelectedText(
  * - Ctrl+Tab: Next tab
  * - Ctrl+Shift+Tab: Previous tab
  * - Cmd/Ctrl+1-9: Switch to specific tab (1-based index)
+ * - Cmd/Ctrl+N: New window
  *
  * @param registry The ActionRegistry to add actions to
  * @param onNewTab Callback to create a new tab
@@ -282,6 +283,7 @@ private fun extractSelectedText(
  * @param onNextTab Callback to switch to the next tab
  * @param onPreviousTab Callback to switch to the previous tab
  * @param onSwitchToTab Callback to switch to a specific tab by index (0-based)
+ * @param onNewWindow Callback to create a new window
  * @param isMacOS Whether running on macOS (affects modifier keys)
  */
 fun addTabManagementActions(
@@ -292,6 +294,7 @@ fun addTabManagementActions(
     onNextTab: () -> Unit,
     onPreviousTab: () -> Unit,
     onSwitchToTab: (Int) -> Unit,
+    onNewWindow: () -> Unit = {},
     isMacOS: Boolean
 ) {
     // NEW TAB - Cmd/Ctrl+T
@@ -319,6 +322,20 @@ fun addTabManagementActions(
         ),
         handler = { event ->
             onNewPreConnectTab()
+            true  // Consume event
+        }
+    ))
+
+    // NEW WINDOW - Cmd/Ctrl+N
+    registry.register(TerminalAction(
+        id = "new_window",
+        name = "New Window",
+        keyStrokes = listOf(
+            KeyStroke(key = Key.N, ctrl = true),  // Windows/Linux
+            KeyStroke(key = Key.N, meta = true)   // macOS
+        ),
+        handler = { event ->
+            onNewWindow()
             true  // Consume event
         }
     ))

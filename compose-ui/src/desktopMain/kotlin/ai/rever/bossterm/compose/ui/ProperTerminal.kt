@@ -97,6 +97,7 @@ fun ProperTerminal(
   onNextTab: () -> Unit = {},
   onPreviousTab: () -> Unit = {},
   onSwitchToTab: (Int) -> Unit = {},
+  onNewWindow: () -> Unit = {},  // Cmd/Ctrl+N: New window
   modifier: Modifier = Modifier
 ) {
   // Extract session state (no more remember {} blocks - state lives in TerminalSession)
@@ -401,6 +402,7 @@ fun ProperTerminal(
       onNextTab = onNextTab,
       onPreviousTab = onPreviousTab,
       onSwitchToTab = onSwitchToTab,
+      onNewWindow = onNewWindow,
       isMacOS = isMacOS
     )
 

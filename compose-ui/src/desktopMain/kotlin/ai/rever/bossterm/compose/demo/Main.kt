@@ -12,28 +12,78 @@ import ai.rever.bossterm.compose.settings.SettingsManager
 import ai.rever.bossterm.compose.tabs.TabBar
 import ai.rever.bossterm.compose.tabs.TabController
 import ai.rever.bossterm.compose.ui.ProperTerminal
+import java.util.UUID
+
+/**
+ * Represents a single terminal window with its own state.
+ */
+data class TerminalWindow(
+    val id: String = UUID.randomUUID().toString(),
+    val title: MutableState<String> = mutableStateOf("BossTerm")
+)
+
+/**
+ * Global window manager for multi-window support.
+ */
+object WindowManager {
+    private val _windows = mutableStateListOf<TerminalWindow>()
+    val windows: List<TerminalWindow> get() = _windows
+
+    fun createWindow(): TerminalWindow {
+        val window = TerminalWindow()
+        _windows.add(window)
+        return window
+    }
+
+    fun closeWindow(id: String) {
+        _windows.removeAll { it.id == id }
+    }
+
+    fun hasWindows(): Boolean = _windows.isNotEmpty()
+}
 
 fun main() = application {
-    // Window title state that will be updated by active tab's window title
-    val windowTitleState = remember { mutableStateOf("BossTerm Compose - Multiple Terminal Tabs") }
+    // Create initial window if none exist
+    if (WindowManager.windows.isEmpty()) {
+        WindowManager.createWindow()
+    }
 
-    Window(
-        onCloseRequest = ::exitApplication,
-        title = windowTitleState.value
-    ) {
-        TerminalApp(
-            onExit = ::exitApplication,
-            onWindowTitleChange = { newTitle ->
-                windowTitleState.value = newTitle
+    // Render all windows
+    for (window in WindowManager.windows) {
+        key(window.id) {
+            Window(
+                onCloseRequest = {
+                    WindowManager.closeWindow(window.id)
+                    if (!WindowManager.hasWindows()) {
+                        exitApplication()
+                    }
+                },
+                title = window.title.value
+            ) {
+                TerminalApp(
+                    onExit = {
+                        WindowManager.closeWindow(window.id)
+                        if (!WindowManager.hasWindows()) {
+                            exitApplication()
+                        }
+                    },
+                    onWindowTitleChange = { newTitle ->
+                        window.title.value = newTitle
+                    },
+                    onNewWindow = {
+                        WindowManager.createWindow()
+                    }
+                )
             }
-        )
+        }
     }
 }
 
 @Composable
 fun TerminalApp(
     onExit: () -> Unit,
-    onWindowTitleChange: (String) -> Unit = {}
+    onWindowTitleChange: (String) -> Unit = {},
+    onNewWindow: () -> Unit = {}
 ) {
     // Settings integration
     val settingsManager = remember { SettingsManager.instance }
@@ -291,6 +341,7 @@ fun TerminalApp(
                         tabController.switchToTab(index)
                     }
                 },
+                onNewWindow = onNewWindow,
                 modifier = Modifier.fillMaxSize()
             )
         }

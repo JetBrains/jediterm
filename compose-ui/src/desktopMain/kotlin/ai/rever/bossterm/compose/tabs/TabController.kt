@@ -292,6 +292,16 @@ class TabController(
             }
         }
 
+        // Wire up chunk batching to prevent intermediate state flickering
+        // When a PTY chunk is received (e.g., \r\033[KText), all operations are batched
+        // so the clear and write are treated as a single atomic update
+        dataStream.onChunkStart = {
+            textBuffer.beginBatch()
+        }
+        dataStream.onChunkEnd = {
+            textBuffer.endBatch()
+        }
+
         // Initialize the terminal session (spawn PTY, start coroutines)
         initializeTerminalSession(tab, workingDir, command, effectiveArguments)
 
@@ -575,6 +585,14 @@ class TabController(
                 tab.dataStream.onTerminalStateChanged = {
                     typeAheadManager.onTerminalStateChanged()
                 }
+            }
+
+            // Wire up chunk batching to prevent intermediate state flickering
+            tab.dataStream.onChunkStart = {
+                tab.textBuffer.beginBatch()
+            }
+            tab.dataStream.onChunkEnd = {
+                tab.textBuffer.endBatch()
             }
 
             // Start emulator processing coroutine

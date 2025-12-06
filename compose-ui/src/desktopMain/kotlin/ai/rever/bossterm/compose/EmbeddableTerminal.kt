@@ -329,6 +329,16 @@ private fun createTerminalSession(
         }
     }
 
+    // Wire up chunk batching to prevent intermediate state flickering
+    // When a PTY chunk is received (e.g., \r\033[KText), all operations are batched
+    // so the clear and write are treated as a single atomic update
+    dataStream.onChunkStart = {
+        textBuffer.beginBatch()
+    }
+    dataStream.onChunkEnd = {
+        textBuffer.endBatch()
+    }
+
     val emulator = BossEmulator(dataStream, terminal)
     val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 

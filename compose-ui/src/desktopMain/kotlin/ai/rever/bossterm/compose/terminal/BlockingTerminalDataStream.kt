@@ -46,6 +46,21 @@ class BlockingTerminalDataStream : TerminalDataStream {
     var onTerminalStateChanged: (() -> Unit)? = null
 
     /**
+     * Optional callback invoked when a new chunk of data starts being consumed.
+     * Used to start batch operations in the text buffer.
+     */
+    var onChunkStart: (() -> Unit)? = null
+
+    /**
+     * Optional callback invoked when a chunk of data has been fully consumed.
+     * Used to end batch operations in the text buffer.
+     */
+    var onChunkEnd: (() -> Unit)? = null
+
+    // Track whether we're in the middle of consuming a chunk
+    private var inChunk = false
+
+    /**
      * Append a chunk of data to the stream.
      *
      * Handles incomplete grapheme clusters at chunk boundaries by:
@@ -101,6 +116,12 @@ class BlockingTerminalDataStream : TerminalDataStream {
 
             // If we have data in the buffer, return it
             while (position >= buffer.length) {
+                // End previous chunk if we were in one (buffer exhausted)
+                if (inChunk) {
+                    inChunk = false
+                    onChunkEnd?.invoke()
+                }
+
                 // Notify type-ahead system before blocking wait
                 // This allows the type-ahead manager to validate predictions
                 // against the current terminal state before we wait for more data
@@ -114,6 +135,11 @@ class BlockingTerminalDataStream : TerminalDataStream {
                 }
 
                 if (chunk != null) {
+                    // Start new chunk
+                    if (!inChunk) {
+                        inChunk = true
+                        onChunkStart?.invoke()
+                    }
                     buffer.append(chunk)
                 } else if (closed && dataQueue.isEmpty()) {
                     // Stream is closed and no more data

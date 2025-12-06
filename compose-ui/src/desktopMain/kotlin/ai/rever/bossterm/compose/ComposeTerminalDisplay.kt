@@ -238,24 +238,21 @@ class ComposeTerminalDisplay : TerminalDisplay {
 
                 when (request.priority) {
                     RedrawPriority.IMMEDIATE -> {
-                        // No debounce for user input - instant response
                         actualRedraw()
-                        lastRedrawTime = now
+                        lastRedrawTime = System.currentTimeMillis()
                     }
 
                     RedrawPriority.NORMAL -> {
                         // Apply adaptive debouncing based on current mode
                         val mode = detectAndUpdateMode()
                         val elapsed = now - lastRedrawTime
-                        val requiredDebounce = mode.debounceMs
 
-                        if (elapsed >= requiredDebounce) {
-                            // Enough time has passed, redraw immediately
+                        if (elapsed >= mode.debounceMs) {
                             actualRedraw()
-                            lastRedrawTime = now
+                            lastRedrawTime = System.currentTimeMillis()
                         } else {
                             // Need to wait before next redraw
-                            delay(requiredDebounce - elapsed)
+                            delay(mode.debounceMs - elapsed)
                             actualRedraw()
                             lastRedrawTime = System.currentTimeMillis()
                         }

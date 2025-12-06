@@ -81,6 +81,8 @@ fun AlwaysVisibleScrollbar(
     var isVisible by remember { mutableStateOf(false) }
     var isDragging by remember { mutableStateOf(false) }
     var lastScrollOffset by remember { mutableStateOf(0f) }
+    var dragStartScrollOffset by remember { mutableStateOf(0f) }
+    var accumulatedDrag by remember { mutableStateOf(0f) }
 
     // Read scroll state directly for zero-lag scroll updates
     // Reading redrawTrigger.value ensures we recompose when terminal content changes (new lines added)
@@ -217,27 +219,32 @@ fun AlwaysVisibleScrollbar(
                     .padding(2.dp)
                     .clip(RoundedCornerShape(4.dp))
                     .background(thumbColor.copy(alpha = thumbAlpha))
-                    .pointerInput(Unit) {
+                    .pointerInput(maxScroll, containerHeight, thumbHeightPx) {
                         detectDragGestures(
                             onDragStart = {
                                 isDragging = true
                                 isVisible = true
+                                dragStartScrollOffset = adapter.scrollOffset
+                                accumulatedDrag = 0f
                             },
                             onDragEnd = {
                                 isDragging = false
+                                accumulatedDrag = 0f
                             },
                             onDragCancel = {
                                 isDragging = false
+                                accumulatedDrag = 0f
                             },
                             onDrag = { change, dragAmount ->
                                 change.consume()
 
                                 if (maxScroll > 0f && containerHeight > 0f) {
-                                    val currentThumbOffset = thumbOffsetPx + dragAmount.y
+                                    accumulatedDrag += dragAmount.y
                                     val scrollableHeight = containerHeight - thumbHeightPx
                                     if (scrollableHeight > 0f) {
-                                        val scrollRatio = currentThumbOffset / scrollableHeight
-                                        val newScrollOffset = (scrollRatio * maxScroll).coerceIn(0f, maxScroll)
+                                        // Convert drag pixels to scroll offset
+                                        val dragRatio = accumulatedDrag / scrollableHeight
+                                        val newScrollOffset = (dragStartScrollOffset + dragRatio * maxScroll).coerceIn(0f, maxScroll)
 
                                         scope.launch {
                                             adapter.scrollTo(containerSize, newScrollOffset)

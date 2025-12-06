@@ -467,20 +467,6 @@ object TerminalCanvasRenderer {
         if (ctx.cursorVisible) {
             renderCursor(ctx)
         }
-
-        // Focus indicator
-        if (!ctx.isFocused) {
-            drawText(
-                textMeasurer = ctx.textMeasurer,
-                text = "[Click to focus terminal]",
-                topLeft = Offset(0f, size.height - 30f),
-                style = TextStyle(
-                    color = Color.Gray,
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 12.sp
-                )
-            )
-        }
     }
 
     /**

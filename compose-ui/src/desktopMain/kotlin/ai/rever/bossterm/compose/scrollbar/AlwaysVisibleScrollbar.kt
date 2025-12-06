@@ -26,6 +26,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -131,6 +132,15 @@ fun AlwaysVisibleScrollbar(
             .fillMaxHeight()
             .onSizeChanged { containerHeight = it.height.toFloat() }
             .alpha(scrollbarAlpha)
+            // Consume all pointer events to prevent terminal selection behind scrollbar
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        event.changes.forEach { it.consume() }
+                    }
+                }
+            }
     ) {
         // Only render visible scrollbar when there's content to scroll
         if (containerHeight > 0f && maxScroll > 0f) {

@@ -9,6 +9,7 @@ BossTerm is a high-performance terminal emulator designed for developers who wan
 ## Features
 
 - **Native Performance** - Built with Kotlin/Compose Desktop for smooth rendering
+- **Multiple Windows** - Cmd/Ctrl+N opens new window, each with independent tabs
 - **Multiple Tabs** - Ctrl+T new tab, Ctrl+W close, Ctrl+Tab switch
 - **Xterm Emulation** - Full VT100/Xterm compatibility
 - **256 Colors** - Full color support including true color (24-bit)
@@ -53,15 +54,16 @@ cd BossTerm
 
 | Shortcut | Action |
 |----------|--------|
-| Ctrl+T | New tab |
-| Ctrl+W | Close tab |
+| Ctrl/Cmd+N | New window |
+| Ctrl/Cmd+T | New tab |
+| Ctrl/Cmd+W | Close tab |
 | Ctrl+Tab | Next tab |
 | Ctrl+Shift+Tab | Previous tab |
-| Ctrl+1-9 | Jump to tab |
+| Ctrl/Cmd+1-9 | Jump to tab |
 | Ctrl/Cmd+F | Search |
 | Ctrl/Cmd+C | Copy |
 | Ctrl/Cmd+V | Paste |
-| Ctrl+Shift+D | Toggle debug panel |
+| Ctrl/Cmd+Shift+D | Toggle debug panel |
 | Ctrl+Space | Toggle IME |
 
 ## Shell Integration

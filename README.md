@@ -42,7 +42,10 @@ cd BossTerm
 ### Build Distribution
 
 ```bash
-# Create distributable package
+# Create DMG for macOS (includes automatic code signing)
+./gradlew :compose-ui:packageDmg
+
+# Or create distributable for current OS
 ./gradlew :compose-ui:packageDistributionForCurrentOS
 ```
 
@@ -85,11 +88,15 @@ BossTerm/
 │       └── terminal/      # Terminal emulator implementation
 ├── compose-ui/            # Compose Desktop UI
 │   └── src/desktopMain/kotlin/ai/rever/bossterm/compose/
-│       ├── demo/          # Main application
+│       ├── ui/            # Main terminal composable (ProperTerminal)
+│       ├── terminal/      # Terminal data stream handling
+│       ├── input/         # Mouse/keyboard input handling
+│       ├── rendering/     # Canvas rendering engine
 │       ├── tabs/          # Tab management
 │       ├── search/        # Search functionality
 │       ├── debug/         # Debug tools
-│       └── settings/      # Settings management
+│       ├── settings/      # Settings management
+│       └── demo/          # Demo application entry point
 └── .github/workflows/     # CI configuration
 ```
 
@@ -104,6 +111,41 @@ Settings are stored in `~/.bossterm/settings.json`:
   "scrollbackLines": 10000,
   "cursorBlinkRate": 500,
   "enableMouseReporting": true
+}
+```
+
+## Embedding in Your App
+
+BossTerm provides a simple API for embedding a terminal in your Compose Desktop application:
+
+```kotlin
+import ai.rever.bossterm.compose.EmbeddableTerminal
+import ai.rever.bossterm.compose.rememberEmbeddableTerminalState
+
+@Composable
+fun MyApp() {
+    // Basic usage - uses default settings from ~/.bossterm/settings.json
+    EmbeddableTerminal()
+
+    // With custom settings path
+    EmbeddableTerminal(settingsPath = "/path/to/settings.json")
+
+    // With callbacks
+    EmbeddableTerminal(
+        onOutput = { output -> println(output) },
+        onTitleChange = { title -> window.title = title },
+        onExit = { code -> println("Shell exited: $code") },
+        onReady = { println("Terminal ready!") }
+    )
+
+    // Programmatic control
+    val state = rememberEmbeddableTerminalState()
+
+    Button(onClick = { state.write("ls -la\n") }) {
+        Text("Run ls")
+    }
+
+    EmbeddableTerminal(state = state)
 }
 ```
 

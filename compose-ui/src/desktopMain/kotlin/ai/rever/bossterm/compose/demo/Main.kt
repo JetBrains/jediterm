@@ -138,6 +138,14 @@ fun TerminalApp(
         }
     }
 
+    // Cleanup all tabs when window is closed to prevent memory leaks
+    DisposableEffect(tabController) {
+        onDispose {
+            println("INFO: Window closing, disposing all tabs...")
+            tabController.disposeAll()
+        }
+    }
+
     // Tab UI layout
     Column(modifier = Modifier.fillMaxSize()) {
         // Tab bar at top

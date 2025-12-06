@@ -10,9 +10,13 @@ import java.io.File
 
 /**
  * Manager for terminal settings with persistence support.
- * Settings are saved to ~/.bossterm/settings.json
+ * Settings are saved to ~/.bossterm/settings.json by default,
+ * or to a custom path if specified.
+ *
+ * @param customSettingsPath Optional custom path for settings file.
+ *        If null, uses default ~/.bossterm/settings.json
  */
-class SettingsManager {
+class SettingsManager(private val customSettingsPath: String? = null) {
     private val _settings = MutableStateFlow(TerminalSettings.DEFAULT)
 
     /**
@@ -26,15 +30,25 @@ class SettingsManager {
     }
 
     private val settingsDir: File by lazy {
-        File(System.getProperty("user.home"), ".bossterm").apply {
-            if (!exists()) {
-                mkdirs()
+        if (customSettingsPath != null) {
+            File(customSettingsPath).parentFile?.apply {
+                if (!exists()) mkdirs()
+            } ?: File(System.getProperty("user.home"), ".bossterm").apply {
+                if (!exists()) mkdirs()
+            }
+        } else {
+            File(System.getProperty("user.home"), ".bossterm").apply {
+                if (!exists()) mkdirs()
             }
         }
     }
 
     private val settingsFile: File by lazy {
-        File(settingsDir, "settings.json")
+        if (customSettingsPath != null) {
+            File(customSettingsPath)
+        } else {
+            File(settingsDir, "settings.json")
+        }
     }
 
     init {
@@ -101,8 +115,18 @@ class SettingsManager {
 
     companion object {
         /**
-         * Global singleton instance
+         * Global singleton instance using default settings path
          */
         val instance: SettingsManager by lazy { SettingsManager() }
+
+        /**
+         * Create a new SettingsManager with a custom settings file path.
+         *
+         * @param path Path to the settings JSON file
+         * @return New SettingsManager instance using the custom path
+         */
+        fun withCustomPath(path: String): SettingsManager {
+            return SettingsManager(customSettingsPath = path)
+        }
     }
 }

@@ -90,6 +90,13 @@ class TerminalTextBuffer internal constructor(
   private val historyBufferListeners: MutableList<TerminalHistoryBufferListener> = CopyOnWriteArrayList()
   private val changesMulticaster: TextBufferChangesMulticaster = TextBufferChangesMulticaster()
 
+  // ===== BATCH CHANGE TRACKING =====
+  // Suppresses intermediate modelChanged events during rapid sequences like clear+write
+  @Volatile
+  private var batchDepth: Int = 0
+  @Volatile
+  private var batchHasChanges: Boolean = false
+
   @JvmOverloads
   constructor(width: Int, height: Int, styleState: StyleState, maxHistoryLinesCount: Int = LinesStorage.DEFAULT_MAX_LINES_COUNT) : this(
     width,
@@ -220,9 +227,54 @@ class TerminalTextBuffer internal constructor(
     historyBufferListeners.remove(listener)
   }
 
+  /**
+   * Begin a batch of operations. Model change events are suppressed until endBatch() is called.
+   * Batches can be nested - only the outermost endBatch() fires the event.
+   *
+   * Use this to group related operations (e.g., clear line + write text) into an atomic update.
+   */
+  fun beginBatch() {
+    batchDepth++
+  }
+
+  /**
+   * End a batch of operations. If this is the outermost batch and changes occurred,
+   * fires a single modelChanged event.
+   */
+  fun endBatch() {
+    if (batchDepth > 0) {
+      batchDepth--
+      if (batchDepth == 0 && batchHasChanges) {
+        batchHasChanges = false
+        for (modelListener in listeners) {
+          modelListener.modelChanged()
+        }
+      }
+    }
+  }
+
+  /**
+   * Execute a block of operations as an atomic batch.
+   * Suppresses intermediate model change events, firing only once at the end.
+   */
+  inline fun <T> batch(block: () -> T): T {
+    beginBatch()
+    try {
+      return block()
+    } finally {
+      endBatch()
+    }
+  }
+
   private fun fireModelChangeEvent() {
-    for (modelListener in listeners) {
-      modelListener.modelChanged()
+    if (batchDepth > 0) {
+      // Inside a batch - just mark that changes occurred
+      batchHasChanges = true
+    } else {
+      // Not batched - fire immediately
+      for (modelListener in listeners) {
+        modelListener.modelChanged()
+      }
     }
   }
 

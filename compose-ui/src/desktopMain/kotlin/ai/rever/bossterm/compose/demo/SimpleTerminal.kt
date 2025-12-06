@@ -154,38 +154,14 @@ fun SimpleTerminal(
                 )
             }
 
-            // Show input echo and focus indicator at bottom
-            if (isFocused) {
-                if (inputEcho.isNotEmpty()) {
-                    drawText(
-                        textMeasurer = textMeasurer,
-                        text = "Typing: $inputEcho█",
-                        topLeft = Offset(0f, size.height - 30f),
-                        style = TextStyle(
-                            color = Color.Yellow,
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 12.sp
-                        )
-                    )
-                } else {
-                    drawText(
-                        textMeasurer = textMeasurer,
-                        text = "[Terminal Ready - Type here]",
-                        topLeft = Offset(0f, size.height - 30f),
-                        style = TextStyle(
-                            color = Color.Green,
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 12.sp
-                        )
-                    )
-                }
-            } else {
+            // Show input echo indicator at bottom when focused
+            if (isFocused && inputEcho.isNotEmpty()) {
                 drawText(
                     textMeasurer = textMeasurer,
-                    text = "[Click to focus terminal]",
+                    text = "Typing: $inputEcho█",
                     topLeft = Offset(0f, size.height - 30f),
                     style = TextStyle(
-                        color = Color.Gray,
+                        color = Color.Yellow,
                         fontFamily = FontFamily.Monospace,
                         fontSize = 12.sp
                     )

@@ -208,6 +208,45 @@ compose.experimental {
     web.application {}
 }
 
+// macOS code signing task for the bundled JDK runtime
+tasks.register("signMacOsApp") {
+    description = "Sign the macOS app bundle with ad-hoc signature for local development"
+    group = "distribution"
+
+    dependsOn("createDistributable")
+
+    doLast {
+        val appPath = "${layout.buildDirectory.get()}/compose/binaries/main/app/BossTerm.app"
+        val runtimePath = "$appPath/Contents/runtime"
+
+        if (file(appPath).exists() && System.getProperty("os.name").lowercase().contains("mac")) {
+            println("Signing macOS app bundle...")
+
+            // Sign all dylibs in the runtime
+            fileTree(runtimePath).matching {
+                include("**/*.dylib")
+            }.forEach { dylib ->
+                exec {
+                    commandLine("codesign", "--force", "--sign", "-", dylib.absolutePath)
+                    isIgnoreExitValue = true
+                }
+            }
+
+            // Sign the whole app bundle
+            exec {
+                commandLine("codesign", "--force", "--deep", "--sign", "-", appPath)
+            }
+
+            println("macOS app bundle signed successfully")
+        }
+    }
+}
+
+// Make packageDmg depend on signing
+tasks.matching { it.name == "packageDmg" }.configureEach {
+    dependsOn("signMacOsApp")
+}
+
 publishing {
     publications {
         create<MavenPublication>("composeUi") {

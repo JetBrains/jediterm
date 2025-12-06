@@ -11,6 +11,7 @@ import androidx.compose.ui.window.application
 import ai.rever.bossterm.compose.settings.SettingsManager
 import ai.rever.bossterm.compose.tabs.TabBar
 import ai.rever.bossterm.compose.tabs.TabController
+import ai.rever.bossterm.compose.ui.ProperTerminal
 
 fun main() = application {
     // Window title state that will be updated by active tab's window title

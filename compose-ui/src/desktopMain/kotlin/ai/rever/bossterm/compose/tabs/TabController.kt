@@ -14,7 +14,7 @@ import ai.rever.bossterm.compose.ComposeTerminalDisplay
 import ai.rever.bossterm.compose.ConnectionState
 import ai.rever.bossterm.compose.PlatformServices
 import ai.rever.bossterm.compose.debug.ChunkSource
-import ai.rever.bossterm.compose.demo.BlockingTerminalDataStream
+import ai.rever.bossterm.compose.terminal.BlockingTerminalDataStream
 import ai.rever.bossterm.compose.features.ContextMenuController
 import ai.rever.bossterm.compose.getPlatformServices
 import ai.rever.bossterm.compose.ime.IMEState
@@ -290,6 +290,16 @@ class TabController(
             dataStream.onTerminalStateChanged = {
                 manager.onTerminalStateChanged()
             }
+        }
+
+        // Wire up chunk batching to prevent intermediate state flickering
+        // When a PTY chunk is received (e.g., \r\033[KText), all operations are batched
+        // so the clear and write are treated as a single atomic update
+        dataStream.onChunkStart = {
+            textBuffer.beginBatch()
+        }
+        dataStream.onChunkEnd = {
+            textBuffer.endBatch()
         }
 
         // Initialize the terminal session (spawn PTY, start coroutines)
@@ -575,6 +585,14 @@ class TabController(
                 tab.dataStream.onTerminalStateChanged = {
                     typeAheadManager.onTerminalStateChanged()
                 }
+            }
+
+            // Wire up chunk batching to prevent intermediate state flickering
+            tab.dataStream.onChunkStart = {
+                tab.textBuffer.beginBatch()
+            }
+            tab.dataStream.onChunkEnd = {
+                tab.textBuffer.endBatch()
             }
 
             // Start emulator processing coroutine

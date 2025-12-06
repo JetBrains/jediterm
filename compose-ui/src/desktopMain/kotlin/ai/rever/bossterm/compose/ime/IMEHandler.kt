@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 
 /**
  * IME (Input Method Editor) handler for CJK (Chinese, Japanese, Korean) input.
@@ -49,9 +50,9 @@ fun IMEHandler(
     var textFieldValue by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
 
-    // Position TextField at cursor location
-    val offsetX = (cursorX * charWidth).toInt()
-    val offsetY = (cursorY * charHeight).toInt()
+    // Position TextField at cursor location (use roundToInt to prevent cumulative drift)
+    val offsetX = (cursorX * charWidth).roundToInt()
+    val offsetY = (cursorY * charHeight).roundToInt()
 
     Box(modifier = modifier) {
         BasicTextField(

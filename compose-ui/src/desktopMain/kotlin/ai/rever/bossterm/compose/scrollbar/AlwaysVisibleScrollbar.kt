@@ -26,7 +26,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -132,27 +131,67 @@ fun AlwaysVisibleScrollbar(
             .fillMaxHeight()
             .onSizeChanged { containerHeight = it.height.toFloat() }
             .alpha(scrollbarAlpha)
-            // Consume all pointer events to prevent terminal selection behind scrollbar
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent(PointerEventPass.Initial)
-                        event.changes.forEach { it.consume() }
-                    }
-                }
-            }
     ) {
         // Only render visible scrollbar when there's content to scroll
         if (containerHeight > 0f && maxScroll > 0f) {
-            // Track background with match markers
+            // Calculate thumb dimensions
+            val thumbHeightPx = run {
+                val visibleRatio = containerHeight / (containerHeight + maxScroll)
+                max(
+                    with(LocalDensity.current) { minThumbHeight.toPx() },
+                    containerHeight * visibleRatio
+                )
+            }
+            val thumbOffsetPx = run {
+                val scrollableHeight = containerHeight - thumbHeightPx
+                (scrollOffset / maxScroll) * scrollableHeight
+            }
+
+            // Track - handles all pointer events (tap and drag)
             Box(
                 modifier = Modifier
                     .width(thickness)
                     .fillMaxHeight()
                     .background(Color.Transparent, shape = RoundedCornerShape(4.dp))
                     .hoverable(interactionSource)
+                    // Drag gesture for scrolling - works anywhere on track
+                    .pointerInput(maxScroll, containerHeight, thumbHeightPx) {
+                        detectDragGestures(
+                            onDragStart = { startOffset ->
+                                isDragging = true
+                                isVisible = true
+                                dragStartScrollOffset = adapter.scrollOffset
+                                accumulatedDrag = 0f
+                            },
+                            onDragEnd = {
+                                isDragging = false
+                                accumulatedDrag = 0f
+                            },
+                            onDragCancel = {
+                                isDragging = false
+                                accumulatedDrag = 0f
+                            },
+                            onDrag = { change, dragAmount ->
+                                change.consume()
+
+                                if (maxScroll > 0f && containerHeight > 0f) {
+                                    accumulatedDrag += dragAmount.y
+                                    val scrollableHeight = containerHeight - thumbHeightPx
+                                    if (scrollableHeight > 0f) {
+                                        // Convert drag pixels to scroll offset
+                                        val dragRatio = accumulatedDrag / scrollableHeight
+                                        val newScrollOffset = (dragStartScrollOffset + dragRatio * maxScroll).coerceIn(0f, maxScroll)
+
+                                        scope.launch {
+                                            adapter.scrollTo(containerSize, newScrollOffset)
+                                        }
+                                    }
+                                }
+                            }
+                        )
+                    }
+                    // Tap gesture for click-to-position
                     .pointerInput(matchPositions, onMatchClicked) {
-                        // Handle clicks - either on match markers or track to jump to position
                         detectTapGestures { offset ->
                             if (containerHeight > 0f) {
                                 val clickedPosition = offset.y / containerHeight
@@ -206,65 +245,18 @@ fun AlwaysVisibleScrollbar(
                         }
                     }
                 }
-            }
 
-            // Thumb
-            val thumbHeightPx = run {
-                val visibleRatio = containerHeight / (containerHeight + maxScroll)
-                max(
-                    with(LocalDensity.current) { minThumbHeight.toPx() },
-                    containerHeight * visibleRatio
+                // Thumb (visual only - track handles all pointer events)
+                Box(
+                    modifier = Modifier
+                        .offset { IntOffset(0, thumbOffsetPx.roundToInt()) }
+                        .width(thickness)
+                        .height(with(LocalDensity.current) { thumbHeightPx.toDp() })
+                        .padding(2.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(thumbColor.copy(alpha = thumbAlpha))
                 )
             }
-            val thumbOffsetPx = run {
-                val scrollableHeight = containerHeight - thumbHeightPx
-                (scrollOffset / maxScroll) * scrollableHeight
-            }
-
-            Box(
-                modifier = Modifier
-                    .offset { IntOffset(0, thumbOffsetPx.roundToInt()) }
-                    .width(thickness)
-                    .height(with(LocalDensity.current) { thumbHeightPx.toDp() })
-                    .padding(2.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(thumbColor.copy(alpha = thumbAlpha))
-                    .pointerInput(maxScroll, containerHeight, thumbHeightPx) {
-                        detectDragGestures(
-                            onDragStart = {
-                                isDragging = true
-                                isVisible = true
-                                dragStartScrollOffset = adapter.scrollOffset
-                                accumulatedDrag = 0f
-                            },
-                            onDragEnd = {
-                                isDragging = false
-                                accumulatedDrag = 0f
-                            },
-                            onDragCancel = {
-                                isDragging = false
-                                accumulatedDrag = 0f
-                            },
-                            onDrag = { change, dragAmount ->
-                                change.consume()
-
-                                if (maxScroll > 0f && containerHeight > 0f) {
-                                    accumulatedDrag += dragAmount.y
-                                    val scrollableHeight = containerHeight - thumbHeightPx
-                                    if (scrollableHeight > 0f) {
-                                        // Convert drag pixels to scroll offset
-                                        val dragRatio = accumulatedDrag / scrollableHeight
-                                        val newScrollOffset = (dragStartScrollOffset + dragRatio * maxScroll).coerceIn(0f, maxScroll)
-
-                                        scope.launch {
-                                            adapter.scrollTo(containerSize, newScrollOffset)
-                                        }
-                                    }
-                                }
-                            }
-                        )
-                    }
-            )
         }
     }
 }

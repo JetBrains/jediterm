@@ -425,12 +425,16 @@ fun ProperTerminal(
   }
 
   // Cache cell dimensions and baseline offset (calculated once, reused for all rendering)
+  // Measure a string of 100 characters to get accurate average advance width
+  // This prevents cumulative rounding errors when rendering long lines
   val cellMetrics = remember(measurementStyle) {
-    val measurement = textMeasurer.measure("W", measurementStyle)
-    val width = measurement.size.width.toFloat()
-    val height = measurement.size.height.toFloat()
+    val sampleString = "W".repeat(100)  // 100 characters for precise averaging
+    val measurement = textMeasurer.measure(sampleString, measurementStyle)
+    val width = measurement.size.width.toFloat() / sampleString.length
+    val singleMeasurement = textMeasurer.measure("W", measurementStyle)
+    val height = singleMeasurement.size.height.toFloat()
     // Get baseline offset from top of text bounds
-    val baseline = measurement.firstBaseline
+    val baseline = singleMeasurement.firstBaseline
     Triple(width, height, baseline)
   }
   val cellWidth = cellMetrics.first

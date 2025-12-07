@@ -108,6 +108,7 @@ fun ProperTerminal(
   onPreviousTab: () -> Unit = {},
   onSwitchToTab: (Int) -> Unit = {},
   onNewWindow: () -> Unit = {},  // Cmd/Ctrl+N: New window
+  onShowSettings: () -> Unit = {},  // Open settings window
   menuActions: MenuActions? = null,
   modifier: Modifier = Modifier
 ) {
@@ -742,9 +743,10 @@ fun ProperTerminal(
                   onClearScreen = { clearBuffer() },
                   onClearScrollback = { clearScrollback() },
                   onFind = { searchVisible = true },
-                  onShowDebug = if (debugCollector != null) {
+                  onShowDebug = if (settings.debugModeEnabled) {
                     { debugPanelVisible = !debugPanelVisible }
-                  } else null
+                  } else null,
+                  onShowSettings = onShowSettings
                 )
               } else {
                 showTerminalContextMenu(
@@ -772,9 +774,10 @@ fun ProperTerminal(
                   onClearScreen = { clearBuffer() },
                   onClearScrollback = { clearScrollback() },
                   onFind = { searchVisible = true },
-                  onShowDebug = if (debugCollector != null) {
+                  onShowDebug = if (settings.debugModeEnabled) {
                     { debugPanelVisible = !debugPanelVisible }
-                  } else null
+                  } else null,
+                  onShowSettings = onShowSettings
                 )
               }
               change.consume()

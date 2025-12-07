@@ -290,6 +290,7 @@ fun main() = application {
                         onNewWindow = {
                             WindowManager.createWindow()
                         },
+                        onShowSettings = { showSettingsDialog = true },
                         menuActions = window.menuActions,
                         isWindowFocused = { window.isWindowFocused.value },
                         modifier = Modifier.fillMaxSize().weight(1f)

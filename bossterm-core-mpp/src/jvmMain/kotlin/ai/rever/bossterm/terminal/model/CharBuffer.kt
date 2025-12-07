@@ -79,8 +79,8 @@ open class CharBuffer(buf: CharArray, start: Int, length: Int) : Iterable<Char?>
         return this.buf[this.start + index]
     }
 
-    override fun subSequence(start: Int, end: Int): CharSequence {
-        return CharBuffer(this.buf, this.start + start, end - start)
+    override fun subSequence(startIndex: Int, endIndex: Int): CharSequence {
+        return CharBuffer(this.buf, this.start + startIndex, endIndex - startIndex)
     }
 
     override fun toString(): String {

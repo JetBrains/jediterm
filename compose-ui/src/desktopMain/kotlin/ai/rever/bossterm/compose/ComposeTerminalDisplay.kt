@@ -142,18 +142,18 @@ class ComposeTerminalDisplay : TerminalDisplay {
         _cursorShape.value = cursorShape
     }
 
-    override fun setCursorVisible(visible: Boolean) {
-        if (debugCursor && _cursorVisible.value != visible) {
-            println("👁️  CURSOR VISIBLE: ${_cursorVisible.value} → $visible")
+    override fun setCursorVisible(isCursorVisible: Boolean) {
+        if (debugCursor && _cursorVisible.value != isCursorVisible) {
+            println("👁️  CURSOR VISIBLE: ${_cursorVisible.value} → $isCursorVisible")
         }
-        _cursorVisible.value = visible
+        _cursorVisible.value = isCursorVisible
     }
 
     override fun beep() {
         // No-op for now - could play a system beep sound
     }
 
-    override fun scrollArea(scrollRegionTop: Int, scrollRegionBottom: Int, dy: Int) {
+    override fun scrollArea(scrollRegionTop: Int, scrollRegionSize: Int, dy: Int) {
         // Note: This method is only called for actual scrolling operations (cursor past bottom, etc.)
         // Regular text output is handled by the ModelListener registered on TerminalTextBuffer
         // Smart priority detection: Use IMMEDIATE for interactive use, NORMAL for bulk output
@@ -213,8 +213,8 @@ class ComposeTerminalDisplay : TerminalDisplay {
         return false
     }
 
-    override fun setBracketedPasteMode(enabled: Boolean) {
-        _bracketedPasteMode.value = enabled
+    override fun setBracketedPasteMode(bracketedPasteModeEnabled: Boolean) {
+        _bracketedPasteMode.value = bracketedPasteModeEnabled
     }
 
     override fun onResize(newTermSize: TermSize, origin: RequestOrigin) {

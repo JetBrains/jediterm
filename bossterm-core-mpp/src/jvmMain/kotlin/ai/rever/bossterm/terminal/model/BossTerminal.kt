@@ -219,9 +219,9 @@ class BossTerminal(
         myGraphicSetState.setGR(num)
     }
 
-    override fun designateCharacterSet(tableNumber: Int, charset: Char) {
+    override fun designateCharacterSet(tableNumber: Int, ch: Char) {
         val gs = myGraphicSetState.getGraphicSet(tableNumber)
-        myGraphicSetState.designateGraphicSet(gs, charset)
+        myGraphicSetState.designateGraphicSet(gs, ch)
     }
 
     override fun singleShiftSelect(num: Int) {
@@ -1004,11 +1004,6 @@ class BossTerminal(
                 charset = "ISO-8859-1"
                 sb.append(String.format("\u001b[M%c%c%c", (32 + button).toChar(), (32 + x).toChar(), (32 + y).toChar()))
             }
-
-            else -> {
-                charset = "ISO-8859-1"
-                sb.append(String.format("\u001b[M%c%c%c", (32 + button).toChar(), (32 + x).toChar(), (32 + y).toChar()))
-            }
         }
         LOG.debug(myMouseFormat.toString() + " (" + charset + ") report : " + button + ", " + x + "x" + y + " = " + sb)
         return sb.toString().toByteArray(Charset.forName(charset))
@@ -1320,10 +1315,10 @@ class BossTerminal(
             }
         }
 
-        override fun resize(columns: Int) {
-            if (columns > myWidth) {
+        override fun resize(width: Int) {
+            if (width > myWidth) {
                 var i = myTabLength * (myWidth / myTabLength)
-                while (i < columns) {
+                while (i < width) {
                     if (i >= myWidth) {
                         myTabStops.add(i)
                     }
@@ -1333,13 +1328,13 @@ class BossTerminal(
                 val it = myTabStops.iterator()
                 while (it.hasNext()) {
                     val i = it.next() ?: continue
-                    if (i > columns) {
+                    if (i > width) {
                         it.remove()
                     }
                 }
             }
 
-            myWidth = columns
+            myWidth = width
         }
 
         override fun clearTabStop(position: Int) {

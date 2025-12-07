@@ -27,11 +27,10 @@ class Point {
         y = p.y
     }
 
-    override fun equals(o: Any?): Boolean {
-        if (this === o) return true
-        if (o !is Point) return false
-        val point = o
-        return x == point.x && y == point.y
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Point) return false
+        return x == other.x && y == other.y
     }
 
     override fun hashCode(): Int {

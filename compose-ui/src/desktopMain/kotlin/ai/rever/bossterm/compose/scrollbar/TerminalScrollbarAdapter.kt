@@ -1,6 +1,6 @@
 package ai.rever.bossterm.compose.scrollbar
 
-import androidx.compose.foundation.ScrollbarAdapter
+import androidx.compose.foundation.v2.ScrollbarAdapter
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.remember
@@ -43,8 +43,13 @@ fun rememberTerminalScrollbarAdapter(
 }
 
 /**
- * Internal implementation of ScrollbarAdapter for terminal scrolling.
+ * Internal implementation of ScrollbarAdapter (v2) for terminal scrolling.
  * Converts line-based terminal coordinates to pixel-based scrollbar coordinates.
+ *
+ * V2 API differences:
+ * - Uses Double instead of Float for precision
+ * - contentSize and viewportSize are properties instead of method parameters
+ * - scrollTo only takes scrollOffset (no containerSize parameter)
  */
 private class TerminalScrollbarAdapter(
     private val terminalScrollOffset: State<Int>,
@@ -54,84 +59,62 @@ private class TerminalScrollbarAdapter(
     private val onScroll: (Int) -> Unit
 ) : ScrollbarAdapter {
 
-    // Store the last container size for proportional scaling calculations
-    private var lastContainerSize: Int = 1000  // Default fallback
+    /**
+     * Total content size in pixels (history + screen height).
+     * This represents the full scrollable content area.
+     */
+    override val contentSize: Double
+        get() {
+            val history = max(0, historySize())
+            val screen = max(1, screenHeight())
+            val cellH = cellHeight().toDouble()
+            return (history + screen) * cellH
+        }
+
+    /**
+     * Viewport size in pixels (visible screen area).
+     * This is the height of the terminal's visible area.
+     */
+    override val viewportSize: Double
+        get() {
+            val screen = max(1, screenHeight())
+            val cellH = cellHeight().toDouble()
+            return screen * cellH
+        }
 
     /**
      * Current scroll position in pixels (0.0 = top/max scroll, maxScrollOffset = bottom/no scroll).
      *
      * Converts terminal's scrollOffset (in lines) to scrollbar position (in pixels):
-     * - terminalScrollOffset = 0 (at bottom) → scrollOffset = maxScrollOffset
      * - terminalScrollOffset = historySize (at top) → scrollOffset = 0.0
+     * - terminalScrollOffset = 0 (at bottom) → scrollOffset = maxScrollOffset
      *
-     * When maxScrollOffset is capped for minimum thumb size, this proportionally scales
-     * the scroll position to match the capped range.
+     * maxScrollOffset = contentSize - viewportSize = history * cellHeight
      */
-    override val scrollOffset: Float
+    override val scrollOffset: Double
         get() {
             val offset = terminalScrollOffset.value  // in lines
             val history = max(0, historySize())      // in lines
 
             if (history == 0) {
                 // No scrollback history, always at bottom
-                return 0f
+                return 0.0
             }
 
-            val cellH = cellHeight()
+            val cellH = cellHeight().toDouble()
 
-            // Calculate raw scroll offset in pixels
-            val rawScrollOffset = ((history - offset) * cellH)
-
-            // Get the capped maxScrollOffset using stored container size
-            val minThumbRatio = 0.05f
-            val maxAllowedScroll = lastContainerSize * ((1 / minThumbRatio) - 1)
-            val rawMaxScroll = history * cellH
-            val cappedMaxScroll = minOf(rawMaxScroll, maxAllowedScroll)
-
-            // Scale the scroll offset proportionally if capping was applied
-            val result = if (rawMaxScroll > cappedMaxScroll) {
-                // Capping is active, scale proportionally
-                (rawScrollOffset / rawMaxScroll) * cappedMaxScroll
-            } else {
-                // No capping needed
-                rawScrollOffset
-            }
-
-            return result
+            // Terminal offset is from bottom, scrollbar offset is from top
+            // terminalScrollOffset = 0 means at bottom → scrollOffset = history * cellH (max)
+            // terminalScrollOffset = history means at top → scrollOffset = 0
+            return (history - offset) * cellH
         }
-
-    /**
-     * Maximum scroll offset in pixels (equals history size in lines × cell height).
-     * This represents the scrollbar position when at the bottom of the content.
-     *
-     * Enforces minimum thumb size by capping maxScrollOffset to ensure thumb is at least 5% of container.
-     * Thumb size = containerSize / (maxScrollOffset + containerSize)
-     * For 5% minimum: containerSize / (maxScrollOffset + containerSize) >= 0.05
-     * Solving: maxScrollOffset <= 19 * containerSize
-     */
-    override fun maxScrollOffset(containerSize: Int): Float {
-        // Store container size for use in scrollOffset calculations
-        lastContainerSize = containerSize
-
-        val history = max(0, historySize())  // in lines
-        val cellH = cellHeight()
-        val rawMaxScroll = (history * cellH)
-
-        // Enforce minimum thumb size of 5% by capping maxScrollOffset
-        val minThumbRatio = 0.05f  // 5% minimum thumb size
-        val maxAllowedScroll = containerSize * ((1 / minThumbRatio) - 1)
-        val result = minOf(rawMaxScroll, maxAllowedScroll)
-
-        return result
-    }
 
     /**
      * Update scroll offset when user drags scrollbar thumb.
      *
-     * @param containerSize The size of the scrollbar container in pixels
      * @param scrollOffset New scroll position from scrollbar in pixels (0.0 = top, maxScrollOffset = bottom)
      */
-    override suspend fun scrollTo(containerSize: Int, scrollOffset: Float) {
+    override suspend fun scrollTo(scrollOffset: Double) {
         val history = max(0, historySize())  // in lines
 
         if (history == 0) {
@@ -139,36 +122,21 @@ private class TerminalScrollbarAdapter(
             return
         }
 
-        val cellH = cellHeight()
+        val cellH = cellHeight().toDouble()
         // Guard against division by zero (can happen during initialization or window minimize)
-        if (cellH <= 0f) {
+        if (cellH <= 0.0) {
             onScroll(0)
             return
         }
-        val rawMaxScroll = history * cellH  // Raw maximum scroll in pixels
-
-        // Get the capped maxScrollOffset
-        val minThumbRatio = 0.05f
-        val maxAllowedScroll = containerSize * ((1 / minThumbRatio) - 1)
-        val cappedMaxScroll = minOf(rawMaxScroll, maxAllowedScroll)
-
-        // If capping was applied, we need to scale the scroll offset back to the raw range
-        val actualScrollOffset = if (rawMaxScroll > cappedMaxScroll) {
-            // Capping is active, scale back to raw range
-            (scrollOffset / cappedMaxScroll) * rawMaxScroll
-        } else {
-            // No capping needed
-            scrollOffset
-        }
 
         // Convert pixels to lines:
-        // actualScrollOffset is distance from top in pixels
+        // scrollOffset is distance from top in pixels
         // Divide by cellHeight to get distance from top in lines
-        val linesFromTop = (actualScrollOffset / cellH).toInt()
+        val linesFromTop = (scrollOffset / cellH).toInt()
 
         // terminalOffset is distance FROM BOTTOM, so invert:
-        // When actualScrollOffset = 0 (top) → terminalOffset = history (max scroll up)
-        // When actualScrollOffset = rawMaxScroll (bottom) → terminalOffset = 0 (no scroll)
+        // When scrollOffset = 0 (top) → terminalOffset = history (max scroll up)
+        // When scrollOffset = history * cellH (bottom) → terminalOffset = 0 (no scroll)
         val newTerminalOffset = history - linesFromTop
 
         // Constrain to valid range

@@ -7,6 +7,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -99,7 +101,7 @@ fun TimeSlider(
                 modifier = Modifier.size(32.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Filled.KeyboardArrowLeft,
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                     contentDescription = "Previous snapshot",
                     tint = if (currentIndex > 0) Color.White else Color.Gray
                 )
@@ -126,7 +128,7 @@ fun TimeSlider(
                 modifier = Modifier.size(32.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Filled.KeyboardArrowRight,
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = "Next snapshot",
                     tint = if (currentIndex < totalStates - 1) Color.White else Color.Gray
                 )
@@ -387,7 +389,7 @@ fun DebugStatsView(
                     fontWeight = FontWeight.Bold
                 )
 
-                Divider(color = Color(0xFF3A3A3A), thickness = 1.dp)
+                HorizontalDivider(color = Color(0xFF3A3A3A), thickness = 1.dp)
 
                 Text(
                     text = stats.toDisplayString(),
@@ -411,7 +413,7 @@ fun DebugStatsView(
                         fontWeight = FontWeight.Bold
                     )
 
-                    Divider(color = Color(0xFF3A3A3A), thickness = 1.dp)
+                    HorizontalDivider(color = Color(0xFF3A3A3A), thickness = 1.dp)
 
                     Text(
                         text = snapshotBuilderStats.toString(),

@@ -147,7 +147,7 @@ fun DebugPanel(
                 }
             }
 
-            Divider(color = Color(0xFF3A3A3A), thickness = 1.dp)
+            HorizontalDivider(color = Color(0xFF3A3A3A), thickness = 1.dp)
 
             // Buffer type selector
             Row(

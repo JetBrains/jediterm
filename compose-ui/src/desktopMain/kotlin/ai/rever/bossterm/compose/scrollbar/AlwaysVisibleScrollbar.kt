@@ -31,7 +31,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.ScrollbarAdapter
+import androidx.compose.foundation.v2.ScrollbarAdapter
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -80,18 +80,18 @@ fun AlwaysVisibleScrollbar(
     // Auto-hide state tracking
     var isVisible by remember { mutableStateOf(false) }
     var isDragging by remember { mutableStateOf(false) }
-    var lastScrollOffset by remember { mutableStateOf(0f) }
-    var dragStartScrollOffset by remember { mutableStateOf(0f) }
-    var accumulatedDrag by remember { mutableStateOf(0f) }
+    var lastScrollOffset by remember { mutableStateOf(0.0) }
+    var dragStartScrollOffset by remember { mutableStateOf(0.0) }
+    var accumulatedDrag by remember { mutableStateOf(0.0) }
 
     // Read scroll state directly for zero-lag scroll updates
     // Reading redrawTrigger.value ensures we recompose when terminal content changes (new lines added)
-    val containerSize = containerHeight.toInt()
     val scrollOffset = adapter.scrollOffset
-    val maxScroll = if (containerSize > 0 && redrawTrigger.value >= 0) {
-        adapter.maxScrollOffset(containerSize)
+    // v2 API: maxScrollOffset = contentSize - viewportSize
+    val maxScroll = if (containerHeight > 0f && redrawTrigger.value >= 0) {
+        (adapter.contentSize - adapter.viewportSize).coerceAtLeast(0.0)
     } else {
-        0f
+        0.0
     }
 
     // Detect scroll activity and show scrollbar
@@ -133,12 +133,12 @@ fun AlwaysVisibleScrollbar(
             .alpha(scrollbarAlpha)
     ) {
         // Only render visible scrollbar when there's content to scroll
-        if (containerHeight > 0f && maxScroll > 0f) {
+        if (containerHeight > 0f && maxScroll > 0.0) {
             // Calculate thumb dimensions
             val thumbHeightPx = run {
                 val visibleRatio = containerHeight / (containerHeight + maxScroll)
                 max(
-                    with(LocalDensity.current) { minThumbHeight.toPx() },
+                    with(LocalDensity.current) { minThumbHeight.toPx() }.toDouble(),
                     containerHeight * visibleRatio
                 )
             }
@@ -161,29 +161,29 @@ fun AlwaysVisibleScrollbar(
                                 isDragging = true
                                 isVisible = true
                                 dragStartScrollOffset = adapter.scrollOffset
-                                accumulatedDrag = 0f
+                                accumulatedDrag = 0.0
                             },
                             onDragEnd = {
                                 isDragging = false
-                                accumulatedDrag = 0f
+                                accumulatedDrag = 0.0
                             },
                             onDragCancel = {
                                 isDragging = false
-                                accumulatedDrag = 0f
+                                accumulatedDrag = 0.0
                             },
                             onDrag = { change, dragAmount ->
                                 change.consume()
 
-                                if (maxScroll > 0f && containerHeight > 0f) {
+                                if (maxScroll > 0.0 && containerHeight > 0f) {
                                     accumulatedDrag += dragAmount.y
                                     val scrollableHeight = containerHeight - thumbHeightPx
-                                    if (scrollableHeight > 0f) {
+                                    if (scrollableHeight > 0.0) {
                                         // Convert drag pixels to scroll offset
                                         val dragRatio = accumulatedDrag / scrollableHeight
-                                        val newScrollOffset = (dragStartScrollOffset + dragRatio * maxScroll).coerceIn(0f, maxScroll)
+                                        val newScrollOffset = (dragStartScrollOffset + dragRatio * maxScroll).coerceIn(0.0, maxScroll)
 
                                         scope.launch {
-                                            adapter.scrollTo(containerSize, newScrollOffset)
+                                            adapter.scrollTo(newScrollOffset)
                                         }
                                     }
                                 }
@@ -211,10 +211,10 @@ fun AlwaysVisibleScrollbar(
                                 }
 
                                 // Default: scroll to clicked position
-                                if (maxScroll > 0f) {
+                                if (maxScroll > 0.0) {
                                     val targetScroll = clickedPosition * maxScroll
                                     scope.launch {
-                                        adapter.scrollTo(containerSize, targetScroll)
+                                        adapter.scrollTo(targetScroll)
                                     }
                                 }
                             }
@@ -249,9 +249,9 @@ fun AlwaysVisibleScrollbar(
                 // Thumb (visual only - track handles all pointer events)
                 Box(
                     modifier = Modifier
-                        .offset { IntOffset(0, thumbOffsetPx.roundToInt()) }
+                        .offset { IntOffset(0, thumbOffsetPx.toInt()) }
                         .width(thickness)
-                        .height(with(LocalDensity.current) { thumbHeightPx.toDp() })
+                        .height(with(LocalDensity.current) { thumbHeightPx.toFloat().toDp() })
                         .padding(2.dp)
                         .clip(RoundedCornerShape(4.dp))
                         .background(thumbColor.copy(alpha = thumbAlpha))

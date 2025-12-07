@@ -89,11 +89,12 @@ class DesktopFileSystemService : PlatformServices.FileSystemService {
 class DesktopProcessService : PlatformServices.ProcessService {
     override suspend fun spawnProcess(config: PlatformServices.ProcessService.ProcessConfig): PlatformServices.ProcessService.ProcessHandle? {
         return try {
-            val pty = com.pty4j.PtyProcess.exec(
-                arrayOf(config.command) + config.arguments.toTypedArray(),
-                config.environment,
-                config.workingDirectory ?: System.getProperty("user.home")
-            )
+            val command = arrayOf(config.command) + config.arguments.toTypedArray()
+            val pty = com.pty4j.PtyProcessBuilder()
+                .setCommand(command)
+                .setEnvironment(config.environment)
+                .setDirectory(config.workingDirectory ?: System.getProperty("user.home"))
+                .start()
             PtyProcessHandle(pty)
         } catch (e: Exception) {
             e.printStackTrace()

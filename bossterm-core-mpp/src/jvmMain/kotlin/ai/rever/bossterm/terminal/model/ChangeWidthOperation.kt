@@ -231,11 +231,10 @@ internal class ChangeWidthOperation(
     class TrackingPoint(val x: Int, val y: Int, val forceVisible: Boolean) {
         constructor(p: Point, forceVisible: Boolean) : this(p.x, p.y, forceVisible)
 
-        override fun equals(o: Any?): Boolean {
-            if (this === o) return true
-            if (o !is TrackingPoint) return false
-            val that = o
-            return this.x == that.x && this.y == that.y && this.forceVisible == that.forceVisible
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is TrackingPoint) return false
+            return this.x == other.x && this.y == other.y && this.forceVisible == other.forceVisible
         }
 
         override fun hashCode(): Int {

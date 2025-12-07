@@ -232,6 +232,8 @@ class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
                 // "return true" to avoid logging errors about unhandled sequences;
                 return true
 
+            133 -> return processShellIntegration(args)
+
             8 -> {
                 val uri = args.getStringAt(2)
                 if (uri != null) {
@@ -286,6 +288,49 @@ class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
             }
             myTerminal?.deviceStatusReport(str)
         }
+        return true
+    }
+
+    /**
+     * Handles OSC 133 (FinalTerm/Shell Integration protocol).
+     * Used for command completion notifications.
+     *
+     * Format: ESC]133;X;args...ST
+     * Where X is:
+     * - A: Prompt started (shell ready for input)
+     * - B: Command started (user entered command)
+     * - C: Command output ended
+     * - D;exitcode: Command finished with exit code
+     */
+    private fun processShellIntegration(args: SystemCommandSequence): kotlin.Boolean {
+        val typeStr = args.getStringAt(1)
+        if (typeStr.isNullOrEmpty()) {
+            return false
+        }
+
+        val type = typeStr[0]
+        val additionalArgs = mutableListOf<String>()
+
+        // For type D, extract exit code from remaining args
+        if (type == 'D' && typeStr.length > 1) {
+            // Format might be "D;0" or just "D" with exit code in next arg
+            val exitCodePart = typeStr.substring(1).removePrefix(";")
+            if (exitCodePart.isNotEmpty()) {
+                additionalArgs.add(exitCodePart)
+            }
+        }
+
+        // Also check for exit code in subsequent args (OSC 133;D;0)
+        val exitCodeArg = args.getStringAt(2)
+        if (type == 'D' && exitCodeArg != null && additionalArgs.isEmpty()) {
+            additionalArgs.add(exitCodeArg)
+        }
+
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("OSC 133 shell integration: type=$type, args=$additionalArgs")
+        }
+
+        myTerminal?.processShellIntegration(type, additionalArgs)
         return true
     }
 

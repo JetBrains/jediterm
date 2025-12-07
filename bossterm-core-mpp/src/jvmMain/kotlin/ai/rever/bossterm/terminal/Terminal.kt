@@ -6,6 +6,7 @@ import ai.rever.bossterm.core.util.TermSize
 import ai.rever.bossterm.terminal.emulator.mouse.MouseFormat
 import ai.rever.bossterm.terminal.emulator.mouse.MouseMode
 import ai.rever.bossterm.terminal.model.StyleState
+import ai.rever.bossterm.terminal.model.CommandStateListener
 import ai.rever.bossterm.terminal.model.TerminalApplicationTitleListener
 import ai.rever.bossterm.terminal.model.TerminalResizeListener
 import java.io.UnsupportedEncodingException
@@ -202,4 +203,17 @@ interface Terminal {
     fun removeCustomCommandListener(listener: TerminalCustomCommandListener) {}
 
     fun processCustomCommand(args: MutableList<String?>) {}
+
+    // ===== Shell Integration (OSC 133) =====
+
+    fun addCommandStateListener(listener: CommandStateListener) {}
+
+    fun removeCommandStateListener(listener: CommandStateListener) {}
+
+    /**
+     * Called when shell integration sequence is received (OSC 133).
+     * @param type The sequence type: A (prompt), B (command start), C (output end), D (finished)
+     * @param args Additional arguments (e.g., exit code for type D)
+     */
+    fun processShellIntegration(type: Char, args: List<String>) {}
 }

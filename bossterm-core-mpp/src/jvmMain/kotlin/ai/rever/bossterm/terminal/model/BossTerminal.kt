@@ -82,6 +82,8 @@ class BossTerminal(
         CopyOnWriteArrayList<TerminalApplicationTitleListener>()
     private val myTerminalResizeListeners: MutableList<TerminalResizeListener> =
         CopyOnWriteArrayList<TerminalResizeListener>()
+    private val myCommandStateListeners: MutableList<CommandStateListener> =
+        CopyOnWriteArrayList<CommandStateListener>()
 
     override fun setModeEnabled(mode: TerminalMode?, enabled: Boolean) {
         mode?.let {
@@ -342,6 +344,49 @@ class BossTerminal(
 
     override fun removeResizeListener(listener: TerminalResizeListener) {
         myTerminalResizeListeners.remove(listener)
+    }
+
+    override fun addCommandStateListener(listener: CommandStateListener) {
+        myCommandStateListeners.add(listener)
+    }
+
+    override fun removeCommandStateListener(listener: CommandStateListener) {
+        myCommandStateListeners.remove(listener)
+    }
+
+    /**
+     * Process shell integration sequences (OSC 133 - FinalTerm protocol).
+     * @param type The sequence type: A (prompt), B (command start), C (output end), D (finished)
+     * @param args Additional arguments (e.g., exit code for type D)
+     */
+    override fun processShellIntegration(type: Char, args: List<String>) {
+        when (type) {
+            'A' -> {
+                // Prompt started - shell is ready for input
+                for (listener in myCommandStateListeners) {
+                    listener.onPromptStarted()
+                }
+            }
+            'B' -> {
+                // Command started - user entered command
+                for (listener in myCommandStateListeners) {
+                    listener.onCommandStarted()
+                }
+            }
+            'C' -> {
+                // Command output ended
+                for (listener in myCommandStateListeners) {
+                    listener.onCommandOutputEnded()
+                }
+            }
+            'D' -> {
+                // Command finished with exit code
+                val exitCode = args.firstOrNull()?.toIntOrNull() ?: 0
+                for (listener in myCommandStateListeners) {
+                    listener.onCommandFinished(exitCode)
+                }
+            }
+        }
     }
 
     override val windowForeground: Color?

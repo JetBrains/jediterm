@@ -322,7 +322,40 @@ data class TerminalSettings(
      * {tab} - Tab ID (first 8 chars)
      * {pid} - Process ID
      */
-    val fileLoggingPattern: String = "bossterm_{timestamp}_{tab}.log"
+    val fileLoggingPattern: String = "bossterm_{timestamp}_{tab}.log",
+
+    // ===== Notification Settings =====
+
+    /**
+     * Enable command completion notifications when window is not focused.
+     * Requires shell integration (OSC 133) to detect command completion.
+     */
+    val notifyOnCommandComplete: Boolean = true,
+
+    /**
+     * Minimum command duration in seconds to trigger notification.
+     * Commands finishing faster than this threshold won't trigger notifications.
+     * Default: 5 seconds (similar to iTerm2)
+     */
+    val notifyMinDurationSeconds: Int = 5,
+
+    /**
+     * Include command exit code in notification.
+     * When true, shows "Command finished (exit 0)" vs just "Command finished"
+     */
+    val notifyShowExitCode: Boolean = true,
+
+    /**
+     * Play notification sound.
+     * When true, uses system default notification sound.
+     */
+    val notifyWithSound: Boolean = true,
+
+    /**
+     * Whether notification permission has been requested.
+     * On first launch, a welcome notification is sent to trigger macOS permission dialog.
+     */
+    val notificationPermissionRequested: Boolean = false
 ) {
     // Non-serialized computed properties
 

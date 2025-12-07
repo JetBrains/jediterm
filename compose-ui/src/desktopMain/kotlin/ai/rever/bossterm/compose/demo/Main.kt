@@ -1,6 +1,9 @@
 package ai.rever.bossterm.compose.demo
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
@@ -11,6 +14,10 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import ai.rever.bossterm.compose.TabbedTerminal
 import ai.rever.bossterm.compose.menu.MenuActions
+import ai.rever.bossterm.compose.update.UpdateBanner
+import ai.rever.bossterm.compose.update.UpdateManager
+import ai.rever.bossterm.compose.update.UpdateState
+import kotlinx.coroutines.launch
 import java.util.UUID
 
 /**
@@ -65,6 +72,22 @@ fun main() = application {
                 state = windowState,
                 title = window.title.value
             ) {
+                // Update manager state
+                val updateManager = remember { UpdateManager.instance }
+                val updateState by updateManager.updateState.collectAsState()
+                val scope = rememberCoroutineScope()
+
+                // Check for updates on first window launch
+                var hasCheckedForUpdates by remember { mutableStateOf(false) }
+                LaunchedEffect(Unit) {
+                    if (!hasCheckedForUpdates) {
+                        hasCheckedForUpdates = true
+                        if (updateManager.shouldCheckForUpdates()) {
+                            updateManager.checkForUpdates()
+                        }
+                    }
+                }
+
                 // Menu bar
                 MenuBar {
                     Menu("File", mnemonic = 'F') {
@@ -152,24 +175,61 @@ fun main() = application {
                             shortcut = KeyShortcut(Key.Tab, ctrl = true, shift = true)
                         )
                     }
+
+                    Menu("Help", mnemonic = 'H') {
+                        Item(
+                            "Check for Updates...",
+                            onClick = {
+                                scope.launch {
+                                    updateManager.checkForUpdates()
+                                }
+                            }
+                        )
+                    }
                 }
 
-                TabbedTerminal(
-                    onExit = {
-                        WindowManager.closeWindow(window.id)
-                        if (!WindowManager.hasWindows()) {
-                            exitApplication()
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // Update banner (shows when update is available)
+                    UpdateBanner(
+                        updateState = updateState,
+                        onCheckForUpdates = {
+                            scope.launch {
+                                updateManager.checkForUpdates()
+                            }
+                        },
+                        onDownloadUpdate = { updateInfo ->
+                            scope.launch {
+                                updateManager.downloadUpdate(updateInfo)
+                            }
+                        },
+                        onInstallUpdate = { downloadPath ->
+                            scope.launch {
+                                updateManager.installUpdate(downloadPath)
+                            }
+                        },
+                        onDismiss = {
+                            updateManager.resetState()
                         }
-                    },
-                    onWindowTitleChange = { newTitle ->
-                        window.title.value = newTitle
-                    },
-                    onNewWindow = {
-                        WindowManager.createWindow()
-                    },
-                    menuActions = window.menuActions,
-                    modifier = Modifier.fillMaxSize()
-                )
+                    )
+
+                    // Terminal content
+                    TabbedTerminal(
+                        onExit = {
+                            WindowManager.closeWindow(window.id)
+                            if (!WindowManager.hasWindows()) {
+                                exitApplication()
+                            }
+                        },
+                        onWindowTitleChange = { newTitle ->
+                            window.title.value = newTitle
+                        },
+                        onNewWindow = {
+                            WindowManager.createWindow()
+                        },
+                        menuActions = window.menuActions,
+                        modifier = Modifier.fillMaxSize().weight(1f)
+                    )
+                }
             }
         }
     }

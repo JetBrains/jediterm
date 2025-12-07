@@ -33,15 +33,12 @@ import androidx.compose.ui.window.DialogWindow
 import androidx.compose.ui.window.rememberDialogState
 import kotlin.math.max
 import kotlin.math.min
-
-// UI Constants - aligned with TabBar.kt theme
-private val SurfaceColor = Color(0xFF2B2B2B)
-private val BackgroundColor = Color(0xFF1E1E1E)
-private val AccentColor = Color(0xFF4A90E2)
-private val BorderColor = Color(0xFF404040)
-private val TextPrimary = Color.White
-private val TextSecondary = Color(0xFFB0B0B0)
-private val TextMuted = Color(0xFF707070)
+import ai.rever.bossterm.compose.settings.SettingsTheme.AccentColor
+import ai.rever.bossterm.compose.settings.SettingsTheme.BackgroundColor
+import ai.rever.bossterm.compose.settings.SettingsTheme.BorderColor
+import ai.rever.bossterm.compose.settings.SettingsTheme.SurfaceColor
+import ai.rever.bossterm.compose.settings.SettingsTheme.TextPrimary
+import ai.rever.bossterm.compose.settings.SettingsTheme.TextSecondary
 
 /**
  * HSV color picker dialog.

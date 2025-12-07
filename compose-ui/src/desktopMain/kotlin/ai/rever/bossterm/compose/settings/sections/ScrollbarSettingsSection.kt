@@ -7,7 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ai.rever.bossterm.compose.settings.TerminalSettings
-import ai.rever.bossterm.compose.settings.TerminalSettings.Companion.toHexString
+import ai.rever.bossterm.compose.settings.toSettingsHex
 import ai.rever.bossterm.compose.settings.components.*
 
 /**
@@ -55,7 +55,7 @@ fun ScrollbarSettingsSection(
             ColorSetting(
                 label = "Track Color",
                 color = settings.scrollbarColorValue,
-                onColorChange = { onSettingsChange(settings.copy(scrollbarColor = it.toHexString())) },
+                onColorChange = { onSettingsChange(settings.copy(scrollbarColor = it.toSettingsHex())) },
                 description = "Scrollbar background track",
                 enabled = settings.showScrollbar
             )
@@ -63,7 +63,7 @@ fun ScrollbarSettingsSection(
             ColorSetting(
                 label = "Thumb Color",
                 color = settings.scrollbarThumbColorValue,
-                onColorChange = { onSettingsChange(settings.copy(scrollbarThumbColor = it.toHexString())) },
+                onColorChange = { onSettingsChange(settings.copy(scrollbarThumbColor = it.toSettingsHex())) },
                 description = "Scrollbar handle",
                 enabled = settings.showScrollbar
             )
@@ -84,7 +84,7 @@ fun ScrollbarSettingsSection(
             ColorSetting(
                 label = "Marker Color",
                 color = settings.searchMarkerColorValue,
-                onColorChange = { onSettingsChange(settings.copy(searchMarkerColor = it.toHexString())) },
+                onColorChange = { onSettingsChange(settings.copy(searchMarkerColor = it.toSettingsHex())) },
                 description = "Search match indicator",
                 enabled = settings.showScrollbar && settings.showSearchMarkersInScrollbar
             )
@@ -92,7 +92,7 @@ fun ScrollbarSettingsSection(
             ColorSetting(
                 label = "Current Match Color",
                 color = settings.currentSearchMarkerColorValue,
-                onColorChange = { onSettingsChange(settings.copy(currentSearchMarkerColor = it.toHexString())) },
+                onColorChange = { onSettingsChange(settings.copy(currentSearchMarkerColor = it.toSettingsHex())) },
                 description = "Current match indicator",
                 enabled = settings.showScrollbar && settings.showSearchMarkersInScrollbar
             )

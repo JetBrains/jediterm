@@ -422,6 +422,7 @@ class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
             '@' -> return insertBlankCharacters(args) //ICH
             'A' -> return cursorUp(args) //CUU
             'B' -> return cursorDown(args) //CUD
+            'b' -> return repeatPrecedingCharacter(args) //REP
             'C' -> return cursorForward(args) //CUF
             'D' -> return cursorBackward(args) //CUB
             'E' -> return cursorNextLine(args) //CNL
@@ -985,6 +986,16 @@ class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
 
         myTerminal?.deleteCharacters(arg)
 
+        return true
+    }
+
+    /**
+     * REP - Repeat the preceding graphic character Ps times.
+     * CSI Ps b
+     */
+    private fun repeatPrecedingCharacter(args: ControlSequence): kotlin.Boolean {
+        val count = args.getArg(0, 1)
+        myTerminal?.repeatPrecedingCharacter(count)
         return true
     }
 

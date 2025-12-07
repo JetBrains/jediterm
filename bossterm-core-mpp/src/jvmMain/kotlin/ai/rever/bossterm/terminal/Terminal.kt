@@ -41,6 +41,12 @@ interface Terminal {
 
     fun writeCharacters(string: String?)
 
+    /**
+     * REP - Repeat the preceding graphic character count times.
+     * CSI Ps b
+     */
+    fun repeatPrecedingCharacter(count: Int)
+
     fun distanceToLineEnd(): Int
 
     fun reverseIndex()

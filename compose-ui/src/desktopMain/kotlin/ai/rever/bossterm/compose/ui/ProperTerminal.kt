@@ -49,7 +49,7 @@ import ai.rever.bossterm.compose.PreConnectScreen
 import ai.rever.bossterm.compose.actions.addTabManagementActions
 import ai.rever.bossterm.compose.actions.createBuiltinActions
 import ai.rever.bossterm.compose.menu.MenuActions
-import ai.rever.bossterm.compose.debug.DebugPanel
+import ai.rever.bossterm.compose.debug.DebugWindow
 import ai.rever.bossterm.compose.features.ContextMenuController
 import ai.rever.bossterm.compose.features.ContextMenuPopup
 import ai.rever.bossterm.compose.features.showHyperlinkContextMenu
@@ -108,6 +108,7 @@ fun ProperTerminal(
   onPreviousTab: () -> Unit = {},
   onSwitchToTab: (Int) -> Unit = {},
   onNewWindow: () -> Unit = {},  // Cmd/Ctrl+N: New window
+  onShowSettings: () -> Unit = {},  // Open settings window
   menuActions: MenuActions? = null,
   modifier: Modifier = Modifier
 ) {
@@ -742,9 +743,10 @@ fun ProperTerminal(
                   onClearScreen = { clearBuffer() },
                   onClearScrollback = { clearScrollback() },
                   onFind = { searchVisible = true },
-                  onShowDebug = if (debugCollector != null) {
+                  onShowDebug = if (settings.debugModeEnabled) {
                     { debugPanelVisible = !debugPanelVisible }
-                  } else null
+                  } else null,
+                  onShowSettings = onShowSettings
                 )
               } else {
                 showTerminalContextMenu(
@@ -772,9 +774,10 @@ fun ProperTerminal(
                   onClearScreen = { clearBuffer() },
                   onClearScrollback = { clearScrollback() },
                   onFind = { searchVisible = true },
-                  onShowDebug = if (debugCollector != null) {
+                  onShowDebug = if (settings.debugModeEnabled) {
                     { debugPanelVisible = !debugPanelVisible }
-                  } else null
+                  } else null,
+                  onShowSettings = onShowSettings
                 )
               }
               change.consume()
@@ -1371,20 +1374,11 @@ fun ProperTerminal(
           modifier = Modifier.align(Alignment.TopEnd)
         )
 
-        // Debug panel UI (bottom overlay)
-        DebugPanel(
-          visible = debugPanelVisible,
-          collector = debugCollector,
-          textBuffer = textBuffer,
-          onClose = { debugPanelVisible = false },
-          modifier = Modifier.align(Alignment.BottomCenter)
-        )
-
-        // Restore focus to terminal when debug panel closes
+        // Restore focus to terminal when debug window closes
         LaunchedEffect(debugPanelVisible) {
           if (!debugPanelVisible) {
-            // Panel just closed - restore focus to terminal
-            kotlinx.coroutines.delay(50)  // Let DebugPanel unmount first
+            // Window just closed - restore focus to terminal
+            kotlinx.coroutines.delay(50)
             focusRequester.requestFocus()
           }
         }
@@ -1433,6 +1427,14 @@ fun ProperTerminal(
 
     // Context menu popup
     ContextMenuPopup(controller = contextMenuController)
+
+    // Debug window (separate window)
+    DebugWindow(
+      visible = debugPanelVisible,
+      collector = debugCollector,
+      textBuffer = textBuffer,
+      onClose = { debugPanelVisible = false }
+    )
 
     DisposableEffect(Unit) {
       onDispose {

@@ -393,14 +393,20 @@ data class TerminalSettings(
         val DEFAULT = TerminalSettings()
 
         /**
-         * Convert Color to hex string for serialization
+         * Convert Color to hex string for serialization (0xAARRGGBB format)
          */
-        fun Color.toHexString(): String {
-            val argb = (this.alpha * 255).toInt().shl(24) or
-                       (this.red * 255).toInt().shl(16) or
-                       (this.green * 255).toInt().shl(8) or
-                       (this.blue * 255).toInt()
+        fun colorToHex(color: Color): String {
+            val argb = (color.alpha * 255).toInt().shl(24) or
+                       (color.red * 255).toInt().shl(16) or
+                       (color.green * 255).toInt().shl(8) or
+                       (color.blue * 255).toInt()
             return "0x${argb.toUInt().toString(16).uppercase().padStart(8, '0')}"
         }
     }
 }
+
+/**
+ * Extension function to convert Color to settings hex string (0xAARRGGBB format).
+ * This is a top-level extension so it can be properly imported and used.
+ */
+fun Color.toSettingsHex(): String = TerminalSettings.colorToHex(this)

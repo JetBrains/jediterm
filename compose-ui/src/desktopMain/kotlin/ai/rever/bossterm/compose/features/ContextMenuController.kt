@@ -85,7 +85,8 @@ fun createTerminalContextMenuItems(
     onClearScreen: () -> Unit,
     onClearScrollback: () -> Unit,
     onFind: () -> Unit,
-    onShowDebug: (() -> Unit)? = null
+    onShowDebug: (() -> Unit)? = null,
+    onShowSettings: (() -> Unit)? = null
 ): List<ContextMenuController.MenuItem> {
     val baseItems = listOf(
         ContextMenuController.MenuItem(
@@ -126,15 +127,33 @@ fun createTerminalContextMenuItems(
         )
     )
 
-    // Add debug panel option if callback provided
-    return if (onShowDebug != null) {
-        baseItems + listOf(
+    // Add extra options section
+    val extraItems = mutableListOf<ContextMenuController.MenuItem>()
+
+    if (onShowSettings != null || onShowDebug != null) {
+        extraItems.add(
             ContextMenuController.MenuItem(
-                id = "separator_debug",
+                id = "separator_extra",
                 label = "",
                 enabled = false,
                 action = {}
-            ),
+            )
+        )
+    }
+
+    if (onShowSettings != null) {
+        extraItems.add(
+            ContextMenuController.MenuItem(
+                id = "show_settings",
+                label = "Settings...",
+                enabled = true,
+                action = onShowSettings
+            )
+        )
+    }
+
+    if (onShowDebug != null) {
+        extraItems.add(
             ContextMenuController.MenuItem(
                 id = "show_debug",
                 label = "Show Debug Panel",
@@ -142,9 +161,9 @@ fun createTerminalContextMenuItems(
                 action = onShowDebug
             )
         )
-    } else {
-        baseItems
     }
+
+    return baseItems + extraItems
 }
 
 /**
@@ -161,7 +180,8 @@ fun showTerminalContextMenu(
     onClearScreen: () -> Unit,
     onClearScrollback: () -> Unit,
     onFind: () -> Unit,
-    onShowDebug: (() -> Unit)? = null
+    onShowDebug: (() -> Unit)? = null,
+    onShowSettings: (() -> Unit)? = null
 ) {
     val items = createTerminalContextMenuItems(
         hasSelection = hasSelection,
@@ -171,7 +191,8 @@ fun showTerminalContextMenu(
         onClearScreen = onClearScreen,
         onClearScrollback = onClearScrollback,
         onFind = onFind,
-        onShowDebug = onShowDebug
+        onShowDebug = onShowDebug,
+        onShowSettings = onShowSettings
     )
     controller.showMenu(x, y, items)
 }
@@ -223,7 +244,8 @@ fun showHyperlinkContextMenu(
     onClearScreen: () -> Unit,
     onClearScrollback: () -> Unit,
     onFind: () -> Unit,
-    onShowDebug: (() -> Unit)? = null
+    onShowDebug: (() -> Unit)? = null,
+    onShowSettings: (() -> Unit)? = null
 ) {
     val hyperlinkItems = createHyperlinkContextMenuItems(
         url = url,
@@ -238,7 +260,8 @@ fun showHyperlinkContextMenu(
         onClearScreen = onClearScreen,
         onClearScrollback = onClearScrollback,
         onFind = onFind,
-        onShowDebug = onShowDebug
+        onShowDebug = onShowDebug,
+        onShowSettings = onShowSettings
     )
     controller.showMenu(x, y, hyperlinkItems + terminalItems)
 }

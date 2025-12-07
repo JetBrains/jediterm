@@ -50,6 +50,7 @@ fun TabbedTerminal(
     onExit: () -> Unit,
     onWindowTitleChange: (String) -> Unit = {},
     onNewWindow: () -> Unit = {},
+    onShowSettings: () -> Unit = {},
     menuActions: MenuActions? = null,
     isWindowFocused: () -> Boolean = { true },
     modifier: Modifier = Modifier
@@ -160,6 +161,7 @@ fun TabbedTerminal(
                     }
                 },
                 onNewWindow = onNewWindow,
+                onShowSettings = onShowSettings,
                 menuActions = menuActions,
                 modifier = Modifier.fillMaxSize()
             )

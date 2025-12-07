@@ -209,16 +209,12 @@ class TabController(
         // Create emulator with terminal
         val emulator = BossEmulator(dataStream, terminal)
 
-        // Create debug collector if enabled (before tab creation to avoid circular dependency)
-        val debugCollector = if (settings.debugModeEnabled) {
-            ai.rever.bossterm.compose.debug.DebugDataCollector(
-                tab = null,  // Will be set after tab creation
-                maxChunks = settings.debugMaxChunks,
-                maxSnapshots = settings.debugMaxSnapshots
-            )
-        } else {
-            null
-        }
+        // Always create debug collector (so it's available when user enables debug mode in settings)
+        val debugCollector = ai.rever.bossterm.compose.debug.DebugDataCollector(
+            tab = null,  // Will be set after tab creation
+            maxChunks = settings.debugMaxChunks,
+            maxSnapshots = settings.debugMaxSnapshots
+        )
 
         // Create type-ahead model and manager if enabled
         val typeAheadModel = if (settings.typeAheadEnabled) {
@@ -423,15 +419,12 @@ class TabController(
 
         val emulator = BossEmulator(dataStream, terminal)
 
-        val debugCollector = if (settings.debugModeEnabled) {
-            ai.rever.bossterm.compose.debug.DebugDataCollector(
-                tab = null,
-                maxChunks = settings.debugMaxChunks,
-                maxSnapshots = settings.debugMaxSnapshots
-            )
-        } else {
-            null
-        }
+        // Always create debug collector (so it's available when user enables debug mode in settings)
+        val debugCollector = ai.rever.bossterm.compose.debug.DebugDataCollector(
+            tab = null,
+            maxChunks = settings.debugMaxChunks,
+            maxSnapshots = settings.debugMaxSnapshots
+        )
 
         val tabCoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 

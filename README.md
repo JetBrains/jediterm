@@ -1,10 +1,33 @@
 # BossTerm
 
 [![CI](https://github.com/kshivang/BossTerm/actions/workflows/test.yml/badge.svg)](https://github.com/kshivang/BossTerm/actions/workflows/test.yml)
+[![Release](https://github.com/kshivang/BossTerm/actions/workflows/release.yml/badge.svg)](https://github.com/kshivang/BossTerm/releases)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.risa-labs-inc/bossterm-core)](https://central.sonatype.com/namespace/io.github.risa-labs-inc)
 
 A modern terminal emulator built with **Kotlin** and **Compose Desktop**.
 
 BossTerm is a high-performance terminal emulator designed for developers who want a fast, customizable, and feature-rich terminal experience on macOS, Linux, and Windows.
+
+## Installation
+
+### macOS (Homebrew)
+
+```bash
+brew tap kshivang/bossterm
+brew install --cask bossterm
+```
+
+### macOS (DMG)
+
+Download the latest DMG from [GitHub Releases](https://github.com/kshivang/BossTerm/releases) and drag BossTerm to Applications.
+
+### Build from Source
+
+```bash
+git clone https://github.com/kshivang/BossTerm.git
+cd BossTerm
+./gradlew :compose-ui:run
+```
 
 ## Features
 
@@ -22,34 +45,6 @@ BossTerm is a high-performance terminal emulator designed for developers who wan
 - **Debug Tools** - Built-in terminal debugging with Ctrl+Shift+D
 - **OSC 7 Support** - Working directory tracking for new tabs
 - **Customizable** - JSON-based settings at `~/.bossterm/settings.json`
-
-## Quick Start
-
-### Prerequisites
-
-- JDK 17 or later
-- macOS, Linux, or Windows
-
-### Build & Run
-
-```bash
-# Clone the repository
-git clone https://github.com/kshivang/BossTerm.git
-cd BossTerm
-
-# Run the terminal
-./gradlew :compose-ui:run
-```
-
-### Build Distribution
-
-```bash
-# Create DMG for macOS (includes automatic code signing)
-./gradlew :compose-ui:packageDmg
-
-# Or create distributable for current OS
-./gradlew :compose-ui:packageDistributionForCurrentOS
-```
 
 ## Keyboard Shortcuts
 
@@ -119,7 +114,72 @@ Settings are stored in `~/.bossterm/settings.json`:
 
 ## Embedding in Your App
 
-BossTerm provides a simple API for embedding a terminal in your Compose Desktop application:
+BossTerm provides embeddable terminal libraries for Kotlin Multiplatform projects.
+
+### Gradle Setup
+
+**Maven Central** (recommended):
+
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.risa-labs-inc/bossterm-core)](https://central.sonatype.com/namespace/io.github.risa-labs-inc)
+
+```kotlin
+// build.gradle.kts
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Core terminal emulation engine
+    implementation("io.github.risa-labs-inc:bossterm-core:<version>")
+
+    // Compose Desktop UI component
+    implementation("io.github.risa-labs-inc:bossterm-compose:<version>")
+}
+```
+
+**JitPack** (alternative):
+
+[![JitPack](https://jitpack.io/v/kshivang/BossTerm.svg)](https://jitpack.io/#kshivang/BossTerm)
+
+```kotlin
+// settings.gradle.kts
+dependencyResolutionManagement {
+    repositories {
+        maven { url = uri("https://jitpack.io") }
+    }
+}
+
+// build.gradle.kts
+dependencies {
+    implementation("com.github.kshivang.BossTerm:bossterm-core-mpp:<version>")
+    implementation("com.github.kshivang.BossTerm:compose-ui:<version>")
+}
+```
+
+**GitHub Packages** (requires authentication):
+
+```kotlin
+// settings.gradle.kts
+dependencyResolutionManagement {
+    repositories {
+        maven {
+            url = uri("https://maven.pkg.github.com/kshivang/BossTerm")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR")
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
+}
+
+// build.gradle.kts
+dependencies {
+    implementation("io.github.risa-labs-inc:bossterm-core:<version>")
+    implementation("io.github.risa-labs-inc:bossterm-compose:<version>")
+}
+```
+
+### Usage
 
 ```kotlin
 import ai.rever.bossterm.compose.EmbeddableTerminal

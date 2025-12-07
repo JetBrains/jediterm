@@ -13,15 +13,9 @@ kotlin {
     jvmToolchain(17)
     jvm()
     androidTarget()
-    iosX64()
-    iosArm64()
-    iosSimulatorArm64()
-    js(IR) {
-        browser()
-    }
-    wasmJs {
-        browser()
-    }
+
+    // Note: iOS, JS, and Wasm targets are not yet implemented
+    // They can be added when actual source implementations exist
 
     sourceSets {
         val commonMain by getting {

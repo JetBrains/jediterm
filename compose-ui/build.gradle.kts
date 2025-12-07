@@ -1,5 +1,4 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
 import java.util.Properties
 import com.vanniktech.maven.publish.SonatypeHost
 import com.vanniktech.maven.publish.KotlinMultiplatform
@@ -20,7 +19,6 @@ plugins {
     kotlin("multiplatform")
     id("org.jetbrains.compose")
     id("org.jetbrains.kotlin.plugin.compose")
-    id("com.android.library")
     kotlin("plugin.serialization") version "2.1.0"
     id("com.vanniktech.maven.publish")
 }
@@ -37,29 +35,9 @@ repositories {
 kotlin {
     jvmToolchain(17)
 
-    // Android target
-    androidTarget {
-        compilations.all {
-            compileTaskProvider.configure {
-                compilerOptions {
-                    jvmTarget.set(JvmTarget.JVM_17)
-                }
-            }
-        }
-        publishLibraryVariants("release")
-    }
-
-    // iOS targets
-    listOf(
-        iosX64(),
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
-        iosTarget.binaries.framework {
-            baseName = "BossTermCompose"
-            isStatic = true
-        }
-    }
+    // Note: Android target removed from compose-ui - no androidMain source set exists
+    // The core library (bossterm-core-mpp) supports Android
+    // compose-ui is Desktop-only for now
 
     // Desktop JVM target
     jvm("desktop") {
@@ -72,25 +50,8 @@ kotlin {
         }
     }
 
-    // Web targets
-    js(IR) {
-        browser {
-            commonWebpackConfig {
-                outputFileName = "bossterm-compose.js"
-            }
-        }
-        binaries.executable()
-    }
-
-    @OptIn(ExperimentalWasmDsl::class)
-    wasmJs {
-        browser {
-            commonWebpackConfig {
-                outputFileName = "bossterm-compose.wasm.js"
-            }
-        }
-        binaries.executable()
-    }
+    // Note: JS and Wasm targets removed - no actual implementation exists yet
+    // Can be added when jsMain/wasmJsMain source sets are implemented
 
     sourceSets {
         // Common source sets
@@ -122,17 +83,6 @@ kotlin {
             }
         }
 
-        // Android source set
-        val androidMain by getting {
-            dependencies {
-                implementation(project(":bossterm-core-mpp"))
-                implementation("androidx.activity:activity-compose:1.9.3")
-                implementation("androidx.appcompat:appcompat:1.7.0")
-                implementation("androidx.core:core-ktx:1.15.0")
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
-            }
-        }
-
         // Desktop source set
         val desktopMain by getting {
             dependencies {
@@ -144,39 +94,11 @@ kotlin {
         }
 
         val desktopTest by getting
-
-        // JS source set
-        val jsMain by getting {
-            dependencies {
-                implementation(compose.html.core)
-            }
-        }
-
-        // Wasm source set
-        val wasmJsMain by getting {
-            dependencies {
-                implementation(compose.runtime)
-            }
-        }
     }
 }
 
-android {
-    namespace = "ai.rever.bossterm.compose"
-    compileSdk = 34
-
-    defaultConfig {
-        minSdk = 24
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
-    sourceSets["main"].res.srcDirs("src/androidMain/resources")
-}
+// Note: Android configuration removed - compose-ui is Desktop-only
+// See bossterm-core-mpp for Android support
 
 compose.desktop {
     application {
@@ -229,10 +151,6 @@ compose.desktop {
     }
 }
 
-compose.experimental {
-    web.application {}
-}
-
 // Note: macOS code signing is now handled by Compose Desktop's built-in signing configuration
 // See macOS { signing { ... } } block above
 
@@ -246,7 +164,6 @@ mavenPublishing {
     configure(KotlinMultiplatform(
         javadocJar = JavadocJar.Empty(),
         sourcesJar = true,
-        androidVariantsToPublish = listOf("release"),
     ))
 
     pom {

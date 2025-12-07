@@ -5,4 +5,4 @@ build/
 .idea/
 .kotlin/
 local.properties
-compose-ui/hs_err_pid22630.log
+*/hs_err_pid*.log

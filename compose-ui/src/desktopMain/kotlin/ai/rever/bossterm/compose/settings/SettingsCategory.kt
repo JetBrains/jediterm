@@ -23,10 +23,9 @@ enum class SettingsCategory(
         icon = Icons.Default.Build,
         description = "Mouse, keyboard, and interaction"
     ),
-    @Suppress("DEPRECATION")
     SCROLLBAR(
         displayName = "Scrollbar",
-        icon = Icons.Default.List,
+        icon = Icons.Default.Menu,
         description = "Scrollbar appearance and markers"
     ),
     PERFORMANCE(

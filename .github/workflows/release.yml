@@ -1,0 +1,269 @@
+name: Release Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_increment:
+        description: 'Version increment type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      create_release:
+        description: 'Create GitHub release'
+        required: true
+        default: true
+        type: boolean
+  push:
+    tags:
+      - 'v*.*.*'
+
+env:
+  JAVA_VERSION: '17'
+  JAVA_DISTRIBUTION: 'temurin'
+  GRADLE_OPTS: '-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true -Dorg.gradle.caching=true'
+
+jobs:
+  prepare-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+      updated-sha: ${{ steps.commit-version.outputs.updated-sha }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Increment Version (Manual Trigger)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          # Read current version
+          MAJOR=$(grep "^app.version.major=" version.properties | cut -d'=' -f2)
+          MINOR=$(grep "^app.version.minor=" version.properties | cut -d'=' -f2)
+          PATCH=$(grep "^app.version.patch=" version.properties | cut -d'=' -f2)
+          BUILD=$(grep "^app.build.number=" version.properties | cut -d'=' -f2)
+
+          echo "Current version: $MAJOR.$MINOR.$PATCH (build $BUILD)"
+
+          # Increment based on input
+          case "${{ github.event.inputs.version_increment }}" in
+            "patch")
+              PATCH=$((PATCH + 1))
+              ;;
+            "minor")
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            "major")
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+          esac
+
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          NEW_BUILD=$((BUILD + 1))
+          TODAY=$(date +%Y-%m-%d)
+
+          echo "New version: $NEW_VERSION (build $NEW_BUILD)"
+
+          # Update version.properties
+          cat > version.properties << EOF
+          # BossTerm Version Configuration
+          # Auto-managed by CI/CD - do not edit manually
+
+          app.version.major=$MAJOR
+          app.version.minor=$MINOR
+          app.version.patch=$PATCH
+          app.version=$NEW_VERSION
+          app.build.number=$NEW_BUILD
+          app.build.date=$TODAY
+          app.release.channel=stable
+          EOF
+
+      - name: Commit Version Changes
+        id: commit-version
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet version.properties; then
+            echo "No version changes to commit"
+            echo "updated-sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+          else
+            NEW_VERSION=$(grep "^app.version=" version.properties | cut -d'=' -f2)
+            git add version.properties
+            git commit -m "Bump version to $NEW_VERSION"
+            git push
+
+            NEW_SHA=$(git rev-parse HEAD)
+            echo "updated-sha=$NEW_SHA" >> $GITHUB_OUTPUT
+            echo "Version committed: $NEW_VERSION"
+          fi
+
+      - name: Get Version
+        id: get-version
+        run: |
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG_VERSION="${{ github.ref }}"
+            TAG_VERSION="${TAG_VERSION#refs/tags/v}"
+            echo "version=$TAG_VERSION" >> $GITHUB_OUTPUT
+          else
+            VERSION=$(grep "^app.version=" version.properties | cut -d'=' -f2)
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          fi
+
+  build-macos:
+    needs: prepare-version
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.prepare-version.outputs.updated-sha }}
+
+      - name: Setup JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: false
+
+      - name: Setup macOS Code Signing
+        run: |
+          if [[ -n "${{ secrets.MACOS_P12_CERTIFICATE }}" ]]; then
+            echo "Setting up macOS code signing..."
+
+            # Decode and install P12 certificate
+            echo "${{ secrets.MACOS_P12_CERTIFICATE }}" | base64 --decode > certificate.p12
+
+            # Create temporary keychain
+            security create-keychain -p temp_password build_keychain
+            security default-keychain -s build_keychain
+            security unlock-keychain -p temp_password build_keychain
+            security set-keychain-settings -lut 3600 build_keychain
+
+            # Import certificate
+            security import certificate.p12 -k build_keychain -P "${{ secrets.MACOS_P12_PASSWORD }}" -T /usr/bin/codesign -T /usr/bin/security
+            security set-key-partition-list -S apple-tool:,apple: -s -k temp_password build_keychain
+            security list-keychains -s build_keychain
+
+            rm certificate.p12
+
+            echo "MACOS_DEVELOPER_ID=${{ secrets.MACOS_DEVELOPER_ID }}" >> $GITHUB_ENV
+            echo "DISABLE_MACOS_SIGNING=false" >> $GITHUB_ENV
+
+            security find-identity -v -p codesigning build_keychain
+          else
+            echo "No P12 certificate found, creating unsigned build"
+            echo "DISABLE_MACOS_SIGNING=true" >> $GITHUB_ENV
+          fi
+
+      - name: Update build.gradle.kts Version
+        run: |
+          VERSION="${{ needs.prepare-version.outputs.version }}"
+
+          # Update packageVersion in build.gradle.kts
+          sed -i '' "s/packageVersion = \"[^\"]*\"/packageVersion = \"$VERSION\"/" compose-ui/build.gradle.kts
+
+          echo "Updated packageVersion to $VERSION"
+
+      - name: Build macOS DMG
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :compose-ui:packageDmg
+
+      - name: Notarize macOS DMG
+        if: env.DISABLE_MACOS_SIGNING != 'true'
+        run: |
+          DMG_PATH=$(find .gradleBuild/compose-ui/compose/binaries/main/dmg -name "*.dmg" | head -1)
+
+          if [[ -n "$DMG_PATH" && -f "$DMG_PATH" ]]; then
+            echo "Notarizing: $DMG_PATH"
+
+            xcrun notarytool submit "$DMG_PATH" \
+              --apple-id "${{ secrets.MACOS_APPLE_ID }}" \
+              --team-id "${{ secrets.MACOS_TEAM_ID }}" \
+              --password "${{ secrets.MACOS_APP_PASSWORD }}" \
+              --wait
+
+            xcrun stapler staple "$DMG_PATH"
+            echo "Notarization complete"
+          fi
+
+      - name: Upload macOS DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: bossterm-macos-${{ needs.prepare-version.outputs.version }}
+          path: .gradleBuild/compose-ui/compose/binaries/main/dmg/*.dmg
+          retention-days: 30
+
+  create-release:
+    needs: [prepare-version, build-macos]
+    if: github.event.inputs.create_release == 'true' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.prepare-version.outputs.updated-sha }}
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: Prepare Release Assets
+        run: |
+          mkdir -p ./release-assets
+          VERSION="${{ needs.prepare-version.outputs.version }}"
+
+          find ./artifacts -name "*.dmg" -exec cp {} ./release-assets/BossTerm-${VERSION}.dmg \;
+
+          echo "Release assets:"
+          ls -la ./release-assets/
+
+      - name: Create Git Tag
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          VERSION="${{ needs.prepare-version.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+          git push origin "v$VERSION"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.prepare-version.outputs.version }}
+          name: BossTerm v${{ needs.prepare-version.outputs.version }}
+          body: |
+            ## BossTerm v${{ needs.prepare-version.outputs.version }}
+
+            ### Downloads
+            - **macOS**: `BossTerm-${{ needs.prepare-version.outputs.version }}.dmg` (Apple Silicon & Intel)
+
+            ### Installation
+            1. Download the DMG file
+            2. Open it and drag BossTerm to Applications
+            3. Launch from Applications folder
+
+            ### System Requirements
+            - macOS 11.0+ (Big Sur or later)
+            - Apple Silicon or Intel processor
+          files: ./release-assets/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

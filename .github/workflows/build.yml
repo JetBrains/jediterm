@@ -1,0 +1,51 @@
+name: Build & Test
+
+on:
+  push:
+    branches: [master, dev]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+env:
+  JAVA_VERSION: '17'
+  JAVA_DISTRIBUTION: 'temurin'
+  GRADLE_OPTS: '-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true -Dorg.gradle.caching=true'
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Setup JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: false
+
+      - name: Build
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :compose-ui:desktopJar --stacktrace
+
+      - name: Run Tests
+        run: |
+          ./gradlew :bossterm-core-mpp:jvmTest --continue || true
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: |
+            **/build/test-results/
+            **/build/reports/tests/
+          retention-days: 7

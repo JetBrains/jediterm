@@ -4,3 +4,4 @@ build/
 .gradleBuild
 .idea/
 .kotlin/
+local.properties

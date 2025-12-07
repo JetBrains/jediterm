@@ -1,5 +1,17 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
+import java.util.Properties
+
+// Load local.properties for signing configuration (gitignored)
+val localProperties = Properties().apply {
+    val localPropsFile = rootProject.file("local.properties")
+    if (localPropsFile.exists()) {
+        localPropsFile.inputStream().use { load(it) }
+    }
+}
+val macosSigningIdentity: String = System.getenv("MACOS_DEVELOPER_ID")
+    ?: localProperties.getProperty("macos.signing.identity")
+    ?: "-"  // Ad-hoc signing fallback
 
 plugins {
     kotlin("multiplatform")
@@ -182,6 +194,16 @@ compose.desktop {
                 dockName = "BossTerm"
                 // Allow access to all files for terminal operations
                 entitlementsFile.set(project.file("src/desktopMain/resources/entitlements.plist"))
+
+                // Code signing configuration for distribution
+                signing {
+                    val skipSigning = System.getenv("DISABLE_MACOS_SIGNING") == "true"
+                    sign.set(!skipSigning)
+                    identity.set(macosSigningIdentity)
+
+                    println("🔐 macOS Code Signing: ${if (skipSigning) "DISABLED" else macosSigningIdentity}")
+                }
+
                 infoPlist {
                     extraKeysRawXml = """
                         <key>NSHighResolutionCapable</key>
@@ -208,44 +230,8 @@ compose.experimental {
     web.application {}
 }
 
-// macOS code signing task for the bundled JDK runtime
-tasks.register("signMacOsApp") {
-    description = "Sign the macOS app bundle with ad-hoc signature for local development"
-    group = "distribution"
-
-    dependsOn("createDistributable")
-
-    doLast {
-        val appPath = "${layout.buildDirectory.get()}/compose/binaries/main/app/BossTerm.app"
-        val runtimePath = "$appPath/Contents/runtime"
-
-        if (file(appPath).exists() && System.getProperty("os.name").lowercase().contains("mac")) {
-            println("Signing macOS app bundle...")
-
-            // Sign all dylibs in the runtime
-            fileTree(runtimePath).matching {
-                include("**/*.dylib")
-            }.forEach { dylib ->
-                exec {
-                    commandLine("codesign", "--force", "--sign", "-", dylib.absolutePath)
-                    isIgnoreExitValue = true
-                }
-            }
-
-            // Sign the whole app bundle
-            exec {
-                commandLine("codesign", "--force", "--deep", "--sign", "-", appPath)
-            }
-
-            println("macOS app bundle signed successfully")
-        }
-    }
-}
-
-// Make packageDmg depend on signing
-tasks.matching { it.name == "packageDmg" }.configureEach {
-    dependsOn("signMacOsApp")
-}
+// Note: macOS code signing is now handled by Compose Desktop's built-in signing configuration
+// See macOS { signing { ... } } block above
 
 publishing {
     publications {

@@ -108,10 +108,10 @@ compose.desktop {
             targetFormats(org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg)
 
             packageName = "BossTerm"
-            packageVersion = "1.0.0"
+            packageVersion = project.version.toString().removeSuffix("-SNAPSHOT")
             description = "Modern terminal emulator built with Kotlin/Compose Desktop"
-            vendor = "Rever AI"
-            copyright = "© 2025 Rever AI. All rights reserved."
+            vendor = "risalabs.ai"
+            copyright = "© 2025 risalabs.ai. All rights reserved."
 
             macOS {
                 iconFile.set(rootProject.file("BossTerm.icns"))

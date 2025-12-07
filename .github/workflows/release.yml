@@ -92,6 +92,7 @@ jobs:
   build-macos:
     needs: prepare-version
     runs-on: macos-latest
+    environment: release
 
     steps:
       - name: Checkout Repository

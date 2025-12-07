@@ -73,6 +73,9 @@ class BossTerminal(
     private var myLastMotionReport: Point? = null
     private var myCursorYChanged = false
 
+    // REP (CSI Ps b) - track last written character for repeat
+    private var myLastWrittenChar: String? = null
+
     private var myCursorColor: Color? = null
 
     private val myApplicationTitleListeners: MutableList<TerminalApplicationTitleListener> =
@@ -138,6 +141,16 @@ class BossTerminal(
                 val characters = newCharBuf(string)
                 terminalTextBuffer.writeString(myCursorX, myCursorY, characters)
                 myCursorX += characters.length
+
+                // Track last written character for REP (CSI Ps b)
+                val str = String(string)
+                if (str.isNotEmpty()) {
+                    // Get the last grapheme cluster
+                    val graphemes = GraphemeUtils.segmentIntoGraphemes(str)
+                    if (graphemes.isNotEmpty()) {
+                        myLastWrittenChar = graphemes.last().text
+                    }
+                }
             }
 
             finishText()
@@ -153,6 +166,18 @@ class BossTerminal(
         }
     }
 
+    /**
+     * REP - Repeat the preceding graphic character count times.
+     * CSI Ps b
+     */
+    override fun repeatPrecedingCharacter(count: Int) {
+        val lastChar = myLastWrittenChar ?: return
+        if (count <= 0) return
+
+        // Build the repeated string
+        val repeated = lastChar.repeat(count)
+        writeCharacters(repeated)
+    }
 
     private fun decodeUsingGraphicalState(string: String): CharArray {
         val chars = string.toCharArray()

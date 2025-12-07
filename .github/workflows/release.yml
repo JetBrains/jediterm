@@ -29,6 +29,7 @@ env:
 jobs:
   prepare-version:
     runs-on: ubuntu-latest
+    environment: release
     outputs:
       version: ${{ steps.get-version.outputs.version }}
       updated-sha: ${{ steps.commit-version.outputs.updated-sha }}

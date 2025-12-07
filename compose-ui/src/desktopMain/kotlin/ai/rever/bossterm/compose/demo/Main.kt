@@ -74,15 +74,23 @@ fun main() = application {
             // CLI install dialog state
             var showCLIInstallDialog by remember { mutableStateOf(false) }
             var isFirstRun by remember { mutableStateOf(false) }
+            var isCLIInstalled by remember { mutableStateOf(CLIInstaller.isInstalled()) }
 
             // Check for first run (CLI not installed)
             LaunchedEffect(Unit) {
-                if (!CLIInstaller.isInstalled()) {
+                if (!isCLIInstalled) {
                     // Check if this is the first window (avoid showing on every window)
                     if (WindowManager.windows.firstOrNull()?.id == window.id) {
                         isFirstRun = true
                         showCLIInstallDialog = true
                     }
+                }
+            }
+
+            // Refresh CLI install status when dialog closes
+            LaunchedEffect(showCLIInstallDialog) {
+                if (!showCLIInstallDialog) {
+                    isCLIInstalled = CLIInstaller.isInstalled()
                 }
             }
 
@@ -199,7 +207,7 @@ fun main() = application {
                         )
                         Separator()
                         Item(
-                            "Install Command Line Tool...",
+                            if (isCLIInstalled) "Uninstall Command Line Tool..." else "Install Command Line Tool...",
                             onClick = { showCLIInstallDialog = true }
                         )
                     }

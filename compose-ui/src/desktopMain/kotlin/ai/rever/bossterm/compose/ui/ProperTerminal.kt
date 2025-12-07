@@ -1300,8 +1300,12 @@ fun ProperTerminal(
             scope.launch {
               tab.writeUserInput(text)
             }
-            // Disable IME after successful input
+            // Disable IME after successful input and restore focus to terminal
             imeState.disable()
+            scope.launch {
+              delay(50)
+              focusRequester.requestFocus()
+            }
           }
         )
 

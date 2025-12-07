@@ -7,7 +7,7 @@ plugins {
 }
 
 val projectVersion = rootProject.projectDir.resolve("VERSION").readText().trim() +
-  if (System.getenv("INTELLIJ_DEPENDENCIES_BOT") == null) "-SNAPSHOT" else ""
+  if (System.getenv("RELEASE_BUILD") == null && System.getenv("INTELLIJ_DEPENDENCIES_BOT") == null) "-SNAPSHOT" else ""
 
 allprojects {
   version = projectVersion

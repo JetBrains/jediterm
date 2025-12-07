@@ -207,14 +207,14 @@ fun ColorPickerDialog(
                 // Buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)
                 ) {
                     Button(
                         onClick = onDismiss,
                         colors = ButtonDefaults.buttonColors(
                             backgroundColor = SurfaceColor
                         ),
-                        modifier = Modifier.width(80.dp)
+                        modifier = Modifier.width(100.dp)
                     ) {
                         Text("Cancel", color = TextPrimary, fontSize = 13.sp)
                     }
@@ -223,7 +223,7 @@ fun ColorPickerDialog(
                         colors = ButtonDefaults.buttonColors(
                             backgroundColor = AccentColor
                         ),
-                        modifier = Modifier.width(80.dp)
+                        modifier = Modifier.width(100.dp)
                     ) {
                         Text("OK", color = TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                     }

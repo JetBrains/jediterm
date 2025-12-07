@@ -1,5 +1,4 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
 import java.util.Properties
 import com.vanniktech.maven.publish.SonatypeHost
 import com.vanniktech.maven.publish.KotlinMultiplatform
@@ -49,17 +48,8 @@ kotlin {
         publishLibraryVariants("release")
     }
 
-    // iOS targets
-    listOf(
-        iosX64(),
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
-        iosTarget.binaries.framework {
-            baseName = "BossTermCompose"
-            isStatic = true
-        }
-    }
+    // Note: iOS targets removed - no actual implementation exists yet
+    // Can be added when iosMain source set is implemented
 
     // Desktop JVM target
     jvm("desktop") {
@@ -72,25 +62,8 @@ kotlin {
         }
     }
 
-    // Web targets
-    js(IR) {
-        browser {
-            commonWebpackConfig {
-                outputFileName = "bossterm-compose.js"
-            }
-        }
-        binaries.executable()
-    }
-
-    @OptIn(ExperimentalWasmDsl::class)
-    wasmJs {
-        browser {
-            commonWebpackConfig {
-                outputFileName = "bossterm-compose.wasm.js"
-            }
-        }
-        binaries.executable()
-    }
+    // Note: JS and Wasm targets removed - no actual implementation exists yet
+    // Can be added when jsMain/wasmJsMain source sets are implemented
 
     sourceSets {
         // Common source sets
@@ -144,20 +117,6 @@ kotlin {
         }
 
         val desktopTest by getting
-
-        // JS source set
-        val jsMain by getting {
-            dependencies {
-                implementation(compose.html.core)
-            }
-        }
-
-        // Wasm source set
-        val wasmJsMain by getting {
-            dependencies {
-                implementation(compose.runtime)
-            }
-        }
     }
 }
 
@@ -227,10 +186,6 @@ compose.desktop {
             )
         }
     }
-}
-
-compose.experimental {
-    web.application {}
 }
 
 // Note: macOS code signing is now handled by Compose Desktop's built-in signing configuration

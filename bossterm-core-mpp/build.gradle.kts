@@ -86,7 +86,7 @@ mavenPublishing {
     publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
     signAllPublications()
 
-    coordinates("com.risaboss", "bossterm-core", version.toString())
+    coordinates("io.github.risa-labs-inc", "bossterm-core", version.toString())
 
     configure(KotlinMultiplatform(
         javadocJar = JavadocJar.Empty(),

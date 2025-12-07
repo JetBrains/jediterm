@@ -6,6 +6,7 @@ import com.jediterm.core.util.TermSize;
 import com.jediterm.terminal.*;
 import com.jediterm.terminal.emulator.mouse.MouseFormat;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
+import com.jediterm.terminal.model.JediTerminal;
 import com.jediterm.terminal.util.CharUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -777,6 +778,11 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     } else if (c == 6) {
       int row = myTerminal.getCursorY();
       int column = myTerminal.getCursorX();
+
+      if (myTerminal instanceof JediTerminal && ((JediTerminal) myTerminal).isOriginMode()) {
+        row -= (((JediTerminal) myTerminal).getScrollRegionTop() - 1);
+      }
+
       String str = "\033[" + row + ";" + column + "R";
 
       LOG.debug("Sending Device Report Status : " + str);

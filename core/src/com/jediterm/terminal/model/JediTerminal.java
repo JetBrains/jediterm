@@ -124,14 +124,9 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
       myTerminalTextBuffer.setLineWrapped(myCursorY - 1, false);
       if (isAutoWrap()) {
         myTerminalTextBuffer.setLineWrapped(myCursorY - 1, true);
-        myCursorY += 1;
+        scrollY(() -> myCursorY++);
       }
     }
-  }
-
-  private void finishText() {
-    myDisplay.setCursor(myCursorX, myCursorY);
-    scrollY();
   }
 
   @Override
@@ -150,15 +145,13 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
         }
       }
       wrapLines();
-      scrollY();
 
       if (string.length != 0) {
         CharBuffer characters = newCharBuf(string);
         myTerminalTextBuffer.writeString(myCursorX, myCursorY, characters);
         myCursorX += characters.length();
+        myDisplay.setCursor(myCursorX, myCursorY);
       }
-
-      finishText();
     } finally {
       myTerminalTextBuffer.unlock();
     }
@@ -185,25 +178,27 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
       int amountInLine = Math.min(distanceToLineEnd(), length - off);
       writeCharacters(string.substring(off, off + amountInLine));
       wrapLines();
-      scrollY();
       off += amountInLine;
     }
   }
 
-
-  public void scrollY() {
+  private void scrollY(@NotNull Runnable action) {
     myTerminalTextBuffer.lock();
     try {
-      if (myCursorY > myScrollRegionBottom) {
+      boolean insideScrollRegionBefore = myCursorY <= myScrollRegionBottom;
+      action.run();
+      if (insideScrollRegionBefore && myCursorY > myScrollRegionBottom) {
         final int dy = myScrollRegionBottom - myCursorY;
         myCursorY = myScrollRegionBottom;
         scrollArea(myScrollRegionTop, scrollingRegionSize(), dy);
         myDisplay.setCursor(myCursorX, myCursorY);
       }
-      if (myCursorY < myScrollRegionTop) {
-        myCursorY = myScrollRegionTop;
+      if (myCursorY > myTerminalHeight) {
+        myCursorY = myTerminalHeight;
+        myDisplay.setCursor(myCursorX, myCursorY);
       }
-    } finally {
+    }
+    finally {
       myTerminalTextBuffer.unlock();
     }
   }
@@ -216,9 +211,8 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   @Override
   public void newLine() {
     myCursorYChanged = true;
-    myCursorY += 1;
 
-    scrollY();
+    scrollY(() -> myCursorY++);
 
     if (isAutoNewLine()) {
       carriageReturn();
@@ -730,7 +724,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
       myCursorX = Math.max(0, x - 1);
       myCursorX = Math.min(myCursorX, myTerminalWidth - 1);
 
-      myCursorY = Math.max(0, myCursorY);
+      myCursorY = Math.max(1, myCursorY);
 
       adjustXY(-1);
 
@@ -768,6 +762,10 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   @Override
   public void resetScrollRegions() {
     setScrollingRegion(1, myTerminalHeight);
+  }
+
+  public int getScrollRegionTop() {
+    return myScrollRegionTop;
   }
 
   @Override

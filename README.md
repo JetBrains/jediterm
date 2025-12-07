@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/kshivang/BossTerm/actions/workflows/test.yml/badge.svg)](https://github.com/kshivang/BossTerm/actions/workflows/test.yml)
 [![Release](https://github.com/kshivang/BossTerm/actions/workflows/release.yml/badge.svg)](https://github.com/kshivang/BossTerm/releases)
+[![Download DMG](https://img.shields.io/github/v/release/kshivang/BossTerm?label=Download%20DMG&logo=apple)](https://github.com/kshivang/BossTerm/releases/latest)
 [![Maven Central](https://img.shields.io/maven-central/v/com.risaboss/bossterm-core)](https://central.sonatype.com/namespace/com.risaboss)
 
 A modern terminal emulator built with **Kotlin** and **Compose Desktop**.

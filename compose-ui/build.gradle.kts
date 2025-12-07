@@ -1,6 +1,9 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
 import java.util.Properties
+import com.vanniktech.maven.publish.SonatypeHost
+import com.vanniktech.maven.publish.KotlinMultiplatform
+import com.vanniktech.maven.publish.JavadocJar
 
 // Load local.properties for signing configuration (gitignored)
 val localProperties = Properties().apply {
@@ -19,7 +22,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.android.library")
     kotlin("plugin.serialization") version "2.1.0"
-    `maven-publish`
+    id("com.vanniktech.maven.publish")
 }
 
 group = "ai.rever.bossterm"
@@ -233,20 +236,52 @@ compose.experimental {
 // Note: macOS code signing is now handled by Compose Desktop's built-in signing configuration
 // See macOS { signing { ... } } block above
 
+// Maven Central + GitHub Packages publishing
+mavenPublishing {
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+    signAllPublications()
+
+    coordinates("ai.rever.bossterm", "bossterm-compose", version.toString())
+
+    configure(KotlinMultiplatform(
+        javadocJar = JavadocJar.Empty(),
+        sourcesJar = true,
+        androidVariantsToPublish = listOf("release"),
+    ))
+
+    pom {
+        name.set("BossTerm Compose")
+        description.set("Embeddable terminal composable for Kotlin Compose Multiplatform")
+        url.set("https://github.com/kshivang/BossTerm")
+        licenses {
+            license {
+                name.set("LGPL 3.0")
+                url.set("https://www.gnu.org/licenses/lgpl.txt")
+            }
+        }
+        developers {
+            developer {
+                id.set("kshivang")
+                name.set("Shivang")
+                email.set("shivang.risa@gmail.com")
+            }
+        }
+        scm {
+            url.set("https://github.com/kshivang/BossTerm")
+            connection.set("scm:git:git://github.com/kshivang/BossTerm.git")
+            developerConnection.set("scm:git:ssh://github.com/kshivang/BossTerm.git")
+        }
+    }
+}
+
 publishing {
-    publications {
-        create<MavenPublication>("composeUi") {
-            artifactId = "bossterm-compose-ui"
-            pom {
-                name.set("BossTerm Compose UI")
-                description.set("Compose Multiplatform UI for BossTerm")
-                url.set("https://github.com/JetBrains/bossterm")
-                licenses {
-                    license {
-                        name.set("LGPL 3.0")
-                        url.set("https://www.gnu.org/licenses/lgpl.txt")
-                    }
-                }
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/kshivang/BossTerm")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR") ?: ""
+                password = System.getenv("GITHUB_TOKEN") ?: ""
             }
         }
     }

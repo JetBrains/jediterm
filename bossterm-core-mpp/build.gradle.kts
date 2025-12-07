@@ -1,9 +1,12 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import com.vanniktech.maven.publish.SonatypeHost
+import com.vanniktech.maven.publish.KotlinMultiplatform
+import com.vanniktech.maven.publish.JavadocJar
 
 plugins {
     kotlin("multiplatform")
     id("com.android.library")
-    `maven-publish`
+    id("com.vanniktech.maven.publish")
 }
 
 kotlin {
@@ -72,42 +75,59 @@ tasks.withType<JavaCompile> {
     options.compilerArgs.add("-Xlint:none")
 }
 
-val resultArchiveBaseName = "bossterm-core-mpp"
+val resultArchiveBaseName = "bossterm-core"
 
 tasks.withType<Jar> {
-  archiveBaseName = resultArchiveBaseName // to change name of out/libs/*.jar
+    archiveBaseName = resultArchiveBaseName
+}
+
+// Maven Central + GitHub Packages publishing
+mavenPublishing {
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+    signAllPublications()
+
+    coordinates("ai.rever.bossterm", "bossterm-core", version.toString())
+
+    configure(KotlinMultiplatform(
+        javadocJar = JavadocJar.Empty(),
+        sourcesJar = true,
+        androidVariantsToPublish = listOf("release"),
+    ))
+
+    pom {
+        name.set("BossTerm Core")
+        description.set("Terminal emulation engine for Kotlin Multiplatform")
+        url.set("https://github.com/kshivang/BossTerm")
+        licenses {
+            license {
+                name.set("LGPL 3.0")
+                url.set("https://www.gnu.org/licenses/lgpl.txt")
+            }
+        }
+        developers {
+            developer {
+                id.set("kshivang")
+                name.set("Shivang")
+                email.set("shivang.risa@gmail.com")
+            }
+        }
+        scm {
+            url.set("https://github.com/kshivang/BossTerm")
+            connection.set("scm:git:git://github.com/kshivang/BossTerm.git")
+            developerConnection.set("scm:git:ssh://github.com/kshivang/BossTerm.git")
+        }
+    }
 }
 
 publishing {
-  publications {
-    create<MavenPublication>("mavenJava") {
-      from(components["kotlin"])
-      artifactId = resultArchiveBaseName 
-      pom {
-        name = "BossTerm"
-        description = "Pure Java Terminal Emulator"
-        url = "https://github.com/JetBrains/bossterm"
-        licenses {
-          license {
-            name = "LGPL 3.0"
-            url = "https://www.gnu.org/licenses/lgpl.txt"
-          }
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/kshivang/BossTerm")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR") ?: ""
+                password = System.getenv("GITHUB_TOKEN") ?: ""
+            }
         }
-        scm {
-          connection = "scm:git:git://github.com/JetBrains/bossterm.git"
-          developerConnection = "scm:git:ssh:github.com/JetBrains/bossterm.git"
-          url = "https://github.com/JetBrains/bossterm"
-        }
-      }
     }
-  }
-  repositories {
-    maven {
-      url = uri("https://packages.jetbrains.team/maven/p/ij/intellij-dependencies")
-      credentials {
-        username = System.getenv("INTELLIJ_DEPENDENCIES_BOT")
-        password = System.getenv("INTELLIJ_DEPENDENCIES_TOKEN")
-      }
-    }
-  }
 }

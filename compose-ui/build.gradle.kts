@@ -124,6 +124,9 @@ compose.desktop {
             vendor = "risalabs.ai"
             copyright = "© 2025 risalabs.ai. All rights reserved."
 
+            // Include CLI script in app resources
+            appResourcesRootDir.set(rootProject.file("cli-resources"))
+
             macOS {
                 iconFile.set(rootProject.file("BossTerm.icns"))
                 bundleID = "ai.rever.bossterm"

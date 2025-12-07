@@ -12,6 +12,8 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import ai.rever.bossterm.compose.TabbedTerminal
+import ai.rever.bossterm.compose.cli.CLIInstallDialog
+import ai.rever.bossterm.compose.cli.CLIInstaller
 import ai.rever.bossterm.compose.menu.MenuActions
 import ai.rever.bossterm.compose.notification.NotificationService
 import ai.rever.bossterm.compose.settings.SettingsManager
@@ -69,6 +71,28 @@ fun main() = application {
             val windowState = rememberWindowState()
             // Settings dialog state (declared before Window for onPreviewKeyEvent access)
             var showSettingsDialog by remember { mutableStateOf(false) }
+            // CLI install dialog state
+            var showCLIInstallDialog by remember { mutableStateOf(false) }
+            var isFirstRun by remember { mutableStateOf(false) }
+            var isCLIInstalled by remember { mutableStateOf(CLIInstaller.isInstalled()) }
+
+            // Check for first run (CLI not installed)
+            LaunchedEffect(Unit) {
+                if (!isCLIInstalled) {
+                    // Check if this is the first window (avoid showing on every window)
+                    if (WindowManager.windows.firstOrNull()?.id == window.id) {
+                        isFirstRun = true
+                        showCLIInstallDialog = true
+                    }
+                }
+            }
+
+            // Refresh CLI install status when dialog closes
+            LaunchedEffect(showCLIInstallDialog) {
+                if (!showCLIInstallDialog) {
+                    isCLIInstalled = CLIInstaller.isInstalled()
+                }
+            }
 
             Window(
                 onCloseRequest = {
@@ -180,6 +204,11 @@ fun main() = application {
                             "Settings...",
                             onClick = { showSettingsDialog = true },
                             shortcut = KeyShortcut(Key.Comma, meta = isMacOS, ctrl = !isMacOS)
+                        )
+                        Separator()
+                        Item(
+                            if (isCLIInstalled) "Uninstall Command Line Tool..." else "Install Command Line Tool...",
+                            onClick = { showCLIInstallDialog = true }
                         )
                     }
 
@@ -301,6 +330,16 @@ fun main() = application {
                 SettingsWindow(
                     visible = showSettingsDialog,
                     onDismiss = { showSettingsDialog = false }
+                )
+
+                // CLI install dialog
+                CLIInstallDialog(
+                    visible = showCLIInstallDialog,
+                    onDismiss = {
+                        showCLIInstallDialog = false
+                        isFirstRun = false
+                    },
+                    isFirstRun = isFirstRun
                 )
             }
         }

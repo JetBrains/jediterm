@@ -51,11 +51,15 @@ class CommandNotificationHandler(
 
     override fun onCommandFinished(exitCode: Int) {
         val startTime = commandStartTime.get()
-        val duration = if (startTime > 0) {
-            (System.currentTimeMillis() - startTime) / 1000
-        } else {
-            0L
+
+        // Check for incomplete shell integration (D without B)
+        if (startTime == 0L) {
+            LOG.warn("Command finished without corresponding start event - shell integration may be incomplete")
+            isCommandRunning.set(false)
+            return
         }
+
+        val duration = (System.currentTimeMillis() - startTime) / 1000
 
         LOG.debug("Command finished: exitCode=$exitCode, duration=${duration}s, focused=${isWindowFocused()}")
 

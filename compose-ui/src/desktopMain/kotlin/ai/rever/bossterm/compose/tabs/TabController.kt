@@ -22,6 +22,7 @@ import ai.rever.bossterm.compose.osc.WorkingDirectoryOSCListener
 import ai.rever.bossterm.compose.settings.TerminalSettings
 import ai.rever.bossterm.compose.typeahead.ComposeTypeAheadModel
 import ai.rever.bossterm.compose.typeahead.CoroutineDebouncer
+import ai.rever.bossterm.compose.notification.CommandNotificationHandler
 import ai.rever.bossterm.core.typeahead.TerminalTypeAheadManager
 import ai.rever.bossterm.core.typeahead.TypeAheadTerminalModel
 import ai.rever.bossterm.terminal.util.GraphemeBoundaryUtils
@@ -44,7 +45,8 @@ import java.io.EOFException
  */
 class TabController(
     private val settings: TerminalSettings,
-    private val onLastTabClosed: () -> Unit
+    private val onLastTabClosed: () -> Unit,
+    private val isWindowFocused: () -> Boolean = { true }
 ) {
     /**
      * List of all terminal tabs (observable, triggers recomposition).
@@ -195,6 +197,14 @@ class TabController(
                 display.iconTitle = newIconTitle
             }
         })
+
+        // Register command state listener for notifications (OSC 133 shell integration)
+        val notificationHandler = CommandNotificationHandler(
+            settings = settings,
+            isWindowFocused = isWindowFocused,
+            tabTitle = { display.windowTitle?.ifEmpty { "BossTerm" } ?: "BossTerm" }
+        )
+        terminal.addCommandStateListener(notificationHandler)
 
         // Create emulator with terminal
         val emulator = BossEmulator(dataStream, terminal)
@@ -402,6 +412,14 @@ class TabController(
                 display.iconTitle = newIconTitle
             }
         })
+
+        // Register command state listener for notifications (OSC 133 shell integration)
+        val notificationHandler = CommandNotificationHandler(
+            settings = settings,
+            isWindowFocused = isWindowFocused,
+            tabTitle = { display.windowTitle?.ifEmpty { "BossTerm" } ?: "BossTerm" }
+        )
+        terminal.addCommandStateListener(notificationHandler)
 
         val emulator = BossEmulator(dataStream, terminal)
 

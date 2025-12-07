@@ -169,6 +169,57 @@ This enables:
 - Tab titles display current directory
 - Dynamic shell integration for directory awareness
 
+### OSC 133 Command Completion Notifications
+
+Enable system notifications when commands complete while the terminal window is not focused.
+This is similar to iTerm2's notification feature.
+
+**For Bash** (add to `~/.bashrc`):
+```bash
+# OSC 133 Shell Integration for command notifications
+__prompt_command() {
+    local exit_code=$?
+    # D: Command finished with exit code
+    echo -ne "\033]133;D;${exit_code}\007"
+    # A: Prompt starting
+    echo -ne "\033]133;A\007"
+}
+PROMPT_COMMAND='__prompt_command'
+
+# B: Command starting (before command execution)
+trap 'echo -ne "\033]133;B\007"' DEBUG
+```
+
+**For Zsh** (add to `~/.zshrc`):
+```bash
+# OSC 133 Shell Integration for command notifications
+precmd() {
+    local exit_code=$?
+    # D: Command finished with exit code
+    print -Pn "\e]133;D;${exit_code}\a"
+    # A: Prompt starting
+    print -Pn "\e]133;A\a"
+    # Also emit OSC 7 for directory tracking
+    print -Pn "\e]7;file://${HOST}${PWD}\a"
+}
+
+preexec() {
+    # B: Command starting (before command execution)
+    print -Pn "\e]133;B\a"
+}
+```
+
+**Settings** (`~/.bossterm/settings.json`):
+- `notifyOnCommandComplete`: Enable/disable notifications (default: true)
+- `notifyMinDurationSeconds`: Minimum command duration to trigger notification (default: 5)
+- `notifyShowExitCode`: Include exit code in notification (default: true)
+- `notifyWithSound`: Play notification sound (default: true)
+
+**How it works**:
+1. Shell emits OSC 133;B when command starts
+2. Shell emits OSC 133;D;exitcode when command finishes
+3. If window is not focused AND command took >= 5 seconds, notification is shown
+
 ## Build & Run Commands
 
 ```bash
@@ -385,6 +436,30 @@ gh pr create --base master --head dev --title "Your PR title" --body "Descriptio
 
 **Status**: Foundation complete, critical bugs fixed (November 27, 2025)
 
+### 13. Command Completion Notifications (#TBD)
+- **iTerm2-style Notifications**: System notifications when commands complete while window is unfocused
+- **OSC 133 Protocol**: FinalTerm shell integration (A=prompt, B=command start, C=output end, D=exit code)
+- **Configurable Duration**: Minimum command duration threshold (default 5 seconds)
+- **macOS Integration**: Native notifications via osascript with optional sound
+- **Window Focus Tracking**: AWT WindowFocusListener integration for accurate focus detection
+
+**Architecture**:
+- `CommandStateListener.kt`: Interface for OSC 133 events (core module)
+- `CommandNotificationHandler.kt`: Tracks command timing and triggers notifications
+- `NotificationService.kt`: Platform-specific notification display (macOS via osascript)
+- `BossEmulator1.kt`: OSC 133 parsing in `doProcessOsc()` method
+- `BossTerminal.kt`: `processShellIntegration()` dispatches to listeners
+
+**Key Files**:
+- `bossterm-core-mpp/.../model/CommandStateListener.kt`: Listener interface
+- `compose-ui/.../notification/NotificationService.kt`: macOS notifications
+- `compose-ui/.../notification/CommandNotificationHandler.kt`: Business logic
+- `compose-ui/.../demo/Main.kt`: Window focus tracking
+
+**Settings**: `notifyOnCommandComplete`, `notifyMinDurationSeconds`, `notifyShowExitCode`, `notifyWithSound`
+
+**Status**: Complete (December 7, 2025)
+
 ## Known Issues & Todos
 
 ### In Progress
@@ -397,6 +472,7 @@ None - feature complete for current phase
 - SSH key management UI (future enhancement)
 
 ### Completed (Recent)
+✅ Command Completion Notifications (OSC 133 Shell Integration) - December 7, 2025
 ✅ Tab Keyboard Shortcuts (Ctrl+T, Ctrl+W, Ctrl+Tab, Ctrl+1-9) - December 3, 2025
 ✅ OSC 7 Working Directory Tracking - December 3, 2025
 ✅ Auto-Scroll During Selection Drag (November 30, 2025, issue #24)
@@ -465,9 +541,27 @@ None - feature complete for current phase
 ---
 
 ## Last Updated
-December 3, 2025
+December 7, 2025
 
 ### Recent Changes
+- **December 7, 2025**: Command Completion Notifications (OSC 133 Shell Integration)
+  - **Feature**: iTerm2-style system notifications when commands complete while window unfocused
+  - **Protocol**: OSC 133 (FinalTerm) - A=prompt, B=command start, C=output end, D=exit code
+  - **New Files**:
+    - `bossterm-core-mpp/.../model/CommandStateListener.kt`: Listener interface
+    - `compose-ui/.../notification/NotificationService.kt`: macOS notifications via osascript
+    - `compose-ui/.../notification/CommandNotificationHandler.kt`: Business logic
+  - **Modified Files**:
+    - `BossEmulator1.kt`: Added OSC 133 handling in doProcessOsc()
+    - `BossTerminal.kt`: Added processShellIntegration() and listener support
+    - `Terminal.kt`: Added interface methods for command state
+    - `TabController.kt`: Integrates notification handler with tabs
+    - `TabbedTerminal.kt`: Added isWindowFocused parameter
+    - `Main.kt`: Added AWT WindowFocusListener for focus tracking
+    - `TerminalSettings.kt`: Added notification settings
+  - **Settings**: notifyOnCommandComplete, notifyMinDurationSeconds, notifyShowExitCode, notifyWithSound
+  - **Shell Setup**: Documented OSC 133 configuration for Bash and Zsh in CLAUDE.md
+  - **Status**: Build successful, ready for testing
 - **December 3, 2025**: Verified keyboard shortcuts and OSC 7 implementation
   - **Tab Keyboard Shortcuts**: CONFIRMED - Ctrl+T (new), Ctrl+W (close), Ctrl+Tab (next), Ctrl+Shift+Tab (prev), Ctrl+1-9 (jump)
     - Location: `BuiltinActions.kt` lines 269-395

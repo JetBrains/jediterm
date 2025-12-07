@@ -91,6 +91,10 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.9.0")
                 implementation("org.jetbrains.pty4j:pty4j:0.12.13")
 
+                // JNA for native macOS notifications
+                implementation("net.java.dev.jna:jna:5.14.0")
+                implementation("net.java.dev.jna:jna-platform:5.14.0")
+
                 // Ktor client for auto-update
                 val ktorVersion = "2.3.7"
                 implementation("io.ktor:ktor-client-core:$ktorVersion")

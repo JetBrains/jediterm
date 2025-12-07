@@ -20,6 +20,7 @@ import ai.rever.bossterm.compose.ui.ProperTerminal
  * - Tab bar with close buttons
  * - Keyboard shortcuts for tab management
  * - Working directory inheritance for new tabs
+ * - Command completion notifications (when window unfocused)
  *
  * Basic usage:
  * ```kotlin
@@ -41,6 +42,7 @@ import ai.rever.bossterm.compose.ui.ProperTerminal
  * @param onWindowTitleChange Called when active tab's title changes (for window title bar)
  * @param onNewWindow Called when user requests a new window (Cmd/Ctrl+N)
  * @param menuActions Optional menu action callbacks for wiring up menu bar
+ * @param isWindowFocused Lambda returning whether this window is currently focused (for notifications)
  * @param modifier Compose modifier for the terminal container
  */
 @Composable
@@ -49,6 +51,7 @@ fun TabbedTerminal(
     onWindowTitleChange: (String) -> Unit = {},
     onNewWindow: () -> Unit = {},
     menuActions: MenuActions? = null,
+    isWindowFocused: () -> Boolean = { true },
     modifier: Modifier = Modifier
 ) {
     // Settings integration
@@ -60,11 +63,12 @@ fun TabbedTerminal(
         loadTerminalFont()
     }
 
-    // Create tab controller
+    // Create tab controller with window focus tracking for notifications
     val tabController = remember {
         TabController(
             settings = settings,
-            onLastTabClosed = onExit
+            onLastTabClosed = onExit,
+            isWindowFocused = isWindowFocused
         )
     }
 

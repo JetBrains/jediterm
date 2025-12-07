@@ -14,10 +14,14 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import ai.rever.bossterm.compose.TabbedTerminal
 import ai.rever.bossterm.compose.menu.MenuActions
+import ai.rever.bossterm.compose.notification.NotificationService
+import ai.rever.bossterm.compose.settings.SettingsManager
 import ai.rever.bossterm.compose.update.UpdateBanner
 import ai.rever.bossterm.compose.update.UpdateManager
 import ai.rever.bossterm.compose.update.UpdateState
 import kotlinx.coroutines.launch
+import java.awt.event.WindowAdapter
+import java.awt.event.WindowEvent
 import java.util.UUID
 
 /**
@@ -26,7 +30,8 @@ import java.util.UUID
 data class TerminalWindow(
     val id: String = UUID.randomUUID().toString(),
     val title: MutableState<String> = mutableStateOf("BossTerm"),
-    val menuActions: MenuActions = MenuActions()
+    val menuActions: MenuActions = MenuActions(),
+    val isWindowFocused: MutableState<Boolean> = mutableStateOf(true)
 )
 
 /**
@@ -77,6 +82,26 @@ fun main() = application {
                 val updateState by updateManager.updateState.collectAsState()
                 val scope = rememberCoroutineScope()
 
+                // Track window focus for command completion notifications
+                val awtWindow = this.window
+                DisposableEffect(awtWindow) {
+                    val focusListener = object : WindowAdapter() {
+                        override fun windowGainedFocus(e: WindowEvent?) {
+                            window.isWindowFocused.value = true
+                        }
+                        override fun windowLostFocus(e: WindowEvent?) {
+                            window.isWindowFocused.value = false
+                        }
+                    }
+                    awtWindow.addWindowFocusListener(focusListener)
+                    // Set initial focus state
+                    window.isWindowFocused.value = awtWindow.isFocused
+
+                    onDispose {
+                        awtWindow.removeWindowFocusListener(focusListener)
+                    }
+                }
+
                 // Check for updates on first window launch
                 var hasCheckedForUpdates by remember { mutableStateOf(false) }
                 LaunchedEffect(Unit) {
@@ -85,6 +110,24 @@ fun main() = application {
                         if (updateManager.shouldCheckForUpdates()) {
                             updateManager.checkForUpdates()
                         }
+                    }
+                }
+
+                // Request notification permission on first launch
+                val settingsManager = remember { SettingsManager.instance }
+                LaunchedEffect(Unit) {
+                    val currentSettings = settingsManager.settings.value
+                    if (!currentSettings.notificationPermissionRequested) {
+                        // Send welcome notification to trigger macOS permission dialog
+                        NotificationService.showNotification(
+                            title = "BossTerm",
+                            message = "Notifications enabled! You'll be notified when long-running commands complete.",
+                            withSound = false
+                        )
+                        // Mark as requested so we don't show again
+                        settingsManager.updateSettings(
+                            currentSettings.copy(notificationPermissionRequested = true)
+                        )
                     }
                 }
 
@@ -244,6 +287,7 @@ fun main() = application {
                             WindowManager.createWindow()
                         },
                         menuActions = window.menuActions,
+                        isWindowFocused = { window.isWindowFocused.value },
                         modifier = Modifier.fillMaxSize().weight(1f)
                     )
                 }

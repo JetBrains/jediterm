@@ -119,6 +119,9 @@ BossTerm provides embeddable terminal libraries for Kotlin Multiplatform project
 ### Gradle Setup
 
 **Maven Central** (recommended):
+
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.risa-labs-inc/bossterm-core)](https://central.sonatype.com/namespace/io.github.risa-labs-inc)
+
 ```kotlin
 // build.gradle.kts
 repositories {
@@ -127,14 +130,17 @@ repositories {
 
 dependencies {
     // Core terminal emulation engine
-    implementation("io.github.risa-labs-inc:bossterm-core:1.0.0")
+    implementation("io.github.risa-labs-inc:bossterm-core:<version>")
 
     // Compose Desktop UI component
-    implementation("io.github.risa-labs-inc:bossterm-compose:1.0.0")
+    implementation("io.github.risa-labs-inc:bossterm-compose:<version>")
 }
 ```
 
 **JitPack** (alternative):
+
+[![JitPack](https://jitpack.io/v/kshivang/BossTerm.svg)](https://jitpack.io/#kshivang/BossTerm)
+
 ```kotlin
 // settings.gradle.kts
 dependencyResolutionManagement {
@@ -145,12 +151,13 @@ dependencyResolutionManagement {
 
 // build.gradle.kts
 dependencies {
-    implementation("com.github.kshivang.BossTerm:bossterm-core-mpp:v1.0.0")
-    implementation("com.github.kshivang.BossTerm:compose-ui:v1.0.0")
+    implementation("com.github.kshivang.BossTerm:bossterm-core-mpp:<version>")
+    implementation("com.github.kshivang.BossTerm:compose-ui:<version>")
 }
 ```
 
 **GitHub Packages** (requires authentication):
+
 ```kotlin
 // settings.gradle.kts
 dependencyResolutionManagement {
@@ -167,8 +174,8 @@ dependencyResolutionManagement {
 
 // build.gradle.kts
 dependencies {
-    implementation("io.github.risa-labs-inc:bossterm-core:1.0.0")
-    implementation("io.github.risa-labs-inc:bossterm-compose:1.0.0")
+    implementation("io.github.risa-labs-inc:bossterm-core:<version>")
+    implementation("io.github.risa-labs-inc:bossterm-compose:<version>")
 }
 ```
 

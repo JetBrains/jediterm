@@ -495,9 +495,12 @@ fun ProperTerminal(
 
   // Request focus when tab becomes active or changes
   // Use tab.id as key so effect re-triggers when switching between tabs
-  LaunchedEffect(tab.id) {
-    delay(100)
-    focusRequester.requestFocus()
+  // Also trigger on isActiveTab to handle focus after tab close
+  LaunchedEffect(tab.id, isActiveTab) {
+    if (isActiveTab) {
+      delay(50)
+      focusRequester.requestFocus()
+    }
   }
 
   // Resize PTY when it becomes available

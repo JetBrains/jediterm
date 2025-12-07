@@ -17,6 +17,7 @@ BossTerm is a high-performance terminal emulator designed for developers who wan
 - **Search** - Ctrl/Cmd+F to search terminal history
 - **Hyperlink Detection** - Auto-detect URLs, file paths, emails with Ctrl+Click to open
 - **Copy/Paste** - Standard clipboard operations + copy-on-select option
+- **Drag & Drop** - Drop files onto terminal to paste shell-escaped paths (iTerm2 style)
 - **IME Support** - Full Chinese/Japanese/Korean input method support
 - **Debug Tools** - Built-in terminal debugging with Ctrl+Shift+D
 - **OSC 7 Support** - Working directory tracking for new tabs

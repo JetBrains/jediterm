@@ -354,7 +354,8 @@ fun ProperTerminal(
   val isMacOS = remember { System.getProperty("os.name").lowercase().contains("mac") }
 
   // Create action registry with all built-in actions
-  val actionRegistry = remember(isMacOS) {
+  // Key on `tab` to ensure paste/write operations target the current tab
+  val actionRegistry = remember(isMacOS, tab) {
     val registry = createBuiltinActions(
       selectionStart = object : MutableState<Pair<Int, Int>?> {
         override var value: Pair<Int, Int>?

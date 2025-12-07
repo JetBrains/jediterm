@@ -1,0 +1,171 @@
+#!/usr/bin/env bash
+#
+# BossTerm CLI Launcher Script
+# Version: 1.0.0
+#
+# Opens BossTerm terminal emulator with optional arguments
+#
+# Usage:
+#   bossterm                      # Opens BossTerm
+#   bossterm -d <path>            # Opens BossTerm in directory
+#   bossterm -c <command>         # Opens BossTerm and runs command
+#   bossterm <path>               # Smart detect: opens in directory if path exists
+#
+
+APP_PATH="/Applications/BossTerm.app"
+APP_NAME="BossTerm"
+VERSION="1.0.0"
+
+# Check if app exists
+check_app() {
+    if [ ! -d "$APP_PATH" ]; then
+        echo "Error: BossTerm.app not found at $APP_PATH"
+        echo ""
+        echo "To install BossTerm:"
+        echo "  cd ~/Development/BossTerm"
+        echo "  ./gradlew packageDmg"
+        echo "  # Then install from build/compose/binaries/main/dmg/"
+        exit 1
+    fi
+}
+
+# Open BossTerm app
+open_bossterm() {
+    open -a "$APP_NAME" "$@"
+}
+
+# Expand path (handle ~, ., .., relative paths)
+expand_path() {
+    local path="$1"
+    # Expand tilde
+    path="${path/#\~/$HOME}"
+    # Handle relative paths
+    if [[ ! "$path" =~ ^/ ]]; then
+        path="$(cd "$path" 2>/dev/null && pwd || echo "$(pwd)/$path")"
+    fi
+    echo "$path"
+}
+
+# Show help
+show_help() {
+    cat <<EOF
+BossTerm - Modern Terminal Emulator
+Version: $VERSION
+
+Usage:
+  bossterm                      Open BossTerm
+  bossterm <path>               Open BossTerm in directory (if path exists)
+  bossterm -d <path>            Open BossTerm in specified directory
+  bossterm -c <command>         Open BossTerm and run command (coming soon)
+  bossterm --new-window         Open a new BossTerm window
+
+Options:
+  -d, --directory <path>   Start in specified directory
+  -c, --command <cmd>      Execute command after opening (coming soon)
+  -n, --new-window         Force open a new window
+  -v, --version            Show version information
+  -h, --help               Show this help message
+
+Examples:
+  bossterm                      # Open BossTerm
+  bossterm ~/Projects           # Open in Projects directory
+  bossterm -d /tmp              # Open in /tmp directory
+  bossterm .                    # Open in current directory
+  bossterm --new-window         # Open new window
+
+Note: The -c (command) option requires shell integration.
+      Add this to your ~/.zshrc or ~/.bashrc:
+        precmd() { print -Pn "\\e]7;file://\${HOST}\${PWD}\\a" }
+
+EOF
+}
+
+# Show version
+show_version() {
+    echo "BossTerm CLI version $VERSION"
+}
+
+# Main logic
+main() {
+    check_app
+
+    # No arguments - just open the app
+    if [ $# -eq 0 ]; then
+        open_bossterm
+        exit 0
+    fi
+
+    # Parse arguments
+    case "$1" in
+        -h|--help|help)
+            show_help
+            exit 0
+            ;;
+
+        -v|--version|version)
+            show_version
+            exit 0
+            ;;
+
+        -n|--new-window)
+            open_bossterm -n
+            exit 0
+            ;;
+
+        -d|--directory)
+            if [ -z "$2" ]; then
+                echo "Error: Directory path required"
+                echo "Usage: bossterm -d <path>"
+                exit 1
+            fi
+            dir_path=$(expand_path "$2")
+            if [ ! -d "$dir_path" ]; then
+                echo "Error: Directory not found: $dir_path"
+                exit 1
+            fi
+            # Set working directory via environment variable
+            # BossTerm will need to read BOSSTERM_CWD on startup
+            BOSSTERM_CWD="$dir_path" open_bossterm
+            exit 0
+            ;;
+
+        -c|--command)
+            if [ -z "$2" ]; then
+                echo "Error: Command required"
+                echo "Usage: bossterm -c <command>"
+                exit 1
+            fi
+            echo "Note: Command execution requires app support (coming soon)"
+            echo "Opening BossTerm..."
+            # For future: BOSSTERM_COMMAND="$2" open_bossterm
+            open_bossterm
+            exit 0
+            ;;
+
+        -*)
+            echo "Error: Unknown option: $1"
+            echo "Run 'bossterm --help' for usage information"
+            exit 1
+            ;;
+
+        *)
+            # Smart detection - check if it's a directory
+            path=$(expand_path "$1")
+            if [ -d "$path" ]; then
+                BOSSTERM_CWD="$path" open_bossterm
+                exit 0
+            elif [ -f "$path" ]; then
+                # It's a file - open in parent directory
+                parent_dir=$(dirname "$path")
+                BOSSTERM_CWD="$parent_dir" open_bossterm
+                exit 0
+            else
+                echo "Error: Path not found: $1"
+                echo "Run 'bossterm --help' for usage information"
+                exit 1
+            fi
+            ;;
+    esac
+}
+
+main "$@"

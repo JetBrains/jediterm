@@ -19,7 +19,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * Debug panel UI for visualizing terminal I/O data and state.
+ * Debug panel content for visualizing terminal I/O data and state.
  *
  * This panel provides time-travel debugging capabilities by allowing users to:
  * - Scrub through captured terminal state snapshots
@@ -27,23 +27,19 @@ import kotlinx.coroutines.launch
  * - Visualize control sequences in human-readable format
  * - Inspect debug statistics
  *
- * The panel appears as a bottom overlay (600px height) with Material 3 dark theme,
- * matching the existing search bar design.
- *
- * @param visible Whether the panel should be displayed
  * @param collector Debug data collector with captured chunks and snapshots
+ * @param textBuffer Terminal text buffer for snapshot stats
  * @param onClose Callback when user closes the panel
  * @param modifier Modifier for the panel container
  */
 @Composable
-fun DebugPanel(
-    visible: Boolean,
+fun DebugPanelContent(
     collector: DebugDataCollector?,
     textBuffer: TerminalTextBuffer?,
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    if (!visible || collector == null) return
+    if (collector == null) return
 
     // State management
     var selectedBufferType by remember { mutableStateOf(BufferType.SCREEN) }
@@ -93,13 +89,9 @@ fun DebugPanel(
     }
 
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(600.dp)
-            .padding(8.dp),
+        modifier = modifier.fillMaxSize(),
         color = Color(0xFF1E1E1E),
-        shape = RoundedCornerShape(8.dp),
-        shadowElevation = 4.dp
+        shape = RoundedCornerShape(8.dp)
     ) {
         Column(
             modifier = Modifier
@@ -114,7 +106,7 @@ fun DebugPanel(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "🛠️ Debug Tools - Terminal Inspector",
+                    text = "Debug Tools - Terminal Inspector",
                     color = Color.White,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold

@@ -48,6 +48,7 @@ import ai.rever.bossterm.compose.ConnectionState
 import ai.rever.bossterm.compose.PreConnectScreen
 import ai.rever.bossterm.compose.actions.addTabManagementActions
 import ai.rever.bossterm.compose.actions.createBuiltinActions
+import ai.rever.bossterm.compose.menu.MenuActions
 import ai.rever.bossterm.compose.debug.DebugPanel
 import ai.rever.bossterm.compose.features.ContextMenuController
 import ai.rever.bossterm.compose.features.ContextMenuPopup
@@ -107,6 +108,7 @@ fun ProperTerminal(
   onPreviousTab: () -> Unit = {},
   onSwitchToTab: (Int) -> Unit = {},
   onNewWindow: () -> Unit = {},  // Cmd/Ctrl+N: New window
+  menuActions: MenuActions? = null,
   modifier: Modifier = Modifier
 ) {
   // Extract session state (no more remember {} blocks - state lives in TerminalSession)
@@ -417,6 +419,23 @@ fun ProperTerminal(
     )
 
     registry
+  }
+
+  // Wire up menu actions to the action registry
+  LaunchedEffect(menuActions, actionRegistry, tab, scope) {
+    menuActions?.apply {
+      onCopy = { actionRegistry.getAction("copy")?.executeFromMenu() }
+      onPaste = { actionRegistry.getAction("paste")?.executeFromMenu() }
+      onSelectAll = { actionRegistry.getAction("select_all")?.executeFromMenu() }
+      onClear = {
+        // Clear screen by sending 'clear' command (same as context menu)
+        scope.launch {
+          tab.writeUserInput("clear\n")
+        }
+      }
+      onFind = { actionRegistry.getAction("search")?.executeFromMenu() }
+      onToggleDebug = { actionRegistry.getAction("debug_panel")?.executeFromMenu() }
+    }
   }
 
   // Cursor blink state for BLINK_* cursor shapes

@@ -6,6 +6,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import ai.rever.bossterm.compose.menu.MenuActions
 import ai.rever.bossterm.compose.settings.SettingsManager
 import ai.rever.bossterm.compose.tabs.TabBar
 import ai.rever.bossterm.compose.tabs.TabController
@@ -39,6 +40,7 @@ import ai.rever.bossterm.compose.ui.ProperTerminal
  * @param onExit Called when the last tab is closed
  * @param onWindowTitleChange Called when active tab's title changes (for window title bar)
  * @param onNewWindow Called when user requests a new window (Cmd/Ctrl+N)
+ * @param menuActions Optional menu action callbacks for wiring up menu bar
  * @param modifier Compose modifier for the terminal container
  */
 @Composable
@@ -46,6 +48,7 @@ fun TabbedTerminal(
     onExit: () -> Unit,
     onWindowTitleChange: (String) -> Unit = {},
     onNewWindow: () -> Unit = {},
+    menuActions: MenuActions? = null,
     modifier: Modifier = Modifier
 ) {
     // Settings integration
@@ -63,6 +66,25 @@ fun TabbedTerminal(
             settings = settings,
             onLastTabClosed = onExit
         )
+    }
+
+    // Wire up menu actions for tab management
+    LaunchedEffect(menuActions, tabController) {
+        menuActions?.apply {
+            onNewTab = {
+                val workingDir = tabController.getActiveWorkingDirectory()
+                tabController.createTab(workingDir = workingDir)
+            }
+            onCloseTab = {
+                tabController.closeTab(tabController.activeTabIndex)
+            }
+            onNextTab = {
+                tabController.nextTab()
+            }
+            onPreviousTab = {
+                tabController.previousTab()
+            }
+        }
     }
 
     // Initialize with one tab on first composition
@@ -132,6 +154,7 @@ fun TabbedTerminal(
                     }
                 },
                 onNewWindow = onNewWindow,
+                menuActions = menuActions,
                 modifier = Modifier.fillMaxSize()
             )
         }

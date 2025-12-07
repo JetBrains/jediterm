@@ -117,4 +117,33 @@ data class TerminalAction(
             false
         }
     }
+
+    /**
+     * Executes this action from menu (no KeyEvent required).
+     * Creates a synthetic key event for handlers that need it.
+     * @return true if the action was executed
+     */
+    fun executeFromMenu(): Boolean {
+        if (!enabled()) return false
+        // Create a minimal synthetic key event for handlers that need it
+        // Most handlers just use it to return true/false, not to inspect the event
+        return try {
+            // Use a concrete AWT component (Canvas) for the synthetic event
+            val dummyComponent = java.awt.Canvas()
+            val syntheticEvent = androidx.compose.ui.input.key.KeyEvent(
+                java.awt.event.KeyEvent(
+                    dummyComponent,
+                    java.awt.event.KeyEvent.KEY_PRESSED,
+                    System.currentTimeMillis(),
+                    0,
+                    java.awt.event.KeyEvent.VK_UNDEFINED,
+                    Char.MIN_VALUE
+                )
+            )
+            handler(syntheticEvent)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
 }

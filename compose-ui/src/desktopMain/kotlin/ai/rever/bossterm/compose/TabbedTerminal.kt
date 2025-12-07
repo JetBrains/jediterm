@@ -103,17 +103,19 @@ fun TabbedTerminal(
 
     // Tab UI layout
     Column(modifier = modifier.fillMaxSize()) {
-        // Tab bar at top
-        TabBar(
-            tabs = tabController.tabs,
-            activeTabIndex = tabController.activeTabIndex,
-            onTabSelected = { index -> tabController.switchToTab(index) },
-            onTabClosed = { index -> tabController.closeTab(index) },
-            onNewTab = {
-                val workingDir = tabController.getActiveWorkingDirectory()
-                tabController.createTab(workingDir = workingDir)
-            }
-        )
+        // Tab bar at top (only show when multiple tabs)
+        if (tabController.tabs.size > 1) {
+            TabBar(
+                tabs = tabController.tabs,
+                activeTabIndex = tabController.activeTabIndex,
+                onTabSelected = { index -> tabController.switchToTab(index) },
+                onTabClosed = { index -> tabController.closeTab(index) },
+                onNewTab = {
+                    val workingDir = tabController.getActiveWorkingDirectory()
+                    tabController.createTab(workingDir = workingDir)
+                }
+            )
+        }
 
         // Render active terminal tab
         if (tabController.tabs.isNotEmpty()) {

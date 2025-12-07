@@ -3,14 +3,14 @@ package ai.rever.bossterm.compose.settings
 import androidx.compose.runtime.*
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogWindow
-import androidx.compose.ui.window.rememberDialogState
+import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.rememberWindowState
 
 /**
- * Settings dialog window.
+ * Settings window (non-modal, allows terminal interaction).
  *
- * @param visible Whether the dialog is visible
- * @param onDismiss Called when the dialog should be closed
+ * @param visible Whether the window is visible
+ * @param onDismiss Called when the window should be closed
  */
 @Composable
 fun SettingsWindow(
@@ -22,11 +22,12 @@ fun SettingsWindow(
     val settingsManager = remember { SettingsManager.instance }
     val currentSettings by settingsManager.settings.collectAsState()
 
-    DialogWindow(
+    Window(
         onCloseRequest = onDismiss,
         title = "BossTerm Settings",
         resizable = false,
-        state = rememberDialogState(
+        alwaysOnTop = false,
+        state = rememberWindowState(
             size = DpSize(750.dp, 580.dp)
         )
     ) {

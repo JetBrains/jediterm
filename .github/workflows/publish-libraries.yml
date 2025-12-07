@@ -1,0 +1,63 @@
+name: Publish Libraries
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_to:
+        description: 'Publish destination'
+        required: true
+        default: 'both'
+        type: choice
+        options:
+          - github-packages
+          - maven-central
+          - both
+
+env:
+  JAVA_VERSION: '17'
+  JAVA_DISTRIBUTION: 'temurin'
+
+jobs:
+  publish:
+    runs-on: macos-latest
+    environment: release
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Setup JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: false
+
+      - name: Publish to GitHub Packages
+        if: inputs.publish_to == 'github-packages' || inputs.publish_to == 'both'
+        run: |
+          chmod +x ./gradlew
+          ./gradlew publishAllPublicationsToGitHubPackagesRepository --no-configuration-cache
+        env:
+          RELEASE_BUILD: true
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.GPG_SIGNING_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.GPG_SIGNING_PASSPHRASE }}
+
+      - name: Publish to Maven Central
+        if: inputs.publish_to == 'maven-central' || inputs.publish_to == 'both'
+        run: |
+          ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache
+        env:
+          RELEASE_BUILD: true
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.GPG_SIGNING_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.GPG_SIGNING_PASSPHRASE }}

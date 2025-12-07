@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/kshivang/BossTerm/actions/workflows/test.yml/badge.svg)](https://github.com/kshivang/BossTerm/actions/workflows/test.yml)
 [![Release](https://github.com/kshivang/BossTerm/actions/workflows/release.yml/badge.svg)](https://github.com/kshivang/BossTerm/releases)
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.risa-labs-inc/bossterm-core)](https://central.sonatype.com/namespace/io.github.risa-labs-inc)
+[![Maven Central](https://img.shields.io/maven-central/v/com.risaboss/bossterm-core)](https://central.sonatype.com/namespace/com.risaboss)
 
 A modern terminal emulator built with **Kotlin** and **Compose Desktop**.
 
@@ -120,7 +120,7 @@ BossTerm provides embeddable terminal libraries for Kotlin Multiplatform project
 
 **Maven Central** (recommended):
 
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.risa-labs-inc/bossterm-core)](https://central.sonatype.com/namespace/io.github.risa-labs-inc)
+[![Maven Central](https://img.shields.io/maven-central/v/com.risaboss/bossterm-core)](https://central.sonatype.com/namespace/com.risaboss)
 
 ```kotlin
 // build.gradle.kts
@@ -130,10 +130,10 @@ repositories {
 
 dependencies {
     // Core terminal emulation engine
-    implementation("io.github.risa-labs-inc:bossterm-core:<version>")
+    implementation("com.risaboss:bossterm-core:<version>")
 
     // Compose Desktop UI component
-    implementation("io.github.risa-labs-inc:bossterm-compose:<version>")
+    implementation("com.risaboss:bossterm-compose:<version>")
 }
 ```
 
@@ -174,8 +174,8 @@ dependencyResolutionManagement {
 
 // build.gradle.kts
 dependencies {
-    implementation("io.github.risa-labs-inc:bossterm-core:<version>")
-    implementation("io.github.risa-labs-inc:bossterm-compose:<version>")
+    implementation("com.risaboss:bossterm-core:<version>")
+    implementation("com.risaboss:bossterm-compose:<version>")
 }
 ```
 

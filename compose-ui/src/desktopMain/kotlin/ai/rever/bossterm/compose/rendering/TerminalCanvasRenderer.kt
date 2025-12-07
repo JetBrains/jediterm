@@ -130,8 +130,9 @@ object TerminalCanvasRenderer {
                     continue
                 }
 
-                val x = col * ctx.cellWidth
-                val y = row * ctx.cellHeight
+                // Round to pixel boundaries to avoid anti-aliasing artifacts
+                val x = kotlin.math.floor(col * ctx.cellWidth)
+                val y = kotlin.math.floor(row * ctx.cellHeight)
 
                 // Check if double-width
                 val isWcwidthDoubleWidth = char != ' ' && char != '\u0000' &&
@@ -150,14 +151,27 @@ object TerminalCanvasRenderer {
                 // THEN swap if INVERSE attribute is set
                 val bgColor = if (isInverse) baseFg else baseBg
 
-                // Draw background (single or double width)
-                val bgWidth = if (isWcwidthDoubleWidth) ctx.cellWidth * 2 else ctx.cellWidth
-                val bgHeight = if (ctx.settings.fillBackgroundInLineSpacing) ctx.cellHeight else ctx.baseCellHeight
-                drawRect(
-                    color = bgColor,
-                    topLeft = Offset(x, y),
-                    size = Size(bgWidth, bgHeight)
-                )
+                // Skip drawing if background matches default (canvas already has default bg)
+                // This avoids anti-aliasing artifacts from drawing same color on top
+                if (bgColor != ctx.settings.defaultBackgroundColor) {
+                    // Draw background (single or double width)
+                    // Calculate end positions and round to pixel boundaries
+                    val nextCol = if (isWcwidthDoubleWidth) col + 2 else col + 1
+                    val nextX = kotlin.math.ceil(nextCol * ctx.cellWidth)
+                    val bgWidth = nextX - x
+                    val nextRow = row + 1
+                    val nextY = kotlin.math.ceil(nextRow * ctx.cellHeight)
+                    val bgHeight = if (ctx.settings.fillBackgroundInLineSpacing) {
+                        nextY - y
+                    } else {
+                        ctx.baseCellHeight
+                    }
+                    drawRect(
+                        color = bgColor,
+                        topLeft = Offset(x.toFloat(), y.toFloat()),
+                        size = Size(bgWidth.toFloat(), bgHeight.toFloat())
+                    )
+                }
 
                 // Skip next column if double-width
                 if (isWcwidthDoubleWidth) {
@@ -446,10 +460,13 @@ object TerminalCanvasRenderer {
                         if (col in 0 until snapshot.width) {
                             val x = col * ctx.cellWidth
                             val y = screenRow * ctx.cellHeight
+                            // Calculate size as difference to next cell to avoid floating-point gaps
+                            val w = (col + 1) * ctx.cellWidth - x
+                            val h = (screenRow + 1) * ctx.cellHeight - y
                             drawRect(
                                 color = matchColor,
                                 topLeft = Offset(x, y),
-                                size = Size(ctx.cellWidth, ctx.cellHeight)
+                                size = Size(w, h)
                             )
                         }
                     }
@@ -512,10 +529,13 @@ object TerminalCanvasRenderer {
                     if (col in 0 until snapshot.width) {
                         val x = col * ctx.cellWidth
                         val y = screenRow * ctx.cellHeight
+                        // Calculate size as difference to next cell to avoid floating-point gaps
+                        val w = (col + 1) * ctx.cellWidth - x
+                        val h = (screenRow + 1) * ctx.cellHeight - y
                         drawRect(
                             color = highlightColor,
                             topLeft = Offset(x, y),
-                            size = Size(ctx.cellWidth, ctx.cellHeight)
+                            size = Size(w, h)
                         )
                     }
                 }
@@ -537,6 +557,9 @@ object TerminalCanvasRenderer {
         val x = ctx.cursorX * ctx.cellWidth
         val adjustedCursorY = (ctx.cursorY - 1).coerceAtLeast(0)
         val y = adjustedCursorY * ctx.cellHeight
+        // Calculate size as difference to next cell to avoid floating-point gaps
+        val w = (ctx.cursorX + 1) * ctx.cellWidth - x
+        val h = (adjustedCursorY + 1) * ctx.cellHeight - y
         val cursorAlpha = if (ctx.isFocused) 0.7f else 0.3f
         val cursorColor = (ctx.cursorColor ?: Color.White).copy(alpha = cursorAlpha)
 
@@ -545,23 +568,23 @@ object TerminalCanvasRenderer {
                 drawRect(
                     color = cursorColor,
                     topLeft = Offset(x, y),
-                    size = Size(ctx.cellWidth, ctx.cellHeight)
+                    size = Size(w, h)
                 )
             }
             CursorShape.BLINK_UNDERLINE, CursorShape.STEADY_UNDERLINE -> {
-                val underlineHeight = ctx.cellHeight * 0.2f
+                val underlineHeight = h * 0.2f
                 drawRect(
                     color = cursorColor,
-                    topLeft = Offset(x, y + ctx.cellHeight - underlineHeight),
-                    size = Size(ctx.cellWidth, underlineHeight)
+                    topLeft = Offset(x, y + h - underlineHeight),
+                    size = Size(w, underlineHeight)
                 )
             }
             CursorShape.BLINK_VERTICAL_BAR, CursorShape.STEADY_VERTICAL_BAR -> {
-                val barWidth = ctx.cellWidth * 0.15f
+                val barWidth = w * 0.15f
                 drawRect(
                     color = cursorColor,
                     topLeft = Offset(x, y),
-                    size = Size(barWidth, ctx.cellHeight)
+                    size = Size(barWidth, h)
                 )
             }
         }

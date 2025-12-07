@@ -73,7 +73,7 @@ fun ColorPickerDialog(
         onCloseRequest = onDismiss,
         title = "Select Color",
         resizable = false,
-        state = rememberDialogState(size = DpSize(340.dp, 480.dp))
+        state = rememberDialogState(size = DpSize(340.dp, 520.dp))
     ) {
         Surface(
             modifier = Modifier.fillMaxSize(),
@@ -83,7 +83,7 @@ fun ColorPickerDialog(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // Saturation/Value canvas
                 Text(

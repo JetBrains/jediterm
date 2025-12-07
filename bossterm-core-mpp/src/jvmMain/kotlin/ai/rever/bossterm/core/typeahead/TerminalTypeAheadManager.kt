@@ -211,11 +211,10 @@ class TerminalTypeAheadManager(private val myTerminalModel: TypeAheadTerminalMod
                 mySequence = sequence
             }
 
-            override fun equals(o: Any?): Boolean {
-                if (this === o) return true
-                if (o !is Sequence) return false
-                val sequence = o
-                return mySequence.contentEquals(sequence.mySequence)
+            override fun equals(other: Any?): Boolean {
+                if (this === other) return true
+                if (other !is Sequence) return false
+                return mySequence.contentEquals(other.mySequence)
             }
 
             override fun hashCode(): Int {

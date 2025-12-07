@@ -40,12 +40,11 @@ interface TypeAheadTerminalModel {
             return LineWithCursorX(StringBuffer(myLineText), myCursorX)
         }
 
-        override fun equals(o: Any?): Boolean {
-            if (this === o) return true
-            if (o !is LineWithCursorX) return false
-            val that = o
-            return myCursorX == that.myCursorX
-                    && myLineText.toString().trimEnd() == that.myLineText.toString().trimEnd()
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is LineWithCursorX) return false
+            return myCursorX == other.myCursorX
+                    && myLineText.toString().trimEnd() == other.myLineText.toString().trimEnd()
         }
 
         override fun hashCode(): Int {

@@ -21,10 +21,10 @@ open class TextStyle @JvmOverloads constructor(
         return myOptions.contains(option)
     }
 
-    override fun equals(o: Any?): Boolean {
-        if (this === o) return true
-        if (o == null || javaClass != o.javaClass) return false
-        val textStyle = o as TextStyle
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || javaClass != other.javaClass) return false
+        val textStyle = other as TextStyle
         return this.foreground == textStyle.foreground &&
                 this.background == textStyle.background &&
                 myOptions == textStyle.myOptions

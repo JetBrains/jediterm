@@ -52,8 +52,8 @@ class Color {
         return ch.toString().repeat(max(0, totalLength - str.length)) + str
     }
 
-    override fun equals(o: Any?): Boolean {
-        return this === o || o is Color && o.rGB == this.rGB
+    override fun equals(other: Any?): Boolean {
+        return this === other || other is Color && other.rGB == this.rGB
     }
 
     override fun hashCode(): Int {

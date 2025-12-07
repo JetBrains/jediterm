@@ -1,6 +1,13 @@
 package ai.rever.bossterm.terminal
 
-@Deprecated("Collect extra information when creating {@link TtyConnector}.")
+/**
+ * Interface for prompting user input during terminal connection setup.
+ *
+ * Used for interactive authentication flows like:
+ * - SSH password authentication
+ * - Two-factor authentication (2FA/MFA)
+ * - Certificate passphrases
+ */
 interface Questioner {
     fun questionVisible(question: String?, defValue: String?): String?
 

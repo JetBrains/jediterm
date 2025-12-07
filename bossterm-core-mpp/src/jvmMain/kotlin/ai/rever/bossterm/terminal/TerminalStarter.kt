@@ -122,19 +122,19 @@ class TerminalStarter(
         }, mergeDelay, TimeUnit.MILLISECONDS)
     }
 
-    override fun sendBytes(bytes: ByteArray, userInput: Boolean) {
-        val length = bytes.size
+    override fun sendBytes(response: ByteArray, userInput: Boolean) {
+        val length = response.size
         if (length > 0) {
-            this.isLastSentByteEscape = bytes[length - 1].toInt() == KeyEvent.VK_ESCAPE
+            this.isLastSentByteEscape = response[length - 1].toInt() == KeyEvent.VK_ESCAPE
         }
         execute(Runnable {
             try {
                 if (userInput) {
-                    fromByteArray(bytes).filterNotNull().forEach(Consumer { keyEvent: TerminalTypeAheadManager.TypeAheadEvent ->
+                    fromByteArray(response).filterNotNull().forEach(Consumer { keyEvent: TerminalTypeAheadManager.TypeAheadEvent ->
                         myTypeAheadManager.onKeyEvent(keyEvent)
                     })
                 }
-                ttyConnector.write(bytes)
+                ttyConnector.write(response)
             } catch (e: IOException) {
                 logWriteError(e)
             }

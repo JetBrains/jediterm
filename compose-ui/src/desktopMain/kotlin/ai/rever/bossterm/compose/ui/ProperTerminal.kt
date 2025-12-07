@@ -1,7 +1,9 @@
 package ai.rever.bossterm.compose.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.draganddrop.dragAndDropTarget
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -76,6 +78,11 @@ import ai.rever.bossterm.compose.input.isAltPressed
 import ai.rever.bossterm.core.typeahead.TerminalTypeAheadManager
 import org.jetbrains.skia.FontMgr
 import ai.rever.bossterm.terminal.TextStyle as BossTextStyle
+import androidx.compose.ui.draganddrop.DragAndDropEvent
+import androidx.compose.ui.draganddrop.DragAndDropTarget
+import androidx.compose.ui.draganddrop.awtTransferable
+import java.awt.datatransfer.DataFlavor
+import java.io.File
 /**
  * Proper terminal implementation using BossTerm's emulator.
  * This uses the real BossTerminal, BossEmulator, and TerminalTextBuffer from the core module.
@@ -84,7 +91,8 @@ import ai.rever.bossterm.terminal.TextStyle as BossTextStyle
  */
 @OptIn(
   ExperimentalComposeUiApi::class,
-  ExperimentalTextApi::class
+  ExperimentalTextApi::class,
+  ExperimentalFoundationApi::class
 )
 @Composable
 fun ProperTerminal(
@@ -346,7 +354,8 @@ fun ProperTerminal(
   val isMacOS = remember { System.getProperty("os.name").lowercase().contains("mac") }
 
   // Create action registry with all built-in actions
-  val actionRegistry = remember(isMacOS) {
+  // Key on `tab` to ensure paste/write operations target the current tab
+  val actionRegistry = remember(isMacOS, tab) {
     val registry = createBuiltinActions(
       selectionStart = object : MutableState<Pair<Int, Int>?> {
         override var value: Pair<Int, Int>?
@@ -564,6 +573,30 @@ fun ProperTerminal(
     return Pair(col, row)
   }
 
+  /**
+   * Drag-and-drop target for file path pasting (like iTerm2).
+   * When files are dropped on the terminal, their paths are pasted with shell escaping.
+   */
+  val dropTarget = remember {
+    object : DragAndDropTarget {
+      override fun onDrop(event: DragAndDropEvent): Boolean {
+        val transferable = event.awtTransferable
+        if (transferable.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+          @Suppress("UNCHECKED_CAST")
+          val files = transferable.getTransferData(DataFlavor.javaFileListFlavor) as List<File>
+          val paths = files.joinToString(" ") { file ->
+            escapePathForShell(file.absolutePath)
+          }
+          if (paths.isNotEmpty()) {
+            tab.pasteText(paths)
+          }
+          return true
+        }
+        return false
+      }
+    }
+  }
+
   Box(
     modifier = modifier
       .fillMaxSize()
@@ -624,6 +657,10 @@ fun ProperTerminal(
         }
         .fillMaxSize()
         .background(settings.defaultBackgroundColor)
+        .dragAndDropTarget(
+          shouldStartDragAndDrop = { true },
+          target = dropTarget
+        )
         .onPointerEvent(PointerEventType.Press) { event ->
           val change = event.changes.first()
           // Skip if event was already consumed by an overlay (SearchBar, DebugPanel, etc.)
@@ -1383,4 +1420,41 @@ fun ProperTerminal(
       }
     }
   } // end else (Connected state)
+}
+
+/**
+ * Escape a file path for safe shell usage.
+ * Handles spaces, quotes, and other special characters.
+ * Uses single quotes with escaped internal single quotes (iTerm2 style).
+ */
+private fun escapePathForShell(path: String): String {
+  // Characters that need quoting in shell
+  val needsQuoting = path.contains(' ') ||
+    path.contains('\'') ||
+    path.contains('"') ||
+    path.contains('\\') ||
+    path.contains('$') ||
+    path.contains('`') ||
+    path.contains('!') ||
+    path.contains('*') ||
+    path.contains('?') ||
+    path.contains('[') ||
+    path.contains(']') ||
+    path.contains('(') ||
+    path.contains(')') ||
+    path.contains('{') ||
+    path.contains('}') ||
+    path.contains('&') ||
+    path.contains(';') ||
+    path.contains('<') ||
+    path.contains('>') ||
+    path.contains('|')
+
+  return if (needsQuoting) {
+    // Wrap in single quotes and escape any internal single quotes
+    // 'foo'bar' becomes 'foo'\''bar'
+    "'" + path.replace("'", "'\\''") + "'"
+  } else {
+    path
+  }
 }

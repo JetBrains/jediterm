@@ -82,6 +82,7 @@ fun EmbeddableTerminal(
     onTitleChange: ((String) -> Unit)? = null,
     onExit: ((Int) -> Unit)? = null,
     onReady: (() -> Unit)? = null,
+    onNewWindow: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     // Resolve settings: direct > path > default
@@ -154,6 +155,7 @@ fun EmbeddableTerminal(
         isActiveTab = true,
         sharedFont = terminalFont,
         onTabTitleChange = { onTitleChange?.invoke(it) },
+        onNewWindow = onNewWindow ?: {},
         modifier = modifier
     )
 }

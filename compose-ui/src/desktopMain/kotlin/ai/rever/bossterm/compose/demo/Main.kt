@@ -6,8 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyShortcut
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.window.MenuBar
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
@@ -16,6 +15,7 @@ import ai.rever.bossterm.compose.TabbedTerminal
 import ai.rever.bossterm.compose.menu.MenuActions
 import ai.rever.bossterm.compose.notification.NotificationService
 import ai.rever.bossterm.compose.settings.SettingsManager
+import ai.rever.bossterm.compose.settings.SettingsWindow
 import ai.rever.bossterm.compose.update.UpdateBanner
 import ai.rever.bossterm.compose.update.UpdateManager
 import ai.rever.bossterm.compose.update.UpdateState
@@ -67,6 +67,9 @@ fun main() = application {
     for (window in WindowManager.windows) {
         key(window.id) {
             val windowState = rememberWindowState()
+            // Settings dialog state (declared before Window for onPreviewKeyEvent access)
+            var showSettingsDialog by remember { mutableStateOf(false) }
+
             Window(
                 onCloseRequest = {
                     WindowManager.closeWindow(window.id)
@@ -75,7 +78,19 @@ fun main() = application {
                     }
                 },
                 state = windowState,
-                title = window.title.value
+                title = window.title.value,
+                onPreviewKeyEvent = { keyEvent ->
+                    // Handle Cmd+, (macOS) or Ctrl+, (other) for Settings
+                    if (keyEvent.type == KeyEventType.KeyDown &&
+                        keyEvent.key == Key.Comma &&
+                        ((isMacOS && keyEvent.isMetaPressed) || (!isMacOS && keyEvent.isCtrlPressed))
+                    ) {
+                        showSettingsDialog = true
+                        true // Consume event
+                    } else {
+                        false
+                    }
+                }
             ) {
                 // Update manager state
                 val updateManager = remember { UpdateManager.instance }
@@ -159,6 +174,12 @@ fun main() = application {
                                 }
                             },
                             shortcut = KeyShortcut(Key.W, meta = isMacOS, ctrl = !isMacOS, shift = true)
+                        )
+                        Separator()
+                        Item(
+                            "Settings...",
+                            onClick = { showSettingsDialog = true },
+                            shortcut = KeyShortcut(Key.Comma, meta = isMacOS, ctrl = !isMacOS)
                         )
                     }
 
@@ -274,6 +295,12 @@ fun main() = application {
                         modifier = Modifier.fillMaxSize().weight(1f)
                     )
                 }
+
+                // Settings dialog
+                SettingsWindow(
+                    visible = showSettingsDialog,
+                    onDismiss = { showSettingsDialog = false }
+                )
             }
         }
     }

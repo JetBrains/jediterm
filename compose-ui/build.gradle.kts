@@ -114,7 +114,7 @@ compose.desktop {
             copyright = "© 2025 Rever AI. All rights reserved."
 
             macOS {
-                // iconFile.set(project.file("src/desktopMain/resources/icons/bossterm.icns"))
+                iconFile.set(rootProject.file("BossTerm.icns"))
                 bundleID = "ai.rever.bossterm"
                 dockName = "BossTerm"
                 // Allow access to all files for terminal operations

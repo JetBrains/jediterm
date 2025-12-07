@@ -20,14 +20,56 @@ data class Version(
     companion object {
         /**
          * Current application version.
-         * This is loaded from the VERSION file at build time.
+         * This is loaded from the app bundle (Info.plist) on macOS,
+         * or from system properties/environment variables as fallback.
          */
         val CURRENT: Version by lazy {
-            // Try to load from system property set during build
-            val versionString = System.getProperty("bossterm.version")
-                ?: System.getenv("BOSSTERM_VERSION")
-                ?: "1.0.0"
-            parse(versionString) ?: Version(1, 0, 0)
+            // Try to load from macOS app bundle Info.plist
+            val bundleVersion = tryGetMacOSBundleVersion()
+            if (bundleVersion != null) {
+                parse(bundleVersion) ?: Version(1, 0, 0)
+            } else {
+                // Fallback to system property or environment variable
+                val versionString = System.getProperty("bossterm.version")
+                    ?: System.getenv("BOSSTERM_VERSION")
+                    ?: "1.0.0"
+                parse(versionString) ?: Version(1, 0, 0)
+            }
+        }
+
+        /**
+         * Try to read version from macOS app bundle Info.plist.
+         * Returns null if not running on macOS or not in an app bundle.
+         */
+        private fun tryGetMacOSBundleVersion(): String? {
+            return try {
+                val isMacOS = System.getProperty("os.name")?.lowercase()?.contains("mac") == true
+                if (!isMacOS) return null
+
+                // Read from Info.plist file directly
+                // The app bundle path can be found from the executable location
+                val javaHome = System.getProperty("java.home") ?: return null
+
+                // If running from .app bundle, java.home is like:
+                // /Applications/BossTerm.app/Contents/runtime/Contents/Home
+                // Info.plist is at: /Applications/BossTerm.app/Contents/Info.plist
+                if (javaHome.contains(".app/Contents/")) {
+                    val appPath = javaHome.substringBefore(".app/Contents/") + ".app"
+                    val infoPlistPath = "$appPath/Contents/Info.plist"
+                    val infoPlistFile = java.io.File(infoPlistPath)
+
+                    if (infoPlistFile.exists()) {
+                        val content = infoPlistFile.readText()
+                        // Parse CFBundleShortVersionString from plist
+                        val versionRegex = """<key>CFBundleShortVersionString</key>\s*<string>([^<]+)</string>""".toRegex()
+                        val match = versionRegex.find(content)
+                        return match?.groupValues?.get(1)
+                    }
+                }
+                null
+            } catch (e: Exception) {
+                null
+            }
         }
 
         /**

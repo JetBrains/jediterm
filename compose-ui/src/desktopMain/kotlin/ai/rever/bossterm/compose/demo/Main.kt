@@ -133,20 +133,6 @@ fun main() = application {
 
                 // Menu bar
                 MenuBar {
-                    // macOS: App menu with Check for Updates (first menu becomes app menu)
-                    if (isMacOS) {
-                        Menu("BossTerm") {
-                            Item(
-                                "Check for Updates...",
-                                onClick = {
-                                    scope.launch {
-                                        updateManager.checkForUpdates()
-                                    }
-                                }
-                            )
-                        }
-                    }
-
                     Menu("File", mnemonic = 'F') {
                         Item(
                             "New Tab",
@@ -233,18 +219,15 @@ fun main() = application {
                         )
                     }
 
-                    // Non-macOS: Help menu with Check for Updates
-                    if (!isMacOS) {
-                        Menu("Help", mnemonic = 'H') {
-                            Item(
-                                "Check for Updates...",
-                                onClick = {
-                                    scope.launch {
-                                        updateManager.checkForUpdates()
-                                    }
+                    Menu("Help", mnemonic = 'H') {
+                        Item(
+                            "Check for Updates...",
+                            onClick = {
+                                scope.launch {
+                                    updateManager.checkForUpdates()
                                 }
-                            )
-                        }
+                            }
+                        )
                     }
                 }
 

@@ -29,6 +29,7 @@ env:
 jobs:
   prepare-version:
     runs-on: ubuntu-latest
+    environment: release
     outputs:
       version: ${{ steps.get-version.outputs.version }}
       updated-sha: ${{ steps.commit-version.outputs.updated-sha }}
@@ -255,6 +256,14 @@ jobs:
             - **macOS**: `BossTerm-${{ needs.prepare-version.outputs.version }}.dmg` (Apple Silicon & Intel)
 
             ### Installation
+
+            **Via Homebrew (recommended):**
+            ```bash
+            brew tap kshivang/bossterm
+            brew install --cask bossterm
+            ```
+
+            **Manual:**
             1. Download the DMG file
             2. Open it and drag BossTerm to Applications
             3. Launch from Applications folder
@@ -267,3 +276,77 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Calculate DMG SHA256
+        id: sha256
+        run: |
+          VERSION="${{ needs.prepare-version.outputs.version }}"
+          DMG_PATH="./release-assets/BossTerm-${VERSION}.dmg"
+          SHA256=$(shasum -a 256 "$DMG_PATH" | cut -d' ' -f1)
+          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+          echo "DMG SHA256: $SHA256"
+
+  update-homebrew:
+    needs: [prepare-version, create-release]
+    runs-on: ubuntu-latest
+    if: github.event.inputs.create_release == 'true' || github.event_name == 'push'
+
+    steps:
+      - name: Checkout Homebrew Tap
+        uses: actions/checkout@v5
+        with:
+          repository: kshivang/homebrew-bossterm
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Download DMG for SHA256
+        run: |
+          VERSION="${{ needs.prepare-version.outputs.version }}"
+          curl -sL "https://github.com/kshivang/BossTerm/releases/download/v${VERSION}/BossTerm-${VERSION}.dmg" -o BossTerm.dmg
+          SHA256=$(shasum -a 256 BossTerm.dmg | cut -d' ' -f1)
+          echo "SHA256=$SHA256" >> $GITHUB_ENV
+          echo "DMG SHA256: $SHA256"
+
+      - name: Update Cask Formula
+        run: |
+          VERSION="${{ needs.prepare-version.outputs.version }}"
+
+          cat > homebrew-tap/Casks/bossterm.rb << EOF
+          cask "bossterm" do
+            version "$VERSION"
+            sha256 "$SHA256"
+
+            url "https://github.com/kshivang/BossTerm/releases/download/v#{version}/BossTerm-#{version}.dmg",
+                verified: "github.com/kshivang/BossTerm/"
+            name "BossTerm"
+            desc "Modern terminal emulator built with Kotlin/Compose Desktop"
+            homepage "https://github.com/kshivang/BossTerm"
+
+            livecheck do
+              url :url
+              strategy :github_latest
+            end
+
+            auto_updates true
+            depends_on macos: ">= :big_sur"
+
+            app "BossTerm.app"
+
+            zap trash: [
+              "~/Library/Application Support/BossTerm",
+              "~/Library/Caches/ai.rever.bossterm",
+              "~/Library/Preferences/ai.rever.bossterm.plist",
+              "~/Library/Saved Application State/ai.rever.bossterm.savedState",
+              "~/.bossterm",
+            ]
+          end
+          EOF
+
+      - name: Commit and Push
+        run: |
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/bossterm.rb
+          git commit -m "Update BossTerm to ${{ needs.prepare-version.outputs.version }}"
+          git push

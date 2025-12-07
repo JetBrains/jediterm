@@ -19,7 +19,6 @@ plugins {
     kotlin("multiplatform")
     id("org.jetbrains.compose")
     id("org.jetbrains.kotlin.plugin.compose")
-    id("com.android.library")
     kotlin("plugin.serialization") version "2.1.0"
     id("com.vanniktech.maven.publish")
 }
@@ -36,20 +35,9 @@ repositories {
 kotlin {
     jvmToolchain(17)
 
-    // Android target
-    androidTarget {
-        compilations.all {
-            compileTaskProvider.configure {
-                compilerOptions {
-                    jvmTarget.set(JvmTarget.JVM_17)
-                }
-            }
-        }
-        publishLibraryVariants("release")
-    }
-
-    // Note: iOS targets removed - no actual implementation exists yet
-    // Can be added when iosMain source set is implemented
+    // Note: Android target removed from compose-ui - no androidMain source set exists
+    // The core library (bossterm-core-mpp) supports Android
+    // compose-ui is Desktop-only for now
 
     // Desktop JVM target
     jvm("desktop") {
@@ -95,17 +83,6 @@ kotlin {
             }
         }
 
-        // Android source set
-        val androidMain by getting {
-            dependencies {
-                implementation(project(":bossterm-core-mpp"))
-                implementation("androidx.activity:activity-compose:1.9.3")
-                implementation("androidx.appcompat:appcompat:1.7.0")
-                implementation("androidx.core:core-ktx:1.15.0")
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
-            }
-        }
-
         // Desktop source set
         val desktopMain by getting {
             dependencies {
@@ -120,22 +97,8 @@ kotlin {
     }
 }
 
-android {
-    namespace = "ai.rever.bossterm.compose"
-    compileSdk = 34
-
-    defaultConfig {
-        minSdk = 24
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
-    sourceSets["main"].res.srcDirs("src/androidMain/resources")
-}
+// Note: Android configuration removed - compose-ui is Desktop-only
+// See bossterm-core-mpp for Android support
 
 compose.desktop {
     application {
@@ -201,7 +164,6 @@ mavenPublishing {
     configure(KotlinMultiplatform(
         javadocJar = JavadocJar.Empty(),
         sourcesJar = true,
-        androidVariantsToPublish = listOf("release"),
     ))
 
     pom {

@@ -248,11 +248,15 @@ class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
 
             9 -> return processOsc9Progress(args)
 
-            10, 11 -> return processColorQuery(args)
-
-            52 -> return processClipboard(args)
+            4 -> return processIndexedColor(args)  // ANSI palette colors (0-255)
+            10, 11 -> return processDynamicColor(args)  // Foreground/background colors
             12 -> return processCursorColor(args)
-            104, 1341 -> {
+            52 -> return processClipboard(args)
+
+            104 -> return processResetIndexedColor(args)  // Reset palette colors
+            110, 111, 112 -> return processResetDynamicColor(ps)  // Reset fg/bg/cursor
+
+            1341 -> {
                 val argList: MutableList<String?> = args.args.toMutableList()
                 myTerminal?.processCustomCommand(argList.subList(1, argList.size) as MutableList<String?>)
                 return true
@@ -269,30 +273,145 @@ class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
 
 
     /**
-     * [
- * If a "?" is given rather than a name or RGB specification, xterm replies with a control sequence of
- * the same form which can be used to set the corresponding dynamic color.
-](http://www.xfree86.org/4.8.0/ctlseqs.html) *
+     * Handles OSC 10/11 (foreground/background colors).
+     * Query: ESC]10;?\ESC\ or ESC]11;?\ESC\
+     * Set: ESC]10;#RRGGBB\ESC\ or ESC]10;rgb:RR/GG/BB\ESC\
+     * http://www.xfree86.org/4.8.0/ctlseqs.html
      */
-    private fun processColorQuery(args: SystemCommandSequence): kotlin.Boolean {
-        if ("?" != args.getStringAt(1)) {
-            return false
-        }
+    private fun processDynamicColor(args: SystemCommandSequence): kotlin.Boolean {
         val ps = args.getIntAt(0, -1)
-        val color: Color?
-        if (ps == 10) {
-            color = myTerminal?.windowForeground
-        } else if (ps == 11) {
-            color = myTerminal?.windowBackground
-        } else {
+        val arg = args.getStringAt(1)
+
+        if (arg == null) {
             return false
         }
-        if (color != null) {
-            val str = args.format(List.of<String>(ps.toString(), color.toXParseColor()))
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Responding to OSC " + ps + " query: " + str)
+
+        if ("?" == arg) {
+            // Query color
+            val color: Color? = when (ps) {
+                10 -> myTerminal?.windowForeground
+                11 -> myTerminal?.windowBackground
+                else -> null
             }
-            myTerminal?.deviceStatusReport(str)
+            if (color != null) {
+                val str = args.format(List.of<String>(ps.toString(), color.toXParseColor()))
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Responding to OSC $ps query: $str")
+                }
+                myTerminal?.deviceStatusReport(str)
+            }
+            return true
+        }
+
+        // Set color
+        val color = parseOscColor(arg)
+        if (color != null) {
+            when (ps) {
+                10 -> myTerminal?.setWindowForeground(color)
+                11 -> myTerminal?.setWindowBackground(color)
+            }
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Set OSC $ps color to: $arg")
+            }
+            return true
+        }
+
+        return false
+    }
+
+    /**
+     * Handles OSC 4 (ANSI palette colors 0-255).
+     * Query: ESC]4;index;?\ESC\
+     * Set: ESC]4;index;#RRGGBB\ESC\ or ESC]4;index;rgb:RR/GG/BB\ESC\
+     */
+    private fun processIndexedColor(args: SystemCommandSequence): kotlin.Boolean {
+        val indexStr = args.getStringAt(1) ?: return false
+        val colorArg = args.getStringAt(2) ?: return false
+        val index = indexStr.toIntOrNull() ?: return false
+
+        if (index < 0 || index > 255) {
+            return false
+        }
+
+        if ("?" == colorArg) {
+            // Query indexed color
+            val color = myTerminal?.getIndexedColor(index)
+            if (color != null) {
+                val str = args.format(List.of<String>("4", index.toString(), color.toXParseColor()))
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Responding to OSC 4;$index query: $str")
+                }
+                myTerminal?.deviceStatusReport(str)
+            }
+            return true
+        }
+
+        // Set indexed color
+        val color = parseOscColor(colorArg)
+        if (color != null) {
+            myTerminal?.setIndexedColor(index, color)
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Set palette color $index to: $colorArg")
+            }
+            return true
+        }
+
+        return false
+    }
+
+    /**
+     * Handles OSC 104 (reset ANSI palette colors).
+     * Reset all: ESC]104\ESC\
+     * Reset specific: ESC]104;index\ESC\
+     */
+    private fun processResetIndexedColor(args: SystemCommandSequence): kotlin.Boolean {
+        val indexStr = args.getStringAt(1)
+
+        if (indexStr == null || indexStr.isEmpty()) {
+            // Reset all palette colors
+            myTerminal?.resetIndexedColor(null)
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Reset all palette colors")
+            }
+        } else {
+            // Reset specific color
+            val index = indexStr.toIntOrNull()
+            if (index != null && index in 0..255) {
+                myTerminal?.resetIndexedColor(index)
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Reset palette color $index")
+                }
+            }
+        }
+        return true
+    }
+
+    /**
+     * Handles OSC 110-112 (reset dynamic colors).
+     * 110: Reset foreground
+     * 111: Reset background
+     * 112: Reset cursor color
+     */
+    private fun processResetDynamicColor(ps: Int): kotlin.Boolean {
+        when (ps) {
+            110 -> {
+                myTerminal?.resetWindowForeground()
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Reset foreground color")
+                }
+            }
+            111 -> {
+                myTerminal?.resetWindowBackground()
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Reset background color")
+                }
+            }
+            112 -> {
+                myTerminal?.resetCursorColor()
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Reset cursor color")
+                }
+            }
         }
         return true
     }

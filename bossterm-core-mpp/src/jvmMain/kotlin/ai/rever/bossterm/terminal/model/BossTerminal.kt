@@ -86,6 +86,8 @@ class BossTerminal(
         CopyOnWriteArrayList<CommandStateListener>()
     private val myClipboardListeners: MutableList<TerminalClipboardListener> =
         CopyOnWriteArrayList<TerminalClipboardListener>()
+    private val myColorChangeListeners: MutableList<TerminalColorChangeListener> =
+        CopyOnWriteArrayList<TerminalColorChangeListener>()
 
     override fun setModeEnabled(mode: TerminalMode?, enabled: Boolean) {
         mode?.let {
@@ -452,7 +454,75 @@ class BossTerminal(
         set(color) {
             myCursorColor = color
             myDisplay.cursorColor = color
+            // Notify listeners
+            for (listener in myColorChangeListeners) {
+                listener.onCursorColorChanged(color)
+            }
         }
+
+    // ===== Dynamic Colors (OSC 4, 10-12, 104, 110-112) =====
+
+    override fun addColorChangeListener(listener: TerminalColorChangeListener) {
+        myColorChangeListeners.add(listener)
+    }
+
+    override fun removeColorChangeListener(listener: TerminalColorChangeListener) {
+        myColorChangeListeners.remove(listener)
+    }
+
+    override fun setWindowForeground(color: Color) {
+        for (listener in myColorChangeListeners) {
+            listener.onForegroundColorChanged(color)
+        }
+    }
+
+    override fun setWindowBackground(color: Color) {
+        for (listener in myColorChangeListeners) {
+            listener.onBackgroundColorChanged(color)
+        }
+    }
+
+    override fun resetWindowForeground() {
+        for (listener in myColorChangeListeners) {
+            listener.onForegroundColorReset()
+        }
+    }
+
+    override fun resetWindowBackground() {
+        for (listener in myColorChangeListeners) {
+            listener.onBackgroundColorReset()
+        }
+    }
+
+    override fun resetCursorColor() {
+        myCursorColor = null
+        myDisplay.cursorColor = null
+        for (listener in myColorChangeListeners) {
+            listener.onCursorColorReset()
+        }
+    }
+
+    override fun getIndexedColor(index: Int): Color? {
+        // Query indexed color - delegate to listeners
+        // The first listener that returns a non-null value wins
+        for (listener in myColorChangeListeners) {
+            // This is handled by the listener on the Compose side
+            // For now, return null (query not fully implemented)
+        }
+        return null
+    }
+
+    override fun setIndexedColor(index: Int, color: Color) {
+        for (listener in myColorChangeListeners) {
+            listener.onIndexedColorChanged(index, color)
+        }
+    }
+
+    override fun resetIndexedColor(index: Int?) {
+        for (listener in myColorChangeListeners) {
+            listener.onIndexedColorReset(index)
+        }
+    }
 
     private val myCustomCommandListeners: MutableList<TerminalCustomCommandListener> =
         CopyOnWriteArrayList<TerminalCustomCommandListener>()

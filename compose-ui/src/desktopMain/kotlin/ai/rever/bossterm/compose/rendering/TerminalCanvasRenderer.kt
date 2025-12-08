@@ -545,8 +545,21 @@ object TerminalCanvasRenderer {
 
     /**
      * Render the terminal cursor.
+     * Only renders when cursor is within the visible viewport (accounts for scroll offset).
      */
     private fun DrawScope.renderCursor(ctx: RenderingContext) {
+        // Calculate cursor's visual position accounting for scroll offset
+        // cursorY is 1-indexed in the screen buffer, so adjust to 0-indexed
+        val adjustedCursorY = (ctx.cursorY - 1).coerceAtLeast(0)
+        val cursorScreenRow = adjustedCursorY - ctx.scrollOffset
+
+        // Don't render cursor if scrolled away from current screen
+        // Cursor is always in the screen buffer (not history), so when scrollOffset > 0
+        // and cursor row is outside visible range, hide it
+        if (cursorScreenRow < 0 || cursorScreenRow >= ctx.visibleRows) {
+            return
+        }
+
         val shouldShowCursor = when (ctx.cursorShape) {
             CursorShape.BLINK_BLOCK, CursorShape.BLINK_UNDERLINE, CursorShape.BLINK_VERTICAL_BAR -> ctx.cursorBlinkVisible
             else -> true
@@ -555,11 +568,10 @@ object TerminalCanvasRenderer {
         if (!shouldShowCursor) return
 
         val x = ctx.cursorX * ctx.cellWidth
-        val adjustedCursorY = (ctx.cursorY - 1).coerceAtLeast(0)
-        val y = adjustedCursorY * ctx.cellHeight
+        val y = cursorScreenRow * ctx.cellHeight
         // Calculate size as difference to next cell to avoid floating-point gaps
         val w = (ctx.cursorX + 1) * ctx.cellWidth - x
-        val h = (adjustedCursorY + 1) * ctx.cellHeight - y
+        val h = (cursorScreenRow + 1) * ctx.cellHeight - y
         val cursorAlpha = if (ctx.isFocused) 0.7f else 0.3f
         val cursorColor = (ctx.cursorColor ?: Color.White).copy(alpha = cursorAlpha)
 

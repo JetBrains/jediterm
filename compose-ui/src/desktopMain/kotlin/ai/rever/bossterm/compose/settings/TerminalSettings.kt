@@ -192,7 +192,7 @@ data class TerminalSettings(
     /**
      * Scrollbar width in pixels
      */
-    val scrollbarWidth: Float = 12f,
+    val scrollbarWidth: Float = 8f,
 
     /**
      * Scrollbar track color (serialized as ARGB hex)

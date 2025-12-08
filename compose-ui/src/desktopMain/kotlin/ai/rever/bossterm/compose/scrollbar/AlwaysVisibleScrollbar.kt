@@ -62,7 +62,7 @@ fun AlwaysVisibleScrollbar(
     adapter: ScrollbarAdapter,
     redrawTrigger: State<Int>,
     modifier: Modifier = Modifier,
-    thickness: Dp = 12.dp,
+    thickness: Dp = 8.dp,
     thumbColor: Color = Color.White,
     trackColor: Color = Color.White.copy(alpha = 0.12f),
     minThumbHeight: Dp = 32.dp,

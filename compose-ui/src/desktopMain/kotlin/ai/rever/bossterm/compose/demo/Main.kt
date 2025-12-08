@@ -367,20 +367,15 @@ fun main() = application {
                                 },
                                 onMinimize = { windowState.isMinimized = true },
                                 onFullscreen = {
-                                    // Toggle fullscreen by maximizing to screen bounds
-                                    // (AWT exclusive fullscreen breaks transparency)
-                                    val screenBounds = awtWindow.graphicsConfiguration.bounds
-                                    val isCurrentlyFullscreen = awtWindow.bounds == screenBounds
-                                    if (isCurrentlyFullscreen) {
-                                        // Exit fullscreen - restore to floating
-                                        windowState.placement = androidx.compose.ui.window.WindowPlacement.Floating
+                                    // Toggle maximize (true fullscreen breaks transparency on macOS)
+                                    windowState.placement = if (windowState.placement == androidx.compose.ui.window.WindowPlacement.Maximized) {
+                                        androidx.compose.ui.window.WindowPlacement.Floating
                                     } else {
-                                        // Enter fullscreen - set bounds to screen size
-                                        awtWindow.setBounds(screenBounds)
+                                        androidx.compose.ui.window.WindowPlacement.Maximized
                                     }
                                 },
                                 onMaximize = {
-                                    // Toggle maximize/zoom (Option+click on green button)
+                                    // Same as fullscreen for undecorated windows
                                     windowState.placement = if (windowState.placement == androidx.compose.ui.window.WindowPlacement.Maximized) {
                                         androidx.compose.ui.window.WindowPlacement.Floating
                                     } else {

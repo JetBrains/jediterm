@@ -62,6 +62,7 @@ fun SplitDividerLine(
  * @param orientation The orientation of the split
  * @param currentRatio The current split ratio (used to capture start ratio)
  * @param availableSize The available size in pixels for ratio calculation
+ * @param minRatio Minimum ratio when resizing (default 0.1 = 10%)
  * @param onRatioChange Called with the new ratio during drag
  * @param size The size of the drag area (default 16dp)
  */
@@ -72,6 +73,7 @@ fun SplitDragHandle(
     availableSize: Float,
     onRatioChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
+    minRatio: Float = 0.1f,
     size: Dp = DRAG_AREA_SIZE
 ) {
     val cursor = when (orientation) {
@@ -82,6 +84,9 @@ fun SplitDragHandle(
     // Track the starting ratio when drag begins
     var startRatio by remember { mutableFloatStateOf(currentRatio) }
     var cumulativeDelta by remember { mutableFloatStateOf(0f) }
+
+    // Calculate max ratio based on min (ensures both panes respect minimum)
+    val maxRatio = 1f - minRatio
 
     Box(
         modifier = modifier
@@ -116,7 +121,7 @@ fun SplitDragHandle(
 
                         // Calculate new ratio from start ratio + cumulative delta
                         val deltaRatio = cumulativeDelta / availableSize
-                        val newRatio = (startRatio + deltaRatio).coerceIn(0.1f, 0.9f)
+                        val newRatio = (startRatio + deltaRatio).coerceIn(minRatio, maxRatio)
                         onRatioChange(newRatio)
                     }
                 )

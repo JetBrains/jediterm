@@ -223,7 +223,10 @@ fun TabbedTerminal(
 
             // Split operation handlers
             val onSplitHorizontal: () -> Unit = {
-                val workingDir = splitState.getFocusedSession()?.workingDirectory?.value
+                // Only inherit working directory if setting is enabled
+                val workingDir = if (settings.splitInheritWorkingDirectory) {
+                    splitState.getFocusedSession()?.workingDirectory?.value
+                } else null
                 // Use a holder to capture session ID after creation
                 var sessionId: String? = null
                 val newSession = tabController.createSessionForSplit(
@@ -238,11 +241,14 @@ fun TabbedTerminal(
                     }
                 )
                 sessionId = (newSession as? TerminalTab)?.id
-                splitState.splitFocusedPane(SplitOrientation.HORIZONTAL, newSession)
+                splitState.splitFocusedPane(SplitOrientation.HORIZONTAL, newSession, settings.splitDefaultRatio)
             }
 
             val onSplitVertical: () -> Unit = {
-                val workingDir = splitState.getFocusedSession()?.workingDirectory?.value
+                // Only inherit working directory if setting is enabled
+                val workingDir = if (settings.splitInheritWorkingDirectory) {
+                    splitState.getFocusedSession()?.workingDirectory?.value
+                } else null
                 // Use a holder to capture session ID after creation
                 var sessionId: String? = null
                 val newSession = tabController.createSessionForSplit(
@@ -257,7 +263,7 @@ fun TabbedTerminal(
                     }
                 )
                 sessionId = (newSession as? TerminalTab)?.id
-                splitState.splitFocusedPane(SplitOrientation.VERTICAL, newSession)
+                splitState.splitFocusedPane(SplitOrientation.VERTICAL, newSession, settings.splitDefaultRatio)
             }
 
             val onClosePane: () -> Unit = {
@@ -317,6 +323,10 @@ fun TabbedTerminal(
                     }
                 } else null,  // Don't show option if only one pane (nothing to move)
                 menuActions = menuActions,
+                // Split pane settings
+                splitFocusBorderEnabled = settings.splitFocusBorderEnabled,
+                splitFocusBorderColor = settings.splitFocusBorderColorValue,
+                splitMinimumSize = settings.splitMinimumSize,
                 modifier = Modifier.fillMaxSize()
             )
         }

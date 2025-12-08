@@ -55,6 +55,10 @@ fun SplitContainer(
     onNavigatePreviousPane: () -> Unit = {},
     onMoveToNewTab: (() -> Unit)? = null,
     menuActions: MenuActions?,
+    // Split pane settings
+    splitFocusBorderEnabled: Boolean = true,
+    splitFocusBorderColor: Color = Color(0xFF4A90E2),
+    splitMinimumSize: Float = 0.1f,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -79,6 +83,9 @@ fun SplitContainer(
             onNavigatePreviousPane = onNavigatePreviousPane,
             onMoveToNewTab = onMoveToNewTab,
             menuActions = menuActions,
+            splitFocusBorderEnabled = splitFocusBorderEnabled,
+            splitFocusBorderColor = splitFocusBorderColor,
+            splitMinimumSize = splitMinimumSize,
             modifier = Modifier.fillMaxSize()
         )
     }
@@ -109,6 +116,9 @@ private fun RenderSplitNode(
     onNavigatePreviousPane: () -> Unit,
     onMoveToNewTab: (() -> Unit)?,
     menuActions: MenuActions?,
+    splitFocusBorderEnabled: Boolean,
+    splitFocusBorderColor: Color,
+    splitMinimumSize: Float,
     modifier: Modifier = Modifier
 ) {
     when (node) {
@@ -135,6 +145,8 @@ private fun RenderSplitNode(
                 onNavigatePreviousPane = onNavigatePreviousPane,
                 onMoveToNewTab = onMoveToNewTab,
                 menuActions = menuActions,
+                splitFocusBorderEnabled = splitFocusBorderEnabled,
+                splitFocusBorderColor = splitFocusBorderColor,
                 modifier = modifier
             )
         }
@@ -161,6 +173,9 @@ private fun RenderSplitNode(
                 onNavigatePreviousPane = onNavigatePreviousPane,
                 onMoveToNewTab = onMoveToNewTab,
                 menuActions = menuActions,
+                splitFocusBorderEnabled = splitFocusBorderEnabled,
+                splitFocusBorderColor = splitFocusBorderColor,
+                splitMinimumSize = splitMinimumSize,
                 modifier = modifier
             )
         }
@@ -187,6 +202,9 @@ private fun RenderSplitNode(
                 onNavigatePreviousPane = onNavigatePreviousPane,
                 onMoveToNewTab = onMoveToNewTab,
                 menuActions = menuActions,
+                splitFocusBorderEnabled = splitFocusBorderEnabled,
+                splitFocusBorderColor = splitFocusBorderColor,
+                splitMinimumSize = splitMinimumSize,
                 modifier = modifier
             )
         }
@@ -219,13 +237,17 @@ private fun RenderPane(
     onNavigatePreviousPane: () -> Unit,
     onMoveToNewTab: (() -> Unit)?,
     menuActions: MenuActions?,
+    splitFocusBorderEnabled: Boolean,
+    splitFocusBorderColor: Color,
     modifier: Modifier = Modifier
 ) {
-    // Focus border for active pane (only show when there are multiple panes)
-    val borderModifier = if (isFocusedPane && !splitState.isSinglePane) {
-        Modifier.border(2.dp, Color(0xFF4A90E2))
-    } else if (!splitState.isSinglePane) {
-        Modifier.border(1.dp, Color(0xFF404040))
+    // Focus border for active pane (only show when there are multiple panes and enabled)
+    val borderModifier = if (!splitState.isSinglePane && splitFocusBorderEnabled) {
+        if (isFocusedPane) {
+            Modifier.border(2.dp, splitFocusBorderColor)
+        } else {
+            Modifier.border(1.dp, Color(0xFF404040))
+        }
     } else {
         Modifier
     }
@@ -309,6 +331,9 @@ private fun RenderVerticalSplit(
     onNavigatePreviousPane: () -> Unit,
     onMoveToNewTab: (() -> Unit)?,
     menuActions: MenuActions?,
+    splitFocusBorderEnabled: Boolean,
+    splitFocusBorderColor: Color,
+    splitMinimumSize: Float,
     modifier: Modifier = Modifier
 ) {
     BoxWithConstraints(modifier = modifier) {
@@ -344,6 +369,9 @@ private fun RenderVerticalSplit(
                     onNavigatePreviousPane = onNavigatePreviousPane,
                     onMoveToNewTab = onMoveToNewTab,
                     menuActions = menuActions,
+                    splitFocusBorderEnabled = splitFocusBorderEnabled,
+                    splitFocusBorderColor = splitFocusBorderColor,
+                    splitMinimumSize = splitMinimumSize,
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -374,6 +402,9 @@ private fun RenderVerticalSplit(
                     onNavigatePreviousPane = onNavigatePreviousPane,
                     onMoveToNewTab = onMoveToNewTab,
                     menuActions = menuActions,
+                    splitFocusBorderEnabled = splitFocusBorderEnabled,
+                    splitFocusBorderColor = splitFocusBorderColor,
+                    splitMinimumSize = splitMinimumSize,
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -384,6 +415,7 @@ private fun RenderVerticalSplit(
             orientation = SplitOrientation.VERTICAL,
             currentRatio = split.ratio,
             availableSize = availableWidth,
+            minRatio = splitMinimumSize,
             onRatioChange = { newRatio ->
                 splitState.updateSplitRatio(split.id, newRatio)
             },
@@ -419,6 +451,9 @@ private fun RenderHorizontalSplit(
     onNavigatePreviousPane: () -> Unit,
     onMoveToNewTab: (() -> Unit)?,
     menuActions: MenuActions?,
+    splitFocusBorderEnabled: Boolean,
+    splitFocusBorderColor: Color,
+    splitMinimumSize: Float,
     modifier: Modifier = Modifier
 ) {
     BoxWithConstraints(modifier = modifier) {
@@ -454,6 +489,9 @@ private fun RenderHorizontalSplit(
                     onNavigatePreviousPane = onNavigatePreviousPane,
                     onMoveToNewTab = onMoveToNewTab,
                     menuActions = menuActions,
+                    splitFocusBorderEnabled = splitFocusBorderEnabled,
+                    splitFocusBorderColor = splitFocusBorderColor,
+                    splitMinimumSize = splitMinimumSize,
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -484,6 +522,9 @@ private fun RenderHorizontalSplit(
                     onNavigatePreviousPane = onNavigatePreviousPane,
                     onMoveToNewTab = onMoveToNewTab,
                     menuActions = menuActions,
+                    splitFocusBorderEnabled = splitFocusBorderEnabled,
+                    splitFocusBorderColor = splitFocusBorderColor,
+                    splitMinimumSize = splitMinimumSize,
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -494,6 +535,7 @@ private fun RenderHorizontalSplit(
             orientation = SplitOrientation.HORIZONTAL,
             currentRatio = split.ratio,
             availableSize = availableHeight,
+            minRatio = splitMinimumSize,
             onRatioChange = { newRatio ->
                 splitState.updateSplitRatio(split.id, newRatio)
             },

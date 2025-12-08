@@ -96,8 +96,12 @@ class SplitViewState(
     /**
      * Split the focused pane in the given orientation.
      * Returns the ID of the new pane, or null if split failed.
+     *
+     * @param orientation Whether to split horizontally (top/bottom) or vertically (left/right)
+     * @param newSession The session for the new pane
+     * @param ratio The initial split ratio (0.0 to 1.0, default 0.5)
      */
-    fun splitFocusedPane(orientation: SplitOrientation, newSession: TerminalSession): String? {
+    fun splitFocusedPane(orientation: SplitOrientation, newSession: TerminalSession, ratio: Float = 0.5f): String? {
         val currentPane = getFocusedPane() ?: return null
         val newPaneId = UUID.randomUUID().toString()
         val newPane = SplitNode.Pane(id = newPaneId, session = newSession)
@@ -106,11 +110,13 @@ class SplitViewState(
             when (orientation) {
                 SplitOrientation.HORIZONTAL -> SplitNode.HorizontalSplit(
                     top = pane,
-                    bottom = newPane
+                    bottom = newPane,
+                    ratio = ratio
                 )
                 SplitOrientation.VERTICAL -> SplitNode.VerticalSplit(
                     left = pane,
-                    right = newPane
+                    right = newPane,
+                    ratio = ratio
                 )
             }
         }

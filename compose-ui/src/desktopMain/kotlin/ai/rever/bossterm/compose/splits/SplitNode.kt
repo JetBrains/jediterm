@@ -30,11 +30,7 @@ sealed class SplitNode {
         val left: SplitNode,
         val right: SplitNode,
         val ratio: Float = 0.5f  // 0.0 to 1.0, proportion of left child
-    ) : SplitNode() {
-        init {
-            require(ratio in 0.1f..0.9f) { "Split ratio must be between 0.1 and 0.9" }
-        }
-    }
+    ) : SplitNode()
 
     /**
      * A horizontal split with top and bottom children.
@@ -45,11 +41,7 @@ sealed class SplitNode {
         val top: SplitNode,
         val bottom: SplitNode,
         val ratio: Float = 0.5f  // 0.0 to 1.0, proportion of top child
-    ) : SplitNode() {
-        init {
-            require(ratio in 0.1f..0.9f) { "Split ratio must be between 0.1 and 0.9" }
-        }
-    }
+    ) : SplitNode()
 }
 
 /**
@@ -159,9 +151,10 @@ fun SplitNode.removePane(targetId: String): SplitNode? {
 
 /**
  * Update the ratio of a split node.
+ * @param minRatio Minimum allowed ratio (default 0.1f). Max ratio is 1 - minRatio.
  */
-fun SplitNode.updateRatio(targetId: String, newRatio: Float): SplitNode {
-    val clampedRatio = newRatio.coerceIn(0.1f, 0.9f)
+fun SplitNode.updateRatio(targetId: String, newRatio: Float, minRatio: Float = 0.1f): SplitNode {
+    val clampedRatio = newRatio.coerceIn(minRatio, 1f - minRatio)
     return when (this) {
         is SplitNode.Pane -> this
         is SplitNode.VerticalSplit -> {
@@ -169,8 +162,8 @@ fun SplitNode.updateRatio(targetId: String, newRatio: Float): SplitNode {
                 copy(ratio = clampedRatio)
             } else {
                 copy(
-                    left = left.updateRatio(targetId, newRatio),
-                    right = right.updateRatio(targetId, newRatio)
+                    left = left.updateRatio(targetId, newRatio, minRatio),
+                    right = right.updateRatio(targetId, newRatio, minRatio)
                 )
             }
         }
@@ -179,8 +172,8 @@ fun SplitNode.updateRatio(targetId: String, newRatio: Float): SplitNode {
                 copy(ratio = clampedRatio)
             } else {
                 copy(
-                    top = top.updateRatio(targetId, newRatio),
-                    bottom = bottom.updateRatio(targetId, newRatio)
+                    top = top.updateRatio(targetId, newRatio, minRatio),
+                    bottom = bottom.updateRatio(targetId, newRatio, minRatio)
                 )
             }
         }

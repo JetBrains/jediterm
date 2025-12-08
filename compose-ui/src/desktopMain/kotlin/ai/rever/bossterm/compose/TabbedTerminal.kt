@@ -120,7 +120,7 @@ fun TabbedTerminal(
     }
 
     // Wire up split menu actions (updates when active tab changes)
-    LaunchedEffect(menuActions, tabController.activeTabIndex, tabController.tabs.size) {
+    LaunchedEffect(menuActions, tabController.activeTabIndex) {
         if (tabController.tabs.isEmpty()) return@LaunchedEffect
         val activeTab = tabController.tabs.getOrNull(tabController.activeTabIndex) ?: return@LaunchedEffect
         val splitState = splitStates.getOrPut(activeTab.id) { SplitViewState(initialSession = activeTab) }
@@ -128,34 +128,34 @@ fun TabbedTerminal(
         menuActions?.apply {
             onSplitVertical = {
                 val workingDir = splitState.getFocusedSession()?.workingDirectory?.value
-                var sessionId: String? = null
+                var newSessionRef: TerminalSession? = null
                 val newSession = tabController.createSessionForSplit(
                     workingDir = workingDir,
                     onProcessExit = {
-                        sessionId?.let { id ->
+                        newSessionRef?.let { session ->
                             splitState.getAllPanes()
-                                .find { (it.session as? TerminalTab)?.id == id }
+                                .find { it.session === session }
                                 ?.let { pane -> splitState.closePane(pane.id) }
                         }
                     }
                 )
-                sessionId = (newSession as? TerminalTab)?.id
+                newSessionRef = newSession
                 splitState.splitFocusedPane(SplitOrientation.VERTICAL, newSession)
             }
             onSplitHorizontal = {
                 val workingDir = splitState.getFocusedSession()?.workingDirectory?.value
-                var sessionId: String? = null
+                var newSessionRef: TerminalSession? = null
                 val newSession = tabController.createSessionForSplit(
                     workingDir = workingDir,
                     onProcessExit = {
-                        sessionId?.let { id ->
+                        newSessionRef?.let { session ->
                             splitState.getAllPanes()
-                                .find { (it.session as? TerminalTab)?.id == id }
+                                .find { it.session === session }
                                 ?.let { pane -> splitState.closePane(pane.id) }
                         }
                     }
                 )
-                sessionId = (newSession as? TerminalTab)?.id
+                newSessionRef = newSession
                 splitState.splitFocusedPane(SplitOrientation.HORIZONTAL, newSession)
             }
             onClosePane = {
@@ -227,20 +227,19 @@ fun TabbedTerminal(
                 val workingDir = if (settings.splitInheritWorkingDirectory) {
                     splitState.getFocusedSession()?.workingDirectory?.value
                 } else null
-                // Use a holder to capture session ID after creation
-                var sessionId: String? = null
+                var newSessionRef: TerminalSession? = null
                 val newSession = tabController.createSessionForSplit(
                     workingDir = workingDir,
                     onProcessExit = {
                         // Auto-close the pane when process exits
-                        sessionId?.let { id ->
+                        newSessionRef?.let { session ->
                             splitState.getAllPanes()
-                                .find { (it.session as? TerminalTab)?.id == id }
+                                .find { it.session === session }
                                 ?.let { pane -> splitState.closePane(pane.id) }
                         }
                     }
                 )
-                sessionId = (newSession as? TerminalTab)?.id
+                newSessionRef = newSession
                 splitState.splitFocusedPane(SplitOrientation.HORIZONTAL, newSession, settings.splitDefaultRatio)
             }
 
@@ -249,20 +248,19 @@ fun TabbedTerminal(
                 val workingDir = if (settings.splitInheritWorkingDirectory) {
                     splitState.getFocusedSession()?.workingDirectory?.value
                 } else null
-                // Use a holder to capture session ID after creation
-                var sessionId: String? = null
+                var newSessionRef: TerminalSession? = null
                 val newSession = tabController.createSessionForSplit(
                     workingDir = workingDir,
                     onProcessExit = {
                         // Auto-close the pane when process exits
-                        sessionId?.let { id ->
+                        newSessionRef?.let { session ->
                             splitState.getAllPanes()
-                                .find { (it.session as? TerminalTab)?.id == id }
+                                .find { it.session === session }
                                 ?.let { pane -> splitState.closePane(pane.id) }
                         }
                     }
                 )
-                sessionId = (newSession as? TerminalTab)?.id
+                newSessionRef = newSession
                 splitState.splitFocusedPane(SplitOrientation.VERTICAL, newSession, settings.splitDefaultRatio)
             }
 

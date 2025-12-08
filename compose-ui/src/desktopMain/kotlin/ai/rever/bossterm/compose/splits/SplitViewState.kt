@@ -210,9 +210,10 @@ class SplitViewState(
 
     /**
      * Update the ratio of a split.
+     * @param minRatio Minimum allowed ratio (default 0.1f). Max ratio is 1 - minRatio.
      */
-    fun updateSplitRatio(splitId: String, newRatio: Float) {
-        rootNode = rootNode.updateRatio(splitId, newRatio)
+    fun updateSplitRatio(splitId: String, newRatio: Float, minRatio: Float = 0.1f) {
+        rootNode = rootNode.updateRatio(splitId, newRatio, minRatio)
     }
 
     /**

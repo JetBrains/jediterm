@@ -417,7 +417,7 @@ private fun RenderVerticalSplit(
             availableSize = availableWidth,
             minRatio = splitMinimumSize,
             onRatioChange = { newRatio ->
-                splitState.updateSplitRatio(split.id, newRatio)
+                splitState.updateSplitRatio(split.id, newRatio, splitMinimumSize)
             },
             modifier = Modifier
                 .align(Alignment.CenterStart)
@@ -537,7 +537,7 @@ private fun RenderHorizontalSplit(
             availableSize = availableHeight,
             minRatio = splitMinimumSize,
             onRatioChange = { newRatio ->
-                splitState.updateSplitRatio(split.id, newRatio)
+                splitState.updateSplitRatio(split.id, newRatio, splitMinimumSize)
             },
             modifier = Modifier
                 .align(Alignment.TopCenter)

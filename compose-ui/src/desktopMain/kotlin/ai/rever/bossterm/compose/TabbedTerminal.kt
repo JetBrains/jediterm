@@ -203,6 +203,13 @@ fun TabbedTerminal(
                 onNewTab = {
                     val workingDir = tabController.getActiveWorkingDirectory()
                     tabController.createTab(workingDir = workingDir)
+                },
+                onTabMoveToNewWindow = { index ->
+                    // Create new window with working directory from the tab being moved
+                    val tab = tabController.tabs.getOrNull(index)
+                    onNewWindow()
+                    // Close the tab in this window after opening new window
+                    tabController.closeTab(index)
                 }
             )
         }

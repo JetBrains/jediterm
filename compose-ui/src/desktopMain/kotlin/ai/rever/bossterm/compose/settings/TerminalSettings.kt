@@ -93,7 +93,7 @@ data class TerminalSettings(
      * When false: Custom title bar, transparency works, but no true fullscreen.
      * Changing this requires app restart to take effect.
      */
-    val useNativeTitleBar: Boolean = false,
+    val useNativeTitleBar: Boolean = true,
 
     // ===== Behavior Settings =====
 

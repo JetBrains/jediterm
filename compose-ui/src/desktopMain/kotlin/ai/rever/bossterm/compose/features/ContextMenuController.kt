@@ -1,23 +1,24 @@
 package ai.rever.bossterm.compose.features
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Divider
-import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
+import androidx.compose.ui.awt.ComposeWindow
+import java.awt.Color
+import java.awt.Font
+import java.awt.KeyboardFocusManager
+import java.awt.MouseInfo
+import java.awt.Window
+import java.awt.event.ActionListener
+import javax.swing.BorderFactory
+import javax.swing.JMenuItem
+import javax.swing.JPopupMenu
+import javax.swing.JSeparator
+import javax.swing.UIManager
+import javax.swing.plaf.ColorUIResource
 
 /**
  * Controller for managing context menu state and actions.
- * Based on test expectations from ContextMenuTest.kt.
+ * Uses AWT JPopupMenu for native context menu that can extend beyond window bounds.
  */
 class ContextMenuController {
     /**
@@ -44,15 +45,75 @@ class ContextMenuController {
     val menuState: State<MenuState> = _menuState
 
     /**
-     * Show context menu at specified position
+     * Show context menu at screen coordinates using native AWT popup
      */
-    fun showMenu(x: Float, y: Float, items: List<MenuItem>) {
-        _menuState.value = MenuState(
-            isVisible = true,
-            x = x,
-            y = y,
-            items = items
-        )
+    fun showMenuAtScreenPosition(screenX: Int, screenY: Int, items: List<MenuItem>) {
+        showNativeMenuAtScreen(screenX, screenY, items)
+    }
+
+    /**
+     * Show context menu at current mouse position using native AWT popup
+     */
+    fun showMenu(x: Float, y: Float, items: List<MenuItem>, window: ComposeWindow? = null) {
+        // Get actual mouse screen position - most reliable way
+        val mouseLocation = MouseInfo.getPointerInfo()?.location
+        if (mouseLocation != null) {
+            showNativeMenuAtScreen(mouseLocation.x, mouseLocation.y, items)
+        } else {
+            // Fallback to state-based menu if mouse info not available
+            _menuState.value = MenuState(
+                isVisible = true,
+                x = x,
+                y = y,
+                items = items
+            )
+        }
+    }
+
+    /**
+     * Show native AWT popup menu at screen coordinates with dark theme styling
+     */
+    private fun showNativeMenuAtScreen(screenX: Int, screenY: Int, items: List<MenuItem>) {
+        val popup = JPopupMenu().apply {
+            // Dark theme colors
+            background = Color(0x2B, 0x2B, 0x2B)
+            border = BorderFactory.createLineBorder(Color(0x3C, 0x3F, 0x41), 1)
+        }
+
+        items.forEach { item ->
+            if (item.id.startsWith("separator")) {
+                popup.add(JSeparator().apply {
+                    background = Color(0x2B, 0x2B, 0x2B)
+                    foreground = Color(0x3C, 0x3F, 0x41)
+                })
+            } else {
+                val menuItem = JMenuItem(item.label).apply {
+                    isEnabled = item.enabled
+                    background = Color(0x2B, 0x2B, 0x2B)
+                    foreground = if (item.enabled) Color.WHITE else Color.GRAY
+                    font = Font(".AppleSystemUIFont", Font.PLAIN, 13)
+                    border = BorderFactory.createEmptyBorder(4, 12, 4, 12)
+                    isOpaque = true
+                    addActionListener { item.action() }
+                }
+                popup.add(menuItem)
+            }
+        }
+
+        // Get the focused window to use as invoker
+        val focusedWindow = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusedWindow
+        if (focusedWindow != null) {
+            // Convert screen coordinates to window-relative coordinates
+            val windowLocation = focusedWindow.locationOnScreen
+            val relativeX = screenX - windowLocation.x
+            val relativeY = screenY - windowLocation.y
+            // Use show() for proper dismiss behavior
+            popup.show(focusedWindow, relativeX, relativeY)
+        } else {
+            // Fallback: show at screen location (may not dismiss properly)
+            popup.location = java.awt.Point(screenX, screenY)
+            popup.isVisible = true
+        }
     }
 
     /**
@@ -234,7 +295,8 @@ fun showTerminalContextMenu(
     onSplitHorizontal: (() -> Unit)? = null,
     onMoveToNewTab: (() -> Unit)? = null,
     onShowDebug: (() -> Unit)? = null,
-    onShowSettings: (() -> Unit)? = null
+    onShowSettings: (() -> Unit)? = null,
+    window: ComposeWindow? = null
 ) {
     val items = createTerminalContextMenuItems(
         hasSelection = hasSelection,
@@ -250,7 +312,7 @@ fun showTerminalContextMenu(
         onShowDebug = onShowDebug,
         onShowSettings = onShowSettings
     )
-    controller.showMenu(x, y, items)
+    controller.showMenu(x, y, items, window)
 }
 
 /**
@@ -286,6 +348,19 @@ fun createHyperlinkContextMenuItems(
 /**
  * Show context menu with hyperlink actions followed by standard terminal items
  */
+/**
+ * Context menu popup composable - no longer needed when using native AWT menu.
+ * Kept for backward compatibility but does nothing since native menu is shown directly.
+ */
+@Composable
+fun ContextMenuPopup(
+    controller: ContextMenuController,
+    modifier: Modifier = Modifier
+) {
+    // No-op - native menu is shown directly via JPopupMenu
+    // The state-based fallback could be implemented here if needed
+}
+
 fun showHyperlinkContextMenu(
     controller: ContextMenuController,
     x: Float,
@@ -304,7 +379,8 @@ fun showHyperlinkContextMenu(
     onSplitHorizontal: (() -> Unit)? = null,
     onMoveToNewTab: (() -> Unit)? = null,
     onShowDebug: (() -> Unit)? = null,
-    onShowSettings: (() -> Unit)? = null
+    onShowSettings: (() -> Unit)? = null,
+    window: ComposeWindow? = null
 ) {
     val hyperlinkItems = createHyperlinkContextMenuItems(
         url = url,
@@ -325,70 +401,5 @@ fun showHyperlinkContextMenu(
         onShowDebug = onShowDebug,
         onShowSettings = onShowSettings
     )
-    controller.showMenu(x, y, hyperlinkItems + terminalItems)
-}
-
-/**
- * Context menu popup composable
- */
-@Composable
-fun ContextMenuPopup(
-    controller: ContextMenuController,
-    modifier: Modifier = Modifier
-) {
-    val state by controller.menuState
-
-    if (state.isVisible) {
-        Popup(
-            offset = androidx.compose.ui.unit.IntOffset(state.x.toInt(), state.y.toInt()),
-            onDismissRequest = { controller.hideMenu() },
-            properties = PopupProperties(
-                focusable = true,
-                dismissOnBackPress = true,
-                dismissOnClickOutside = true
-            )
-        ) {
-            Column(
-                modifier = modifier
-                    .background(Color(0xFF2B2B2B), shape = RoundedCornerShape(4.dp))
-                    .padding(vertical = 4.dp)
-                    .width(200.dp)
-            ) {
-                state.items.forEach { item ->
-                    if (item.id.startsWith("separator")) {
-                        Divider(
-                            color = Color(0xFF3C3F41),
-                            thickness = 1.dp,
-                            modifier = Modifier.padding(vertical = 2.dp)
-                        )
-                    } else {
-                        MenuItemRow(
-                            item = item,
-                            onClick = { controller.executeItem(item.id) }
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun MenuItemRow(
-    item: ContextMenuController.MenuItem,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = item.enabled, onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-    ) {
-        Text(
-            text = item.label,
-            color = if (item.enabled) Color.White else Color.Gray,
-            fontSize = 13.sp,
-            fontWeight = if (item.enabled) FontWeight.Normal else FontWeight.Light
-        )
-    }
+    controller.showMenu(x, y, hyperlinkItems + terminalItems, window)
 }

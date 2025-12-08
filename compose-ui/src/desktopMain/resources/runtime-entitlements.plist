@@ -6,7 +6,7 @@
     <key>com.apple.security.cs.allow-jit</key>
     <true/>
 
-    <!-- Allow loading unsigned libraries (for JNA/PTY support) -->
+    <!-- Allow loading unsigned libraries -->
     <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
     <true/>
 
@@ -18,22 +18,12 @@
     <key>com.apple.security.cs.allow-dyld-environment-variables</key>
     <true/>
 
-    <!-- Allow debugging (needed for JVM) -->
+    <!-- Allow debugging -->
     <key>com.apple.security.cs.debugger</key>
     <true/>
 
     <!-- Inherit the user's login environment -->
     <key>com.apple.security.inherit</key>
-    <true/>
-
-    <!-- Network access for terminal operations -->
-    <key>com.apple.security.network.client</key>
-    <true/>
-    <key>com.apple.security.network.server</key>
-    <true/>
-
-    <!-- File access (user-selected files) -->
-    <key>com.apple.security.files.user-selected.read-write</key>
     <true/>
 </dict>
 </plist>

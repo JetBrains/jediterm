@@ -21,9 +21,13 @@ import ai.rever.bossterm.compose.settings.SettingsWindow
 import ai.rever.bossterm.compose.update.UpdateBanner
 import ai.rever.bossterm.compose.update.UpdateManager
 import ai.rever.bossterm.compose.update.UpdateState
+import ai.rever.bossterm.compose.window.CustomTitleBar
 import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Surface
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.WindowPlacement
 import kotlinx.coroutines.launch
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
@@ -37,7 +41,8 @@ data class TerminalWindow(
     val id: String = UUID.randomUUID().toString(),
     val title: MutableState<String> = mutableStateOf("BossTerm"),
     val menuActions: MenuActions = MenuActions(),
-    val isWindowFocused: MutableState<Boolean> = mutableStateOf(true)
+    val isWindowFocused: MutableState<Boolean> = mutableStateOf(true),
+    val isFullscreenMode: MutableState<Boolean> = mutableStateOf(false)
 )
 
 /**
@@ -102,6 +107,9 @@ fun main() = application {
             val settingsManagerForWindow = remember { SettingsManager.instance }
             val windowSettings by settingsManagerForWindow.settings.collectAsState()
 
+            // Track fullscreen mode - swap between transparent undecorated and decorated fullscreen
+            val isFullscreen = window.isFullscreenMode.value
+
             Window(
                 onCloseRequest = {
                     WindowManager.closeWindow(window.id)
@@ -111,8 +119,10 @@ fun main() = application {
                 },
                 state = windowState,
                 title = window.title.value,
-                undecorated = false,  // Native title bar for proper fullscreen
-                transparent = true,  // Enable window transparency
+                // Transparent mode: undecorated with custom title bar
+                // Fullscreen mode: decorated for native fullscreen
+                undecorated = !isFullscreen,
+                transparent = !isFullscreen,
                 onPreviewKeyEvent = { keyEvent ->
                     // Handle Cmd+, (macOS) or Ctrl+, (other) for Settings
                     if (keyEvent.type == KeyEventType.KeyDown &&
@@ -310,14 +320,65 @@ fun main() = application {
                     }
                 }
 
+                // When entering fullscreen mode, trigger native fullscreen
+                LaunchedEffect(isFullscreen) {
+                    if (isFullscreen) {
+                        windowState.placement = WindowPlacement.Fullscreen
+                    }
+                }
+
+                // Detect when exiting fullscreen (via native green button or Esc)
+                // Switch back to transparent mode
+                LaunchedEffect(windowState.placement) {
+                    if (isFullscreen && windowState.placement != WindowPlacement.Fullscreen) {
+                        window.isFullscreenMode.value = false
+                    }
+                }
+
+                // Corner radius for transparent mode
+                val cornerRadius = if (isFullscreen) 0.dp else 10.dp
+
                 // Content area with transparent background
                 Surface(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .then(if (!isFullscreen) Modifier.clip(RoundedCornerShape(cornerRadius)) else Modifier),
                     color = windowSettings.defaultBackgroundColor.copy(
-                        alpha = windowSettings.backgroundOpacity
-                    )
+                        alpha = if (isFullscreen) 1f else windowSettings.backgroundOpacity
+                    ),
+                    shape = if (!isFullscreen) RoundedCornerShape(cornerRadius) else RoundedCornerShape(0.dp)
                 ) {
                     Column(modifier = Modifier.fillMaxSize()) {
+                        // Custom title bar only in transparent mode (not fullscreen)
+                        if (!isFullscreen) {
+                            CustomTitleBar(
+                                title = window.title.value,
+                                windowState = windowState,
+                                onClose = {
+                                    WindowManager.closeWindow(window.id)
+                                    if (!WindowManager.hasWindows()) {
+                                        exitApplication()
+                                    }
+                                },
+                                onMinimize = { windowState.isMinimized = true },
+                                onFullscreen = {
+                                    // Switch to fullscreen mode (decorated window)
+                                    window.isFullscreenMode.value = true
+                                },
+                                onMaximize = {
+                                    // Toggle maximize in transparent mode
+                                    windowState.placement = if (windowState.placement == WindowPlacement.Maximized) {
+                                        WindowPlacement.Floating
+                                    } else {
+                                        WindowPlacement.Maximized
+                                    }
+                                },
+                                backgroundColor = windowSettings.defaultBackgroundColor.copy(
+                                    alpha = (windowSettings.backgroundOpacity * 1.1f).coerceAtMost(1f)
+                                )
+                            )
+                        }
+
                         // Update banner (shows when update is available)
                         UpdateBanner(
                         updateState = updateState,

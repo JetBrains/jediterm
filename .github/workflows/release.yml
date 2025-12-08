@@ -147,12 +147,41 @@ jobs:
 
           if [[ -n "$DMG_PATH" && -f "$DMG_PATH" ]]; then
             echo "Notarizing: $DMG_PATH"
-            xcrun notarytool submit "$DMG_PATH" \
+
+            # Submit and capture the submission ID
+            SUBMIT_OUTPUT=$(xcrun notarytool submit "$DMG_PATH" \
               --apple-id "${{ secrets.MACOS_APPLE_ID }}" \
               --team-id "${{ secrets.MACOS_TEAM_ID }}" \
               --password "${{ secrets.MACOS_APP_PASSWORD }}" \
-              --wait
-            xcrun stapler staple "$DMG_PATH"
+              --wait 2>&1) || true
+
+            echo "$SUBMIT_OUTPUT"
+
+            # Extract submission ID
+            SUBMISSION_ID=$(echo "$SUBMIT_OUTPUT" | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | head -1)
+
+            # Check if notarization succeeded or failed
+            if echo "$SUBMIT_OUTPUT" | grep -q "status: Invalid"; then
+              echo "❌ Notarization failed! Fetching detailed log..."
+              xcrun notarytool log "$SUBMISSION_ID" \
+                --apple-id "${{ secrets.MACOS_APPLE_ID }}" \
+                --team-id "${{ secrets.MACOS_TEAM_ID }}" \
+                --password "${{ secrets.MACOS_APP_PASSWORD }}"
+              exit 1
+            elif echo "$SUBMIT_OUTPUT" | grep -q "status: Accepted"; then
+              echo "✅ Notarization succeeded! Stapling..."
+              xcrun stapler staple "$DMG_PATH"
+            else
+              echo "⚠️ Unknown notarization status"
+              # Try to get log anyway
+              if [[ -n "$SUBMISSION_ID" ]]; then
+                xcrun notarytool log "$SUBMISSION_ID" \
+                  --apple-id "${{ secrets.MACOS_APPLE_ID }}" \
+                  --team-id "${{ secrets.MACOS_TEAM_ID }}" \
+                  --password "${{ secrets.MACOS_APP_PASSWORD }}" || true
+              fi
+              exit 1
+            fi
           fi
 
       - name: Upload macOS DMG

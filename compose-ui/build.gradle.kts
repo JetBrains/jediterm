@@ -142,6 +142,8 @@ compose.desktop {
                 dockName = "BossTerm"
                 // Allow access to all files for terminal operations
                 entitlementsFile.set(project.file("src/desktopMain/resources/entitlements.plist"))
+                // JVM runtime also needs entitlements for notarization
+                runtimeEntitlementsFile.set(project.file("src/desktopMain/resources/runtime-entitlements.plist"))
 
                 // Code signing configuration for distribution
                 signing {

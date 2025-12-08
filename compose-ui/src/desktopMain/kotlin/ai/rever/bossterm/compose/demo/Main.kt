@@ -21,14 +21,10 @@ import ai.rever.bossterm.compose.settings.SettingsWindow
 import ai.rever.bossterm.compose.update.UpdateBanner
 import ai.rever.bossterm.compose.update.UpdateManager
 import ai.rever.bossterm.compose.update.UpdateState
-import ai.rever.bossterm.compose.window.CustomTitleBar
 import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Surface
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import java.awt.GraphicsEnvironment
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import java.util.UUID
@@ -115,7 +111,7 @@ fun main() = application {
                 },
                 state = windowState,
                 title = window.title.value,
-                undecorated = true,  // Custom title bar with traffic lights
+                undecorated = false,  // Native title bar for proper fullscreen
                 transparent = true,  // Enable window transparency
                 onPreviewKeyEvent = { keyEvent ->
                     // Handle Cmd+, (macOS) or Ctrl+, (other) for Settings
@@ -314,79 +310,14 @@ fun main() = application {
                     }
                 }
 
-                // Track fullscreen state using mutable state (updated by AWT listener)
-                var isFullscreenState by remember { mutableStateOf(false) }
-
-                // Listen for actual window state changes from macOS (reuse awtWindow from above)
-                DisposableEffect(awtWindow) {
-                    val componentListener = object : java.awt.event.ComponentAdapter() {
-                        override fun componentResized(e: java.awt.event.ComponentEvent?) {
-                            // Check if window fills the screen (indicates fullscreen)
-                            val gc = awtWindow.graphicsConfiguration
-                            val screenBounds = gc.bounds
-                            val windowBounds = awtWindow.bounds
-                            val isNowFullscreen = windowBounds.width >= screenBounds.width &&
-                                                  windowBounds.height >= screenBounds.height
-                            if (isNowFullscreen != isFullscreenState) {
-                                isFullscreenState = isNowFullscreen
-                            }
-                        }
-                    }
-                    awtWindow.addComponentListener(componentListener)
-                    onDispose {
-                        awtWindow.removeComponentListener(componentListener)
-                    }
-                }
-
-                // Use both Compose state and AWT-detected state
-                val placement = windowState.placement
-                val isFullscreen = placement == androidx.compose.ui.window.WindowPlacement.Fullscreen || isFullscreenState
-                val isMaximized = placement == androidx.compose.ui.window.WindowPlacement.Maximized
-                val cornerRadius = if (isFullscreen || isMaximized) 0.dp else 10.dp
-
-                // Wrap content in Surface for transparency and rounded corners
+                // Content area with transparent background
                 Surface(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(cornerRadius)),
+                    modifier = Modifier.fillMaxSize(),
                     color = windowSettings.defaultBackgroundColor.copy(
                         alpha = windowSettings.backgroundOpacity
-                    ),
-                    shape = RoundedCornerShape(cornerRadius)
+                    )
                 ) {
                     Column(modifier = Modifier.fillMaxSize()) {
-                        // Custom title bar with window controls (always visible)
-                        CustomTitleBar(
-                                title = window.title.value,
-                                windowState = windowState,
-                                onClose = {
-                                    WindowManager.closeWindow(window.id)
-                                    if (!WindowManager.hasWindows()) {
-                                        exitApplication()
-                                    }
-                                },
-                                onMinimize = { windowState.isMinimized = true },
-                                onFullscreen = {
-                                    // Toggle maximize (true fullscreen breaks transparency on macOS)
-                                    windowState.placement = if (windowState.placement == androidx.compose.ui.window.WindowPlacement.Maximized) {
-                                        androidx.compose.ui.window.WindowPlacement.Floating
-                                    } else {
-                                        androidx.compose.ui.window.WindowPlacement.Maximized
-                                    }
-                                },
-                                onMaximize = {
-                                    // Same as fullscreen for undecorated windows
-                                    windowState.placement = if (windowState.placement == androidx.compose.ui.window.WindowPlacement.Maximized) {
-                                        androidx.compose.ui.window.WindowPlacement.Floating
-                                    } else {
-                                        androidx.compose.ui.window.WindowPlacement.Maximized
-                                    }
-                                },
-                                backgroundColor = windowSettings.defaultBackgroundColor.copy(
-                                    alpha = (windowSettings.backgroundOpacity * 1.1f).coerceAtMost(1f)
-                                )
-                            )
-
                         // Update banner (shows when update is available)
                         UpdateBanner(
                         updateState = updateState,

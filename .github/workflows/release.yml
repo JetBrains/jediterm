@@ -132,9 +132,71 @@ jobs:
             echo "DISABLE_MACOS_SIGNING=true" >> $GITHUB_ENV
           fi
 
-      - name: Build macOS DMG
+      - name: Build macOS App Bundle
         run: |
           chmod +x ./gradlew
+          ./gradlew :compose-ui:createDistributable
+        env:
+          RELEASE_BUILD: true
+          BUILD_NUMBER: ${{ github.run_number }}
+
+      - name: Sign Native Executables in JARs
+        if: env.DISABLE_MACOS_SIGNING != 'true'
+        run: |
+          APP_PATH=$(find .gradleBuild/compose-ui/compose/binaries/main/app -name "*.app" -type d | head -1)
+          echo "App bundle: $APP_PATH"
+
+          if [[ -n "$APP_PATH" && -d "$APP_PATH" ]]; then
+            # Find all JARs that might contain native executables
+            find "$APP_PATH/Contents/app" -name "*.jar" | while read JAR_PATH; do
+              # Check if JAR contains native darwin executables
+              if unzip -l "$JAR_PATH" 2>/dev/null | grep -q "darwin"; then
+                echo "Processing: $JAR_PATH"
+
+                # Create temp directory
+                TEMP_DIR=$(mktemp -d)
+                JAR_NAME=$(basename "$JAR_PATH")
+
+                # Extract JAR
+                unzip -q "$JAR_PATH" -d "$TEMP_DIR"
+
+                # Find and sign native executables (not just dylibs)
+                SIGNED_SOMETHING=false
+                find "$TEMP_DIR" -type f \( -name "*darwin*" -o -path "*/native/*" \) | while read NATIVE_FILE; do
+                  # Check if it's a Mach-O executable or dylib
+                  if file "$NATIVE_FILE" | grep -q "Mach-O"; then
+                    echo "  Signing: $NATIVE_FILE"
+                    codesign --force --options runtime --timestamp \
+                      --sign "${{ secrets.MACOS_DEVELOPER_ID }}" \
+                      --entitlements compose-ui/src/desktopMain/resources/runtime-entitlements.plist \
+                      "$NATIVE_FILE" || echo "  Warning: Failed to sign $NATIVE_FILE"
+                    SIGNED_SOMETHING=true
+                  fi
+                done
+
+                # Repackage JAR using ditto to preserve signatures
+                if [[ "$SIGNED_SOMETHING" == "true" ]] || find "$TEMP_DIR" -name "*darwin*" | grep -q .; then
+                  echo "  Repackaging: $JAR_NAME"
+                  rm "$JAR_PATH"
+                  cd "$TEMP_DIR"
+                  zip -qr "$JAR_PATH" .
+                  cd - > /dev/null
+                fi
+
+                rm -rf "$TEMP_DIR"
+              fi
+            done
+
+            # Re-sign the entire app bundle after modifying JARs
+            echo "Re-signing app bundle..."
+            codesign --force --deep --options runtime --timestamp \
+              --sign "${{ secrets.MACOS_DEVELOPER_ID }}" \
+              --entitlements compose-ui/src/desktopMain/resources/entitlements.plist \
+              "$APP_PATH"
+          fi
+
+      - name: Package macOS DMG
+        run: |
           ./gradlew :compose-ui:packageDmg
         env:
           RELEASE_BUILD: true

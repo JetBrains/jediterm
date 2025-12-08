@@ -314,9 +314,10 @@ fun main() = application {
                     }
                 }
 
-                // Track maximized state for corner radius
-                val isMaximized = windowState.placement == WindowPlacement.Maximized
-                val cornerRadius = if (isMaximized) 0.dp else 10.dp
+                // Track fullscreen/maximized state for corner radius
+                val isFullscreenOrMaximized = windowState.placement == WindowPlacement.Fullscreen ||
+                                               windowState.placement == WindowPlacement.Maximized
+                val cornerRadius = if (isFullscreenOrMaximized) 0.dp else 10.dp
 
                 // Content area with transparent background
                 Surface(
@@ -341,11 +342,11 @@ fun main() = application {
                             },
                             onMinimize = { windowState.isMinimized = true },
                             onFullscreen = {
-                                // Toggle maximize (fills screen while keeping transparency)
-                                windowState.placement = if (windowState.placement == WindowPlacement.Maximized) {
+                                // Toggle fullscreen
+                                windowState.placement = if (windowState.placement == WindowPlacement.Fullscreen) {
                                     WindowPlacement.Floating
                                 } else {
-                                    WindowPlacement.Maximized
+                                    WindowPlacement.Fullscreen
                                 }
                             },
                             onMaximize = {

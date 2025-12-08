@@ -126,6 +126,7 @@ fun ProperTerminal(
   var connectionState by tab.connectionState
   var isFocused by tab.isFocused
   var scrollOffset by tab.scrollOffset
+  var userScrollTrigger by remember { mutableStateOf(0) }  // Tracks user-initiated scrolls for scrollbar visibility
   val scope = rememberCoroutineScope()
   var hasPerformedInitialResize by remember { mutableStateOf(false) }  // Track initial resize
   var isModifierPressed by remember { mutableStateOf(false) }  // Track Ctrl/Cmd for hyperlink clicks
@@ -1137,6 +1138,7 @@ fun ProperTerminal(
           // Local scroll (main buffer or Shift+Wheel override)
           val historySize = textBuffer.historyLinesCount
           scrollOffset = (scrollOffset - delta.toInt()).coerceIn(0, historySize)
+          userScrollTrigger++  // Mark as user-initiated scroll for scrollbar visibility
         }
         .onPreviewKeyEvent { keyEvent ->
           // Track Ctrl/Cmd key state for hyperlink clicks and hover effects
@@ -1461,7 +1463,8 @@ fun ProperTerminal(
               scrollToMatch(row)
               highlightMatch(col, row, searchQuery.length)
             }
-          }
+          },
+          userScrollTrigger = rememberUpdatedState(userScrollTrigger)
         )
       }
     } // end Box

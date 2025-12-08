@@ -1,5 +1,11 @@
 package ai.rever.bossterm.compose.ui
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -21,6 +27,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.input.key.*
@@ -1508,19 +1515,44 @@ fun ProperTerminal(
             TerminalDisplay.ProgressState.INDETERMINATE -> Color(0xFF4A90E2) // Blue
             TerminalDisplay.ProgressState.HIDDEN -> Color.Transparent
           }
+
+          // Animated offset for indeterminate gradient
+          val infiniteTransition = rememberInfiniteTransition(label = "progress")
+          val animatedOffset by infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+              animation = tween(1500, easing = LinearEasing),
+              repeatMode = RepeatMode.Restart
+            ),
+            label = "progressOffset"
+          )
+
           Box(
             modifier = Modifier
               .align(Alignment.TopStart)
               .fillMaxWidth()
               .height(3.dp)
-              .background(progressColor.copy(alpha = 0.3f))
+              .background(progressColor.copy(alpha = 0.2f))
           ) {
             if (progressState == TerminalDisplay.ProgressState.INDETERMINATE) {
-              // Indeterminate: full width bar
+              // Indeterminate: animated gradient bar
               Box(
                 modifier = Modifier
                   .fillMaxSize()
-                  .background(progressColor)
+                  .background(
+                    brush = Brush.horizontalGradient(
+                      colors = listOf(
+                        Color.Transparent,
+                        progressColor.copy(alpha = 0.5f),
+                        progressColor,
+                        progressColor.copy(alpha = 0.5f),
+                        Color.Transparent
+                      ),
+                      startX = animatedOffset * 1500f - 500f,
+                      endX = animatedOffset * 1500f + 500f
+                    )
+                  )
               )
             } else if (progressValue >= 0) {
               // Determinate: progress bar

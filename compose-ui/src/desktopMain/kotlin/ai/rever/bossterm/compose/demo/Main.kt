@@ -22,15 +22,22 @@ import ai.rever.bossterm.compose.update.UpdateBanner
 import ai.rever.bossterm.compose.update.UpdateManager
 import ai.rever.bossterm.compose.update.UpdateState
 import ai.rever.bossterm.compose.window.CustomTitleBar
+import ai.rever.bossterm.compose.window.configureWindowTransparency
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Surface
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.WindowPlacement
 import kotlinx.coroutines.launch
+import java.awt.GraphicsEnvironment
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import java.util.UUID
+import androidx.compose.ui.unit.DpSize
 
 /**
  * Represents a single terminal window with its own state.
@@ -104,6 +111,9 @@ fun main() = application {
             val settingsManagerForWindow = remember { SettingsManager.instance }
             val windowSettings by settingsManagerForWindow.settings.collectAsState()
 
+            // Read native title bar setting at startup (not reactive - requires restart)
+            val useNativeTitleBar = remember { settingsManagerForWindow.settings.value.useNativeTitleBar }
+
             Window(
                 onCloseRequest = {
                     WindowManager.closeWindow(window.id)
@@ -113,8 +123,8 @@ fun main() = application {
                 },
                 state = windowState,
                 title = window.title.value,
-                undecorated = true,  // Required for transparent window
-                transparent = true,  // Enable window transparency
+                undecorated = !useNativeTitleBar,
+                transparent = !useNativeTitleBar,
                 onPreviewKeyEvent = { keyEvent ->
                     // Handle Cmd+, (macOS) or Ctrl+, (other) for Settings
                     if (keyEvent.type == KeyEventType.KeyDown &&
@@ -148,8 +158,52 @@ fun main() = application {
                     // Set initial focus state
                     window.isWindowFocused.value = awtWindow.isFocused
 
+                    // Configure window transparency and blur (only for custom title bar mode)
+                    if (!useNativeTitleBar) {
+                        configureWindowTransparency(
+                            window = awtWindow,
+                            isTransparent = windowSettings.backgroundOpacity < 1.0f,
+                            enableBlur = windowSettings.windowBlur
+                        )
+                    }
+
                     onDispose {
                         awtWindow.removeWindowFocusListener(focusListener)
+                    }
+                }
+
+                // Handle fullscreen expansion for undecorated windows (only needed for custom title bar)
+                // Store previous bounds to restore when exiting fullscreen
+                var previousBounds by remember { mutableStateOf<java.awt.Rectangle?>(null) }
+
+                if (!useNativeTitleBar) {
+                    LaunchedEffect(windowState.placement) {
+                        if (windowState.placement == WindowPlacement.Fullscreen) {
+                            // Save current bounds before going fullscreen
+                            previousBounds = awtWindow.bounds
+
+                            val ge = GraphicsEnvironment.getLocalGraphicsEnvironment()
+                            val screenDevice = ge.screenDevices.firstOrNull { device ->
+                                awtWindow.bounds.intersects(device.defaultConfiguration.bounds)
+                            } ?: ge.defaultScreenDevice
+
+                            val screenBounds = screenDevice.defaultConfiguration.bounds
+                            val insets = java.awt.Toolkit.getDefaultToolkit().getScreenInsets(
+                                screenDevice.defaultConfiguration
+                            )
+
+                            // Set window to fill available screen space (excluding menu bar/dock)
+                            awtWindow.setBounds(
+                                screenBounds.x + insets.left,
+                                screenBounds.y + insets.top,
+                                screenBounds.width - insets.left - insets.right,
+                                screenBounds.height - insets.top - insets.bottom
+                            )
+                        } else if (windowState.placement == WindowPlacement.Floating && previousBounds != null) {
+                            // Restore previous bounds when exiting fullscreen
+                            awtWindow.bounds = previousBounds
+                            previousBounds = null
+                        }
                     }
                 }
 
@@ -312,40 +366,106 @@ fun main() = application {
                     }
                 }
 
-                // Wrap content in Surface for transparency and rounded corners
+                // Track fullscreen/maximized state for corner radius (only for custom title bar)
+                val isFullscreenOrMaximized = windowState.placement == WindowPlacement.Fullscreen ||
+                                               windowState.placement == WindowPlacement.Maximized
+                val cornerRadius = if (useNativeTitleBar || isFullscreenOrMaximized) 0.dp else 20.dp
+
+                // Load background image if set
+                val backgroundImage = remember(windowSettings.backgroundImagePath) {
+                    if (windowSettings.backgroundImagePath.isNotEmpty()) {
+                        try {
+                            val file = java.io.File(windowSettings.backgroundImagePath)
+                            if (file.exists()) {
+                                androidx.compose.ui.res.loadImageBitmap(file.inputStream())
+                            } else null
+                        } catch (e: Exception) {
+                            null
+                        }
+                    } else null
+                }
+
+                // Content area with transparent background (transparency only works with custom title bar)
                 Surface(
                     modifier = Modifier
                         .fillMaxSize()
-                        .clip(RoundedCornerShape(10.dp)),
+                        .clip(RoundedCornerShape(cornerRadius)),
                     color = windowSettings.defaultBackgroundColor.copy(
-                        alpha = windowSettings.backgroundOpacity
+                        alpha = if (useNativeTitleBar) 1f else windowSettings.backgroundOpacity
                     ),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(cornerRadius)
                 ) {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        // Custom title bar with window controls
-                        CustomTitleBar(
-                            title = window.title.value,
-                            windowState = windowState,
-                            onClose = {
-                                WindowManager.closeWindow(window.id)
-                                if (!WindowManager.hasWindows()) {
-                                    exitApplication()
-                                }
-                            },
-                            onMinimize = { windowState.isMinimized = true },
-                            onMaximize = {
-                                // Toggle maximize
-                                windowState.placement = if (windowState.placement == androidx.compose.ui.window.WindowPlacement.Maximized) {
-                                    androidx.compose.ui.window.WindowPlacement.Floating
-                                } else {
-                                    androidx.compose.ui.window.WindowPlacement.Maximized
-                                }
-                            },
-                            backgroundColor = windowSettings.defaultBackgroundColor.copy(
-                                alpha = (windowSettings.backgroundOpacity * 1.1f).coerceAtMost(1f)
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // Background layer: either image or faux blur effect
+                        if (backgroundImage != null) {
+                            // Background image with blur effect
+                            androidx.compose.foundation.Image(
+                                bitmap = backgroundImage,
+                                contentDescription = "Background",
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                alpha = windowSettings.backgroundImageOpacity,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .then(
+                                        if (windowSettings.windowBlur) {
+                                            Modifier.blur(windowSettings.blurRadius.dp)
+                                        } else {
+                                            Modifier
+                                        }
+                                    )
                             )
-                        )
+                        } else if (!useNativeTitleBar && windowSettings.backgroundOpacity < 1.0f && windowSettings.windowBlur) {
+                            // Faux blur effect: grey gradient overlay to simulate frosted glass
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        brush = Brush.radialGradient(
+                                            colors = listOf(
+                                                Color.Gray.copy(alpha = 0.3f),
+                                                Color.DarkGray.copy(alpha = 0.4f),
+                                                Color.Gray.copy(alpha = 0.35f)
+                                            )
+                                        )
+                                    )
+                                    .blur(windowSettings.blurRadius.dp)
+                            )
+                        }
+
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        // Custom title bar (only when not using native title bar)
+                        if (!useNativeTitleBar) {
+                            CustomTitleBar(
+                                title = window.title.value,
+                                windowState = windowState,
+                                onClose = {
+                                    WindowManager.closeWindow(window.id)
+                                    if (!WindowManager.hasWindows()) {
+                                        exitApplication()
+                                    }
+                                },
+                                onMinimize = { windowState.isMinimized = true },
+                                onFullscreen = {
+                                    // Toggle fullscreen
+                                    windowState.placement = if (windowState.placement == WindowPlacement.Fullscreen) {
+                                        WindowPlacement.Floating
+                                    } else {
+                                        WindowPlacement.Fullscreen
+                                    }
+                                },
+                                onMaximize = {
+                                    // Same as fullscreen for undecorated windows
+                                    windowState.placement = if (windowState.placement == WindowPlacement.Maximized) {
+                                        WindowPlacement.Floating
+                                    } else {
+                                        WindowPlacement.Maximized
+                                    }
+                                },
+                                backgroundColor = windowSettings.defaultBackgroundColor.copy(
+                                    alpha = (windowSettings.backgroundOpacity * 1.1f).coerceAtMost(1f)
+                                )
+                            )
+                        }
 
                         // Update banner (shows when update is available)
                         UpdateBanner(
@@ -390,12 +510,19 @@ fun main() = application {
                         modifier = Modifier.fillMaxSize().weight(1f)
                     )
                     }
+                    }
                 }
 
                 // Settings dialog
                 SettingsWindow(
                     visible = showSettingsDialog,
-                    onDismiss = { showSettingsDialog = false }
+                    onDismiss = { showSettingsDialog = false },
+                    onRestartApp = {
+                        // Close this window and create a new one with updated settings
+                        showSettingsDialog = false
+                        WindowManager.closeWindow(window.id)
+                        WindowManager.createWindow()
+                    }
                 )
 
                 // CLI install dialog

@@ -160,9 +160,15 @@ fun main() = application {
                 }
 
                 // Handle fullscreen expansion for undecorated windows (only needed for custom title bar)
+                // Store previous bounds to restore when exiting fullscreen
+                var previousBounds by remember { mutableStateOf<java.awt.Rectangle?>(null) }
+
                 if (!useNativeTitleBar) {
                     LaunchedEffect(windowState.placement) {
                         if (windowState.placement == WindowPlacement.Fullscreen) {
+                            // Save current bounds before going fullscreen
+                            previousBounds = awtWindow.bounds
+
                             val ge = GraphicsEnvironment.getLocalGraphicsEnvironment()
                             val screenDevice = ge.screenDevices.firstOrNull { device ->
                                 awtWindow.bounds.intersects(device.defaultConfiguration.bounds)
@@ -180,6 +186,10 @@ fun main() = application {
                                 screenBounds.width - insets.left - insets.right,
                                 screenBounds.height - insets.top - insets.bottom
                             )
+                        } else if (windowState.placement == WindowPlacement.Floating && previousBounds != null) {
+                            // Restore previous bounds when exiting fullscreen
+                            awtWindow.bounds = previousBounds
+                            previousBounds = null
                         }
                     }
                 }

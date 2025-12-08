@@ -1077,6 +1077,47 @@ class TabController(
     }
 
     /**
+     * Extract a tab from this controller without disposing it.
+     * Used for transferring tabs between windows.
+     *
+     * Unlike closeTab(), this does NOT:
+     * - Dispose the tab's resources
+     * - Kill the PTY process
+     * - Notify session listeners
+     *
+     * The extracted tab can be added to another TabController via createTabFromExistingSession().
+     *
+     * @param index Index of the tab to extract
+     * @return The extracted tab, or null if index is invalid
+     */
+    fun extractTab(index: Int): TerminalTab? {
+        if (index < 0 || index >= tabs.size) return null
+
+        val tab = tabs[index]
+
+        // Remove from list without disposing
+        tabs.removeAt(index)
+
+        // Handle tab switching (same logic as closeTab)
+        if (tabs.isEmpty()) {
+            // Last tab extracted - notify exit
+            notifyAllSessionsClosed()
+            onLastTabClosed()
+        } else {
+            // Adjust active tab index
+            if (activeTabIndex >= tabs.size) {
+                switchToTab(tabs.size - 1)
+            } else if (activeTabIndex > index) {
+                activeTabIndex--
+            } else if (activeTabIndex == index) {
+                switchToTab(minOf(index, tabs.size - 1))
+            }
+        }
+
+        return tab
+    }
+
+    /**
      * Dispose all tabs and cleanup resources.
      * Call this when the window is being closed to prevent memory leaks.
      */

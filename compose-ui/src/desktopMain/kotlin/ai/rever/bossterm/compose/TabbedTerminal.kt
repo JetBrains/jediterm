@@ -12,6 +12,7 @@ import ai.rever.bossterm.compose.splits.NavigationDirection
 import ai.rever.bossterm.compose.splits.SplitContainer
 import ai.rever.bossterm.compose.splits.SplitOrientation
 import ai.rever.bossterm.compose.splits.SplitViewState
+import ai.rever.bossterm.compose.demo.WindowManager
 import ai.rever.bossterm.compose.tabs.TabBar
 import ai.rever.bossterm.compose.tabs.TabController
 import ai.rever.bossterm.compose.tabs.TerminalTab
@@ -169,9 +170,18 @@ fun TabbedTerminal(
     }
 
     // Initialize with one tab on first composition
+    // Check for pending tab transfer from another window first
     LaunchedEffect(Unit) {
         if (tabController.tabs.isEmpty()) {
-            tabController.createTab()
+            val pendingTab = WindowManager.pendingTabForNewWindow
+            if (pendingTab != null) {
+                // Clear pending tab and add it to this window
+                WindowManager.pendingTabForNewWindow = null
+                tabController.createTabFromExistingSession(pendingTab)
+            } else {
+                // No pending tab, create fresh terminal
+                tabController.createTab()
+            }
         }
     }
 
@@ -205,11 +215,10 @@ fun TabbedTerminal(
                     tabController.createTab(workingDir = workingDir)
                 },
                 onTabMoveToNewWindow = { index ->
-                    // Create new window with working directory from the tab being moved
-                    val tab = tabController.tabs.getOrNull(index)
-                    onNewWindow()
-                    // Close the tab in this window after opening new window
-                    tabController.closeTab(index)
+                    // Extract tab without disposing (preserves PTY session)
+                    val tab = tabController.extractTab(index) ?: return@TabBar
+                    // Create new window and transfer the tab to it
+                    WindowManager.createWindowWithTab(tab)
                 }
             )
         }

@@ -309,6 +309,10 @@ private fun SettingsContent(
                 settings = settings,
                 onSettingsChange = onSettingsChange
             )
+            SettingsCategory.SPLITS -> SplitsSettingsSection(
+                settings = settings,
+                onSettingsChange = onSettingsChange
+            )
         }
     }
 }

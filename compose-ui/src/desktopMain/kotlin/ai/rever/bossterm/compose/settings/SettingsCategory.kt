@@ -67,6 +67,11 @@ enum class SettingsCategory(
         displayName = "Notifications",
         icon = Icons.Default.Email,
         description = "Command completion alerts"
+    ),
+    SPLITS(
+        displayName = "Splits",
+        icon = Icons.Default.Add,
+        description = "Split pane behavior and appearance"
     );
 
     companion object {

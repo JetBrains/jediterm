@@ -175,7 +175,7 @@ data class TerminalSettings(
     /**
      * Flash screen on bell (visual bell)
      */
-    val visualBell: Boolean = false,
+    val visualBell: Boolean = true,
 
     /**
      * Use inverse selection color (swap fg/bg)

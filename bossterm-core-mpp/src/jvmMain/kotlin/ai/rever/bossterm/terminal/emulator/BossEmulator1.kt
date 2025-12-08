@@ -9,7 +9,13 @@ import ai.rever.bossterm.terminal.emulator.mouse.MouseMode
 import ai.rever.bossterm.terminal.util.CharUtils
 import ai.rever.bossterm.terminal.util.GraphemeCluster
 import ai.rever.bossterm.terminal.util.GraphemeUtils
+import ai.rever.bossterm.terminal.model.image.DimensionSpec
+import ai.rever.bossterm.terminal.model.image.ImageFormat
+import ai.rever.bossterm.terminal.model.image.TerminalImage
 import org.slf4j.Logger
+import java.util.Base64
+import javax.imageio.ImageIO
+import java.io.ByteArrayInputStream
 import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.lang.Boolean
@@ -602,9 +608,9 @@ class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
 
     /**
      * Handles OSC 1337 (iTerm2 proprietary sequences).
-     * Currently supports: SetProgress
+     * Supports: SetProgress, File (inline images)
      * Format: OSC 1337;SetProgress=state;progress ST
-     * or: OSC 1337;SetProgress=progress ST (just percentage)
+     * Format: OSC 1337;File=[args]:base64data ST
      */
     private fun processITerm2Sequence(args: SystemCommandSequence): kotlin.Boolean {
         val command = args.getStringAt(1) ?: return false
@@ -629,11 +635,144 @@ class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
             return parseITerm2Progress(fullValue)
         }
 
+        // Parse File (inline image) command
+        // Format: File=[name=...][;size=...][;width=...][;height=...][;preserveAspectRatio=...][;inline=...]:base64data
+        if (command.startsWith("File=") || command == "File") {
+            return processITerm2File(args)
+        }
+
         // Other iTerm2 commands can be added here
         if (LOG.isDebugEnabled()) {
             LOG.debug("Unhandled iTerm2 OSC 1337 command: $command")
         }
         return false
+    }
+
+    /**
+     * Handles OSC 1337;File (inline images).
+     * Format: OSC 1337;File=[arguments]:base64data ST
+     *
+     * Arguments (all optional):
+     * - name=base64_filename
+     * - size=bytes
+     * - width=N|Npx|N%|auto
+     * - height=N|Npx|N%|auto
+     * - preserveAspectRatio=0|1
+     * - inline=0|1 (must be 1 for inline display)
+     */
+    private fun processITerm2File(args: SystemCommandSequence): kotlin.Boolean {
+        // Reconstruct the full command from args (may be split on semicolons)
+        val parts = mutableListOf<String>()
+        var i = 1
+        while (args.getStringAt(i) != null) {
+            parts.add(args.getStringAt(i)!!)
+            i++
+        }
+        val fullCommand = parts.joinToString(";")
+
+        // Find the colon separator between arguments and base64 data
+        val colonIndex = fullCommand.indexOf(':')
+        if (colonIndex == -1) {
+            LOG.debug("Invalid File command: no colon separator found")
+            return false
+        }
+
+        val argsStr = fullCommand.substring(0, colonIndex).removePrefix("File=").removePrefix("File")
+        val base64Data = fullCommand.substring(colonIndex + 1)
+
+        if (base64Data.isEmpty()) {
+            LOG.debug("Invalid File command: empty base64 data")
+            return false
+        }
+
+        // Parse arguments
+        var name: String? = null
+        var size: Int? = null
+        var widthSpec: String? = null
+        var heightSpec: String? = null
+        var preserveAspectRatio = true
+        var inline = false
+
+        for (arg in argsStr.split(";")) {
+            if (arg.isEmpty()) continue
+            val eqIndex = arg.indexOf('=')
+            if (eqIndex == -1) continue
+
+            val key = arg.substring(0, eqIndex).lowercase()
+            val value = arg.substring(eqIndex + 1)
+
+            when (key) {
+                "name" -> {
+                    try {
+                        name = String(Base64.getDecoder().decode(value), Charsets.UTF_8)
+                    } catch (e: Exception) {
+                        LOG.debug("Failed to decode filename: {}", e.message)
+                    }
+                }
+                "size" -> size = value.toIntOrNull()
+                "width" -> widthSpec = value
+                "height" -> heightSpec = value
+                "preserveaspectratio" -> preserveAspectRatio = value != "0"
+                "inline" -> inline = value == "1"
+            }
+        }
+
+        // Only display if inline=1
+        if (!inline) {
+            LOG.debug("File command with inline=0 (download), ignoring")
+            return true  // Acknowledge but don't display
+        }
+
+        // Decode base64 image data
+        val imageData: ByteArray
+        try {
+            imageData = Base64.getDecoder().decode(base64Data)
+        } catch (e: Exception) {
+            LOG.warn("Failed to decode base64 image data: {}", e.message)
+            return false
+        }
+
+        // Detect image format and get intrinsic dimensions
+        val format = ImageFormat.detect(imageData)
+        var intrinsicWidth = 0
+        var intrinsicHeight = 0
+
+        try {
+            val bufferedImage = ImageIO.read(ByteArrayInputStream(imageData))
+            if (bufferedImage != null) {
+                intrinsicWidth = bufferedImage.width
+                intrinsicHeight = bufferedImage.height
+            }
+        } catch (e: Exception) {
+            LOG.debug("Failed to read image dimensions: {}", e.message)
+        }
+
+        if (intrinsicWidth == 0 || intrinsicHeight == 0) {
+            LOG.warn("Could not determine image dimensions")
+            return false
+        }
+
+        // Create terminal image
+        val image = TerminalImage(
+            data = imageData,
+            name = name,
+            format = format,
+            intrinsicWidth = intrinsicWidth,
+            intrinsicHeight = intrinsicHeight,
+            widthSpec = DimensionSpec.parse(widthSpec),
+            heightSpec = DimensionSpec.parse(heightSpec),
+            preserveAspectRatio = preserveAspectRatio
+        )
+
+        LOG.debug(
+            "Processing inline image: name={}, format={}, size={}x{}, widthSpec={}, heightSpec={}",
+            name, format, intrinsicWidth, intrinsicHeight, widthSpec, heightSpec
+        )
+
+        // Send to terminal for placement
+        val placement = myTerminal?.processInlineImage(image)
+
+        return placement != null
     }
 
     /**

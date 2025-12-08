@@ -75,6 +75,7 @@ import ai.rever.bossterm.compose.scrollbar.AlwaysVisibleScrollbar
 import ai.rever.bossterm.compose.scrollbar.computeMatchPositions
 import ai.rever.bossterm.compose.scrollbar.rememberTerminalScrollbarAdapter
 import ai.rever.bossterm.compose.search.SearchBar
+import ai.rever.bossterm.compose.rendering.ImageRenderer
 import ai.rever.bossterm.compose.rendering.RenderingContext
 import ai.rever.bossterm.compose.rendering.TerminalCanvasRenderer
 import ai.rever.bossterm.compose.selection.SelectionEngine
@@ -1338,6 +1339,14 @@ fun ProperTerminal(
             Color(customCursorColor.red, customCursorColor.green, customCursorColor.blue)
           } else null
 
+          // Get visible image placements for rendering
+          val allImagePlacements = terminal.getAllImagePlacements()
+          val visibleImagePlacements = ImageRenderer.getVisiblePlacements(
+            allPlacements = allImagePlacements,
+            scrollOffset = scrollOffset,
+            visibleRows = visibleRows
+          )
+
           // Build rendering context with all state
           val renderingContext = RenderingContext(
             bufferSnapshot = bufferSnapshot,
@@ -1370,7 +1379,10 @@ fun ProperTerminal(
             hoveredHyperlink = hoveredHyperlink,
             isModifierPressed = isModifierPressed,
             slowBlinkVisible = slowBlinkVisible,
-            rapidBlinkVisible = rapidBlinkVisible
+            rapidBlinkVisible = rapidBlinkVisible,
+            imagePlacements = visibleImagePlacements,
+            terminalWidthCells = bufferSnapshot.width,
+            terminalHeightCells = bufferSnapshot.height
           )
 
           // Render terminal using extracted renderer - returns detected hyperlinks

@@ -14,6 +14,10 @@ import ai.rever.bossterm.terminal.emulator.charset.GraphicSetState
 import ai.rever.bossterm.terminal.emulator.mouse.*
 import ai.rever.bossterm.terminal.model.hyperlinks.LinkInfo
 import ai.rever.bossterm.terminal.model.hyperlinks.LinkResultItem
+import ai.rever.bossterm.terminal.model.image.TerminalImage
+import ai.rever.bossterm.terminal.model.image.TerminalImageListener
+import ai.rever.bossterm.terminal.model.image.TerminalImagePlacement
+import ai.rever.bossterm.terminal.model.image.TerminalImageStorage
 import ai.rever.bossterm.terminal.util.CharUtils
 import ai.rever.bossterm.terminal.util.GraphemeUtils
 import org.jetbrains.annotations.Nls
@@ -88,6 +92,9 @@ class BossTerminal(
         CopyOnWriteArrayList<TerminalClipboardListener>()
     private val myColorChangeListeners: MutableList<TerminalColorChangeListener> =
         CopyOnWriteArrayList<TerminalColorChangeListener>()
+    private val myImageListeners: MutableList<TerminalImageListener> =
+        CopyOnWriteArrayList<TerminalImageListener>()
+    private val myImageStorage = TerminalImageStorage()
 
     override fun setModeEnabled(mode: TerminalMode?, enabled: Boolean) {
         mode?.let {
@@ -524,6 +531,84 @@ class BossTerminal(
         }
     }
 
+    // ===== Inline Images (OSC 1337;File) =====
+
+    override fun addImageListener(listener: TerminalImageListener) {
+        myImageListeners.add(listener)
+        myImageStorage.addListener(listener)
+    }
+
+    override fun removeImageListener(listener: TerminalImageListener) {
+        myImageListeners.remove(listener)
+        myImageStorage.removeListener(listener)
+    }
+
+    override fun processInlineImage(image: TerminalImage): TerminalImagePlacement? {
+        // Place image at current cursor position
+        // Row is buffer-relative (negative for history)
+        val bufferRow = myCursorY - 1 - terminalTextBuffer.historyLinesCount
+
+        // Create a preliminary placement - actual cell dimensions will be calculated
+        // by the UI layer which knows the font metrics
+        val placement = myImageStorage.addImage(
+            image = image,
+            row = bufferRow,
+            col = myCursorX,
+            cellWidthPx = 10f,  // Placeholder - recalculated by UI
+            cellHeightPx = 20f, // Placeholder - recalculated by UI
+            terminalWidthCells = myTerminalWidth,
+            terminalHeightCells = myTerminalHeight
+        )
+
+        if (placement != null) {
+            // Estimate rows to move cursor (will be recalculated by UI)
+            // Use intrinsic height / approximate cell height
+            val estimatedRows = maxOf(1, (image.intrinsicHeight / 20) + 1)
+            for (i in 0 until estimatedRows) {
+                newLine()
+            }
+        }
+
+        return placement
+    }
+
+    override fun getImagePlacements(startRow: Int, endRow: Int): List<TerminalImagePlacement> {
+        return myImageStorage.getPlacementsInRange(startRow, endRow)
+    }
+
+    override fun getAllImagePlacements(): List<TerminalImagePlacement> {
+        return myImageStorage.getAllPlacements()
+    }
+
+    override fun clearAllImages() {
+        myImageStorage.clearAll()
+    }
+
+    /**
+     * Notify image storage when buffer scrolls.
+     * Call this when lines are added to history.
+     */
+    fun onBufferScroll(scrollDelta: Int) {
+        val minRow = -terminalTextBuffer.historyLinesCount
+        myImageStorage.onBufferScroll(scrollDelta, minRow)
+    }
+
+    /**
+     * Update image placements with new cell dimensions.
+     * Called from UI layer on terminal resize.
+     *
+     * @param cellWidthPx Width of a character cell in pixels
+     * @param cellHeightPx Height of a character cell in pixels
+     */
+    fun updateImageDimensions(cellWidthPx: Float, cellHeightPx: Float) {
+        myImageStorage.onTerminalResize(
+            cellWidthPx = cellWidthPx,
+            cellHeightPx = cellHeightPx,
+            terminalWidthCells = myTerminalWidth,
+            terminalHeightCells = myTerminalHeight
+        )
+    }
+
     private val myCustomCommandListeners: MutableList<TerminalCustomCommandListener> =
         CopyOnWriteArrayList<TerminalCustomCommandListener>()
 
@@ -898,6 +983,13 @@ class BossTerminal(
     private fun scrollArea(scrollRegionTop: Int, scrollRegionSize: Int, dy: Int) {
         myDisplay.scrollArea(scrollRegionTop, scrollRegionSize, dy)
         terminalTextBuffer.scrollArea(scrollRegionTop, dy, scrollRegionTop + scrollRegionSize - 1)
+
+        // Update image positions when buffer scrolls (dy < 0 means content moving up = scroll down)
+        // Only track scrolling when it affects the full screen (typical scroll case)
+        if (scrollRegionTop == 1 && scrollRegionSize == myTerminalHeight && dy < 0) {
+            val minRow = -terminalTextBuffer.historyLinesCount
+            myImageStorage.onBufferScroll(-dy, minRow)
+        }
     }
 
     override fun nextLine() {
@@ -1119,6 +1211,8 @@ class BossTerminal(
         useAlternateBuffer(false)
         if (clearScrollBackBuffer) {
             terminalTextBuffer.clearScreenAndHistoryBuffers()
+            // Clear all images when clearing scrollback
+            myImageStorage.clearAll()
         } else {
             terminalTextBuffer.clearScreenBuffer()
         }

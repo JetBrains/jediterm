@@ -19,6 +19,7 @@ import ai.rever.bossterm.compose.util.ColorUtils
 import ai.rever.bossterm.terminal.CursorShape
 import ai.rever.bossterm.terminal.model.TerminalLine
 import ai.rever.bossterm.terminal.model.pool.VersionedBufferSnapshot
+import ai.rever.bossterm.terminal.model.image.TerminalImagePlacement
 import ai.rever.bossterm.terminal.util.CharUtils
 import ai.rever.bossterm.terminal.TextStyle as BossTextStyle
 import org.jetbrains.skia.FontMgr
@@ -75,7 +76,12 @@ data class RenderingContext(
 
     // Blink state
     val slowBlinkVisible: Boolean,
-    val rapidBlinkVisible: Boolean
+    val rapidBlinkVisible: Boolean,
+
+    // Image placements
+    val imagePlacements: List<TerminalImagePlacement> = emptyList(),
+    val terminalWidthCells: Int = 80,
+    val terminalHeightCells: Int = 24
 )
 
 /**
@@ -99,6 +105,11 @@ object TerminalCanvasRenderer {
         // Pass 1: Draw backgrounds
         renderBackgrounds(ctx)
 
+        // Pass 1.5: Draw inline images (after backgrounds, before text)
+        if (ctx.imagePlacements.isNotEmpty()) {
+            renderImages(ctx)
+        }
+
         // Pass 2: Draw text and collect hyperlinks
         val detectedHyperlinks = renderText(ctx)
         hyperlinksCache.putAll(detectedHyperlinks)
@@ -107,6 +118,23 @@ object TerminalCanvasRenderer {
         renderOverlays(ctx)
 
         return hyperlinksCache
+    }
+
+    /**
+     * Pass 1.5: Render inline images.
+     */
+    private fun DrawScope.renderImages(ctx: RenderingContext) {
+        with(ImageRenderer) {
+            renderImages(
+                placements = ctx.imagePlacements,
+                cellWidth = ctx.cellWidth,
+                cellHeight = ctx.cellHeight,
+                scrollOffset = ctx.scrollOffset,
+                visibleRows = ctx.visibleRows,
+                terminalWidthCells = ctx.terminalWidthCells,
+                terminalHeightCells = ctx.terminalHeightCells
+            )
+        }
     }
 
     /**

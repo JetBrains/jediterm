@@ -562,17 +562,16 @@ class BossTerminal(
         )
 
         if (placement != null) {
-            // Move cursor past the image without adding newlines
-            // Images overlay content; cursor just moves to allow typing below
+            // Move cursor to the line after the image
+            // Images overlay content without modifying buffer
             // The placement was calculated with placeholder metrics (10x24)
             val rowsToAdvance = placement.cellHeight
 
-            // Move cursor down directly (don't add newlines to buffer)
-            myCursorY += rowsToAdvance
+            // Position cursor at the row after the image, clamped to screen bounds
+            // Don't scroll - next actual output will trigger scrolling if needed
+            val targetRow = myCursorY + rowsToAdvance
+            myCursorY = minOf(targetRow, myScrollRegionBottom)
             myCursorYChanged = true
-
-            // Handle scrolling if cursor went below screen
-            scrollY()
 
             // Move cursor to beginning of line (like iTerm2 does after image)
             carriageReturn()

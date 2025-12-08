@@ -570,6 +570,24 @@ fun ProperTerminal(
     }
   }
 
+  // Bell (BEL character) handling - play sound and/or visual flash
+  var visualBellActive by remember { mutableStateOf(false) }
+  val bellTrigger by display.bellTrigger
+  LaunchedEffect(bellTrigger) {
+    if (bellTrigger > 0) {
+      // Play audible bell if enabled
+      if (settings.audibleBell) {
+        java.awt.Toolkit.getDefaultToolkit().beep()
+      }
+      // Visual bell - flash screen if enabled
+      if (settings.visualBell) {
+        visualBellActive = true
+        delay(100)  // Flash duration
+        visualBellActive = false
+      }
+    }
+  }
+
   // Scrollbar adapter that bridges terminal scroll state with Compose scrollbar
   // Note: historySize and screenHeight lambdas read textBuffer properties without locks.
   // This is acceptable because:
@@ -1466,6 +1484,15 @@ fun ProperTerminal(
           },
           userScrollTrigger = rememberUpdatedState(userScrollTrigger)
         )
+
+        // Visual bell overlay - flashes when BEL character received and visualBell enabled
+        if (visualBellActive) {
+          Box(
+            modifier = Modifier
+              .fillMaxSize()
+              .background(settings.defaultForegroundColor.copy(alpha = 0.15f))
+          )
+        }
       }
     } // end Box
 

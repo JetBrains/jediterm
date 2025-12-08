@@ -170,7 +170,12 @@ data class TerminalSettings(
     /**
      * Play audible bell sound
      */
-    val audibleBell: Boolean = false,
+    val audibleBell: Boolean = true,
+
+    /**
+     * Flash screen on bell (visual bell)
+     */
+    val visualBell: Boolean = false,
 
     /**
      * Use inverse selection color (swap fg/bg)

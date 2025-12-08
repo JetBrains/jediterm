@@ -46,8 +46,10 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import ai.rever.bossterm.compose.ConnectionState
 import ai.rever.bossterm.compose.PreConnectScreen
+import ai.rever.bossterm.compose.actions.addSplitPaneActions
 import ai.rever.bossterm.compose.actions.addTabManagementActions
 import ai.rever.bossterm.compose.actions.createBuiltinActions
+import ai.rever.bossterm.compose.splits.NavigationDirection
 import ai.rever.bossterm.compose.menu.MenuActions
 import ai.rever.bossterm.compose.debug.DebugWindow
 import ai.rever.bossterm.compose.features.ContextMenuController
@@ -109,6 +111,13 @@ fun ProperTerminal(
   onSwitchToTab: (Int) -> Unit = {},
   onNewWindow: () -> Unit = {},  // Cmd/Ctrl+N: New window
   onShowSettings: () -> Unit = {},  // Open settings window
+  onSplitHorizontal: () -> Unit = {},  // Cmd+Shift+H: Split horizontally (top/bottom)
+  onSplitVertical: () -> Unit = {},  // Cmd+D: Split vertically (left/right)
+  onClosePane: () -> Unit = {},  // Cmd+Shift+W: Close current pane
+  onNavigatePane: (NavigationDirection) -> Unit = {},  // Navigate between panes directionally
+  onNavigateNextPane: () -> Unit = {},  // Cmd+]: Navigate to next pane (cycles)
+  onNavigatePreviousPane: () -> Unit = {},  // Cmd+[: Navigate to previous pane (cycles)
+  onMoveToNewTab: (() -> Unit)? = null,  // Move current pane to new tab (context menu)
   menuActions: MenuActions? = null,
   modifier: Modifier = Modifier
 ) {
@@ -416,6 +425,22 @@ fun ProperTerminal(
       onPreviousTab = onPreviousTab,
       onSwitchToTab = onSwitchToTab,
       onNewWindow = onNewWindow,
+      isMacOS = isMacOS
+    )
+
+    // Add split pane management shortcuts
+    addSplitPaneActions(
+      registry = registry,
+      onSplitVertical = onSplitVertical,
+      onSplitHorizontal = onSplitHorizontal,
+      onClosePane = onClosePane,
+      onMoveToNewTab = onMoveToNewTab,
+      onNavigateUp = { onNavigatePane(NavigationDirection.UP) },
+      onNavigateDown = { onNavigatePane(NavigationDirection.DOWN) },
+      onNavigateLeft = { onNavigatePane(NavigationDirection.LEFT) },
+      onNavigateRight = { onNavigatePane(NavigationDirection.RIGHT) },
+      onNavigateNext = onNavigateNextPane,
+      onNavigatePrevious = onNavigatePreviousPane,
       isMacOS = isMacOS
     )
 
@@ -743,6 +768,9 @@ fun ProperTerminal(
                   onClearScreen = { clearBuffer() },
                   onClearScrollback = { clearScrollback() },
                   onFind = { searchVisible = true },
+                  onSplitVertical = onSplitVertical,
+                  onSplitHorizontal = onSplitHorizontal,
+                  onMoveToNewTab = onMoveToNewTab,
                   onShowDebug = if (settings.debugModeEnabled) {
                     { debugPanelVisible = !debugPanelVisible }
                   } else null,
@@ -774,6 +802,9 @@ fun ProperTerminal(
                   onClearScreen = { clearBuffer() },
                   onClearScrollback = { clearScrollback() },
                   onFind = { searchVisible = true },
+                  onSplitVertical = onSplitVertical,
+                  onSplitHorizontal = onSplitHorizontal,
+                  onMoveToNewTab = onMoveToNewTab,
                   onShowDebug = if (settings.debugModeEnabled) {
                     { debugPanelVisible = !debugPanelVisible }
                   } else null,

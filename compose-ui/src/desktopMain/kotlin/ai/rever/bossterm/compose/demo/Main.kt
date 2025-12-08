@@ -250,6 +250,25 @@ fun main() = application {
                         )
                     }
 
+                    Menu("Shell", mnemonic = 'S') {
+                        Item(
+                            "Split Pane Vertically",
+                            onClick = { window.menuActions.onSplitVertical?.invoke() },
+                            shortcut = KeyShortcut(Key.D, meta = isMacOS, ctrl = !isMacOS)
+                        )
+                        Item(
+                            "Split Pane Horizontally",
+                            onClick = { window.menuActions.onSplitHorizontal?.invoke() },
+                            shortcut = KeyShortcut(Key.H, meta = isMacOS, ctrl = !isMacOS, shift = true)
+                        )
+                        Separator()
+                        Item(
+                            "Close Split Pane",
+                            onClick = { window.menuActions.onClosePane?.invoke() }
+                            // No shortcut - conflicts with Close Window. Use Cmd+W when pane is focused.
+                        )
+                    }
+
                     Menu("Window", mnemonic = 'W') {
                         Item(
                             "Minimize",

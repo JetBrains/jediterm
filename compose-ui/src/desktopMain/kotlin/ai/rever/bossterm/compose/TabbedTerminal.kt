@@ -8,8 +8,13 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import ai.rever.bossterm.compose.menu.MenuActions
 import ai.rever.bossterm.compose.settings.SettingsManager
+import ai.rever.bossterm.compose.splits.NavigationDirection
+import ai.rever.bossterm.compose.splits.SplitContainer
+import ai.rever.bossterm.compose.splits.SplitOrientation
+import ai.rever.bossterm.compose.splits.SplitViewState
 import ai.rever.bossterm.compose.tabs.TabBar
 import ai.rever.bossterm.compose.tabs.TabController
+import ai.rever.bossterm.compose.tabs.TerminalTab
 import ai.rever.bossterm.compose.ui.ProperTerminal
 
 /**
@@ -73,6 +78,28 @@ fun TabbedTerminal(
         )
     }
 
+    // Track SplitViewState per tab (tab.id -> SplitViewState)
+    val splitStates = remember { mutableStateMapOf<String, SplitViewState>() }
+
+    // Helper function to get or create SplitViewState for a tab
+    fun getOrCreateSplitState(tab: TerminalTab): SplitViewState {
+        return splitStates.getOrPut(tab.id) {
+            SplitViewState(initialSession = tab)
+        }
+    }
+
+    // Helper function to create a new session for splitting
+    fun createSessionForSplit(splitState: SplitViewState, paneId: String): TerminalSession {
+        val workingDir = splitState.getFocusedSession()?.workingDirectory?.value
+        return tabController.createSessionForSplit(
+            workingDir = workingDir,
+            onProcessExit = {
+                // Auto-close the pane when shell exits
+                splitState.closePane(paneId)
+            }
+        )
+    }
+
     // Wire up menu actions for tab management
     LaunchedEffect(menuActions, tabController) {
         menuActions?.apply {
@@ -92,6 +119,55 @@ fun TabbedTerminal(
         }
     }
 
+    // Wire up split menu actions (updates when active tab changes)
+    LaunchedEffect(menuActions, tabController.activeTabIndex) {
+        if (tabController.tabs.isEmpty()) return@LaunchedEffect
+        val activeTab = tabController.tabs.getOrNull(tabController.activeTabIndex) ?: return@LaunchedEffect
+        val splitState = splitStates.getOrPut(activeTab.id) { SplitViewState(initialSession = activeTab) }
+
+        menuActions?.apply {
+            onSplitVertical = {
+                val workingDir = splitState.getFocusedSession()?.workingDirectory?.value
+                var newSessionRef: TerminalSession? = null
+                val newSession = tabController.createSessionForSplit(
+                    workingDir = workingDir,
+                    onProcessExit = {
+                        newSessionRef?.let { session ->
+                            splitState.getAllPanes()
+                                .find { it.session === session }
+                                ?.let { pane -> splitState.closePane(pane.id) }
+                        }
+                    }
+                )
+                newSessionRef = newSession
+                splitState.splitFocusedPane(SplitOrientation.VERTICAL, newSession)
+            }
+            onSplitHorizontal = {
+                val workingDir = splitState.getFocusedSession()?.workingDirectory?.value
+                var newSessionRef: TerminalSession? = null
+                val newSession = tabController.createSessionForSplit(
+                    workingDir = workingDir,
+                    onProcessExit = {
+                        newSessionRef?.let { session ->
+                            splitState.getAllPanes()
+                                .find { it.session === session }
+                                ?.let { pane -> splitState.closePane(pane.id) }
+                        }
+                    }
+                )
+                newSessionRef = newSession
+                splitState.splitFocusedPane(SplitOrientation.HORIZONTAL, newSession)
+            }
+            onClosePane = {
+                if (splitState.isSinglePane) {
+                    tabController.closeTab(tabController.activeTabIndex)
+                } else {
+                    splitState.closeFocusedPane()
+                }
+            }
+        }
+    }
+
     // Initialize with one tab on first composition
     LaunchedEffect(Unit) {
         if (tabController.tabs.isEmpty()) {
@@ -99,9 +175,18 @@ fun TabbedTerminal(
         }
     }
 
+    // Cleanup split states when tabs are closed
+    LaunchedEffect(tabController.tabs.size) {
+        val currentTabIds = tabController.tabs.map { it.id }.toSet()
+        splitStates.keys.removeAll { it !in currentTabIds }
+    }
+
     // Cleanup all tabs when window is closed
     DisposableEffect(tabController) {
         onDispose {
+            // Dispose all split states
+            splitStates.values.forEach { it.dispose() }
+            splitStates.clear()
             tabController.disposeAll()
         }
     }
@@ -122,9 +207,10 @@ fun TabbedTerminal(
             )
         }
 
-        // Render active terminal tab
+        // Render active terminal tab with split support
         if (tabController.tabs.isNotEmpty()) {
             val activeTab = tabController.tabs[tabController.activeTabIndex]
+            val splitState = getOrCreateSplitState(activeTab)
 
             // Update window title when active tab's title changes
             LaunchedEffect(activeTab) {
@@ -135,10 +221,67 @@ fun TabbedTerminal(
                 }
             }
 
-            ProperTerminal(
-                tab = activeTab,
-                isActiveTab = true,
+            // Split operation handlers
+            val onSplitHorizontal: () -> Unit = {
+                // Only inherit working directory if setting is enabled
+                val workingDir = if (settings.splitInheritWorkingDirectory) {
+                    splitState.getFocusedSession()?.workingDirectory?.value
+                } else null
+                var newSessionRef: TerminalSession? = null
+                val newSession = tabController.createSessionForSplit(
+                    workingDir = workingDir,
+                    onProcessExit = {
+                        // Auto-close the pane when process exits
+                        newSessionRef?.let { session ->
+                            splitState.getAllPanes()
+                                .find { it.session === session }
+                                ?.let { pane -> splitState.closePane(pane.id) }
+                        }
+                    }
+                )
+                newSessionRef = newSession
+                splitState.splitFocusedPane(SplitOrientation.HORIZONTAL, newSession, settings.splitDefaultRatio)
+            }
+
+            val onSplitVertical: () -> Unit = {
+                // Only inherit working directory if setting is enabled
+                val workingDir = if (settings.splitInheritWorkingDirectory) {
+                    splitState.getFocusedSession()?.workingDirectory?.value
+                } else null
+                var newSessionRef: TerminalSession? = null
+                val newSession = tabController.createSessionForSplit(
+                    workingDir = workingDir,
+                    onProcessExit = {
+                        // Auto-close the pane when process exits
+                        newSessionRef?.let { session ->
+                            splitState.getAllPanes()
+                                .find { it.session === session }
+                                ?.let { pane -> splitState.closePane(pane.id) }
+                        }
+                    }
+                )
+                newSessionRef = newSession
+                splitState.splitFocusedPane(SplitOrientation.VERTICAL, newSession, settings.splitDefaultRatio)
+            }
+
+            val onClosePane: () -> Unit = {
+                if (splitState.isSinglePane) {
+                    // Last pane - close the tab
+                    tabController.closeTab(tabController.activeTabIndex)
+                } else {
+                    // Close just this pane
+                    splitState.closeFocusedPane()
+                }
+            }
+
+            val onNavigatePane: (NavigationDirection) -> Unit = { direction ->
+                splitState.navigateFocus(direction)
+            }
+
+            SplitContainer(
+                splitState = splitState,
                 sharedFont = sharedFont,
+                isActiveTab = true,
                 onTabTitleChange = { newTitle ->
                     activeTab.title.value = newTitle
                 },
@@ -162,7 +305,26 @@ fun TabbedTerminal(
                 },
                 onNewWindow = onNewWindow,
                 onShowSettings = onShowSettings,
+                onSplitHorizontal = onSplitHorizontal,
+                onSplitVertical = onSplitVertical,
+                onClosePane = onClosePane,
+                onNavigatePane = onNavigatePane,
+                onNavigateNextPane = { splitState.navigateToNextPane() },
+                onNavigatePreviousPane = { splitState.navigateToPreviousPane() },
+                onMoveToNewTab = if (!splitState.isSinglePane) {
+                    {
+                        // Extract the session from the split and move it to a new tab
+                        val session = splitState.extractFocusedPaneSession()
+                        if (session != null) {
+                            tabController.createTabFromExistingSession(session)
+                        }
+                    }
+                } else null,  // Don't show option if only one pane (nothing to move)
                 menuActions = menuActions,
+                // Split pane settings
+                splitFocusBorderEnabled = settings.splitFocusBorderEnabled,
+                splitFocusBorderColor = settings.splitFocusBorderColorValue,
+                splitMinimumSize = settings.splitMinimumSize,
                 modifier = Modifier.fillMaxSize()
             )
         }

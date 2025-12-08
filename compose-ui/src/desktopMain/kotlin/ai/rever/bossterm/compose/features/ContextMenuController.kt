@@ -85,6 +85,9 @@ fun createTerminalContextMenuItems(
     onClearScreen: () -> Unit,
     onClearScrollback: () -> Unit,
     onFind: () -> Unit,
+    onSplitVertical: (() -> Unit)? = null,
+    onSplitHorizontal: (() -> Unit)? = null,
+    onMoveToNewTab: (() -> Unit)? = null,
     onShowDebug: (() -> Unit)? = null,
     onShowSettings: (() -> Unit)? = null
 ): List<ContextMenuController.MenuItem> {
@@ -127,6 +130,53 @@ fun createTerminalContextMenuItems(
         )
     )
 
+    // Add split options section
+    val splitItems = mutableListOf<ContextMenuController.MenuItem>()
+
+    if (onSplitVertical != null || onSplitHorizontal != null || onMoveToNewTab != null) {
+        splitItems.add(
+            ContextMenuController.MenuItem(
+                id = "separator_split",
+                label = "",
+                enabled = false,
+                action = {}
+            )
+        )
+
+        if (onSplitVertical != null) {
+            splitItems.add(
+                ContextMenuController.MenuItem(
+                    id = "split_vertical",
+                    label = "Split Pane Vertically",
+                    enabled = true,
+                    action = onSplitVertical
+                )
+            )
+        }
+
+        if (onSplitHorizontal != null) {
+            splitItems.add(
+                ContextMenuController.MenuItem(
+                    id = "split_horizontal",
+                    label = "Split Pane Horizontally",
+                    enabled = true,
+                    action = onSplitHorizontal
+                )
+            )
+        }
+
+        if (onMoveToNewTab != null) {
+            splitItems.add(
+                ContextMenuController.MenuItem(
+                    id = "move_to_new_tab",
+                    label = "Move Pane to New Tab",
+                    enabled = true,
+                    action = onMoveToNewTab
+                )
+            )
+        }
+    }
+
     // Add extra options section
     val extraItems = mutableListOf<ContextMenuController.MenuItem>()
 
@@ -163,7 +213,7 @@ fun createTerminalContextMenuItems(
         )
     }
 
-    return baseItems + extraItems
+    return baseItems + splitItems + extraItems
 }
 
 /**
@@ -180,6 +230,9 @@ fun showTerminalContextMenu(
     onClearScreen: () -> Unit,
     onClearScrollback: () -> Unit,
     onFind: () -> Unit,
+    onSplitVertical: (() -> Unit)? = null,
+    onSplitHorizontal: (() -> Unit)? = null,
+    onMoveToNewTab: (() -> Unit)? = null,
     onShowDebug: (() -> Unit)? = null,
     onShowSettings: (() -> Unit)? = null
 ) {
@@ -191,6 +244,9 @@ fun showTerminalContextMenu(
         onClearScreen = onClearScreen,
         onClearScrollback = onClearScrollback,
         onFind = onFind,
+        onSplitVertical = onSplitVertical,
+        onSplitHorizontal = onSplitHorizontal,
+        onMoveToNewTab = onMoveToNewTab,
         onShowDebug = onShowDebug,
         onShowSettings = onShowSettings
     )
@@ -244,6 +300,9 @@ fun showHyperlinkContextMenu(
     onClearScreen: () -> Unit,
     onClearScrollback: () -> Unit,
     onFind: () -> Unit,
+    onSplitVertical: (() -> Unit)? = null,
+    onSplitHorizontal: (() -> Unit)? = null,
+    onMoveToNewTab: (() -> Unit)? = null,
     onShowDebug: (() -> Unit)? = null,
     onShowSettings: (() -> Unit)? = null
 ) {
@@ -260,6 +319,9 @@ fun showHyperlinkContextMenu(
         onClearScreen = onClearScreen,
         onClearScrollback = onClearScrollback,
         onFind = onFind,
+        onSplitVertical = onSplitVertical,
+        onSplitHorizontal = onSplitHorizontal,
+        onMoveToNewTab = onMoveToNewTab,
         onShowDebug = onShowDebug,
         onShowSettings = onShowSettings
     )

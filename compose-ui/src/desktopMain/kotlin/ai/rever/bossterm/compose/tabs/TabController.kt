@@ -23,6 +23,7 @@ import ai.rever.bossterm.compose.settings.TerminalSettings
 import ai.rever.bossterm.compose.typeahead.ComposeTypeAheadModel
 import ai.rever.bossterm.compose.typeahead.CoroutineDebouncer
 import ai.rever.bossterm.compose.notification.CommandNotificationHandler
+import ai.rever.bossterm.compose.TerminalSession
 import ai.rever.bossterm.core.typeahead.TerminalTypeAheadManager
 import ai.rever.bossterm.core.typeahead.TypeAheadTerminalModel
 import ai.rever.bossterm.terminal.util.GraphemeBoundaryUtils
@@ -321,6 +322,188 @@ class TabController(
         switchToTab(tabs.size - 1)
 
         return tab
+    }
+
+    /**
+     * Create a terminal session for use in split panes.
+     *
+     * Unlike createTab(), this method:
+     * - Does NOT add the session to the tabs list
+     * - Does NOT increment the tab counter
+     * - Does NOT notify session listeners
+     * - Does NOT switch tabs
+     *
+     * The session is fully initialized with PTY, emulator, and background coroutines.
+     * Caller is responsible for managing the session lifecycle via dispose().
+     *
+     * @param workingDir Working directory to start the shell in
+     * @param command Shell command to execute (default: $SHELL or /bin/bash)
+     * @param arguments Command-line arguments for the shell (default: empty)
+     * @param sessionTitle Title for the session (used for display purposes)
+     * @param onProcessExit Callback invoked when the shell process exits (for pane auto-close)
+     * @return A fully initialized TerminalSession for use in split panes
+     */
+    fun createSessionForSplit(
+        workingDir: String? = null,
+        command: String = System.getenv("SHELL") ?: "/bin/bash",
+        arguments: List<String> = emptyList(),
+        sessionTitle: String = "Split",
+        onProcessExit: (() -> Unit)? = null
+    ): TerminalSession {
+        // Ensure shell is started as login shell to get proper PATH from /etc/zprofile
+        val effectiveArguments = if (arguments.isEmpty() &&
+            (command.endsWith("/zsh") || command.endsWith("/bash") ||
+             command == "zsh" || command == "bash")) {
+            listOf("-l")  // Login shell flag
+        } else {
+            arguments
+        }
+
+        // Initialize terminal components (same as createTab)
+        val styleState = StyleState()
+        val textBuffer = TerminalTextBuffer(80, 24, styleState, settings.bufferMaxLines)
+        val display = ComposeTerminalDisplay()
+        val terminal = BossTerminal(display, textBuffer, styleState)
+
+        // Register ModelListener to trigger redraws when buffer content changes
+        textBuffer.addModelListener(object : ai.rever.bossterm.terminal.model.TerminalModelListener {
+            override fun modelChanged() {
+                display.requestImmediateRedraw()
+            }
+        })
+
+        // Configure character encoding mode
+        terminal.setCharacterEncoding(settings.characterEncoding)
+
+        val dataStream = BlockingTerminalDataStream()
+
+        // Create working directory state
+        val workingDirectoryState = mutableStateOf<String?>(workingDir)
+
+        // Register OSC 7 listener for working directory tracking
+        val oscListener = WorkingDirectoryOSCListener(workingDirectoryState)
+        terminal.addCustomCommandListener(oscListener)
+
+        // Register window title listener for reactive updates (OSC 0/1/2 sequences)
+        terminal.addApplicationTitleListener(object : TerminalApplicationTitleListener {
+            override fun onApplicationTitleChanged(newApplicationTitle: String) {
+                display.windowTitle = newApplicationTitle
+            }
+
+            override fun onApplicationIconTitleChanged(newIconTitle: String) {
+                display.iconTitle = newIconTitle
+            }
+        })
+
+        // Register command state listener for notifications (OSC 133 shell integration)
+        val notificationHandler = CommandNotificationHandler(
+            settings = settings,
+            isWindowFocused = isWindowFocused,
+            tabTitle = { display.windowTitle?.ifEmpty { sessionTitle } ?: sessionTitle }
+        )
+        terminal.addCommandStateListener(notificationHandler)
+
+        // Create emulator with terminal
+        val emulator = BossEmulator(dataStream, terminal)
+
+        // Always create debug collector (so it's available when user enables debug mode)
+        val debugCollector = ai.rever.bossterm.compose.debug.DebugDataCollector(
+            tab = null,  // Will be set after tab creation
+            maxChunks = settings.debugMaxChunks,
+            maxSnapshots = settings.debugMaxSnapshots
+        )
+
+        // Create type-ahead model and manager if enabled
+        val tabCoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+        val typeAheadModel = if (settings.typeAheadEnabled) {
+            ComposeTypeAheadModel(
+                terminal = terminal,
+                textBuffer = textBuffer,
+                display = display,
+                settings = settings
+            ).also { model ->
+                val shellType = TypeAheadTerminalModel.commandLineToShellType(
+                    (listOf(command) + effectiveArguments).toMutableList()
+                )
+                model.setShellType(shellType)
+            }
+        } else {
+            null
+        }
+
+        val typeAheadManager = typeAheadModel?.let { model ->
+            TerminalTypeAheadManager(model).also { manager ->
+                val debouncer = CoroutineDebouncer(
+                    action = manager::debounce,
+                    delayNanos = TerminalTypeAheadManager.MAX_TERMINAL_DELAY,
+                    scope = tabCoroutineScope
+                )
+                manager.setClearPredictionsDebouncer(debouncer)
+            }
+        }
+
+        // Create session (TerminalTab) with all state
+        val session = TerminalTab(
+            id = java.util.UUID.randomUUID().toString(),
+            title = mutableStateOf(sessionTitle),
+            terminal = terminal,
+            textBuffer = textBuffer,
+            display = display,
+            dataStream = dataStream,
+            emulator = emulator,
+            processHandle = mutableStateOf(null),
+            workingDirectory = workingDirectoryState,
+            connectionState = mutableStateOf(ConnectionState.Initializing),
+            onProcessExit = onProcessExit,  // Callback for split pane closure
+            coroutineScope = tabCoroutineScope,
+            isFocused = mutableStateOf(false),
+            scrollOffset = mutableStateOf(0),
+            searchVisible = mutableStateOf(false),
+            searchQuery = mutableStateOf(""),
+            searchMatches = mutableStateOf(emptyList()),
+            currentSearchMatchIndex = mutableStateOf(-1),
+            selectionStart = mutableStateOf(null),
+            selectionEnd = mutableStateOf(null),
+            selectionClipboard = mutableStateOf(null),
+            imeState = IMEState(),
+            contextMenuController = ContextMenuController(),
+            hyperlinks = mutableStateOf(emptyList()),
+            hoveredHyperlink = mutableStateOf(null),
+            debugEnabled = mutableStateOf(settings.debugModeEnabled),
+            debugCollector = debugCollector,
+            typeAheadModel = typeAheadModel,
+            typeAheadManager = typeAheadManager
+        )
+
+        // Complete debug collector initialization
+        debugCollector?.let { collector ->
+            collector.setTab(session)
+            dataStream.debugCallback = { data ->
+                collector.recordChunk(data, ChunkSource.PTY_OUTPUT)
+            }
+        }
+
+        // Connect type-ahead manager to PTY arrival notifications
+        typeAheadManager?.let { manager ->
+            dataStream.onTerminalStateChanged = {
+                manager.onTerminalStateChanged()
+            }
+        }
+
+        // Wire up chunk batching to prevent intermediate state flickering
+        dataStream.onChunkStart = {
+            textBuffer.beginBatch()
+        }
+        dataStream.onChunkEnd = {
+            textBuffer.endBatch()
+        }
+
+        // Initialize the terminal session (spawn PTY, start coroutines)
+        // Note: We don't pass onProcessExit since split pane lifecycle is managed separately
+        initializeTerminalSession(session, workingDir, command, effectiveArguments)
+
+        return session
     }
 
     /**
@@ -968,6 +1151,45 @@ class TabController(
      */
     fun getActiveWorkingDirectory(): String? {
         return activeTab?.workingDirectory?.value
+    }
+
+    /**
+     * Create a new tab from an existing terminal session.
+     *
+     * This is used when moving a split pane to a new tab. The session's PTY and
+     * terminal state are preserved - only the container changes from split pane to tab.
+     *
+     * Unlike createTab(), this method:
+     * - Does NOT spawn a new PTY process
+     * - Does NOT create new terminal components
+     * - Reuses all existing state from the session
+     *
+     * @param session The existing session to promote to a tab
+     * @return The tab index where the session was added
+     */
+    fun createTabFromExistingSession(session: TerminalSession): Int {
+        tabCounter++
+
+        // Update the session title to reflect it's now a standalone tab
+        val existingTitle = session.title.value
+        if (existingTitle == "Split" || existingTitle.isEmpty()) {
+            session.title.value = "Shell $tabCounter"
+        }
+
+        // Cast to TerminalTab (our TerminalSession implementation)
+        val tab = session as TerminalTab
+
+        // Add to tabs list
+        tabs.add(tab)
+
+        // Notify listeners about session being added as a tab
+        notifySessionCreated(tab)
+
+        // Switch to newly created tab
+        val newIndex = tabs.size - 1
+        switchToTab(newIndex)
+
+        return newIndex
     }
 
     /**

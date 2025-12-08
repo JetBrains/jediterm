@@ -355,7 +355,41 @@ data class TerminalSettings(
      * Whether notification permission has been requested.
      * On first launch, a welcome notification is sent to trigger macOS permission dialog.
      */
-    val notificationPermissionRequested: Boolean = false
+    val notificationPermissionRequested: Boolean = false,
+
+    // ===== Split Pane Settings =====
+
+    /**
+     * Default ratio for new splits (0.0 to 1.0).
+     * 0.5 means equal 50/50 split, 0.6 means 60/40, etc.
+     */
+    val splitDefaultRatio: Float = 0.5f,
+
+    /**
+     * Minimum pane size when resizing (0.0 to 0.5).
+     * Prevents panes from being resized too small.
+     * Default: 0.1 (10% minimum)
+     */
+    val splitMinimumSize: Float = 0.1f,
+
+    /**
+     * Show border on focused pane when splits exist.
+     * Helps identify which pane has keyboard focus.
+     */
+    val splitFocusBorderEnabled: Boolean = true,
+
+    /**
+     * Color of the focus border (serialized as ARGB hex).
+     * Only visible when splitFocusBorderEnabled is true.
+     */
+    val splitFocusBorderColor: String = "0xFF4A90E2",
+
+    /**
+     * New split panes inherit working directory from parent.
+     * When true, new splits start in the same directory as the focused pane.
+     * When false, new splits start in the user's home directory.
+     */
+    val splitInheritWorkingDirectory: Boolean = true
 ) {
     // Non-serialized computed properties
 
@@ -385,6 +419,9 @@ data class TerminalSettings(
 
     @Transient
     val currentSearchMarkerColorValue: Color = Color(currentSearchMarkerColor.removePrefix("0x").toULong(16).toLong())
+
+    @Transient
+    val splitFocusBorderColorValue: Color = Color(splitFocusBorderColor.removePrefix("0x").toULong(16).toLong())
 
     companion object {
         /**

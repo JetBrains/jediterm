@@ -70,7 +70,7 @@ enum class SettingsCategory(
     ),
     SPLITS(
         displayName = "Splits",
-        icon = Icons.Default.Add,
+        icon = Icons.Default.Splitscreen,
         description = "Split pane behavior and appearance"
     );
 

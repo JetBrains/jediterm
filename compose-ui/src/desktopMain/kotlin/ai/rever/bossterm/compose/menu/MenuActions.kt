@@ -22,4 +22,9 @@ class MenuActions {
     // Window menu actions
     var onNextTab: (() -> Unit)? = null
     var onPreviousTab: (() -> Unit)? = null
+
+    // Shell menu actions (split panes)
+    var onSplitVertical: (() -> Unit)? = null
+    var onSplitHorizontal: (() -> Unit)? = null
+    var onClosePane: (() -> Unit)? = null
 }

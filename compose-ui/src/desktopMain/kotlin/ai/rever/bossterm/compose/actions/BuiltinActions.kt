@@ -409,3 +409,169 @@ fun addTabManagementActions(
         ))
     }
 }
+
+/**
+ * Adds split pane management keyboard shortcuts to an existing ActionRegistry.
+ *
+ * Split Shortcuts (iTerm2 style):
+ * - Cmd+D / Ctrl+D: Split pane vertically (left/right)
+ * - Cmd+Shift+H / Ctrl+Shift+H: Split pane horizontally (top/bottom)
+ * - Cmd+Shift+W / Ctrl+Shift+W: Close current pane
+ * - Cmd+Option+Arrow / Ctrl+Alt+Arrow: Navigate between panes directionally
+ * - Cmd+] / Ctrl+]: Navigate to next pane
+ * - Cmd+[ / Ctrl+[: Navigate to previous pane
+ *
+ * @param registry The ActionRegistry to add actions to
+ * @param onSplitVertical Callback to split pane vertically (left/right)
+ * @param onSplitHorizontal Callback to split pane horizontally (top/bottom)
+ * @param onClosePane Callback to close the focused pane
+ * @param onNavigateUp Callback to navigate focus up
+ * @param onNavigateDown Callback to navigate focus down
+ * @param onNavigateLeft Callback to navigate focus left
+ * @param onNavigateRight Callback to navigate focus right
+ * @param onNavigateNext Callback to navigate to next pane (cycles)
+ * @param onNavigatePrevious Callback to navigate to previous pane (cycles)
+ * @param isMacOS Whether running on macOS (affects modifier keys)
+ */
+fun addSplitPaneActions(
+    registry: ActionRegistry,
+    onSplitVertical: () -> Unit,
+    onSplitHorizontal: () -> Unit,
+    onClosePane: () -> Unit,
+    onNavigateUp: () -> Unit,
+    onNavigateDown: () -> Unit,
+    onNavigateLeft: () -> Unit,
+    onNavigateRight: () -> Unit,
+    onNavigateNext: () -> Unit,
+    onNavigatePrevious: () -> Unit,
+    isMacOS: Boolean
+) {
+    // SPLIT VERTICAL - Cmd+D (macOS) / Ctrl+D (Windows/Linux)
+    // Creates left/right split
+    registry.register(TerminalAction(
+        id = "split_vertical",
+        name = "Split Vertically",
+        keyStrokes = listOf(
+            KeyStroke(key = Key.D, ctrl = true),  // Windows/Linux
+            KeyStroke(key = Key.D, meta = true)   // macOS
+        ),
+        handler = { _ ->
+            onSplitVertical()
+            true
+        }
+    ))
+
+    // SPLIT HORIZONTAL - Cmd+Shift+H (macOS) / Ctrl+Shift+H (Windows/Linux)
+    // Creates top/bottom split
+    registry.register(TerminalAction(
+        id = "split_horizontal",
+        name = "Split Horizontally",
+        keyStrokes = listOf(
+            KeyStroke(key = Key.H, ctrl = true, shift = true),  // Windows/Linux
+            KeyStroke(key = Key.H, meta = true, shift = true)   // macOS
+        ),
+        handler = { _ ->
+            onSplitHorizontal()
+            true
+        }
+    ))
+
+    // CLOSE PANE - Cmd+Shift+W (macOS) / Ctrl+Shift+W (Windows/Linux)
+    // Closes the focused pane (or tab if last pane)
+    registry.register(TerminalAction(
+        id = "close_pane",
+        name = "Close Pane",
+        keyStrokes = listOf(
+            KeyStroke(key = Key.W, ctrl = true, shift = true),  // Windows/Linux
+            KeyStroke(key = Key.W, meta = true, shift = true)   // macOS
+        ),
+        handler = { _ ->
+            onClosePane()
+            true
+        }
+    ))
+
+    // NAVIGATE UP - Cmd+Option+Up (macOS) / Ctrl+Alt+Up (Windows/Linux)
+    registry.register(TerminalAction(
+        id = "navigate_pane_up",
+        name = "Navigate Pane Up",
+        keyStrokes = listOf(
+            KeyStroke(key = Key.DirectionUp, ctrl = true, alt = true),  // Windows/Linux
+            KeyStroke(key = Key.DirectionUp, meta = true, alt = true)   // macOS
+        ),
+        handler = { _ ->
+            onNavigateUp()
+            true
+        }
+    ))
+
+    // NAVIGATE DOWN - Cmd+Option+Down (macOS) / Ctrl+Alt+Down (Windows/Linux)
+    registry.register(TerminalAction(
+        id = "navigate_pane_down",
+        name = "Navigate Pane Down",
+        keyStrokes = listOf(
+            KeyStroke(key = Key.DirectionDown, ctrl = true, alt = true),  // Windows/Linux
+            KeyStroke(key = Key.DirectionDown, meta = true, alt = true)   // macOS
+        ),
+        handler = { _ ->
+            onNavigateDown()
+            true
+        }
+    ))
+
+    // NAVIGATE LEFT - Cmd+Option+Left (macOS) / Ctrl+Alt+Left (Windows/Linux)
+    registry.register(TerminalAction(
+        id = "navigate_pane_left",
+        name = "Navigate Pane Left",
+        keyStrokes = listOf(
+            KeyStroke(key = Key.DirectionLeft, ctrl = true, alt = true),  // Windows/Linux
+            KeyStroke(key = Key.DirectionLeft, meta = true, alt = true)   // macOS
+        ),
+        handler = { _ ->
+            onNavigateLeft()
+            true
+        }
+    ))
+
+    // NAVIGATE RIGHT - Cmd+Option+Right (macOS) / Ctrl+Alt+Right (Windows/Linux)
+    registry.register(TerminalAction(
+        id = "navigate_pane_right",
+        name = "Navigate Pane Right",
+        keyStrokes = listOf(
+            KeyStroke(key = Key.DirectionRight, ctrl = true, alt = true),  // Windows/Linux
+            KeyStroke(key = Key.DirectionRight, meta = true, alt = true)   // macOS
+        ),
+        handler = { _ ->
+            onNavigateRight()
+            true
+        }
+    ))
+
+    // NAVIGATE TO NEXT PANE - Cmd+] (macOS) / Ctrl+] (Windows/Linux)
+    registry.register(TerminalAction(
+        id = "navigate_next_pane",
+        name = "Next Pane",
+        keyStrokes = listOf(
+            KeyStroke(key = Key.RightBracket, ctrl = true),  // Windows/Linux
+            KeyStroke(key = Key.RightBracket, meta = true)   // macOS
+        ),
+        handler = { _ ->
+            onNavigateNext()
+            true
+        }
+    ))
+
+    // NAVIGATE TO PREVIOUS PANE - Cmd+[ (macOS) / Ctrl+[ (Windows/Linux)
+    registry.register(TerminalAction(
+        id = "navigate_previous_pane",
+        name = "Previous Pane",
+        keyStrokes = listOf(
+            KeyStroke(key = Key.LeftBracket, ctrl = true),  // Windows/Linux
+            KeyStroke(key = Key.LeftBracket, meta = true)   // macOS
+        ),
+        handler = { _ ->
+            onNavigatePrevious()
+            true
+        }
+    ))
+}

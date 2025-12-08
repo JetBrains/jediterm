@@ -1516,13 +1516,13 @@ fun ProperTerminal(
             TerminalDisplay.ProgressState.HIDDEN -> Color.Transparent
           }
 
-          // Animated offset for indeterminate gradient
+          // Animated offset for indeterminate gradient - seamless loop
           val infiniteTransition = rememberInfiniteTransition(label = "progress")
           val animatedOffset by infiniteTransition.animateFloat(
-            initialValue = 0f,
-            targetValue = 1f,
+            initialValue = -0.3f,
+            targetValue = 1.3f,
             animationSpec = infiniteRepeatable(
-              animation = tween(1500, easing = LinearEasing),
+              animation = tween(1200, easing = LinearEasing),
               repeatMode = RepeatMode.Restart
             ),
             label = "progressOffset"
@@ -1533,27 +1533,31 @@ fun ProperTerminal(
               .align(Alignment.TopStart)
               .fillMaxWidth()
               .height(3.dp)
-              .background(progressColor.copy(alpha = 0.2f))
+              .background(progressColor.copy(alpha = 0.15f))
           ) {
             if (progressState == TerminalDisplay.ProgressState.INDETERMINATE) {
-              // Indeterminate: animated gradient bar
-              Box(
-                modifier = Modifier
-                  .fillMaxSize()
-                  .background(
-                    brush = Brush.horizontalGradient(
-                      colors = listOf(
-                        Color.Transparent,
-                        progressColor.copy(alpha = 0.5f),
-                        progressColor,
-                        progressColor.copy(alpha = 0.5f),
-                        Color.Transparent
-                      ),
-                      startX = animatedOffset * 1500f - 500f,
-                      endX = animatedOffset * 1500f + 500f
-                    )
-                  )
-              )
+              // Indeterminate: animated gradient bar with seamless loop
+              // Gradient width is 30% of bar, animates from -30% to 130% for smooth entry/exit
+              Canvas(modifier = Modifier.fillMaxSize()) {
+                val gradientWidth = size.width * 0.35f
+                val centerX = animatedOffset * (size.width + gradientWidth) - gradientWidth / 2
+
+                drawRect(
+                  brush = Brush.horizontalGradient(
+                    colors = listOf(
+                      Color.Transparent,
+                      progressColor.copy(alpha = 0.4f),
+                      progressColor,
+                      progressColor,
+                      progressColor.copy(alpha = 0.4f),
+                      Color.Transparent
+                    ),
+                    startX = centerX - gradientWidth / 2,
+                    endX = centerX + gradientWidth / 2
+                  ),
+                  size = size
+                )
+              }
             } else if (progressValue >= 0) {
               // Determinate: progress bar
               Box(

@@ -104,13 +104,20 @@ fun BehaviorSettingsSection(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Audio Settings
-        SettingsSection(title = "Audio") {
+        // Bell Settings
+        SettingsSection(title = "Bell") {
             SettingsToggle(
                 label = "Audible Bell",
                 checked = settings.audibleBell,
                 onCheckedChange = { onSettingsChange(settings.copy(audibleBell = it)) },
                 description = "Play sound on ASCII bell (Ctrl+G)"
+            )
+
+            SettingsToggle(
+                label = "Visual Bell",
+                checked = settings.visualBell,
+                onCheckedChange = { onSettingsChange(settings.copy(visualBell = it)) },
+                description = "Flash screen on ASCII bell"
             )
         }
     }

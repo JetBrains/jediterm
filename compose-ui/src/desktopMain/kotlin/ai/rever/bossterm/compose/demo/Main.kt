@@ -107,6 +107,9 @@ fun main() = application {
             val settingsManagerForWindow = remember { SettingsManager.instance }
             val windowSettings by settingsManagerForWindow.settings.collectAsState()
 
+            // Read native title bar setting at startup (not reactive - requires restart)
+            val useNativeTitleBar = remember { settingsManagerForWindow.settings.value.useNativeTitleBar }
+
             Window(
                 onCloseRequest = {
                     WindowManager.closeWindow(window.id)
@@ -116,8 +119,8 @@ fun main() = application {
                 },
                 state = windowState,
                 title = window.title.value,
-                undecorated = true,
-                transparent = true,
+                undecorated = !useNativeTitleBar,
+                transparent = !useNativeTitleBar,
                 onPreviewKeyEvent = { keyEvent ->
                     // Handle Cmd+, (macOS) or Ctrl+, (other) for Settings
                     if (keyEvent.type == KeyEventType.KeyDown &&
@@ -156,26 +159,28 @@ fun main() = application {
                     }
                 }
 
-                // Handle fullscreen expansion for undecorated windows
-                LaunchedEffect(windowState.placement) {
-                    if (windowState.placement == WindowPlacement.Fullscreen) {
-                        val ge = GraphicsEnvironment.getLocalGraphicsEnvironment()
-                        val screenDevice = ge.screenDevices.firstOrNull { device ->
-                            awtWindow.bounds.intersects(device.defaultConfiguration.bounds)
-                        } ?: ge.defaultScreenDevice
+                // Handle fullscreen expansion for undecorated windows (only needed for custom title bar)
+                if (!useNativeTitleBar) {
+                    LaunchedEffect(windowState.placement) {
+                        if (windowState.placement == WindowPlacement.Fullscreen) {
+                            val ge = GraphicsEnvironment.getLocalGraphicsEnvironment()
+                            val screenDevice = ge.screenDevices.firstOrNull { device ->
+                                awtWindow.bounds.intersects(device.defaultConfiguration.bounds)
+                            } ?: ge.defaultScreenDevice
 
-                        val screenBounds = screenDevice.defaultConfiguration.bounds
-                        val insets = java.awt.Toolkit.getDefaultToolkit().getScreenInsets(
-                            screenDevice.defaultConfiguration
-                        )
+                            val screenBounds = screenDevice.defaultConfiguration.bounds
+                            val insets = java.awt.Toolkit.getDefaultToolkit().getScreenInsets(
+                                screenDevice.defaultConfiguration
+                            )
 
-                        // Set window to fill available screen space (excluding menu bar/dock)
-                        awtWindow.setBounds(
-                            screenBounds.x + insets.left,
-                            screenBounds.y + insets.top,
-                            screenBounds.width - insets.left - insets.right,
-                            screenBounds.height - insets.top - insets.bottom
-                        )
+                            // Set window to fill available screen space (excluding menu bar/dock)
+                            awtWindow.setBounds(
+                                screenBounds.x + insets.left,
+                                screenBounds.y + insets.top,
+                                screenBounds.width - insets.left - insets.right,
+                                screenBounds.height - insets.top - insets.bottom
+                            )
+                        }
                     }
                 }
 
@@ -338,53 +343,55 @@ fun main() = application {
                     }
                 }
 
-                // Track fullscreen/maximized state for corner radius
+                // Track fullscreen/maximized state for corner radius (only for custom title bar)
                 val isFullscreenOrMaximized = windowState.placement == WindowPlacement.Fullscreen ||
                                                windowState.placement == WindowPlacement.Maximized
-                val cornerRadius = if (isFullscreenOrMaximized) 0.dp else 10.dp
+                val cornerRadius = if (useNativeTitleBar || isFullscreenOrMaximized) 0.dp else 10.dp
 
-                // Content area with transparent background
+                // Content area with transparent background (transparency only works with custom title bar)
                 Surface(
                     modifier = Modifier
                         .fillMaxSize()
                         .clip(RoundedCornerShape(cornerRadius)),
                     color = windowSettings.defaultBackgroundColor.copy(
-                        alpha = windowSettings.backgroundOpacity
+                        alpha = if (useNativeTitleBar) 1f else windowSettings.backgroundOpacity
                     ),
                     shape = RoundedCornerShape(cornerRadius)
                 ) {
                     Column(modifier = Modifier.fillMaxSize()) {
-                        // Custom title bar (always visible)
-                        CustomTitleBar(
-                            title = window.title.value,
-                            windowState = windowState,
-                            onClose = {
-                                WindowManager.closeWindow(window.id)
-                                if (!WindowManager.hasWindows()) {
-                                    exitApplication()
-                                }
-                            },
-                            onMinimize = { windowState.isMinimized = true },
-                            onFullscreen = {
-                                // Toggle fullscreen
-                                windowState.placement = if (windowState.placement == WindowPlacement.Fullscreen) {
-                                    WindowPlacement.Floating
-                                } else {
-                                    WindowPlacement.Fullscreen
-                                }
-                            },
-                            onMaximize = {
-                                // Same as fullscreen for undecorated windows
-                                windowState.placement = if (windowState.placement == WindowPlacement.Maximized) {
-                                    WindowPlacement.Floating
-                                } else {
-                                    WindowPlacement.Maximized
-                                }
-                            },
-                            backgroundColor = windowSettings.defaultBackgroundColor.copy(
-                                alpha = (windowSettings.backgroundOpacity * 1.1f).coerceAtMost(1f)
+                        // Custom title bar (only when not using native title bar)
+                        if (!useNativeTitleBar) {
+                            CustomTitleBar(
+                                title = window.title.value,
+                                windowState = windowState,
+                                onClose = {
+                                    WindowManager.closeWindow(window.id)
+                                    if (!WindowManager.hasWindows()) {
+                                        exitApplication()
+                                    }
+                                },
+                                onMinimize = { windowState.isMinimized = true },
+                                onFullscreen = {
+                                    // Toggle fullscreen
+                                    windowState.placement = if (windowState.placement == WindowPlacement.Fullscreen) {
+                                        WindowPlacement.Floating
+                                    } else {
+                                        WindowPlacement.Fullscreen
+                                    }
+                                },
+                                onMaximize = {
+                                    // Same as fullscreen for undecorated windows
+                                    windowState.placement = if (windowState.placement == WindowPlacement.Maximized) {
+                                        WindowPlacement.Floating
+                                    } else {
+                                        WindowPlacement.Maximized
+                                    }
+                                },
+                                backgroundColor = windowSettings.defaultBackgroundColor.copy(
+                                    alpha = (windowSettings.backgroundOpacity * 1.1f).coerceAtMost(1f)
+                                )
                             )
-                        )
+                        }
 
                         // Update banner (shows when update is available)
                         UpdateBanner(
@@ -434,7 +441,13 @@ fun main() = application {
                 // Settings dialog
                 SettingsWindow(
                     visible = showSettingsDialog,
-                    onDismiss = { showSettingsDialog = false }
+                    onDismiss = { showSettingsDialog = false },
+                    onRestartApp = {
+                        // Close this window and create a new one with updated settings
+                        showSettingsDialog = false
+                        WindowManager.closeWindow(window.id)
+                        WindowManager.createWindow()
+                    }
                 )
 
                 // CLI install dialog

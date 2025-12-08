@@ -36,6 +36,7 @@ fun SettingsPanel(
     settings: TerminalSettings,
     onSettingsChange: (TerminalSettings) -> Unit,
     onResetToDefaults: () -> Unit,
+    onRestartApp: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var selectedCategory by remember { mutableStateOf(SettingsCategory.default) }
@@ -79,6 +80,7 @@ fun SettingsPanel(
                     category = selectedCategory,
                     settings = settings,
                     onSettingsChange = onSettingsChange,
+                    onRestartApp = onRestartApp,
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -239,6 +241,7 @@ private fun SettingsContent(
     category: SettingsCategory,
     settings: TerminalSettings,
     onSettingsChange: (TerminalSettings) -> Unit,
+    onRestartApp: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -267,7 +270,8 @@ private fun SettingsContent(
         when (category) {
             SettingsCategory.VISUAL -> VisualSettingsSection(
                 settings = settings,
-                onSettingsChange = onSettingsChange
+                onSettingsChange = onSettingsChange,
+                onRestartApp = onRestartApp
             )
             SettingsCategory.THEMES -> ThemeSettingsSection(
                 settings = settings,

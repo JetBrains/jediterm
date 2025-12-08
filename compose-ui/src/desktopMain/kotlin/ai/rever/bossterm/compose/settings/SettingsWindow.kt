@@ -11,11 +11,13 @@ import androidx.compose.ui.window.rememberWindowState
  *
  * @param visible Whether the window is visible
  * @param onDismiss Called when the window should be closed
+ * @param onRestartApp Called when app should restart (for settings that require restart)
  */
 @Composable
 fun SettingsWindow(
     visible: Boolean,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onRestartApp: (() -> Unit)? = null
 ) {
     if (!visible) return
 
@@ -38,7 +40,8 @@ fun SettingsWindow(
             },
             onResetToDefaults = {
                 settingsManager.resetToDefaults()
-            }
+            },
+            onRestartApp = onRestartApp
         )
     }
 }

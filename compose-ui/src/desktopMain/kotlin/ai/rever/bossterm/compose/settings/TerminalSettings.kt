@@ -87,6 +87,14 @@ data class TerminalSettings(
      */
     val windowBlur: Boolean = true,
 
+    /**
+     * Use native window decorations (title bar with traffic lights).
+     * When true: Native macOS title bar, proper fullscreen, but no transparency.
+     * When false: Custom title bar, transparency works, but no true fullscreen.
+     * Changing this requires app restart to take effect.
+     */
+    val useNativeTitleBar: Boolean = false,
+
     // ===== Behavior Settings =====
 
     /**

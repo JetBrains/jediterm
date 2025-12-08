@@ -110,6 +110,9 @@ fun main() = application {
             // Track fullscreen mode - swap between transparent undecorated and decorated fullscreen
             val isFullscreen = window.isFullscreenMode.value
 
+            // Use key to force window recreation when mode changes
+            // (AWT doesn't allow changing undecorated on displayed window)
+            key(isFullscreen) {
             Window(
                 onCloseRequest = {
                     WindowManager.closeWindow(window.id)
@@ -440,6 +443,7 @@ fun main() = application {
                     isFirstRun = isFirstRun
                 )
             }
+            } // end key(isFullscreen)
         }
     }
 }

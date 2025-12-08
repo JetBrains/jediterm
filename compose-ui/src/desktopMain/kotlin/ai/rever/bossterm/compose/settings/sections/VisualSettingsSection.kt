@@ -128,9 +128,47 @@ fun VisualSettingsSection(
                 SettingsToggle(
                     label = "Enable Blur Effect",
                     checked = settings.windowBlur,
-                    onCheckedChange = { onSettingsChange(settings.copy(windowBlur = it)) },
-                    description = "Frosted glass effect behind transparent terminal (macOS)",
-                    enabled = settings.backgroundOpacity < 1.0f
+                    onCheckedChange = { newValue ->
+                        onSettingsChange(settings.copy(windowBlur = newValue))
+                    },
+                    description = "Blurs background image or shows frosted glass effect"
+                )
+
+                if (settings.windowBlur) {
+                    SettingsSlider(
+                        label = "Blur Radius",
+                        value = settings.blurRadius,
+                        onValueChange = { onSettingsChange(settings.copy(blurRadius = it)) },
+                        valueRange = 5f..50f,
+                        steps = 8,
+                        valueDisplay = { "${it.toInt()} dp" },
+                        description = "Intensity of the blur effect"
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Background Image Settings
+        SettingsSection(title = "Background Image") {
+            SettingsFilePicker(
+                label = "Image Path",
+                value = settings.backgroundImagePath,
+                onValueChange = { onSettingsChange(settings.copy(backgroundImagePath = it)) },
+                description = "Select a PNG or JPG image for the background",
+                fileExtensions = listOf("png", "jpg", "jpeg")
+            )
+
+            if (settings.backgroundImagePath.isNotEmpty()) {
+                SettingsSlider(
+                    label = "Image Opacity",
+                    value = settings.backgroundImageOpacity,
+                    onValueChange = { onSettingsChange(settings.copy(backgroundImageOpacity = it)) },
+                    valueRange = 0.1f..1.0f,
+                    steps = 17,
+                    valueDisplay = { "${(it * 100).toInt()}%" },
+                    description = "How visible the background image is"
                 )
             }
         }
@@ -178,4 +216,5 @@ fun VisualSettingsSection(
             contentColor = TextPrimary
         )
     }
+
 }

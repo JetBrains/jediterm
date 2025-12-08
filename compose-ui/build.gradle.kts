@@ -116,6 +116,14 @@ compose.desktop {
     application {
         mainClass = "ai.rever.bossterm.compose.demo.MainKt"
 
+        // JVM args for macOS blur effect (access to internal AWT classes)
+        jvmArgs += listOf(
+            "--add-opens", "java.desktop/sun.lwawt=ALL-UNNAMED",
+            "--add-opens", "java.desktop/sun.lwawt.macosx=ALL-UNNAMED",
+            "--add-opens", "java.desktop/java.awt=ALL-UNNAMED",
+            "--add-opens", "java.desktop/java.awt.peer=ALL-UNNAMED"
+        )
+
         nativeDistributions {
             targetFormats(org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg)
 

@@ -549,3 +549,109 @@ fun Color.toHexString(): String {
             (this.blue * 255).toInt()
     return "#${argb.toUInt().toString(16).uppercase().padStart(8, '0')}"
 }
+
+/**
+ * A file picker with text field and browse button.
+ */
+@Composable
+fun SettingsFilePicker(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    description: String? = null,
+    fileExtensions: List<String> = emptyList(),
+    enabled: Boolean = true
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(6.dp))
+            .background(SurfaceColor)
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+    ) {
+        Text(
+            text = label,
+            color = if (enabled) TextPrimary else TextMuted,
+            fontSize = 13.sp
+        )
+        if (description != null) {
+            Text(
+                text = description,
+                color = TextMuted,
+                fontSize = 11.sp,
+                modifier = Modifier.padding(top = 2.dp)
+            )
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                enabled = enabled,
+                singleLine = true,
+                textStyle = TextStyle(
+                    color = TextPrimary,
+                    fontSize = 13.sp
+                ),
+                cursorBrush = SolidColor(AccentColor),
+                decorationBox = { innerTextField ->
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .background(BackgroundColor, RoundedCornerShape(4.dp))
+                            .border(1.dp, BorderColor, RoundedCornerShape(4.dp))
+                            .padding(horizontal = 8.dp, vertical = 8.dp)
+                    ) {
+                        if (value.isEmpty()) {
+                            Text(
+                                text = "No file selected",
+                                color = TextMuted,
+                                fontSize = 13.sp
+                            )
+                        }
+                        innerTextField()
+                    }
+                },
+                modifier = Modifier.weight(1f)
+            )
+            Button(
+                onClick = {
+                    val fileDialog = java.awt.FileDialog(null as java.awt.Frame?, "Select Image", java.awt.FileDialog.LOAD)
+                    if (fileExtensions.isNotEmpty()) {
+                        fileDialog.setFilenameFilter { _, name ->
+                            fileExtensions.any { ext -> name.lowercase().endsWith(".$ext") }
+                        }
+                    }
+                    fileDialog.isVisible = true
+                    val selectedFile = fileDialog.file
+                    val selectedDir = fileDialog.directory
+                    if (selectedFile != null && selectedDir != null) {
+                        onValueChange(selectedDir + selectedFile)
+                    }
+                },
+                enabled = enabled,
+                colors = ButtonDefaults.buttonColors(
+                    backgroundColor = AccentColor,
+                    contentColor = Color.White
+                ),
+                modifier = Modifier.height(36.dp)
+            ) {
+                Text("Browse", fontSize = 12.sp)
+            }
+            if (value.isNotEmpty()) {
+                TextButton(
+                    onClick = { onValueChange("") },
+                    enabled = enabled
+                ) {
+                    Text("Clear", color = TextSecondary, fontSize = 12.sp)
+                }
+            }
+        }
+    }
+}

@@ -22,10 +22,14 @@ import ai.rever.bossterm.compose.update.UpdateBanner
 import ai.rever.bossterm.compose.update.UpdateManager
 import ai.rever.bossterm.compose.update.UpdateState
 import ai.rever.bossterm.compose.window.CustomTitleBar
+import ai.rever.bossterm.compose.window.configureWindowTransparency
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Surface
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.WindowPlacement
 import kotlinx.coroutines.launch
@@ -153,6 +157,15 @@ fun main() = application {
                     awtWindow.addWindowFocusListener(focusListener)
                     // Set initial focus state
                     window.isWindowFocused.value = awtWindow.isFocused
+
+                    // Configure window transparency and blur (only for custom title bar mode)
+                    if (!useNativeTitleBar) {
+                        configureWindowTransparency(
+                            window = awtWindow,
+                            isTransparent = windowSettings.backgroundOpacity < 1.0f,
+                            enableBlur = windowSettings.windowBlur
+                        )
+                    }
 
                     onDispose {
                         awtWindow.removeWindowFocusListener(focusListener)
@@ -356,7 +369,21 @@ fun main() = application {
                 // Track fullscreen/maximized state for corner radius (only for custom title bar)
                 val isFullscreenOrMaximized = windowState.placement == WindowPlacement.Fullscreen ||
                                                windowState.placement == WindowPlacement.Maximized
-                val cornerRadius = if (useNativeTitleBar || isFullscreenOrMaximized) 0.dp else 10.dp
+                val cornerRadius = if (useNativeTitleBar || isFullscreenOrMaximized) 0.dp else 20.dp
+
+                // Load background image if set
+                val backgroundImage = remember(windowSettings.backgroundImagePath) {
+                    if (windowSettings.backgroundImagePath.isNotEmpty()) {
+                        try {
+                            val file = java.io.File(windowSettings.backgroundImagePath)
+                            if (file.exists()) {
+                                androidx.compose.ui.res.loadImageBitmap(file.inputStream())
+                            } else null
+                        } catch (e: Exception) {
+                            null
+                        }
+                    } else null
+                }
 
                 // Content area with transparent background (transparency only works with custom title bar)
                 Surface(
@@ -368,6 +395,43 @@ fun main() = application {
                     ),
                     shape = RoundedCornerShape(cornerRadius)
                 ) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // Background layer: either image or faux blur effect
+                        if (backgroundImage != null) {
+                            // Background image with blur effect
+                            androidx.compose.foundation.Image(
+                                bitmap = backgroundImage,
+                                contentDescription = "Background",
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                alpha = windowSettings.backgroundImageOpacity,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .then(
+                                        if (windowSettings.windowBlur) {
+                                            Modifier.blur(windowSettings.blurRadius.dp)
+                                        } else {
+                                            Modifier
+                                        }
+                                    )
+                            )
+                        } else if (!useNativeTitleBar && windowSettings.backgroundOpacity < 1.0f && windowSettings.windowBlur) {
+                            // Faux blur effect: grey gradient overlay to simulate frosted glass
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        brush = Brush.radialGradient(
+                                            colors = listOf(
+                                                Color.Gray.copy(alpha = 0.3f),
+                                                Color.DarkGray.copy(alpha = 0.4f),
+                                                Color.Gray.copy(alpha = 0.35f)
+                                            )
+                                        )
+                                    )
+                                    .blur(windowSettings.blurRadius.dp)
+                            )
+                        }
+
                     Column(modifier = Modifier.fillMaxSize()) {
                         // Custom title bar (only when not using native title bar)
                         if (!useNativeTitleBar) {
@@ -445,6 +509,7 @@ fun main() = application {
                         isWindowFocused = { window.isWindowFocused.value },
                         modifier = Modifier.fillMaxSize().weight(1f)
                     )
+                    }
                     }
                 }
 

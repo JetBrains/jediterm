@@ -85,7 +85,26 @@ data class TerminalSettings(
      * Creates a frosted glass effect when backgroundOpacity < 1.0.
      * Has no effect when backgroundOpacity is 1.0.
      */
-    val windowBlur: Boolean = true,
+    val windowBlur: Boolean = false,
+
+    /**
+     * Blur radius for transparent mode (1-100).
+     * Higher values create more blur. Only applies when windowBlur is enabled.
+     */
+    val blurRadius: Float = 30f,
+
+    /**
+     * Path to background image file (PNG, JPG).
+     * When set, displays an image behind the terminal content.
+     * Empty string means no background image.
+     */
+    val backgroundImagePath: String = "",
+
+    /**
+     * Background image opacity (0.0 = invisible, 1.0 = fully visible).
+     * Controls how visible the background image is.
+     */
+    val backgroundImageOpacity: Float = 0.3f,
 
     /**
      * Use native window decorations (title bar with traffic lights).

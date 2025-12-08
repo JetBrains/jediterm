@@ -673,11 +673,14 @@ fun ProperTerminal(
         .onGloballyPositioned { coordinates ->
           // Detect window size changes and resize terminal accordingly
           // Note: This fires frequently, but we validate dimensions carefully to prevent crashes
-          val newWidth = coordinates.size.width
-          val newHeight = coordinates.size.height
+          // Account for Canvas padding (4dp start, 4dp top) - on desktop 1dp ≈ 1px
+          val canvasPadding = 4
+          val newWidth = coordinates.size.width - canvasPadding
+          val newHeight = coordinates.size.height - canvasPadding
 
           // Ensure we have valid dimensions (minimum 10x10 pixels to prevent crashes)
           if (newWidth >= 10 && newHeight >= 10 && cellWidth > 0f && cellHeight > 0f) {
+            // Use floor division to ensure we don't calculate more rows than actually fit
             val newCols = (newWidth / cellWidth).toInt().coerceAtLeast(2)
             val newRows = (newHeight / cellHeight).toInt().coerceAtLeast(2)
             val currentCols = textBuffer.width
@@ -1289,8 +1292,9 @@ fun ProperTerminal(
           canvasSize = size
 
           // Calculate visible bounds - limit rendering to what fits in canvas
+          // Use ceil for rows to include partially visible bottom row (Canvas clips automatically)
           val visibleCols = (size.width / cellWidth).toInt().coerceAtMost(bufferSnapshot.width)
-          val visibleRows = (size.height / cellHeight).toInt().coerceAtMost(bufferSnapshot.height)
+          val visibleRows = kotlin.math.ceil(size.height / cellHeight).toInt().coerceAtMost(bufferSnapshot.height)
 
           // Get cursor color from terminal (OSC 12)
           val customCursorColor = terminal.cursorColor

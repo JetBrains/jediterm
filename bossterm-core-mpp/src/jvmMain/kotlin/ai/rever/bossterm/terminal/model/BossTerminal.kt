@@ -711,6 +711,8 @@ class BossTerminal(
                     beginY = 0
                     endY = myTerminalHeight - 1
                     terminalTextBuffer.moveScreenLinesToHistory()
+                    // Clear all images when screen is cleared
+                    myImageStorage.clearAll()
                 }
 
                 3 -> {
@@ -720,6 +722,8 @@ class BossTerminal(
                     beginY = 0
                     endY = myTerminalHeight - 1
                     terminalTextBuffer.clearHistory()
+                    // Clear all images including those in history
+                    myImageStorage.clearAll()
                 }
 
                 else -> {

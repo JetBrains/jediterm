@@ -1504,10 +1504,10 @@ fun ProperTerminal(
           )
         }
 
-        // Progress bar at top of terminal (OSC 1337;SetProgress / OSC 9;4)
+        // Progress bar (OSC 1337;SetProgress / OSC 9;4)
         val progressState by display.progressState
         val progressValue by display.progressValue
-        if (progressState != TerminalDisplay.ProgressState.HIDDEN) {
+        if (settings.progressBarEnabled && progressState != TerminalDisplay.ProgressState.HIDDEN) {
           val progressColor = when (progressState) {
             TerminalDisplay.ProgressState.NORMAL -> Color(0xFF4A90E2)  // Blue
             TerminalDisplay.ProgressState.ERROR -> Color(0xFFE24A4A)   // Red
@@ -1522,17 +1522,18 @@ fun ProperTerminal(
             initialValue = -0.3f,
             targetValue = 1.3f,
             animationSpec = infiniteRepeatable(
-              animation = tween(1200, easing = LinearEasing),
+              animation = tween(2500, easing = LinearEasing),
               repeatMode = RepeatMode.Restart
             ),
             label = "progressOffset"
           )
 
+          val progressAlignment = if (settings.progressBarPosition == "top") Alignment.TopStart else Alignment.BottomStart
           Box(
             modifier = Modifier
-              .align(Alignment.TopStart)
+              .align(progressAlignment)
               .fillMaxWidth()
-              .height(3.dp)
+              .height(settings.progressBarHeight.dp)
               .background(progressColor.copy(alpha = 0.15f))
           ) {
             if (progressState == TerminalDisplay.ProgressState.INDETERMINATE) {

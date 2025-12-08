@@ -177,6 +177,23 @@ data class TerminalSettings(
      */
     val visualBell: Boolean = true,
 
+    // ===== Progress Bar Settings =====
+
+    /**
+     * Enable progress bar indicator (OSC 1337;SetProgress / OSC 9;4)
+     */
+    val progressBarEnabled: Boolean = true,
+
+    /**
+     * Progress bar position: "top" or "bottom" of terminal
+     */
+    val progressBarPosition: String = "bottom",
+
+    /**
+     * Progress bar height in dp (1-10)
+     */
+    val progressBarHeight: Float = 6f,
+
     /**
      * Use inverse selection color (swap fg/bg)
      */

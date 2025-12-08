@@ -120,5 +120,37 @@ fun BehaviorSettingsSection(
                 description = "Flash screen on ASCII bell"
             )
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Progress Bar Settings
+        SettingsSection(title = "Progress Bar") {
+            SettingsToggle(
+                label = "Enable Progress Bar",
+                checked = settings.progressBarEnabled,
+                onCheckedChange = { onSettingsChange(settings.copy(progressBarEnabled = it)) },
+                description = "Show progress indicator (OSC 1337/9;4)"
+            )
+
+            SettingsDropdown(
+                label = "Position",
+                options = listOf("Top", "Bottom"),
+                selectedOption = settings.progressBarPosition.replaceFirstChar { it.uppercase() },
+                onOptionSelected = { onSettingsChange(settings.copy(progressBarPosition = it.lowercase())) },
+                description = "Where to show the progress bar",
+                enabled = settings.progressBarEnabled
+            )
+
+            SettingsSlider(
+                label = "Height",
+                value = settings.progressBarHeight,
+                onValueChange = { onSettingsChange(settings.copy(progressBarHeight = it)) },
+                valueRange = 1f..10f,
+                steps = 8,
+                valueDisplay = { "${it.toInt()} dp" },
+                description = "Progress bar thickness",
+                enabled = settings.progressBarEnabled
+            )
+        }
     }
 }

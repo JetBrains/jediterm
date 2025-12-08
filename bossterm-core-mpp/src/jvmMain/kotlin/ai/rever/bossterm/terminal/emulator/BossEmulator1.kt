@@ -249,6 +249,8 @@ class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
             9 -> return processOsc9Progress(args)
 
             10, 11 -> return processColorQuery(args)
+
+            52 -> return processClipboard(args)
             12 -> return processCursorColor(args)
             104, 1341 -> {
                 val argList: MutableList<String?> = args.args.toMutableList()
@@ -419,6 +421,32 @@ class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
             }
         }
         return null
+    }
+
+    /**
+     * Handles OSC 52 (clipboard access).
+     * Format: OSC 52 ; Pc ; Pd ST
+     * Where:
+     * - Pc is the clipboard selection: 'c' (clipboard), 'p' (primary), 's' (select), '0'-'7' (cut buffers)
+     * - Pd is the data:
+     *   - '?' to query the clipboard
+     *   - Base64-encoded string to set the clipboard
+     *   - Empty string to clear
+     */
+    private fun processClipboard(args: SystemCommandSequence): kotlin.Boolean {
+        val selectionStr = args.getStringAt(1) ?: return false
+        val data = args.getStringAt(2) ?: ""
+
+        // Selection can be multiple characters (e.g., "pc" for primary and clipboard)
+        // We use the first one, defaulting to 'c' (clipboard)
+        val selection = if (selectionStr.isNotEmpty()) selectionStr[0] else 'c'
+
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("OSC 52 clipboard: selection=$selection, data=${if (data == "?") "query" else if (data.isEmpty()) "clear" else "set(${data.length} chars)"}")
+        }
+
+        myTerminal?.processClipboard(selection, data)
+        return true
     }
 
     /**

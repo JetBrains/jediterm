@@ -41,6 +41,29 @@ fun BehaviorSettingsSection(
                 onCheckedChange = { onSettingsChange(settings.copy(emulateX11CopyPaste = it)) },
                 description = "Separate selection and system clipboard"
             )
+
+            SettingsToggle(
+                label = "OSC 52 Clipboard Access",
+                checked = settings.clipboardOsc52Enabled,
+                onCheckedChange = { onSettingsChange(settings.copy(clipboardOsc52Enabled = it)) },
+                description = "Allow terminal apps to access clipboard"
+            )
+
+            SettingsToggle(
+                label = "Allow Clipboard Read (OSC 52)",
+                checked = settings.clipboardOsc52AllowRead,
+                onCheckedChange = { onSettingsChange(settings.copy(clipboardOsc52AllowRead = it)) },
+                description = "Allow apps to read clipboard (security risk)",
+                enabled = settings.clipboardOsc52Enabled
+            )
+
+            SettingsToggle(
+                label = "Allow Clipboard Write (OSC 52)",
+                checked = settings.clipboardOsc52AllowWrite,
+                onCheckedChange = { onSettingsChange(settings.copy(clipboardOsc52AllowWrite = it)) },
+                description = "Allow apps to write to clipboard (tmux, etc.)",
+                enabled = settings.clipboardOsc52Enabled
+            )
         }
 
         Spacer(modifier = Modifier.height(24.dp))

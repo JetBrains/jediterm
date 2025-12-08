@@ -84,6 +84,8 @@ class BossTerminal(
         CopyOnWriteArrayList<TerminalResizeListener>()
     private val myCommandStateListeners: MutableList<CommandStateListener> =
         CopyOnWriteArrayList<CommandStateListener>()
+    private val myClipboardListeners: MutableList<TerminalClipboardListener> =
+        CopyOnWriteArrayList<TerminalClipboardListener>()
 
     override fun setModeEnabled(mode: TerminalMode?, enabled: Boolean) {
         mode?.let {
@@ -384,6 +386,56 @@ class BossTerminal(
                 val exitCode = args.firstOrNull()?.toIntOrNull() ?: 0
                 for (listener in myCommandStateListeners) {
                     listener.onCommandFinished(exitCode)
+                }
+            }
+        }
+    }
+
+    // ===== Clipboard (OSC 52) =====
+
+    override fun addClipboardListener(listener: TerminalClipboardListener) {
+        myClipboardListeners.add(listener)
+    }
+
+    override fun removeClipboardListener(listener: TerminalClipboardListener) {
+        myClipboardListeners.remove(listener)
+    }
+
+    /**
+     * Process clipboard sequences (OSC 52).
+     * @param selection The clipboard selection ('c', 'p', 's', or '0'-'7')
+     * @param data Base64-encoded data to set, "?" to query, or empty to clear
+     */
+    override fun processClipboard(selection: Char, data: String) {
+        when {
+            data == "?" -> {
+                // Query clipboard - ask listener for content and send response
+                for (listener in myClipboardListeners) {
+                    val content = listener.onClipboardGet(selection)
+                    if (content != null) {
+                        // Send OSC 52 response with base64-encoded content
+                        val encoded = java.util.Base64.getEncoder().encodeToString(content.toByteArray())
+                        val response = "\u001b]52;$selection;$encoded\u0007"
+                        myTerminalOutput?.sendBytes(response.toByteArray(), false)
+                        break
+                    }
+                }
+            }
+            data.isEmpty() -> {
+                // Clear clipboard
+                for (listener in myClipboardListeners) {
+                    listener.onClipboardClear(selection)
+                }
+            }
+            else -> {
+                // Set clipboard - decode base64 and notify listeners
+                try {
+                    val decoded = String(java.util.Base64.getDecoder().decode(data))
+                    for (listener in myClipboardListeners) {
+                        listener.onClipboardSet(selection, decoded)
+                    }
+                } catch (e: IllegalArgumentException) {
+                    // Invalid base64 - ignore
                 }
             }
         }

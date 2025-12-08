@@ -222,4 +222,42 @@ interface Terminal {
      * @param args Additional arguments (e.g., exit code for type D)
      */
     fun processShellIntegration(type: Char, args: List<String>) {}
+
+    // ===== Clipboard (OSC 52) =====
+
+    fun addClipboardListener(listener: TerminalClipboardListener) {}
+
+    fun removeClipboardListener(listener: TerminalClipboardListener) {}
+
+    /**
+     * Called when OSC 52 clipboard sequence is received.
+     * @param selection The clipboard selection ('c' = clipboard, 'p' = primary, 's' = select)
+     * @param data The base64-encoded data to set, "?" to query, or empty to clear
+     */
+    fun processClipboard(selection: Char, data: String) {}
+}
+
+/**
+ * Listener for OSC 52 clipboard operations.
+ */
+interface TerminalClipboardListener {
+    /**
+     * Called when terminal requests to set clipboard content.
+     * @param selection The clipboard selection ('c', 'p', 's', or '0'-'7')
+     * @param content The decoded text content to set
+     */
+    fun onClipboardSet(selection: Char, content: String)
+
+    /**
+     * Called when terminal requests to read clipboard content.
+     * @param selection The clipboard selection
+     * @return The current clipboard content, or null if reading is disabled
+     */
+    fun onClipboardGet(selection: Char): String?
+
+    /**
+     * Called when terminal requests to clear clipboard.
+     * @param selection The clipboard selection
+     */
+    fun onClipboardClear(selection: Char)
 }

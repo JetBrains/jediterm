@@ -194,6 +194,26 @@ data class TerminalSettings(
      */
     val progressBarHeight: Float = 6f,
 
+    // ===== Clipboard Settings (OSC 52) =====
+
+    /**
+     * Enable OSC 52 clipboard access.
+     * Master toggle for terminal apps to access clipboard.
+     */
+    val clipboardOsc52Enabled: Boolean = true,
+
+    /**
+     * Allow terminal apps to read clipboard content (OSC 52 query).
+     * Security note: Disabled by default to prevent clipboard theft.
+     */
+    val clipboardOsc52AllowRead: Boolean = false,
+
+    /**
+     * Allow terminal apps to write to clipboard (OSC 52 set).
+     * Usually safe to enable - allows apps like tmux to sync clipboard.
+     */
+    val clipboardOsc52AllowWrite: Boolean = true,
+
     /**
      * Use inverse selection color (swap fg/bg)
      */

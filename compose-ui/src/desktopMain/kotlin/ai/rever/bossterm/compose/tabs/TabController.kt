@@ -23,6 +23,7 @@ import ai.rever.bossterm.compose.settings.TerminalSettings
 import ai.rever.bossterm.compose.typeahead.ComposeTypeAheadModel
 import ai.rever.bossterm.compose.typeahead.CoroutineDebouncer
 import ai.rever.bossterm.compose.notification.CommandNotificationHandler
+import ai.rever.bossterm.compose.clipboard.ClipboardHandler
 import ai.rever.bossterm.compose.TerminalSession
 import ai.rever.bossterm.core.typeahead.TerminalTypeAheadManager
 import ai.rever.bossterm.core.typeahead.TypeAheadTerminalModel
@@ -206,6 +207,10 @@ class TabController(
             tabTitle = { display.windowTitle?.ifEmpty { "BossTerm" } ?: "BossTerm" }
         )
         terminal.addCommandStateListener(notificationHandler)
+
+        // Register clipboard listener (OSC 52)
+        val clipboardHandler = ClipboardHandler(settings)
+        terminal.addClipboardListener(clipboardHandler)
 
         // Create emulator with terminal
         val emulator = BossEmulator(dataStream, terminal)
@@ -403,6 +408,10 @@ class TabController(
         )
         terminal.addCommandStateListener(notificationHandler)
 
+        // Register clipboard listener (OSC 52)
+        val clipboardHandler = ClipboardHandler(settings)
+        terminal.addClipboardListener(clipboardHandler)
+
         // Create emulator with terminal
         val emulator = BossEmulator(dataStream, terminal)
 
@@ -599,6 +608,10 @@ class TabController(
             tabTitle = { display.windowTitle?.ifEmpty { "BossTerm" } ?: "BossTerm" }
         )
         terminal.addCommandStateListener(notificationHandler)
+
+        // Register clipboard listener (OSC 52)
+        val clipboardHandler = ClipboardHandler(settings)
+        terminal.addClipboardListener(clipboardHandler)
 
         val emulator = BossEmulator(dataStream, terminal)
 

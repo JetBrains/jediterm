@@ -1154,6 +1154,45 @@ class TabController(
     }
 
     /**
+     * Create a new tab from an existing terminal session.
+     *
+     * This is used when moving a split pane to a new tab. The session's PTY and
+     * terminal state are preserved - only the container changes from split pane to tab.
+     *
+     * Unlike createTab(), this method:
+     * - Does NOT spawn a new PTY process
+     * - Does NOT create new terminal components
+     * - Reuses all existing state from the session
+     *
+     * @param session The existing session to promote to a tab
+     * @return The tab index where the session was added
+     */
+    fun createTabFromExistingSession(session: TerminalSession): Int {
+        tabCounter++
+
+        // Update the session title to reflect it's now a standalone tab
+        val existingTitle = session.title.value
+        if (existingTitle == "Split" || existingTitle.isEmpty()) {
+            session.title.value = "Shell $tabCounter"
+        }
+
+        // Cast to TerminalTab (our TerminalSession implementation)
+        val tab = session as TerminalTab
+
+        // Add to tabs list
+        tabs.add(tab)
+
+        // Notify listeners about session being added as a tab
+        notifySessionCreated(tab)
+
+        // Switch to newly created tab
+        val newIndex = tabs.size - 1
+        switchToTab(newIndex)
+
+        return newIndex
+    }
+
+    /**
      * Filter environment variables to remove potentially problematic ones.
      * (e.g., parent terminal's TERM variables that shouldn't be inherited)
      */

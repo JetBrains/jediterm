@@ -87,6 +87,7 @@ fun createTerminalContextMenuItems(
     onFind: () -> Unit,
     onSplitVertical: (() -> Unit)? = null,
     onSplitHorizontal: (() -> Unit)? = null,
+    onMoveToNewTab: (() -> Unit)? = null,
     onShowDebug: (() -> Unit)? = null,
     onShowSettings: (() -> Unit)? = null
 ): List<ContextMenuController.MenuItem> {
@@ -132,7 +133,7 @@ fun createTerminalContextMenuItems(
     // Add split options section
     val splitItems = mutableListOf<ContextMenuController.MenuItem>()
 
-    if (onSplitVertical != null || onSplitHorizontal != null) {
+    if (onSplitVertical != null || onSplitHorizontal != null || onMoveToNewTab != null) {
         splitItems.add(
             ContextMenuController.MenuItem(
                 id = "separator_split",
@@ -160,6 +161,17 @@ fun createTerminalContextMenuItems(
                     label = "Split Pane Horizontally",
                     enabled = true,
                     action = onSplitHorizontal
+                )
+            )
+        }
+
+        if (onMoveToNewTab != null) {
+            splitItems.add(
+                ContextMenuController.MenuItem(
+                    id = "move_to_new_tab",
+                    label = "Move Pane to New Tab",
+                    enabled = true,
+                    action = onMoveToNewTab
                 )
             )
         }
@@ -220,6 +232,7 @@ fun showTerminalContextMenu(
     onFind: () -> Unit,
     onSplitVertical: (() -> Unit)? = null,
     onSplitHorizontal: (() -> Unit)? = null,
+    onMoveToNewTab: (() -> Unit)? = null,
     onShowDebug: (() -> Unit)? = null,
     onShowSettings: (() -> Unit)? = null
 ) {
@@ -233,6 +246,7 @@ fun showTerminalContextMenu(
         onFind = onFind,
         onSplitVertical = onSplitVertical,
         onSplitHorizontal = onSplitHorizontal,
+        onMoveToNewTab = onMoveToNewTab,
         onShowDebug = onShowDebug,
         onShowSettings = onShowSettings
     )
@@ -288,6 +302,7 @@ fun showHyperlinkContextMenu(
     onFind: () -> Unit,
     onSplitVertical: (() -> Unit)? = null,
     onSplitHorizontal: (() -> Unit)? = null,
+    onMoveToNewTab: (() -> Unit)? = null,
     onShowDebug: (() -> Unit)? = null,
     onShowSettings: (() -> Unit)? = null
 ) {
@@ -306,6 +321,7 @@ fun showHyperlinkContextMenu(
         onFind = onFind,
         onSplitVertical = onSplitVertical,
         onSplitHorizontal = onSplitHorizontal,
+        onMoveToNewTab = onMoveToNewTab,
         onShowDebug = onShowDebug,
         onShowSettings = onShowSettings
     )

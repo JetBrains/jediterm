@@ -163,6 +163,46 @@ class SplitViewState(
     }
 
     /**
+     * Extract the focused pane's session and remove the pane from the tree.
+     *
+     * This is used when moving a pane to a new tab. Unlike closePane(),
+     * this method does NOT dispose the session - it returns the session
+     * so it can be reused in a new tab.
+     *
+     * Returns the extracted session, or null if:
+     * - It's the last pane (can't extract)
+     * - The focused pane doesn't exist
+     */
+    fun extractFocusedPaneSession(): TerminalSession? {
+        // Can't extract the last pane - would leave tab empty
+        if (isSinglePane) return null
+
+        val paneToExtract = getFocusedPane() ?: return null
+        val session = paneToExtract.session
+        val paneId = paneToExtract.id
+
+        // Remove from bounds tracking
+        paneBounds.remove(paneId)
+
+        // Find a new pane to focus before removal
+        val allPanes = getAllPanes()
+        val newFocusPane = allPanes.firstOrNull { it.id != paneId }
+
+        // Remove the pane from the tree (but DON'T dispose the session)
+        val newRoot = rootNode.removePane(paneId)
+        if (newRoot != null) {
+            rootNode = newRoot
+
+            // Update focus
+            if (newFocusPane != null) {
+                focusedPaneId = newFocusPane.id
+            }
+            return session
+        }
+        return null
+    }
+
+    /**
      * Update the ratio of a split.
      */
     fun updateSplitRatio(splitId: String, newRatio: Float) {

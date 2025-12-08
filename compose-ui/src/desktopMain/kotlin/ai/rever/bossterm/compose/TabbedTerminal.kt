@@ -307,6 +307,15 @@ fun TabbedTerminal(
                 onNavigatePane = onNavigatePane,
                 onNavigateNextPane = { splitState.navigateToNextPane() },
                 onNavigatePreviousPane = { splitState.navigateToPreviousPane() },
+                onMoveToNewTab = if (!splitState.isSinglePane) {
+                    {
+                        // Extract the session from the split and move it to a new tab
+                        val session = splitState.extractFocusedPaneSession()
+                        if (session != null) {
+                            tabController.createTabFromExistingSession(session)
+                        }
+                    }
+                } else null,  // Don't show option if only one pane (nothing to move)
                 menuActions = menuActions,
                 modifier = Modifier.fillMaxSize()
             )

@@ -53,6 +53,7 @@ fun SplitContainer(
     onNavigatePane: (NavigationDirection) -> Unit,
     onNavigateNextPane: () -> Unit = {},
     onNavigatePreviousPane: () -> Unit = {},
+    onMoveToNewTab: (() -> Unit)? = null,
     menuActions: MenuActions?,
     modifier: Modifier = Modifier
 ) {
@@ -76,6 +77,7 @@ fun SplitContainer(
             onNavigatePane = onNavigatePane,
             onNavigateNextPane = onNavigateNextPane,
             onNavigatePreviousPane = onNavigatePreviousPane,
+            onMoveToNewTab = onMoveToNewTab,
             menuActions = menuActions,
             modifier = Modifier.fillMaxSize()
         )
@@ -105,6 +107,7 @@ private fun RenderSplitNode(
     onNavigatePane: (NavigationDirection) -> Unit,
     onNavigateNextPane: () -> Unit,
     onNavigatePreviousPane: () -> Unit,
+    onMoveToNewTab: (() -> Unit)?,
     menuActions: MenuActions?,
     modifier: Modifier = Modifier
 ) {
@@ -130,6 +133,7 @@ private fun RenderSplitNode(
                 onNavigatePane = onNavigatePane,
                 onNavigateNextPane = onNavigateNextPane,
                 onNavigatePreviousPane = onNavigatePreviousPane,
+                onMoveToNewTab = onMoveToNewTab,
                 menuActions = menuActions,
                 modifier = modifier
             )
@@ -155,6 +159,7 @@ private fun RenderSplitNode(
                 onNavigatePane = onNavigatePane,
                 onNavigateNextPane = onNavigateNextPane,
                 onNavigatePreviousPane = onNavigatePreviousPane,
+                onMoveToNewTab = onMoveToNewTab,
                 menuActions = menuActions,
                 modifier = modifier
             )
@@ -180,6 +185,7 @@ private fun RenderSplitNode(
                 onNavigatePane = onNavigatePane,
                 onNavigateNextPane = onNavigateNextPane,
                 onNavigatePreviousPane = onNavigatePreviousPane,
+                onMoveToNewTab = onMoveToNewTab,
                 menuActions = menuActions,
                 modifier = modifier
             )
@@ -211,6 +217,7 @@ private fun RenderPane(
     onNavigatePane: (NavigationDirection) -> Unit,
     onNavigateNextPane: () -> Unit,
     onNavigatePreviousPane: () -> Unit,
+    onMoveToNewTab: (() -> Unit)?,
     menuActions: MenuActions?,
     modifier: Modifier = Modifier
 ) {
@@ -270,6 +277,7 @@ private fun RenderPane(
             onNavigatePane = onNavigatePane,
             onNavigateNextPane = onNavigateNextPane,
             onNavigatePreviousPane = onNavigatePreviousPane,
+            onMoveToNewTab = onMoveToNewTab,
             menuActions = menuActions,
             modifier = Modifier.fillMaxSize()
         )
@@ -299,6 +307,7 @@ private fun RenderVerticalSplit(
     onNavigatePane: (NavigationDirection) -> Unit,
     onNavigateNextPane: () -> Unit,
     onNavigatePreviousPane: () -> Unit,
+    onMoveToNewTab: (() -> Unit)?,
     menuActions: MenuActions?,
     modifier: Modifier = Modifier
 ) {
@@ -333,6 +342,7 @@ private fun RenderVerticalSplit(
                     onNavigatePane = onNavigatePane,
                     onNavigateNextPane = onNavigateNextPane,
                     onNavigatePreviousPane = onNavigatePreviousPane,
+                    onMoveToNewTab = onMoveToNewTab,
                     menuActions = menuActions,
                     modifier = Modifier.fillMaxSize()
                 )
@@ -362,6 +372,7 @@ private fun RenderVerticalSplit(
                     onNavigatePane = onNavigatePane,
                     onNavigateNextPane = onNavigateNextPane,
                     onNavigatePreviousPane = onNavigatePreviousPane,
+                    onMoveToNewTab = onMoveToNewTab,
                     menuActions = menuActions,
                     modifier = Modifier.fillMaxSize()
                 )
@@ -406,6 +417,7 @@ private fun RenderHorizontalSplit(
     onNavigatePane: (NavigationDirection) -> Unit,
     onNavigateNextPane: () -> Unit,
     onNavigatePreviousPane: () -> Unit,
+    onMoveToNewTab: (() -> Unit)?,
     menuActions: MenuActions?,
     modifier: Modifier = Modifier
 ) {
@@ -440,6 +452,7 @@ private fun RenderHorizontalSplit(
                     onNavigatePane = onNavigatePane,
                     onNavigateNextPane = onNavigateNextPane,
                     onNavigatePreviousPane = onNavigatePreviousPane,
+                    onMoveToNewTab = onMoveToNewTab,
                     menuActions = menuActions,
                     modifier = Modifier.fillMaxSize()
                 )
@@ -469,6 +482,7 @@ private fun RenderHorizontalSplit(
                     onNavigatePane = onNavigatePane,
                     onNavigateNextPane = onNavigateNextPane,
                     onNavigatePreviousPane = onNavigatePreviousPane,
+                    onMoveToNewTab = onMoveToNewTab,
                     menuActions = menuActions,
                     modifier = Modifier.fillMaxSize()
                 )

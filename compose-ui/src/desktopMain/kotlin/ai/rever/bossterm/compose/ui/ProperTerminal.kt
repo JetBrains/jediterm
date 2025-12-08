@@ -117,6 +117,7 @@ fun ProperTerminal(
   onNavigatePane: (NavigationDirection) -> Unit = {},  // Navigate between panes directionally
   onNavigateNextPane: () -> Unit = {},  // Cmd+]: Navigate to next pane (cycles)
   onNavigatePreviousPane: () -> Unit = {},  // Cmd+[: Navigate to previous pane (cycles)
+  onMoveToNewTab: (() -> Unit)? = null,  // Move current pane to new tab (context menu)
   menuActions: MenuActions? = null,
   modifier: Modifier = Modifier
 ) {
@@ -768,6 +769,7 @@ fun ProperTerminal(
                   onFind = { searchVisible = true },
                   onSplitVertical = onSplitVertical,
                   onSplitHorizontal = onSplitHorizontal,
+                  onMoveToNewTab = onMoveToNewTab,
                   onShowDebug = if (settings.debugModeEnabled) {
                     { debugPanelVisible = !debugPanelVisible }
                   } else null,
@@ -801,6 +803,7 @@ fun ProperTerminal(
                   onFind = { searchVisible = true },
                   onSplitVertical = onSplitVertical,
                   onSplitHorizontal = onSplitHorizontal,
+                  onMoveToNewTab = onMoveToNewTab,
                   onShowDebug = if (settings.debugModeEnabled) {
                     { debugPanelVisible = !debugPanelVisible }
                   } else null,

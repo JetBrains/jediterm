@@ -427,6 +427,7 @@ fun addTabManagementActions(
  * @param onClosePane Callback to close the focused pane
  * @param onNavigateUp Callback to navigate focus up
  * @param onNavigateDown Callback to navigate focus down
+ * @param onMoveToNewTab Callback to move focused pane to new tab (null to disable)
  * @param onNavigateLeft Callback to navigate focus left
  * @param onNavigateRight Callback to navigate focus right
  * @param onNavigateNext Callback to navigate to next pane (cycles)
@@ -438,6 +439,7 @@ fun addSplitPaneActions(
     onSplitVertical: () -> Unit,
     onSplitHorizontal: () -> Unit,
     onClosePane: () -> Unit,
+    onMoveToNewTab: (() -> Unit)?,
     onNavigateUp: () -> Unit,
     onNavigateDown: () -> Unit,
     onNavigateLeft: () -> Unit,
@@ -490,6 +492,23 @@ fun addSplitPaneActions(
             true
         }
     ))
+
+    // MOVE TO NEW TAB - Cmd+Shift+M (macOS) / Ctrl+Shift+M (Windows/Linux)
+    // Moves the focused pane to a new tab (only when splits exist)
+    if (onMoveToNewTab != null) {
+        registry.register(TerminalAction(
+            id = "move_to_new_tab",
+            name = "Move Pane to New Tab",
+            keyStrokes = listOf(
+                KeyStroke(key = Key.M, ctrl = true, shift = true),  // Windows/Linux
+                KeyStroke(key = Key.M, meta = true, shift = true)   // macOS
+            ),
+            handler = { _ ->
+                onMoveToNewTab()
+                true
+            }
+        ))
+    }
 
     // NAVIGATE UP - Cmd+Option+Up (macOS) / Ctrl+Alt+Up (Windows/Linux)
     registry.register(TerminalAction(

@@ -434,6 +434,7 @@ fun ProperTerminal(
       onSplitVertical = onSplitVertical,
       onSplitHorizontal = onSplitHorizontal,
       onClosePane = onClosePane,
+      onMoveToNewTab = onMoveToNewTab,
       onNavigateUp = { onNavigatePane(NavigationDirection.UP) },
       onNavigateDown = { onNavigatePane(NavigationDirection.DOWN) },
       onNavigateLeft = { onNavigatePane(NavigationDirection.LEFT) },

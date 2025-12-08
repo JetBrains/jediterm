@@ -31,7 +31,10 @@ import ai.rever.bossterm.compose.settings.SettingsTheme.TextSecondary
 import ai.rever.bossterm.compose.settings.TerminalSettings
 import ai.rever.bossterm.compose.settings.components.ColorPickerDialog
 import ai.rever.bossterm.compose.settings.components.SettingsSection
+import ai.rever.bossterm.compose.settings.theme.BuiltinColorPalettes
 import ai.rever.bossterm.compose.settings.theme.BuiltinThemes
+import ai.rever.bossterm.compose.settings.theme.ColorPalette
+import ai.rever.bossterm.compose.settings.theme.ColorPaletteManager
 import ai.rever.bossterm.compose.settings.theme.Theme
 import ai.rever.bossterm.compose.settings.theme.ThemeManager
 
@@ -45,11 +48,20 @@ fun ThemeSettingsSection(
     modifier: Modifier = Modifier
 ) {
     val themeManager = remember { ThemeManager.instance }
+    val paletteManager = remember { ColorPaletteManager.instance }
     val currentTheme by themeManager.currentTheme.collectAsState()
     val customThemes by themeManager.customThemes.collectAsState()
+    val currentPalette by paletteManager.currentPalette.collectAsState()
+    val customPalettes by paletteManager.customPalettes.collectAsState()
+
+    // Effective palette is either the selected palette or the theme's palette
+    val effectivePalette = currentPalette ?: ColorPalette.fromTheme(currentTheme)
+    val isUsingThemePalette = currentPalette == null
 
     var showCreateDialog by remember { mutableStateOf(false) }
+    var showCreatePaletteDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmation by remember { mutableStateOf<Theme?>(null) }
+    var showDeletePaletteConfirmation by remember { mutableStateOf<ColorPalette?>(null) }
     var editingColorIndex by remember { mutableStateOf<Int?>(null) }
     var editingTerminalColor by remember { mutableStateOf<TerminalColorType?>(null) }
 
@@ -151,6 +163,76 @@ fun ThemeSettingsSection(
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        // Color palette selector
+        SettingsSection(title = "Color Palette") {
+            Text(
+                text = "Select a color palette for ANSI colors (independent of theme)",
+                color = TextSecondary,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+            ColorPaletteGrid(
+                palettes = paletteManager.getAllPalettes(),
+                selectedPaletteId = currentPalette?.id,
+                isUsingThemePalette = isUsingThemePalette,
+                currentTheme = currentTheme,
+                onPaletteSelected = { palette ->
+                    paletteManager.applyPalette(palette)
+                },
+                onUseThemePalette = {
+                    paletteManager.useThemePalette()
+                }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Current palette info and actions
+        SettingsSection(title = "Current Palette: ${if (isUsingThemePalette) "${currentTheme.name} (Theme)" else effectivePalette.name}") {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Create custom palette button
+                Button(
+                    onClick = { showCreatePaletteDialog = true },
+                    colors = ButtonDefaults.buttonColors(
+                        backgroundColor = AccentColor
+                    ),
+                    modifier = Modifier.height(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Save as Custom Palette", fontSize = 13.sp, color = TextPrimary)
+                }
+
+                // Delete button (only for custom palettes)
+                if (!isUsingThemePalette && !effectivePalette.isBuiltin) {
+                    Button(
+                        onClick = { showDeletePaletteConfirmation = effectivePalette },
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = Color(0xFFE04040)
+                        ),
+                        modifier = Modifier.height(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Delete", fontSize = 13.sp, color = TextPrimary)
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
         // ANSI palette editor
         SettingsSection(title = "ANSI Color Palette") {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -166,8 +248,8 @@ fun ThemeSettingsSection(
                 ) {
                     for (i in 0..7) {
                         AnsiColorSwatch(
-                            color = currentTheme.getAnsiColor(i),
-                            label = Theme.ANSI_COLOR_NAMES[i],
+                            color = effectivePalette.getAnsiColor(i),
+                            label = ColorPalette.ANSI_COLOR_NAMES[i],
                             onClick = { editingColorIndex = i },
                             modifier = Modifier.weight(1f)
                         )
@@ -186,8 +268,8 @@ fun ThemeSettingsSection(
                 ) {
                     for (i in 8..15) {
                         AnsiColorSwatch(
-                            color = currentTheme.getAnsiColor(i),
-                            label = Theme.ANSI_COLOR_NAMES[i],
+                            color = effectivePalette.getAnsiColor(i),
+                            label = ColorPalette.ANSI_COLOR_NAMES[i],
                             onClick = { editingColorIndex = i },
                             modifier = Modifier.weight(1f)
                         )
@@ -221,19 +303,27 @@ fun ThemeSettingsSection(
         )
     }
 
-    // ANSI color picker
+    // ANSI color picker (edits the current palette)
     editingColorIndex?.let { index ->
         ColorPickerDialog(
-            initialColor = currentTheme.getAnsiColor(index),
+            initialColor = effectivePalette.getAnsiColor(index),
             onColorSelected = { newColor ->
                 val newHex = Theme.colorToHex(newColor)
-                val updatedTheme = currentTheme.withAnsiColor(index, newHex)
-                if (currentTheme.isBuiltin) {
-                    // For built-in themes, create a copy
-                    val customTheme = themeManager.createCustomTheme(updatedTheme, "${currentTheme.name} Custom")
-                    themeManager.applyTheme(customTheme)
+                if (isUsingThemePalette) {
+                    // Create a custom palette from theme and edit it
+                    val newPalette = paletteManager.createCustomPaletteFromTheme("${currentTheme.name} Custom")
+                    val updatedPalette = newPalette.withAnsiColor(index, newHex)
+                    paletteManager.updateCustomPalette(updatedPalette)
+                    paletteManager.applyPalette(updatedPalette)
+                } else if (effectivePalette.isBuiltin) {
+                    // For built-in palettes, create a copy
+                    val newPalette = paletteManager.createCustomPalette(effectivePalette, "${effectivePalette.name} Custom")
+                    val updatedPalette = newPalette.withAnsiColor(index, newHex)
+                    paletteManager.updateCustomPalette(updatedPalette)
+                    paletteManager.applyPalette(updatedPalette)
                 } else {
-                    themeManager.updateCustomTheme(updatedTheme)
+                    val updatedPalette = effectivePalette.withAnsiColor(index, newHex)
+                    paletteManager.updateCustomPalette(updatedPalette)
                 }
                 editingColorIndex = null
             },
@@ -272,6 +362,31 @@ fun ThemeSettingsSection(
                 editingTerminalColor = null
             },
             onDismiss = { editingTerminalColor = null }
+        )
+    }
+
+    // Create custom palette dialog
+    if (showCreatePaletteDialog) {
+        CreatePaletteDialog(
+            basedOn = effectivePalette,
+            onDismiss = { showCreatePaletteDialog = false },
+            onCreate = { name ->
+                val newPalette = paletteManager.createCustomPalette(effectivePalette, name)
+                paletteManager.applyPalette(newPalette)
+                showCreatePaletteDialog = false
+            }
+        )
+    }
+
+    // Delete palette confirmation dialog
+    showDeletePaletteConfirmation?.let { palette ->
+        DeletePaletteDialog(
+            palette = palette,
+            onDismiss = { showDeletePaletteConfirmation = null },
+            onConfirm = {
+                paletteManager.deleteCustomPalette(palette.id)
+                showDeletePaletteConfirmation = null
+            }
         )
     }
 }
@@ -552,6 +667,332 @@ private fun DeleteThemeDialog(
         text = {
             Text(
                 text = "Are you sure you want to delete \"${theme.name}\"? This action cannot be undone.",
+                color = TextSecondary
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    backgroundColor = Color(0xFFE04040)
+                )
+            ) {
+                Text("Delete", color = TextPrimary)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = TextSecondary)
+            }
+        },
+        backgroundColor = BackgroundColor,
+        contentColor = TextPrimary
+    )
+}
+
+/**
+ * Grid of color palette preview cards.
+ */
+@Composable
+private fun ColorPaletteGrid(
+    palettes: List<ColorPalette>,
+    selectedPaletteId: String?,
+    isUsingThemePalette: Boolean,
+    currentTheme: Theme,
+    onPaletteSelected: (ColorPalette) -> Unit,
+    onUseThemePalette: () -> Unit
+) {
+    // Use FlowRow-style layout to avoid nested scrolling (parent already scrolls)
+    val allItems = listOf<Any?>(null) + palettes // null = "Use Theme" card
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Calculate items per row based on typical width (~100dp per item)
+        allItems.chunked(5).forEach { rowItems ->
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                rowItems.forEach { item ->
+                    Box(modifier = Modifier.weight(1f)) {
+                        if (item == null) {
+                            UseThemePaletteCard(
+                                themeName = currentTheme.name,
+                                isSelected = isUsingThemePalette,
+                                onClick = onUseThemePalette
+                            )
+                        } else {
+                            val palette = item as ColorPalette
+                            ColorPalettePreviewCard(
+                                palette = palette,
+                                isSelected = !isUsingThemePalette && palette.id == selectedPaletteId,
+                                onClick = { onPaletteSelected(palette) }
+                            )
+                        }
+                    }
+                }
+                // Fill remaining space if row is not complete
+                repeat(5 - rowItems.size) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Card for "Use Theme's Palette" option.
+ */
+@Composable
+private fun UseThemePaletteCard(
+    themeName: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .border(
+                width = if (isSelected) 2.dp else 1.dp,
+                color = if (isSelected) AccentColor else BorderColor,
+                shape = RoundedCornerShape(8.dp)
+            )
+            .clickable(onClick = onClick)
+    ) {
+        Column {
+            // Icon/visual indicator
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(40.dp)
+                    .background(SurfaceColor),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Theme",
+                    color = TextSecondary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            // Label
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(if (isSelected) AccentColor.copy(alpha = 0.15f) else SurfaceColor)
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Use Theme",
+                    color = TextPrimary,
+                    fontSize = 10.sp,
+                    fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
+                )
+                if (isSelected) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Selected",
+                        tint = AccentColor,
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Color palette preview card showing the 16 colors.
+ */
+@Composable
+private fun ColorPalettePreviewCard(
+    palette: ColorPalette,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .border(
+                width = if (isSelected) 2.dp else 1.dp,
+                color = if (isSelected) AccentColor else BorderColor,
+                shape = RoundedCornerShape(8.dp)
+            )
+            .clickable(onClick = onClick)
+    ) {
+        Column {
+            // Color swatches preview (4x2 grid of first 8 colors)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(40.dp)
+                    .background(Color(0xFF1E1E1E))
+                    .padding(4.dp)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    // Row 1: colors 0-7 (normal)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        for (i in 0..7) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .background(palette.getAnsiColor(i))
+                            )
+                        }
+                    }
+                    // Row 2: colors 8-15 (bright)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        for (i in 8..15) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .background(palette.getAnsiColor(i))
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Palette name
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(if (isSelected) AccentColor.copy(alpha = 0.15f) else SurfaceColor)
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = palette.name,
+                        color = TextPrimary,
+                        fontSize = 10.sp,
+                        fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
+                    )
+                    if (!palette.isBuiltin) {
+                        Text(
+                            text = "Custom",
+                            color = TextMuted,
+                            fontSize = 8.sp
+                        )
+                    }
+                }
+                if (isSelected) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Selected",
+                        tint = AccentColor,
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Dialog for creating a new custom palette.
+ */
+@Composable
+private fun CreatePaletteDialog(
+    basedOn: ColorPalette,
+    onDismiss: () -> Unit,
+    onCreate: (String) -> Unit
+) {
+    var paletteName by remember { mutableStateOf("${basedOn.name} Copy") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Create Custom Palette",
+                color = TextPrimary,
+                fontWeight = FontWeight.SemiBold
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    text = "Based on: ${basedOn.name}",
+                    color = TextSecondary,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+                OutlinedTextField(
+                    value = paletteName,
+                    onValueChange = { paletteName = it },
+                    label = { Text("Palette Name") },
+                    singleLine = true,
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        textColor = TextPrimary,
+                        focusedBorderColor = AccentColor,
+                        unfocusedBorderColor = BorderColor,
+                        cursorColor = AccentColor,
+                        focusedLabelColor = AccentColor,
+                        unfocusedLabelColor = TextSecondary
+                    )
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onCreate(paletteName) },
+                enabled = paletteName.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(
+                    backgroundColor = AccentColor
+                )
+            ) {
+                Text("Create", color = TextPrimary)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = TextSecondary)
+            }
+        },
+        backgroundColor = BackgroundColor,
+        contentColor = TextPrimary
+    )
+}
+
+/**
+ * Dialog for confirming palette deletion.
+ */
+@Composable
+private fun DeletePaletteDialog(
+    palette: ColorPalette,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Delete Palette?",
+                color = TextPrimary,
+                fontWeight = FontWeight.SemiBold
+            )
+        },
+        text = {
+            Text(
+                text = "Are you sure you want to delete \"${palette.name}\"? This action cannot be undone.",
                 color = TextSecondary
             )
         },

@@ -4,8 +4,10 @@ import androidx.compose.ui.graphics.Color
 import ai.rever.bossterm.terminal.TerminalColor
 import ai.rever.bossterm.terminal.emulator.ColorPalette
 import ai.rever.bossterm.terminal.emulator.ColorPaletteImpl
+import ai.rever.bossterm.compose.settings.theme.ColorPaletteManager
 import ai.rever.bossterm.compose.settings.theme.Theme
 import ai.rever.bossterm.compose.settings.theme.ThemeManager
+import ai.rever.bossterm.compose.settings.theme.ColorPalette as SettingsColorPalette
 
 /**
  * Utility functions for color conversion in terminal rendering.
@@ -15,16 +17,36 @@ object ColorUtils {
     private val defaultPalette = ColorPaletteImpl.XTERM_PALETTE
 
     /**
-     * Get the current color palette based on the active theme.
-     * Falls back to XTERM_PALETTE if ThemeManager is not initialized.
+     * Get the current color palette based on the selected color palette (or theme's palette if none selected).
+     * Falls back to XTERM_PALETTE if managers are not initialized.
      */
     private fun getCurrentPalette(): ColorPalette {
         return try {
-            val theme = ThemeManager.instance.currentTheme.value
-            createPaletteFromTheme(theme)
+            // First try to get the selected color palette from ColorPaletteManager
+            val paletteManager = ColorPaletteManager.instance
+            val selectedPalette = paletteManager.currentPalette.value
+
+            if (selectedPalette != null) {
+                // Use the explicitly selected color palette
+                createPaletteFromSettingsPalette(selectedPalette)
+            } else {
+                // Fall back to the current theme's palette
+                val theme = ThemeManager.instance.currentTheme.value
+                createPaletteFromTheme(theme)
+            }
         } catch (e: Exception) {
             defaultPalette
         }
+    }
+
+    /**
+     * Create a ColorPalette from a settings ColorPalette's ANSI colors.
+     */
+    private fun createPaletteFromSettingsPalette(palette: SettingsColorPalette): ColorPalette {
+        val colors = IntArray(16) { index ->
+            parseHexColor(palette.getAnsiColorHex(index))
+        }
+        return ColorPaletteImpl.fromRgbInts(colors)
     }
 
     /**

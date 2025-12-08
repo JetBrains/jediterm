@@ -74,6 +74,14 @@ data class TerminalSettings(
     val activeThemeId: String = "default",
 
     /**
+     * Active color palette ID.
+     * When set to "use-theme", uses the theme's built-in ANSI colors.
+     * Otherwise, references a palette from BuiltinColorPalettes or a custom palette.
+     * This allows mixing themes (for terminal colors) with different ANSI palettes.
+     */
+    val colorPaletteId: String = "use-theme",
+
+    /**
      * Terminal background opacity (0.0 = fully transparent, 1.0 = fully opaque).
      * When less than 1.0, the window becomes transparent and the desktop shows through.
      * Note: On macOS, this enables native transparency. On other platforms, results may vary.

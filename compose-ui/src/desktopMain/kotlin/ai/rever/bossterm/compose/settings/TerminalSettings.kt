@@ -66,6 +66,13 @@ data class TerminalSettings(
      */
     val hyperlinkColor: String = "0xFF5C9FFF",
 
+    /**
+     * Active theme ID.
+     * References a theme from BuiltinThemes or a custom theme.
+     * When a theme is applied, the color settings above are updated to match.
+     */
+    val activeThemeId: String = "default",
+
     // ===== Behavior Settings =====
 
     /**

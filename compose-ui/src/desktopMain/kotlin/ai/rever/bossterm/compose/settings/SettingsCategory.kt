@@ -16,7 +16,12 @@ enum class SettingsCategory(
     VISUAL(
         displayName = "Visual",
         icon = Icons.Default.Settings,
-        description = "Font, colors, and appearance"
+        description = "Font and text rendering"
+    ),
+    THEMES(
+        displayName = "Themes",
+        icon = Icons.Default.Palette,
+        description = "Terminal color themes and ANSI palette"
     ),
     BEHAVIOR(
         displayName = "Behavior",

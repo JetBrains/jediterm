@@ -269,6 +269,10 @@ private fun SettingsContent(
                 settings = settings,
                 onSettingsChange = onSettingsChange
             )
+            SettingsCategory.THEMES -> ThemeSettingsSection(
+                settings = settings,
+                onSettingsChange = onSettingsChange
+            )
             SettingsCategory.BEHAVIOR -> BehaviorSettingsSection(
                 settings = settings,
                 onSettingsChange = onSettingsChange

@@ -11,7 +11,35 @@ class ColorPaletteImpl private constructor(private val myColors: Array<Color>) :
         return myColors[colorIndex]
     }
 
+    /**
+     * Create a new palette with a specific ANSI color replaced.
+     */
+    fun withColor(index: Int, color: Color): ColorPaletteImpl {
+        require(index in 0..15) { "Color index must be 0-15, got $index" }
+        val newColors = myColors.copyOf()
+        newColors[index] = color
+        return ColorPaletteImpl(newColors)
+    }
+
     companion object {
+        /**
+         * Create a ColorPalette from an array of 16 ANSI colors.
+         * Colors should be in order: Black, Red, Green, Yellow, Blue, Magenta, Cyan, White,
+         * then Bright versions of each.
+         */
+        fun fromColors(colors: Array<Color>): ColorPalette {
+            require(colors.size == 16) { "Palette must have exactly 16 colors, got ${colors.size}" }
+            return ColorPaletteImpl(colors)
+        }
+
+        /**
+         * Create a ColorPalette from RGB integer values (0xRRGGBB format).
+         */
+        fun fromRgbInts(colors: IntArray): ColorPalette {
+            require(colors.size == 16) { "Palette must have exactly 16 colors, got ${colors.size}" }
+            return ColorPaletteImpl(colors.map { Color(it) }.toTypedArray())
+        }
+
         private val XTERM_COLORS = arrayOf<Color>(
             Color(0x000000),  //Black
             Color(0xcd0000),  //Red 

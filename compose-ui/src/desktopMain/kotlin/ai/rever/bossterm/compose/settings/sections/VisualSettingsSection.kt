@@ -1,17 +1,14 @@
 package ai.rever.bossterm.compose.settings.sections
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import ai.rever.bossterm.compose.settings.TerminalSettings
-import ai.rever.bossterm.compose.settings.toSettingsHex
 import ai.rever.bossterm.compose.settings.components.*
 
 /**
- * Visual settings section: fonts, colors, and appearance.
+ * Visual settings section: font and text rendering.
+ * Note: Color settings are in the Themes section.
  */
 @Composable
 fun VisualSettingsSection(
@@ -61,45 +58,6 @@ fun VisualSettingsSection(
                 description = "Smooth text rendering"
             )
         }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Color Settings
-        SettingsSection(title = "Colors") {
-            ColorSetting(
-                label = "Default Foreground",
-                color = settings.defaultForegroundColor,
-                onColorChange = { onSettingsChange(settings.copy(defaultForeground = it.toSettingsHex())) },
-                description = "Default text color"
-            )
-
-            ColorSetting(
-                label = "Default Background",
-                color = settings.defaultBackgroundColor,
-                onColorChange = { onSettingsChange(settings.copy(defaultBackground = it.toSettingsHex())) },
-                description = "Terminal background color"
-            )
-
-            ColorSetting(
-                label = "Selection Color",
-                color = settings.selectionColorValue,
-                onColorChange = { onSettingsChange(settings.copy(selectionColor = it.toSettingsHex())) },
-                description = "Text selection highlight"
-            )
-
-            ColorSetting(
-                label = "Search Match Color",
-                color = settings.foundPatternColorValue,
-                onColorChange = { onSettingsChange(settings.copy(foundPatternColor = it.toSettingsHex())) },
-                description = "Search result highlight"
-            )
-
-            ColorSetting(
-                label = "Hyperlink Color",
-                color = settings.hyperlinkColorValue,
-                onColorChange = { onSettingsChange(settings.copy(hyperlinkColor = it.toSettingsHex())) },
-                description = "URL and link color"
-            )
-        }
+        // Note: Color settings moved to Themes section
     }
 }

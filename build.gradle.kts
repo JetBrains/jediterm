@@ -1,7 +1,7 @@
 plugins {
     kotlin("jvm") version "2.1.21" apply false
-    id("org.jetbrains.compose") version "1.7.1" apply false
-    id("org.jetbrains.kotlin.plugin.compose") version "2.1.0" apply false
+    id("org.jetbrains.compose") version "1.9.3" apply false
+    id("org.jetbrains.kotlin.plugin.compose") version "2.1.21" apply false
     id("com.android.library") version "8.5.2" apply false
     id("com.vanniktech.maven.publish") version "0.30.0" apply false
 }

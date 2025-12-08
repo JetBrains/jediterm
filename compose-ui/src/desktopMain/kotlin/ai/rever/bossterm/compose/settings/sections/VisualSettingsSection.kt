@@ -1,13 +1,16 @@
 package ai.rever.bossterm.compose.settings.sections
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import ai.rever.bossterm.compose.settings.TerminalSettings
 import ai.rever.bossterm.compose.settings.components.*
 
 /**
- * Visual settings section: font and text rendering.
+ * Visual settings section: font, text rendering, and transparency.
  * Note: Color settings are in the Themes section.
  */
 @Composable
@@ -58,6 +61,28 @@ fun VisualSettingsSection(
                 description = "Smooth text rendering"
             )
         }
-        // Note: Color settings moved to Themes section
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Transparency Settings
+        SettingsSection(title = "Transparency") {
+            SettingsSlider(
+                label = "Background Opacity",
+                value = settings.backgroundOpacity,
+                onValueChange = { onSettingsChange(settings.copy(backgroundOpacity = it)) },
+                valueRange = 0.1f..1.0f,
+                steps = 17,
+                valueDisplay = { "${(it * 100).toInt()}%" },
+                description = "Make the terminal background transparent to see through to desktop"
+            )
+
+            SettingsToggle(
+                label = "Enable Blur Effect",
+                checked = settings.windowBlur,
+                onCheckedChange = { onSettingsChange(settings.copy(windowBlur = it)) },
+                description = "Frosted glass effect behind transparent terminal (macOS)",
+                enabled = settings.backgroundOpacity < 1.0f
+            )
+        }
     }
 }

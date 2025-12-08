@@ -19,7 +19,7 @@ plugins {
     kotlin("multiplatform")
     id("org.jetbrains.compose")
     id("org.jetbrains.kotlin.plugin.compose")
-    kotlin("plugin.serialization") version "2.1.0"
+    kotlin("plugin.serialization") version "2.1.21"
     id("com.vanniktech.maven.publish")
 }
 
@@ -67,13 +67,13 @@ kotlin {
                 implementation(compose.components.uiToolingPreview)
 
                 // Coroutines
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
 
                 // Serialization
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
 
                 // Logging
-                implementation("org.slf4j:slf4j-api:2.0.9")
+                implementation("org.slf4j:slf4j-api:2.0.17")
             }
         }
 
@@ -89,15 +89,15 @@ kotlin {
             dependencies {
                 implementation(project(":bossterm-core-mpp"))
                 implementation(compose.desktop.currentOs)
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.9.0")
-                implementation("org.jetbrains.pty4j:pty4j:0.12.13")
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.10.2")
+                implementation("org.jetbrains.pty4j:pty4j:0.13.9")
 
                 // JNA for native macOS notifications
-                implementation("net.java.dev.jna:jna:5.14.0")
-                implementation("net.java.dev.jna:jna-platform:5.14.0")
+                implementation("net.java.dev.jna:jna:5.18.1")
+                implementation("net.java.dev.jna:jna-platform:5.18.1")
 
                 // Ktor client for auto-update
-                val ktorVersion = "2.3.7"
+                val ktorVersion = "3.3.2"
                 implementation("io.ktor:ktor-client-core:$ktorVersion")
                 implementation("io.ktor:ktor-client-cio:$ktorVersion")
                 implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")

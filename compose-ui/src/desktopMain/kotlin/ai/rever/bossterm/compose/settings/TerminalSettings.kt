@@ -73,6 +73,20 @@ data class TerminalSettings(
      */
     val activeThemeId: String = "default",
 
+    /**
+     * Terminal background opacity (0.0 = fully transparent, 1.0 = fully opaque).
+     * When less than 1.0, the window becomes transparent and the desktop shows through.
+     * Note: On macOS, this enables native transparency. On other platforms, results may vary.
+     */
+    val backgroundOpacity: Float = 1.0f,
+
+    /**
+     * Enable blur effect behind transparent terminal (macOS only).
+     * Creates a frosted glass effect when backgroundOpacity < 1.0.
+     * Has no effect when backgroundOpacity is 1.0.
+     */
+    val windowBlur: Boolean = true,
+
     // ===== Behavior Settings =====
 
     /**
@@ -405,6 +419,19 @@ data class TerminalSettings(
 
     @Transient
     val defaultBackgroundColor: Color = Color(defaultBackground.removePrefix("0x").toULong(16).toLong())
+
+    /**
+     * Background color with opacity applied.
+     * Use this for terminal background when transparency is enabled.
+     */
+    @Transient
+    val defaultBackgroundColorWithOpacity: Color = defaultBackgroundColor.copy(alpha = backgroundOpacity)
+
+    /**
+     * Whether transparency is enabled (opacity < 1.0).
+     */
+    @Transient
+    val isTransparencyEnabled: Boolean = backgroundOpacity < 1.0f
 
     @Transient
     val selectionColorValue: Color = Color(selectionColor.removePrefix("0x").toULong(16).toLong())

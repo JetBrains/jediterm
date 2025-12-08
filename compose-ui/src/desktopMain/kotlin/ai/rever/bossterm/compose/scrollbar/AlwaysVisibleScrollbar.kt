@@ -62,7 +62,7 @@ fun AlwaysVisibleScrollbar(
     adapter: ScrollbarAdapter,
     redrawTrigger: State<Int>,
     modifier: Modifier = Modifier,
-    thickness: Dp = 12.dp,
+    thickness: Dp = 10.dp,
     thumbColor: Color = Color.White,
     trackColor: Color = Color.White.copy(alpha = 0.12f),
     minThumbHeight: Dp = 32.dp,
@@ -70,7 +70,8 @@ fun AlwaysVisibleScrollbar(
     currentMatchIndex: Int = -1,
     matchMarkerColor: Color = Color(0xFFFFFF00),
     currentMatchMarkerColor: Color = Color(0xFFFF6600),
-    onMatchClicked: ((Int) -> Unit)? = null
+    onMatchClicked: ((Int) -> Unit)? = null,
+    userScrollTrigger: State<Int> = mutableStateOf(0)
 ) {
     var containerHeight by remember { mutableStateOf(0f) }
     val interactionSource = remember { MutableInteractionSource() }
@@ -80,7 +81,6 @@ fun AlwaysVisibleScrollbar(
     // Auto-hide state tracking
     var isVisible by remember { mutableStateOf(false) }
     var isDragging by remember { mutableStateOf(false) }
-    var lastScrollOffset by remember { mutableStateOf(0.0) }
     var dragStartScrollOffset by remember { mutableStateOf(0.0) }
     var accumulatedDrag by remember { mutableStateOf(0.0) }
 
@@ -94,10 +94,10 @@ fun AlwaysVisibleScrollbar(
         0.0
     }
 
-    // Detect scroll activity and show scrollbar
-    LaunchedEffect(scrollOffset) {
-        if (scrollOffset != lastScrollOffset) {
-            lastScrollOffset = scrollOffset
+    // Detect user-initiated scroll activity and show scrollbar
+    // Only triggers on manual scroll (mouse wheel), not on content updates
+    LaunchedEffect(userScrollTrigger.value) {
+        if (userScrollTrigger.value > 0) {
             isVisible = true
         }
     }

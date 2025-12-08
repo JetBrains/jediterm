@@ -23,6 +23,7 @@ import ai.rever.bossterm.compose.settings.TerminalSettings
 import ai.rever.bossterm.compose.typeahead.ComposeTypeAheadModel
 import ai.rever.bossterm.compose.typeahead.CoroutineDebouncer
 import ai.rever.bossterm.compose.notification.CommandNotificationHandler
+import ai.rever.bossterm.compose.clipboard.ClipboardHandler
 import ai.rever.bossterm.compose.TerminalSession
 import ai.rever.bossterm.core.typeahead.TerminalTypeAheadManager
 import ai.rever.bossterm.core.typeahead.TypeAheadTerminalModel
@@ -206,6 +207,10 @@ class TabController(
             tabTitle = { display.windowTitle?.ifEmpty { "BossTerm" } ?: "BossTerm" }
         )
         terminal.addCommandStateListener(notificationHandler)
+
+        // Register clipboard listener (OSC 52)
+        val clipboardHandler = ClipboardHandler(settings)
+        terminal.addClipboardListener(clipboardHandler)
 
         // Create emulator with terminal
         val emulator = BossEmulator(dataStream, terminal)
@@ -403,6 +408,10 @@ class TabController(
         )
         terminal.addCommandStateListener(notificationHandler)
 
+        // Register clipboard listener (OSC 52)
+        val clipboardHandler = ClipboardHandler(settings)
+        terminal.addClipboardListener(clipboardHandler)
+
         // Create emulator with terminal
         val emulator = BossEmulator(dataStream, terminal)
 
@@ -599,6 +608,10 @@ class TabController(
             tabTitle = { display.windowTitle?.ifEmpty { "BossTerm" } ?: "BossTerm" }
         )
         terminal.addCommandStateListener(notificationHandler)
+
+        // Register clipboard listener (OSC 52)
+        val clipboardHandler = ClipboardHandler(settings)
+        terminal.addClipboardListener(clipboardHandler)
 
         val emulator = BossEmulator(dataStream, terminal)
 
@@ -1074,6 +1087,47 @@ class TabController(
                 switchToTab(minOf(index, tabs.size - 1))
             }
         }
+    }
+
+    /**
+     * Extract a tab from this controller without disposing it.
+     * Used for transferring tabs between windows.
+     *
+     * Unlike closeTab(), this does NOT:
+     * - Dispose the tab's resources
+     * - Kill the PTY process
+     * - Notify session listeners
+     *
+     * The extracted tab can be added to another TabController via createTabFromExistingSession().
+     *
+     * @param index Index of the tab to extract
+     * @return The extracted tab, or null if index is invalid
+     */
+    fun extractTab(index: Int): TerminalTab? {
+        if (index < 0 || index >= tabs.size) return null
+
+        val tab = tabs[index]
+
+        // Remove from list without disposing
+        tabs.removeAt(index)
+
+        // Handle tab switching (same logic as closeTab)
+        if (tabs.isEmpty()) {
+            // Last tab extracted - notify exit
+            notifyAllSessionsClosed()
+            onLastTabClosed()
+        } else {
+            // Adjust active tab index
+            if (activeTabIndex >= tabs.size) {
+                switchToTab(tabs.size - 1)
+            } else if (activeTabIndex > index) {
+                activeTabIndex--
+            } else if (activeTabIndex == index) {
+                switchToTab(minOf(index, tabs.size - 1))
+            }
+        }
+
+        return tab
     }
 
     /**

@@ -1,5 +1,11 @@
 package ai.rever.bossterm.compose.ui
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -8,6 +14,8 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,6 +27,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.input.key.*
@@ -35,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import ai.rever.bossterm.core.util.TermSize
 import ai.rever.bossterm.terminal.CursorShape
 import ai.rever.bossterm.terminal.RequestOrigin
+import ai.rever.bossterm.terminal.TerminalDisplay
 import ai.rever.bossterm.terminal.TerminalKeyEncoder
 import ai.rever.bossterm.terminal.emulator.mouse.MouseButtonCodes
 import ai.rever.bossterm.terminal.emulator.mouse.MouseMode
@@ -126,6 +136,7 @@ fun ProperTerminal(
   var connectionState by tab.connectionState
   var isFocused by tab.isFocused
   var scrollOffset by tab.scrollOffset
+  var userScrollTrigger by remember { mutableStateOf(0) }  // Tracks user-initiated scrolls for scrollbar visibility
   val scope = rememberCoroutineScope()
   var hasPerformedInitialResize by remember { mutableStateOf(false) }  // Track initial resize
   var isModifierPressed by remember { mutableStateOf(false) }  // Track Ctrl/Cmd for hyperlink clicks
@@ -569,6 +580,24 @@ fun ProperTerminal(
     }
   }
 
+  // Bell (BEL character) handling - play sound and/or visual flash
+  var visualBellActive by remember { mutableStateOf(false) }
+  val bellTrigger by display.bellTrigger
+  LaunchedEffect(bellTrigger) {
+    if (bellTrigger > 0) {
+      // Play audible bell if enabled
+      if (settings.audibleBell) {
+        java.awt.Toolkit.getDefaultToolkit().beep()
+      }
+      // Visual bell - flash screen if enabled
+      if (settings.visualBell) {
+        visualBellActive = true
+        delay(100)  // Flash duration
+        visualBellActive = false
+      }
+    }
+  }
+
   // Scrollbar adapter that bridges terminal scroll state with Compose scrollbar
   // Note: historySize and screenHeight lambdas read textBuffer properties without locks.
   // This is acceptable because:
@@ -771,6 +800,7 @@ fun ProperTerminal(
                   onClearScreen = { clearBuffer() },
                   onClearScrollback = { clearScrollback() },
                   onFind = { searchVisible = true },
+                  onNewTab = onNewTab,
                   onSplitVertical = onSplitVertical,
                   onSplitHorizontal = onSplitHorizontal,
                   onMoveToNewTab = onMoveToNewTab,
@@ -805,6 +835,7 @@ fun ProperTerminal(
                   onClearScreen = { clearBuffer() },
                   onClearScrollback = { clearScrollback() },
                   onFind = { searchVisible = true },
+                  onNewTab = onNewTab,
                   onSplitVertical = onSplitVertical,
                   onSplitHorizontal = onSplitHorizontal,
                   onMoveToNewTab = onMoveToNewTab,
@@ -1135,6 +1166,7 @@ fun ProperTerminal(
           // Local scroll (main buffer or Shift+Wheel override)
           val historySize = textBuffer.historyLinesCount
           scrollOffset = (scrollOffset - delta.toInt()).coerceIn(0, historySize)
+          userScrollTrigger++  // Mark as user-initiated scroll for scrollbar visibility
         }
         .onPreviewKeyEvent { keyEvent ->
           // Track Ctrl/Cmd key state for hyperlink clicks and hover effects
@@ -1445,8 +1477,8 @@ fun ProperTerminal(
             .align(Alignment.CenterEnd)
             .fillMaxHeight(),
           thickness = settings.scrollbarWidth.dp,
-          thumbColor = Color.White,
-          trackColor = Color.White.copy(alpha = 0.12f),
+          thumbColor = settings.scrollbarThumbColorValue,
+          trackColor = settings.scrollbarColorValue,
           minThumbHeight = 32.dp,
           matchPositions = matchPositions,
           currentMatchIndex = currentMatchIndex,
@@ -1459,8 +1491,85 @@ fun ProperTerminal(
               scrollToMatch(row)
               highlightMatch(col, row, searchQuery.length)
             }
-          }
+          },
+          userScrollTrigger = rememberUpdatedState(userScrollTrigger)
         )
+
+        // Visual bell overlay - flashes when BEL character received and visualBell enabled
+        if (visualBellActive) {
+          Box(
+            modifier = Modifier
+              .fillMaxSize()
+              .background(settings.defaultForegroundColor.copy(alpha = 0.15f))
+          )
+        }
+
+        // Progress bar (OSC 1337;SetProgress / OSC 9;4)
+        val progressState by display.progressState
+        val progressValue by display.progressValue
+        if (settings.progressBarEnabled && progressState != TerminalDisplay.ProgressState.HIDDEN) {
+          val progressColor = when (progressState) {
+            TerminalDisplay.ProgressState.NORMAL -> Color(0xFF4A90E2)  // Blue
+            TerminalDisplay.ProgressState.ERROR -> Color(0xFFE24A4A)   // Red
+            TerminalDisplay.ProgressState.WARNING -> Color(0xFFE2B44A) // Yellow/Orange
+            TerminalDisplay.ProgressState.INDETERMINATE -> Color(0xFF4A90E2) // Blue
+            TerminalDisplay.ProgressState.HIDDEN -> Color.Transparent
+          }
+
+          // Animated offset for indeterminate gradient - seamless loop
+          val infiniteTransition = rememberInfiniteTransition(label = "progress")
+          val animatedOffset by infiniteTransition.animateFloat(
+            initialValue = -0.3f,
+            targetValue = 1.3f,
+            animationSpec = infiniteRepeatable(
+              animation = tween(2500, easing = LinearEasing),
+              repeatMode = RepeatMode.Restart
+            ),
+            label = "progressOffset"
+          )
+
+          val progressAlignment = if (settings.progressBarPosition == "top") Alignment.TopStart else Alignment.BottomStart
+          Box(
+            modifier = Modifier
+              .align(progressAlignment)
+              .fillMaxWidth()
+              .height(settings.progressBarHeight.dp)
+              .background(progressColor.copy(alpha = 0.15f))
+          ) {
+            if (progressState == TerminalDisplay.ProgressState.INDETERMINATE) {
+              // Indeterminate: animated gradient bar with seamless loop
+              // Gradient width is 30% of bar, animates from -30% to 130% for smooth entry/exit
+              Canvas(modifier = Modifier.fillMaxSize()) {
+                val gradientWidth = size.width * 0.35f
+                val centerX = animatedOffset * (size.width + gradientWidth) - gradientWidth / 2
+
+                drawRect(
+                  brush = Brush.horizontalGradient(
+                    colors = listOf(
+                      Color.Transparent,
+                      progressColor.copy(alpha = 0.4f),
+                      progressColor,
+                      progressColor,
+                      progressColor.copy(alpha = 0.4f),
+                      Color.Transparent
+                    ),
+                    startX = centerX - gradientWidth / 2,
+                    endX = centerX + gradientWidth / 2
+                  ),
+                  size = size
+                )
+              }
+            } else if (progressValue >= 0) {
+              // Determinate: progress bar
+              Box(
+                modifier = Modifier
+                  .fillMaxWidth(progressValue / 100f)
+                  .fillMaxHeight()
+                  .background(progressColor)
+              )
+            }
+          }
+        }
       }
     } // end Box
 

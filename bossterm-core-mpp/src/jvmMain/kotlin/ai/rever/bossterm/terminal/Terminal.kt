@@ -21,6 +21,12 @@ interface Terminal {
 
     fun beep()
 
+    /**
+     * Set progress bar state.
+     * Used by OSC 1337;SetProgress (iTerm2) and OSC 9;4 (Windows Terminal).
+     */
+    fun setProgress(state: TerminalDisplay.ProgressState, progress: Int) {}
+
     fun backspace()
 
     fun horizontalTab()
@@ -190,6 +196,59 @@ interface Terminal {
 
     var cursorColor: Color?
 
+    // ===== Dynamic Colors (OSC 4, 10-19, 104, 110-119) =====
+
+    /**
+     * Set the default foreground color (OSC 10).
+     */
+    fun setWindowForeground(color: Color) {}
+
+    /**
+     * Set the default background color (OSC 11).
+     */
+    fun setWindowBackground(color: Color) {}
+
+    /**
+     * Reset the default foreground color to initial value (OSC 110).
+     */
+    fun resetWindowForeground() {}
+
+    /**
+     * Reset the default background color to initial value (OSC 111).
+     */
+    fun resetWindowBackground() {}
+
+    /**
+     * Reset the cursor color to initial value (OSC 112).
+     */
+    fun resetCursorColor() {}
+
+    /**
+     * Get an ANSI palette color (0-255) (OSC 4 query).
+     */
+    fun getIndexedColor(index: Int): Color? { return null }
+
+    /**
+     * Set an ANSI palette color (0-255) (OSC 4 set).
+     */
+    fun setIndexedColor(index: Int, color: Color) {}
+
+    /**
+     * Reset a specific ANSI palette color to default (OSC 104).
+     * If index is null, reset all palette colors.
+     */
+    fun resetIndexedColor(index: Int?) {}
+
+    /**
+     * Add listener for color changes (OSC 4, 10-12, 104, 110-112).
+     */
+    fun addColorChangeListener(listener: TerminalColorChangeListener) {}
+
+    /**
+     * Remove color change listener.
+     */
+    fun removeColorChangeListener(listener: TerminalColorChangeListener) {}
+
     fun addApplicationTitleListener(listener: TerminalApplicationTitleListener) {}
 
     fun removeApplicationTitleListener(listener: TerminalApplicationTitleListener) {}
@@ -216,4 +275,90 @@ interface Terminal {
      * @param args Additional arguments (e.g., exit code for type D)
      */
     fun processShellIntegration(type: Char, args: List<String>) {}
+
+    // ===== Clipboard (OSC 52) =====
+
+    fun addClipboardListener(listener: TerminalClipboardListener) {}
+
+    fun removeClipboardListener(listener: TerminalClipboardListener) {}
+
+    /**
+     * Called when OSC 52 clipboard sequence is received.
+     * @param selection The clipboard selection ('c' = clipboard, 'p' = primary, 's' = select)
+     * @param data The base64-encoded data to set, "?" to query, or empty to clear
+     */
+    fun processClipboard(selection: Char, data: String) {}
+}
+
+/**
+ * Listener for OSC 52 clipboard operations.
+ */
+interface TerminalClipboardListener {
+    /**
+     * Called when terminal requests to set clipboard content.
+     * @param selection The clipboard selection ('c', 'p', 's', or '0'-'7')
+     * @param content The decoded text content to set
+     */
+    fun onClipboardSet(selection: Char, content: String)
+
+    /**
+     * Called when terminal requests to read clipboard content.
+     * @param selection The clipboard selection
+     * @return The current clipboard content, or null if reading is disabled
+     */
+    fun onClipboardGet(selection: Char): String?
+
+    /**
+     * Called when terminal requests to clear clipboard.
+     * @param selection The clipboard selection
+     */
+    fun onClipboardClear(selection: Char)
+}
+
+/**
+ * Listener for OSC color change operations (OSC 4, 10-12, 104, 110-112).
+ */
+interface TerminalColorChangeListener {
+    /**
+     * Called when foreground color is changed (OSC 10).
+     */
+    fun onForegroundColorChanged(color: Color)
+
+    /**
+     * Called when background color is changed (OSC 11).
+     */
+    fun onBackgroundColorChanged(color: Color)
+
+    /**
+     * Called when cursor color is changed (OSC 12).
+     */
+    fun onCursorColorChanged(color: Color?)
+
+    /**
+     * Called when an indexed palette color is changed (OSC 4).
+     * @param index Color index (0-255)
+     * @param color New color value
+     */
+    fun onIndexedColorChanged(index: Int, color: Color)
+
+    /**
+     * Called when foreground color is reset (OSC 110).
+     */
+    fun onForegroundColorReset()
+
+    /**
+     * Called when background color is reset (OSC 111).
+     */
+    fun onBackgroundColorReset()
+
+    /**
+     * Called when cursor color is reset (OSC 112).
+     */
+    fun onCursorColorReset()
+
+    /**
+     * Called when indexed palette color is reset (OSC 104).
+     * @param index Color index to reset, or null to reset all
+     */
+    fun onIndexedColorReset(index: Int?)
 }

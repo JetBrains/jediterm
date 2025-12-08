@@ -111,15 +111,28 @@ class ContextMenuController {
         // Store reference for future dismissal
         currentPopup = popup
 
-        // Get the focused window to use as invoker
-        val focusedWindow = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusedWindow
-        if (focusedWindow != null) {
+        // Find the window to use as invoker - prefer focused window, but find window at mouse position if not focused
+        var targetWindow: Window? = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusedWindow
+
+        // If no focused window, find the window at the mouse position
+        if (targetWindow == null) {
+            val mousePoint = java.awt.Point(screenX, screenY)
+            targetWindow = Window.getWindows()
+                .filter { it.isVisible && it.bounds.contains(mousePoint) }
+                .maxByOrNull { it.bounds.width * it.bounds.height } // Prefer larger window if overlapping
+
+            // Request focus on the found window so popup dismisses properly
+            targetWindow?.toFront()
+            targetWindow?.requestFocus()
+        }
+
+        if (targetWindow != null) {
             // Convert screen coordinates to window-relative coordinates
-            val windowLocation = focusedWindow.locationOnScreen
+            val windowLocation = targetWindow.locationOnScreen
             val relativeX = screenX - windowLocation.x
             val relativeY = screenY - windowLocation.y
             // Use show() for proper dismiss behavior
-            popup.show(focusedWindow, relativeX, relativeY)
+            popup.show(targetWindow, relativeX, relativeY)
         } else {
             // Fallback: show at screen location (may not dismiss properly)
             popup.location = java.awt.Point(screenX, screenY)
@@ -162,6 +175,7 @@ fun createTerminalContextMenuItems(
     onClearScreen: () -> Unit,
     onClearScrollback: () -> Unit,
     onFind: () -> Unit,
+    onNewTab: (() -> Unit)? = null,
     onSplitVertical: (() -> Unit)? = null,
     onSplitHorizontal: (() -> Unit)? = null,
     onMoveToNewTab: (() -> Unit)? = null,
@@ -254,6 +268,28 @@ fun createTerminalContextMenuItems(
         }
     }
 
+    // Add tab options section
+    val tabItems = mutableListOf<ContextMenuController.MenuItem>()
+
+    if (onNewTab != null) {
+        tabItems.add(
+            ContextMenuController.MenuItem(
+                id = "separator_tab",
+                label = "",
+                enabled = false,
+                action = {}
+            )
+        )
+        tabItems.add(
+            ContextMenuController.MenuItem(
+                id = "new_tab",
+                label = "New Tab",
+                enabled = true,
+                action = onNewTab
+            )
+        )
+    }
+
     // Add extra options section
     val extraItems = mutableListOf<ContextMenuController.MenuItem>()
 
@@ -290,7 +326,7 @@ fun createTerminalContextMenuItems(
         )
     }
 
-    return baseItems + splitItems + extraItems
+    return baseItems + splitItems + tabItems + extraItems
 }
 
 /**
@@ -307,6 +343,7 @@ fun showTerminalContextMenu(
     onClearScreen: () -> Unit,
     onClearScrollback: () -> Unit,
     onFind: () -> Unit,
+    onNewTab: (() -> Unit)? = null,
     onSplitVertical: (() -> Unit)? = null,
     onSplitHorizontal: (() -> Unit)? = null,
     onMoveToNewTab: (() -> Unit)? = null,
@@ -322,6 +359,7 @@ fun showTerminalContextMenu(
         onClearScreen = onClearScreen,
         onClearScrollback = onClearScrollback,
         onFind = onFind,
+        onNewTab = onNewTab,
         onSplitVertical = onSplitVertical,
         onSplitHorizontal = onSplitHorizontal,
         onMoveToNewTab = onMoveToNewTab,
@@ -391,6 +429,7 @@ fun showHyperlinkContextMenu(
     onClearScreen: () -> Unit,
     onClearScrollback: () -> Unit,
     onFind: () -> Unit,
+    onNewTab: (() -> Unit)? = null,
     onSplitVertical: (() -> Unit)? = null,
     onSplitHorizontal: (() -> Unit)? = null,
     onMoveToNewTab: (() -> Unit)? = null,
@@ -411,6 +450,7 @@ fun showHyperlinkContextMenu(
         onClearScreen = onClearScreen,
         onClearScrollback = onClearScrollback,
         onFind = onFind,
+        onNewTab = onNewTab,
         onSplitVertical = onSplitVertical,
         onSplitHorizontal = onSplitHorizontal,
         onMoveToNewTab = onMoveToNewTab,

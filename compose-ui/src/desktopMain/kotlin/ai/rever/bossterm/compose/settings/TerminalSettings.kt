@@ -170,7 +170,49 @@ data class TerminalSettings(
     /**
      * Play audible bell sound
      */
-    val audibleBell: Boolean = false,
+    val audibleBell: Boolean = true,
+
+    /**
+     * Flash screen on bell (visual bell)
+     */
+    val visualBell: Boolean = true,
+
+    // ===== Progress Bar Settings =====
+
+    /**
+     * Enable progress bar indicator (OSC 1337;SetProgress / OSC 9;4)
+     */
+    val progressBarEnabled: Boolean = true,
+
+    /**
+     * Progress bar position: "top" or "bottom" of terminal
+     */
+    val progressBarPosition: String = "bottom",
+
+    /**
+     * Progress bar height in dp (1-10)
+     */
+    val progressBarHeight: Float = 6f,
+
+    // ===== Clipboard Settings (OSC 52) =====
+
+    /**
+     * Enable OSC 52 clipboard access.
+     * Master toggle for terminal apps to access clipboard.
+     */
+    val clipboardOsc52Enabled: Boolean = true,
+
+    /**
+     * Allow terminal apps to read clipboard content (OSC 52 query).
+     * Security note: Disabled by default to prevent clipboard theft.
+     */
+    val clipboardOsc52AllowRead: Boolean = false,
+
+    /**
+     * Allow terminal apps to write to clipboard (OSC 52 set).
+     * Usually safe to enable - allows apps like tmux to sync clipboard.
+     */
+    val clipboardOsc52AllowWrite: Boolean = true,
 
     /**
      * Use inverse selection color (swap fg/bg)
@@ -192,7 +234,7 @@ data class TerminalSettings(
     /**
      * Scrollbar width in pixels
      */
-    val scrollbarWidth: Float = 12f,
+    val scrollbarWidth: Float = 10f,
 
     /**
      * Scrollbar track color (serialized as ARGB hex)

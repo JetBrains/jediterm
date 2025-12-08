@@ -41,6 +41,29 @@ fun BehaviorSettingsSection(
                 onCheckedChange = { onSettingsChange(settings.copy(emulateX11CopyPaste = it)) },
                 description = "Separate selection and system clipboard"
             )
+
+            SettingsToggle(
+                label = "OSC 52 Clipboard Access",
+                checked = settings.clipboardOsc52Enabled,
+                onCheckedChange = { onSettingsChange(settings.copy(clipboardOsc52Enabled = it)) },
+                description = "Allow terminal apps to access clipboard"
+            )
+
+            SettingsToggle(
+                label = "Allow Clipboard Read (OSC 52)",
+                checked = settings.clipboardOsc52AllowRead,
+                onCheckedChange = { onSettingsChange(settings.copy(clipboardOsc52AllowRead = it)) },
+                description = "Allow apps to read clipboard (security risk)",
+                enabled = settings.clipboardOsc52Enabled
+            )
+
+            SettingsToggle(
+                label = "Allow Clipboard Write (OSC 52)",
+                checked = settings.clipboardOsc52AllowWrite,
+                onCheckedChange = { onSettingsChange(settings.copy(clipboardOsc52AllowWrite = it)) },
+                description = "Allow apps to write to clipboard (tmux, etc.)",
+                enabled = settings.clipboardOsc52Enabled
+            )
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -104,13 +127,52 @@ fun BehaviorSettingsSection(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Audio Settings
-        SettingsSection(title = "Audio") {
+        // Bell Settings
+        SettingsSection(title = "Bell") {
             SettingsToggle(
                 label = "Audible Bell",
                 checked = settings.audibleBell,
                 onCheckedChange = { onSettingsChange(settings.copy(audibleBell = it)) },
                 description = "Play sound on ASCII bell (Ctrl+G)"
+            )
+
+            SettingsToggle(
+                label = "Visual Bell",
+                checked = settings.visualBell,
+                onCheckedChange = { onSettingsChange(settings.copy(visualBell = it)) },
+                description = "Flash screen on ASCII bell"
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Progress Bar Settings
+        SettingsSection(title = "Progress Bar") {
+            SettingsToggle(
+                label = "Enable Progress Bar",
+                checked = settings.progressBarEnabled,
+                onCheckedChange = { onSettingsChange(settings.copy(progressBarEnabled = it)) },
+                description = "Show progress indicator (OSC 1337/9;4)"
+            )
+
+            SettingsDropdown(
+                label = "Position",
+                options = listOf("Top", "Bottom"),
+                selectedOption = settings.progressBarPosition.replaceFirstChar { it.uppercase() },
+                onOptionSelected = { onSettingsChange(settings.copy(progressBarPosition = it.lowercase())) },
+                description = "Where to show the progress bar",
+                enabled = settings.progressBarEnabled
+            )
+
+            SettingsSlider(
+                label = "Height",
+                value = settings.progressBarHeight,
+                onValueChange = { onSettingsChange(settings.copy(progressBarHeight = it)) },
+                valueRange = 1f..10f,
+                steps = 8,
+                valueDisplay = { "${it.toInt()} dp" },
+                description = "Progress bar thickness",
+                enabled = settings.progressBarEnabled
             )
         }
     }

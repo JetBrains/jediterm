@@ -246,13 +246,23 @@ class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
                 }
             }
 
-            10, 11 -> return processColorQuery(args)
+            9 -> return processOsc9Progress(args)
+
+            4 -> return processIndexedColor(args)  // ANSI palette colors (0-255)
+            10, 11 -> return processDynamicColor(args)  // Foreground/background colors
             12 -> return processCursorColor(args)
-            104, 1341 -> {
+            52 -> return processClipboard(args)
+
+            104 -> return processResetIndexedColor(args)  // Reset palette colors
+            110, 111, 112 -> return processResetDynamicColor(ps)  // Reset fg/bg/cursor
+
+            1341 -> {
                 val argList: MutableList<String?> = args.args.toMutableList()
                 myTerminal?.processCustomCommand(argList.subList(1, argList.size) as MutableList<String?>)
                 return true
             }
+
+            1337 -> return processITerm2Sequence(args)
         }
         // Log unhandled OSC sequences to help identify missing support
         if (LOG.isDebugEnabled()) {
@@ -263,30 +273,145 @@ class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
 
 
     /**
-     * [
- * If a "?" is given rather than a name or RGB specification, xterm replies with a control sequence of
- * the same form which can be used to set the corresponding dynamic color.
-](http://www.xfree86.org/4.8.0/ctlseqs.html) *
+     * Handles OSC 10/11 (foreground/background colors).
+     * Query: ESC]10;?\ESC\ or ESC]11;?\ESC\
+     * Set: ESC]10;#RRGGBB\ESC\ or ESC]10;rgb:RR/GG/BB\ESC\
+     * http://www.xfree86.org/4.8.0/ctlseqs.html
      */
-    private fun processColorQuery(args: SystemCommandSequence): kotlin.Boolean {
-        if ("?" != args.getStringAt(1)) {
-            return false
-        }
+    private fun processDynamicColor(args: SystemCommandSequence): kotlin.Boolean {
         val ps = args.getIntAt(0, -1)
-        val color: Color?
-        if (ps == 10) {
-            color = myTerminal?.windowForeground
-        } else if (ps == 11) {
-            color = myTerminal?.windowBackground
-        } else {
+        val arg = args.getStringAt(1)
+
+        if (arg == null) {
             return false
         }
-        if (color != null) {
-            val str = args.format(List.of<String>(ps.toString(), color.toXParseColor()))
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Responding to OSC " + ps + " query: " + str)
+
+        if ("?" == arg) {
+            // Query color
+            val color: Color? = when (ps) {
+                10 -> myTerminal?.windowForeground
+                11 -> myTerminal?.windowBackground
+                else -> null
             }
-            myTerminal?.deviceStatusReport(str)
+            if (color != null) {
+                val str = args.format(List.of<String>(ps.toString(), color.toXParseColor()))
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Responding to OSC $ps query: $str")
+                }
+                myTerminal?.deviceStatusReport(str)
+            }
+            return true
+        }
+
+        // Set color
+        val color = parseOscColor(arg)
+        if (color != null) {
+            when (ps) {
+                10 -> myTerminal?.setWindowForeground(color)
+                11 -> myTerminal?.setWindowBackground(color)
+            }
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Set OSC $ps color to: $arg")
+            }
+            return true
+        }
+
+        return false
+    }
+
+    /**
+     * Handles OSC 4 (ANSI palette colors 0-255).
+     * Query: ESC]4;index;?\ESC\
+     * Set: ESC]4;index;#RRGGBB\ESC\ or ESC]4;index;rgb:RR/GG/BB\ESC\
+     */
+    private fun processIndexedColor(args: SystemCommandSequence): kotlin.Boolean {
+        val indexStr = args.getStringAt(1) ?: return false
+        val colorArg = args.getStringAt(2) ?: return false
+        val index = indexStr.toIntOrNull() ?: return false
+
+        if (index < 0 || index > 255) {
+            return false
+        }
+
+        if ("?" == colorArg) {
+            // Query indexed color
+            val color = myTerminal?.getIndexedColor(index)
+            if (color != null) {
+                val str = args.format(List.of<String>("4", index.toString(), color.toXParseColor()))
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Responding to OSC 4;$index query: $str")
+                }
+                myTerminal?.deviceStatusReport(str)
+            }
+            return true
+        }
+
+        // Set indexed color
+        val color = parseOscColor(colorArg)
+        if (color != null) {
+            myTerminal?.setIndexedColor(index, color)
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Set palette color $index to: $colorArg")
+            }
+            return true
+        }
+
+        return false
+    }
+
+    /**
+     * Handles OSC 104 (reset ANSI palette colors).
+     * Reset all: ESC]104\ESC\
+     * Reset specific: ESC]104;index\ESC\
+     */
+    private fun processResetIndexedColor(args: SystemCommandSequence): kotlin.Boolean {
+        val indexStr = args.getStringAt(1)
+
+        if (indexStr == null || indexStr.isEmpty()) {
+            // Reset all palette colors
+            myTerminal?.resetIndexedColor(null)
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Reset all palette colors")
+            }
+        } else {
+            // Reset specific color
+            val index = indexStr.toIntOrNull()
+            if (index != null && index in 0..255) {
+                myTerminal?.resetIndexedColor(index)
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Reset palette color $index")
+                }
+            }
+        }
+        return true
+    }
+
+    /**
+     * Handles OSC 110-112 (reset dynamic colors).
+     * 110: Reset foreground
+     * 111: Reset background
+     * 112: Reset cursor color
+     */
+    private fun processResetDynamicColor(ps: Int): kotlin.Boolean {
+        when (ps) {
+            110 -> {
+                myTerminal?.resetWindowForeground()
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Reset foreground color")
+                }
+            }
+            111 -> {
+                myTerminal?.resetWindowBackground()
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Reset background color")
+                }
+            }
+            112 -> {
+                myTerminal?.resetCursorColor()
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Reset cursor color")
+                }
+            }
         }
         return true
     }
@@ -415,6 +540,147 @@ class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
             }
         }
         return null
+    }
+
+    /**
+     * Handles OSC 52 (clipboard access).
+     * Format: OSC 52 ; Pc ; Pd ST
+     * Where:
+     * - Pc is the clipboard selection: 'c' (clipboard), 'p' (primary), 's' (select), '0'-'7' (cut buffers)
+     * - Pd is the data:
+     *   - '?' to query the clipboard
+     *   - Base64-encoded string to set the clipboard
+     *   - Empty string to clear
+     */
+    private fun processClipboard(args: SystemCommandSequence): kotlin.Boolean {
+        val selectionStr = args.getStringAt(1) ?: return false
+        val data = args.getStringAt(2) ?: ""
+
+        // Selection can be multiple characters (e.g., "pc" for primary and clipboard)
+        // We use the first one, defaulting to 'c' (clipboard)
+        val selection = if (selectionStr.isNotEmpty()) selectionStr[0] else 'c'
+
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("OSC 52 clipboard: selection=$selection, data=${if (data == "?") "query" else if (data.isEmpty()) "clear" else "set(${data.length} chars)"}")
+        }
+
+        myTerminal?.processClipboard(selection, data)
+        return true
+    }
+
+    /**
+     * Handles OSC 9;4 (Windows Terminal / ConEmu progress bar).
+     * Format: OSC 9;4;state;progress ST
+     * States: 0=hidden, 1=normal, 2=error, 3=indeterminate, 4=warning
+     */
+    private fun processOsc9Progress(args: SystemCommandSequence): kotlin.Boolean {
+        val subCommand = args.getIntAt(1, -1)
+        if (subCommand != 4) {
+            // OSC 9 has other sub-commands, we only handle 4 (progress)
+            return false
+        }
+
+        val stateInt = args.getIntAt(2, 0)
+        val progress = args.getIntAt(3, -1)
+
+        val state = when (stateInt) {
+            0 -> TerminalDisplay.ProgressState.HIDDEN
+            1 -> TerminalDisplay.ProgressState.NORMAL
+            2 -> TerminalDisplay.ProgressState.ERROR
+            3 -> TerminalDisplay.ProgressState.INDETERMINATE
+            4 -> TerminalDisplay.ProgressState.WARNING
+            else -> TerminalDisplay.ProgressState.HIDDEN
+        }
+
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("OSC 9;4 progress: state=$state, progress=$progress")
+        }
+
+        myTerminal?.setProgress(state, progress)
+        return true
+    }
+
+    /**
+     * Handles OSC 1337 (iTerm2 proprietary sequences).
+     * Currently supports: SetProgress
+     * Format: OSC 1337;SetProgress=state;progress ST
+     * or: OSC 1337;SetProgress=progress ST (just percentage)
+     */
+    private fun processITerm2Sequence(args: SystemCommandSequence): kotlin.Boolean {
+        val command = args.getStringAt(1) ?: return false
+
+        // Parse SetProgress command
+        // Note: OSC parser splits on semicolons, so "SetProgress=error;30" becomes
+        // args[1]="SetProgress=error", args[2]="30"
+        // We need to reconstruct the full value
+        if (command.startsWith("SetProgress=") || command == "SetProgress") {
+            val valuePart = command.removePrefix("SetProgress=").removePrefix("SetProgress")
+            // Collect remaining args to reconstruct the value (in case of semicolons)
+            val remainingArgs = mutableListOf<String>()
+            if (valuePart.isNotEmpty()) {
+                remainingArgs.add(valuePart)
+            }
+            var i = 2
+            while (args.getStringAt(i) != null) {
+                remainingArgs.add(args.getStringAt(i)!!)
+                i++
+            }
+            val fullValue = remainingArgs.joinToString(";")
+            return parseITerm2Progress(fullValue)
+        }
+
+        // Other iTerm2 commands can be added here
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Unhandled iTerm2 OSC 1337 command: $command")
+        }
+        return false
+    }
+
+    /**
+     * Parses iTerm2 SetProgress value.
+     * Formats:
+     * - "end" or empty: hide progress
+     * - "50" (number only): set progress to 50%
+     * - "progress;50": normal progress at 50%
+     * - "error;50": error state at 50%
+     */
+    private fun parseITerm2Progress(value: String): kotlin.Boolean {
+        if (value.isEmpty() || value == "end") {
+            myTerminal?.setProgress(TerminalDisplay.ProgressState.HIDDEN, 0)
+            return true
+        }
+
+        val parts = value.split(";")
+        val state: TerminalDisplay.ProgressState
+        val progress: Int
+
+        when {
+            parts.size == 1 -> {
+                // Just a number - normal progress
+                progress = parts[0].toIntOrNull() ?: return false
+                state = TerminalDisplay.ProgressState.NORMAL
+            }
+            parts.size >= 2 -> {
+                // state;progress format
+                state = when (parts[0].lowercase()) {
+                    "start", "progress" -> TerminalDisplay.ProgressState.NORMAL
+                    "end" -> TerminalDisplay.ProgressState.HIDDEN
+                    "error" -> TerminalDisplay.ProgressState.ERROR
+                    "warning" -> TerminalDisplay.ProgressState.WARNING
+                    "indeterminate" -> TerminalDisplay.ProgressState.INDETERMINATE
+                    else -> TerminalDisplay.ProgressState.NORMAL
+                }
+                progress = parts[1].toIntOrNull() ?: -1
+            }
+            else -> return false
+        }
+
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("iTerm2 SetProgress: state=$state, progress=$progress")
+        }
+
+        myTerminal?.setProgress(state, progress.coerceIn(-1, 100))
+        return true
     }
 
     @Throws(IOException::class)

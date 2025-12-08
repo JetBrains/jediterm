@@ -1,5 +1,6 @@
 package ai.rever.bossterm.compose.tabs
 
+import ai.rever.bossterm.compose.features.ContextMenuController
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -9,8 +10,12 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerButton
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -24,9 +29,11 @@ import androidx.compose.ui.unit.sp
  * - Close button per tab (X)
  * - New tab button (+)
  * - Active tab highlighting
+ * - Right-click context menu with Close/Move to New Window
  *
  * Styling matches the Material 3 design of the search bar for visual consistency.
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun TabBar(
     tabs: List<TerminalTab>,
@@ -34,8 +41,11 @@ fun TabBar(
     onTabSelected: (Int) -> Unit,
     onTabClosed: (Int) -> Unit,
     onNewTab: () -> Unit,
+    onTabMoveToNewWindow: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    // Context menu controller for tab right-click menu
+    val contextMenuController = remember { ContextMenuController() }
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -61,6 +71,35 @@ fun TabBar(
                         isActive = index == activeTabIndex,
                         onSelected = { onTabSelected(index) },
                         onClose = { onTabClosed(index) },
+                        onContextMenu = {
+                            val items = listOf(
+                                ContextMenuController.MenuItem(
+                                    id = "new_tab",
+                                    label = "New Tab",
+                                    enabled = true,
+                                    action = { onNewTab() }
+                                ),
+                                ContextMenuController.MenuItem(
+                                    id = "separator_tab",
+                                    label = "",
+                                    enabled = false,
+                                    action = {}
+                                ),
+                                ContextMenuController.MenuItem(
+                                    id = "close_tab",
+                                    label = "Close Tab",
+                                    enabled = true,
+                                    action = { onTabClosed(index) }
+                                ),
+                                ContextMenuController.MenuItem(
+                                    id = "move_to_new_window",
+                                    label = "Move to New Window",
+                                    enabled = true,
+                                    action = { onTabMoveToNewWindow(index) }
+                                )
+                            )
+                            contextMenuController.showMenu(0f, 0f, items)
+                        },
                         modifier = Modifier.weight(1f, fill = false)
                     )
                 }
@@ -84,19 +123,27 @@ fun TabBar(
 /**
  * Individual tab item component.
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun TabItem(
     title: String,
     isActive: Boolean,
     onSelected: () -> Unit,
     onClose: () -> Unit,
+    onContextMenu: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
         onClick = onSelected,
         modifier = modifier
             .height(36.dp)
-            .widthIn(min = 80.dp, max = 200.dp),
+            .widthIn(min = 80.dp, max = 200.dp)
+            .onPointerEvent(PointerEventType.Press) { event ->
+                // Handle right-click for context menu
+                if (event.button == PointerButton.Secondary) {
+                    onContextMenu()
+                }
+            },
         shape = RoundedCornerShape(6.dp),
         color = if (isActive) Color(0xFF2B2B2B) else Color(0xFF1E1E1E),
         border = if (isActive) {

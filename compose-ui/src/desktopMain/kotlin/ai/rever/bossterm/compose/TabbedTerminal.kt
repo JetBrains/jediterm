@@ -12,6 +12,7 @@ import ai.rever.bossterm.compose.splits.NavigationDirection
 import ai.rever.bossterm.compose.splits.SplitContainer
 import ai.rever.bossterm.compose.splits.SplitOrientation
 import ai.rever.bossterm.compose.splits.SplitViewState
+import ai.rever.bossterm.compose.demo.WindowManager
 import ai.rever.bossterm.compose.tabs.TabBar
 import ai.rever.bossterm.compose.tabs.TabController
 import ai.rever.bossterm.compose.tabs.TerminalTab
@@ -169,9 +170,25 @@ fun TabbedTerminal(
     }
 
     // Initialize with one tab on first composition
+    // Check for pending tab transfer from another window first
     LaunchedEffect(Unit) {
         if (tabController.tabs.isEmpty()) {
-            tabController.createTab()
+            val pendingTab = WindowManager.pendingTabForNewWindow
+            val pendingSplitState = WindowManager.pendingSplitStateForNewWindow
+            if (pendingTab != null) {
+                // Clear pending state
+                WindowManager.pendingTabForNewWindow = null
+                WindowManager.pendingSplitStateForNewWindow = null
+                // Add the transferred tab
+                tabController.createTabFromExistingSession(pendingTab)
+                // Restore split state if present
+                if (pendingSplitState != null) {
+                    splitStates[pendingTab.id] = pendingSplitState
+                }
+            } else {
+                // No pending tab, create fresh terminal
+                tabController.createTab()
+            }
         }
     }
 
@@ -203,6 +220,16 @@ fun TabbedTerminal(
                 onNewTab = {
                     val workingDir = tabController.getActiveWorkingDirectory()
                     tabController.createTab(workingDir = workingDir)
+                },
+                onTabMoveToNewWindow = { index ->
+                    // Get tab first to access its ID for split state lookup
+                    val tab = tabController.tabs.getOrNull(index) ?: return@TabBar
+                    // Extract split state before extracting tab (preserves entire split layout)
+                    val splitState = splitStates.remove(tab.id)
+                    // Extract tab without disposing (preserves PTY session)
+                    val extractedTab = tabController.extractTab(index) ?: return@TabBar
+                    // Create new window and transfer both tab and split state
+                    WindowManager.createWindowWithTab(extractedTab, splitState)
                 }
             )
         }

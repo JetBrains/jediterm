@@ -550,21 +550,23 @@ class BossTerminal(
 
         // Create a preliminary placement - actual cell dimensions will be calculated
         // by the UI layer which knows the font metrics
+        // Using 24px cell height as placeholder (typical for terminal fonts with line spacing)
         val placement = myImageStorage.addImage(
             image = image,
             row = bufferRow,
             col = myCursorX,
             cellWidthPx = 10f,  // Placeholder - recalculated by UI
-            cellHeightPx = 20f, // Placeholder - recalculated by UI
+            cellHeightPx = 24f, // Placeholder (typical terminal font) - recalculated by UI
             terminalWidthCells = myTerminalWidth,
             terminalHeightCells = myTerminalHeight
         )
 
         if (placement != null) {
-            // Estimate rows to move cursor (will be recalculated by UI)
-            // Use intrinsic height / approximate cell height
-            val estimatedRows = maxOf(1, (image.intrinsicHeight / 20) + 1)
-            for (i in 0 until estimatedRows) {
+            // Move cursor past the image using the calculated cell height from placement
+            // The placement was calculated with placeholder metrics (10x24), which gives
+            // a reasonable estimate. UI will render at actual size.
+            val rowsToAdvance = placement.cellHeight
+            for (i in 0 until rowsToAdvance) {
                 newLine()
             }
         }

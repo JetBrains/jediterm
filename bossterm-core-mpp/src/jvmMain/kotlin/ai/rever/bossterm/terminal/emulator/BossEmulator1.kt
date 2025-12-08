@@ -673,7 +673,6 @@ class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
         // Find the colon separator between arguments and base64 data
         val colonIndex = fullCommand.indexOf(':')
         if (colonIndex == -1) {
-            LOG.debug("Invalid File command: no colon separator found")
             return false
         }
 
@@ -681,7 +680,6 @@ class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
         val base64Data = fullCommand.substring(colonIndex + 1)
 
         if (base64Data.isEmpty()) {
-            LOG.debug("Invalid File command: empty base64 data")
             return false
         }
 
@@ -706,7 +704,7 @@ class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
                     try {
                         name = String(Base64.getDecoder().decode(value), Charsets.UTF_8)
                     } catch (e: Exception) {
-                        LOG.debug("Failed to decode filename: {}", e.message)
+                        // Ignore invalid filename encoding
                     }
                 }
                 "size" -> size = value.toIntOrNull()
@@ -719,16 +717,16 @@ class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
 
         // Only display if inline=1
         if (!inline) {
-            LOG.debug("File command with inline=0 (download), ignoring")
-            return true  // Acknowledge but don't display
+            return true  // Acknowledge but don't display (download mode)
         }
 
         // Decode base64 image data
         val imageData: ByteArray
         try {
-            imageData = Base64.getDecoder().decode(base64Data)
+            // Remove any whitespace/newlines and decode
+            val cleanBase64 = base64Data.replace(Regex("\\s"), "")
+            imageData = Base64.getDecoder().decode(cleanBase64)
         } catch (e: Exception) {
-            LOG.warn("Failed to decode base64 image data: {}", e.message)
             return false
         }
 
@@ -744,11 +742,10 @@ class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
                 intrinsicHeight = bufferedImage.height
             }
         } catch (e: Exception) {
-            LOG.debug("Failed to read image dimensions: {}", e.message)
+            // Failed to read image dimensions
         }
 
         if (intrinsicWidth == 0 || intrinsicHeight == 0) {
-            LOG.warn("Could not determine image dimensions")
             return false
         }
 
@@ -764,14 +761,8 @@ class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
             preserveAspectRatio = preserveAspectRatio
         )
 
-        LOG.debug(
-            "Processing inline image: name={}, format={}, size={}x{}, widthSpec={}, heightSpec={}",
-            name, format, intrinsicWidth, intrinsicHeight, widthSpec, heightSpec
-        )
-
         // Send to terminal for placement
         val placement = myTerminal?.processInlineImage(image)
-
         return placement != null
     }
 

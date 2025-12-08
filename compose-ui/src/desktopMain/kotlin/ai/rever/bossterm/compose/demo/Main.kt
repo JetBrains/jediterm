@@ -367,14 +367,16 @@ fun main() = application {
                                 },
                                 onMinimize = { windowState.isMinimized = true },
                                 onFullscreen = {
-                                    // Toggle fullscreen using native macOS fullscreen via AWT
-                                    val gd = awtWindow.graphicsConfiguration.device
-                                    if (gd.fullScreenWindow == awtWindow) {
-                                        // Exit fullscreen
-                                        gd.fullScreenWindow = null
+                                    // Toggle fullscreen by maximizing to screen bounds
+                                    // (AWT exclusive fullscreen breaks transparency)
+                                    val screenBounds = awtWindow.graphicsConfiguration.bounds
+                                    val isCurrentlyFullscreen = awtWindow.bounds == screenBounds
+                                    if (isCurrentlyFullscreen) {
+                                        // Exit fullscreen - restore to floating
+                                        windowState.placement = androidx.compose.ui.window.WindowPlacement.Floating
                                     } else {
-                                        // Enter fullscreen
-                                        gd.fullScreenWindow = awtWindow
+                                        // Enter fullscreen - set bounds to screen size
+                                        awtWindow.setBounds(screenBounds)
                                     }
                                 },
                                 onMaximize = {

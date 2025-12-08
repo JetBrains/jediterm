@@ -463,9 +463,23 @@ class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
         val command = args.getStringAt(1) ?: return false
 
         // Parse SetProgress command
-        if (command.startsWith("SetProgress=")) {
-            val value = command.removePrefix("SetProgress=")
-            return parseITerm2Progress(value)
+        // Note: OSC parser splits on semicolons, so "SetProgress=error;30" becomes
+        // args[1]="SetProgress=error", args[2]="30"
+        // We need to reconstruct the full value
+        if (command.startsWith("SetProgress=") || command == "SetProgress") {
+            val valuePart = command.removePrefix("SetProgress=").removePrefix("SetProgress")
+            // Collect remaining args to reconstruct the value (in case of semicolons)
+            val remainingArgs = mutableListOf<String>()
+            if (valuePart.isNotEmpty()) {
+                remainingArgs.add(valuePart)
+            }
+            var i = 2
+            while (args.getStringAt(i) != null) {
+                remainingArgs.add(args.getStringAt(i)!!)
+                i++
+            }
+            val fullValue = remainingArgs.joinToString(";")
+            return parseITerm2Progress(fullValue)
         }
 
         // Other iTerm2 commands can be added here

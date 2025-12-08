@@ -74,6 +74,18 @@ fun TabBar(
                         onContextMenu = {
                             val items = listOf(
                                 ContextMenuController.MenuItem(
+                                    id = "new_tab",
+                                    label = "New Tab",
+                                    enabled = true,
+                                    action = { onNewTab() }
+                                ),
+                                ContextMenuController.MenuItem(
+                                    id = "separator_tab",
+                                    label = "",
+                                    enabled = false,
+                                    action = {}
+                                ),
+                                ContextMenuController.MenuItem(
                                     id = "close_tab",
                                     label = "Close Tab",
                                     enabled = true,

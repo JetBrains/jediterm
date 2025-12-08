@@ -21,6 +21,12 @@ import ai.rever.bossterm.compose.settings.SettingsWindow
 import ai.rever.bossterm.compose.update.UpdateBanner
 import ai.rever.bossterm.compose.update.UpdateManager
 import ai.rever.bossterm.compose.update.UpdateState
+import ai.rever.bossterm.compose.window.CustomTitleBar
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.Surface
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
@@ -94,6 +100,10 @@ fun main() = application {
                 }
             }
 
+            // Get settings
+            val settingsManagerForWindow = remember { SettingsManager.instance }
+            val windowSettings by settingsManagerForWindow.settings.collectAsState()
+
             Window(
                 onCloseRequest = {
                     WindowManager.closeWindow(window.id)
@@ -103,6 +113,8 @@ fun main() = application {
                 },
                 state = windowState,
                 title = window.title.value,
+                undecorated = true,  // Required for transparent window
+                transparent = true,  // Enable window transparency
                 onPreviewKeyEvent = { keyEvent ->
                     // Handle Cmd+, (macOS) or Ctrl+, (other) for Settings
                     if (keyEvent.type == KeyEventType.KeyDown &&
@@ -300,9 +312,43 @@ fun main() = application {
                     }
                 }
 
-                Column(modifier = Modifier.fillMaxSize()) {
-                    // Update banner (shows when update is available)
-                    UpdateBanner(
+                // Wrap content in Surface for transparency and rounded corners
+                Surface(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(10.dp)),
+                    color = windowSettings.defaultBackgroundColor.copy(
+                        alpha = windowSettings.backgroundOpacity
+                    ),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        // Custom title bar with window controls
+                        CustomTitleBar(
+                            title = window.title.value,
+                            windowState = windowState,
+                            onClose = {
+                                WindowManager.closeWindow(window.id)
+                                if (!WindowManager.hasWindows()) {
+                                    exitApplication()
+                                }
+                            },
+                            onMinimize = { windowState.isMinimized = true },
+                            onMaximize = {
+                                // Toggle maximize
+                                windowState.placement = if (windowState.placement == androidx.compose.ui.window.WindowPlacement.Maximized) {
+                                    androidx.compose.ui.window.WindowPlacement.Floating
+                                } else {
+                                    androidx.compose.ui.window.WindowPlacement.Maximized
+                                }
+                            },
+                            backgroundColor = windowSettings.defaultBackgroundColor.copy(
+                                alpha = (windowSettings.backgroundOpacity * 1.1f).coerceAtMost(1f)
+                            )
+                        )
+
+                        // Update banner (shows when update is available)
+                        UpdateBanner(
                         updateState = updateState,
                         onCheckForUpdates = {
                             scope.launch {
@@ -343,6 +389,7 @@ fun main() = application {
                         isWindowFocused = { window.isWindowFocused.value },
                         modifier = Modifier.fillMaxSize().weight(1f)
                     )
+                    }
                 }
 
                 // Settings dialog

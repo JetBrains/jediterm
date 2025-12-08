@@ -7,11 +7,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ai.rever.bossterm.compose.settings.TerminalSettings
-import ai.rever.bossterm.compose.settings.toSettingsHex
 import ai.rever.bossterm.compose.settings.components.*
 
 /**
- * Visual settings section: fonts, colors, and appearance.
+ * Visual settings section: font, text rendering, and transparency.
+ * Note: Color settings are in the Themes section.
  */
 @Composable
 fun VisualSettingsSection(
@@ -64,41 +64,24 @@ fun VisualSettingsSection(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Color Settings
-        SettingsSection(title = "Colors") {
-            ColorSetting(
-                label = "Default Foreground",
-                color = settings.defaultForegroundColor,
-                onColorChange = { onSettingsChange(settings.copy(defaultForeground = it.toSettingsHex())) },
-                description = "Default text color"
+        // Transparency Settings
+        SettingsSection(title = "Transparency") {
+            SettingsSlider(
+                label = "Background Opacity",
+                value = settings.backgroundOpacity,
+                onValueChange = { onSettingsChange(settings.copy(backgroundOpacity = it)) },
+                valueRange = 0.1f..1.0f,
+                steps = 17,
+                valueDisplay = { "${(it * 100).toInt()}%" },
+                description = "Make the terminal background transparent to see through to desktop"
             )
 
-            ColorSetting(
-                label = "Default Background",
-                color = settings.defaultBackgroundColor,
-                onColorChange = { onSettingsChange(settings.copy(defaultBackground = it.toSettingsHex())) },
-                description = "Terminal background color"
-            )
-
-            ColorSetting(
-                label = "Selection Color",
-                color = settings.selectionColorValue,
-                onColorChange = { onSettingsChange(settings.copy(selectionColor = it.toSettingsHex())) },
-                description = "Text selection highlight"
-            )
-
-            ColorSetting(
-                label = "Search Match Color",
-                color = settings.foundPatternColorValue,
-                onColorChange = { onSettingsChange(settings.copy(foundPatternColor = it.toSettingsHex())) },
-                description = "Search result highlight"
-            )
-
-            ColorSetting(
-                label = "Hyperlink Color",
-                color = settings.hyperlinkColorValue,
-                onColorChange = { onSettingsChange(settings.copy(hyperlinkColor = it.toSettingsHex())) },
-                description = "URL and link color"
+            SettingsToggle(
+                label = "Enable Blur Effect",
+                checked = settings.windowBlur,
+                onCheckedChange = { onSettingsChange(settings.copy(windowBlur = it)) },
+                description = "Frosted glass effect behind transparent terminal (macOS)",
+                enabled = settings.backgroundOpacity < 1.0f
             )
         }
     }

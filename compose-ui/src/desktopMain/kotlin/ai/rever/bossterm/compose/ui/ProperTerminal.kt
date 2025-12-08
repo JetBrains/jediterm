@@ -704,7 +704,7 @@ fun ProperTerminal(
           }
         }
         .fillMaxSize()
-        .background(settings.defaultBackgroundColor)
+        .background(settings.defaultBackgroundColorWithOpacity)
         .dragAndDropTarget(
           shouldStartDragAndDrop = { true },
           target = dropTarget

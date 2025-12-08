@@ -143,12 +143,16 @@ jobs:
       - name: Sign Native Executables in JARs
         if: env.DISABLE_MACOS_SIGNING != 'true'
         run: |
-          APP_PATH=$(find .gradleBuild/compose-ui/compose/binaries/main/app -name "*.app" -type d | head -1)
+          # Convert to absolute path to avoid issues when changing directories
+          APP_PATH=$(find "$(pwd)/.gradleBuild/compose-ui/compose/binaries/main/app" -name "*.app" -type d | head -1)
           echo "App bundle: $APP_PATH"
 
           if [[ -n "$APP_PATH" && -d "$APP_PATH" ]]; then
             # Find all JARs that might contain native executables
             find "$APP_PATH/Contents/app" -name "*.jar" | while read JAR_PATH; do
+              # Convert JAR_PATH to absolute path
+              JAR_PATH=$(cd "$(dirname "$JAR_PATH")" && pwd)/$(basename "$JAR_PATH")
+
               # Check if JAR contains native darwin executables
               if unzip -l "$JAR_PATH" 2>/dev/null | grep -q "darwin"; then
                 echo "Processing: $JAR_PATH"
@@ -161,8 +165,8 @@ jobs:
                 unzip -q "$JAR_PATH" -d "$TEMP_DIR"
 
                 # Find and sign native executables (not just dylibs)
-                SIGNED_SOMETHING=false
-                find "$TEMP_DIR" -type f \( -name "*darwin*" -o -path "*/native/*" \) | while read NATIVE_FILE; do
+                SIGNED_COUNT=0
+                while IFS= read -r -d '' NATIVE_FILE; do
                   # Check if it's a Mach-O executable or dylib
                   if file "$NATIVE_FILE" | grep -q "Mach-O"; then
                     echo "  Signing: $NATIVE_FILE"
@@ -170,17 +174,15 @@ jobs:
                       --sign "${{ secrets.MACOS_DEVELOPER_ID }}" \
                       --entitlements compose-ui/src/desktopMain/resources/runtime-entitlements.plist \
                       "$NATIVE_FILE" || echo "  Warning: Failed to sign $NATIVE_FILE"
-                    SIGNED_SOMETHING=true
+                    SIGNED_COUNT=$((SIGNED_COUNT + 1))
                   fi
-                done
+                done < <(find "$TEMP_DIR" -type f \( -name "*darwin*" -o -path "*/native/*" \) -print0)
 
-                # Repackage JAR using ditto to preserve signatures
-                if [[ "$SIGNED_SOMETHING" == "true" ]] || find "$TEMP_DIR" -name "*darwin*" | grep -q .; then
-                  echo "  Repackaging: $JAR_NAME"
+                # Repackage JAR if we signed anything or found darwin files
+                if [[ "$SIGNED_COUNT" -gt 0 ]] || find "$TEMP_DIR" -name "*darwin*" | grep -q .; then
+                  echo "  Repackaging: $JAR_NAME (signed $SIGNED_COUNT files)"
                   rm "$JAR_PATH"
-                  cd "$TEMP_DIR"
-                  zip -qr "$JAR_PATH" .
-                  cd - > /dev/null
+                  (cd "$TEMP_DIR" && zip -qr "$JAR_PATH" .)
                 fi
 
                 rm -rf "$TEMP_DIR"

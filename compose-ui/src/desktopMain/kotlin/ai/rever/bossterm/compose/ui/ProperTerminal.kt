@@ -1240,6 +1240,10 @@ fun ProperTerminal(
               }
 
               if (text.isNotEmpty()) {
+                // Auto-scroll to cursor when user types (standard terminal behavior)
+                // If scrolled into history, snap back to current screen so user sees their input
+                scrollOffset = 0
+
                 // Feed keyboard event to type-ahead manager BEFORE sending to PTY
                 // This creates predictions that reduce perceived latency on SSH
                 tab.typeAheadManager?.let { manager ->

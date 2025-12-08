@@ -1447,8 +1447,8 @@ fun ProperTerminal(
             .align(Alignment.CenterEnd)
             .fillMaxHeight(),
           thickness = settings.scrollbarWidth.dp,
-          thumbColor = Color.White,
-          trackColor = Color.White.copy(alpha = 0.12f),
+          thumbColor = settings.scrollbarThumbColorValue,
+          trackColor = settings.scrollbarColorValue,
           minThumbHeight = 32.dp,
           matchPositions = matchPositions,
           currentMatchIndex = currentMatchIndex,

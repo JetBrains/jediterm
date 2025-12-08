@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.WindowPlacement
 import kotlinx.coroutines.launch
+import java.awt.GraphicsEnvironment
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import java.util.UUID
@@ -152,6 +153,29 @@ fun main() = application {
 
                     onDispose {
                         awtWindow.removeWindowFocusListener(focusListener)
+                    }
+                }
+
+                // Handle fullscreen expansion for undecorated windows
+                LaunchedEffect(windowState.placement) {
+                    if (windowState.placement == WindowPlacement.Fullscreen) {
+                        val ge = GraphicsEnvironment.getLocalGraphicsEnvironment()
+                        val screenDevice = ge.screenDevices.firstOrNull { device ->
+                            awtWindow.bounds.intersects(device.defaultConfiguration.bounds)
+                        } ?: ge.defaultScreenDevice
+
+                        val screenBounds = screenDevice.defaultConfiguration.bounds
+                        val insets = java.awt.Toolkit.getDefaultToolkit().getScreenInsets(
+                            screenDevice.defaultConfiguration
+                        )
+
+                        // Set window to fill available screen space (excluding menu bar/dock)
+                        awtWindow.setBounds(
+                            screenBounds.x + insets.left,
+                            screenBounds.y + insets.top,
+                            screenBounds.width - insets.left - insets.right,
+                            screenBounds.height - insets.top - insets.bottom
+                        )
                     }
                 }
 

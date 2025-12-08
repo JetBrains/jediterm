@@ -367,11 +367,14 @@ fun main() = application {
                                 },
                                 onMinimize = { windowState.isMinimized = true },
                                 onFullscreen = {
-                                    // Toggle fullscreen (green button click)
-                                    windowState.placement = if (windowState.placement == androidx.compose.ui.window.WindowPlacement.Fullscreen) {
-                                        androidx.compose.ui.window.WindowPlacement.Floating
+                                    // Toggle fullscreen using native macOS fullscreen via AWT
+                                    val gd = awtWindow.graphicsConfiguration.device
+                                    if (gd.fullScreenWindow == awtWindow) {
+                                        // Exit fullscreen
+                                        gd.fullScreenWindow = null
                                     } else {
-                                        androidx.compose.ui.window.WindowPlacement.Fullscreen
+                                        // Enter fullscreen
+                                        gd.fullScreenWindow = awtWindow
                                     }
                                 },
                                 onMaximize = {

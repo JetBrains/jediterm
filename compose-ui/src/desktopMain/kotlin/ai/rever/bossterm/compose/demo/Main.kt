@@ -12,6 +12,7 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import ai.rever.bossterm.compose.TabbedTerminal
+import ai.rever.bossterm.compose.splits.SplitViewState
 import ai.rever.bossterm.compose.tabs.TerminalTab
 import ai.rever.bossterm.compose.cli.CLIInstallDialog
 import ai.rever.bossterm.compose.cli.CLIInstaller
@@ -59,6 +60,8 @@ object WindowManager {
 
     // Pending tab to transfer to newly created window
     var pendingTabForNewWindow: TerminalTab? = null
+    // Pending split state to transfer along with the tab
+    var pendingSplitStateForNewWindow: SplitViewState? = null
 
     fun createWindow(): TerminalWindow {
         val window = TerminalWindow()
@@ -69,9 +72,13 @@ object WindowManager {
     /**
      * Create a new window and transfer an existing tab to it.
      * The tab will be added to the new window's TabController on init.
+     *
+     * @param tab The terminal tab to transfer
+     * @param splitState Optional split state if the tab has split panes
      */
-    fun createWindowWithTab(tab: TerminalTab): TerminalWindow {
+    fun createWindowWithTab(tab: TerminalTab, splitState: SplitViewState? = null): TerminalWindow {
         pendingTabForNewWindow = tab
+        pendingSplitStateForNewWindow = splitState
         return createWindow()
     }
 

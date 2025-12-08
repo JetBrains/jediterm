@@ -8,6 +8,8 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import ai.rever.bossterm.core.util.TermSize
 import ai.rever.bossterm.terminal.CursorShape
 import ai.rever.bossterm.terminal.RequestOrigin
+import ai.rever.bossterm.terminal.TerminalDisplay
 import ai.rever.bossterm.terminal.TerminalKeyEncoder
 import ai.rever.bossterm.terminal.emulator.mouse.MouseButtonCodes
 import ai.rever.bossterm.terminal.emulator.mouse.MouseMode
@@ -1492,6 +1495,43 @@ fun ProperTerminal(
               .fillMaxSize()
               .background(settings.defaultForegroundColor.copy(alpha = 0.15f))
           )
+        }
+
+        // Progress bar at top of terminal (OSC 1337;SetProgress / OSC 9;4)
+        val progressState by display.progressState
+        val progressValue by display.progressValue
+        if (progressState != TerminalDisplay.ProgressState.HIDDEN) {
+          val progressColor = when (progressState) {
+            TerminalDisplay.ProgressState.NORMAL -> Color(0xFF4A90E2)  // Blue
+            TerminalDisplay.ProgressState.ERROR -> Color(0xFFE24A4A)   // Red
+            TerminalDisplay.ProgressState.WARNING -> Color(0xFFE2B44A) // Yellow/Orange
+            TerminalDisplay.ProgressState.INDETERMINATE -> Color(0xFF4A90E2) // Blue
+            TerminalDisplay.ProgressState.HIDDEN -> Color.Transparent
+          }
+          Box(
+            modifier = Modifier
+              .align(Alignment.TopStart)
+              .fillMaxWidth()
+              .height(3.dp)
+              .background(progressColor.copy(alpha = 0.3f))
+          ) {
+            if (progressState == TerminalDisplay.ProgressState.INDETERMINATE) {
+              // Indeterminate: full width bar
+              Box(
+                modifier = Modifier
+                  .fillMaxSize()
+                  .background(progressColor)
+              )
+            } else if (progressValue >= 0) {
+              // Determinate: progress bar
+              Box(
+                modifier = Modifier
+                  .fillMaxWidth(progressValue / 100f)
+                  .fillMaxHeight()
+                  .background(progressColor)
+              )
+            }
+          }
         }
       }
     } // end Box

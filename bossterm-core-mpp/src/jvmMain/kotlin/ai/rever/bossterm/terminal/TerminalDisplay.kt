@@ -38,6 +38,26 @@ interface TerminalDisplay {
 
     fun setBracketedPasteMode(bracketedPasteModeEnabled: Boolean) {}
 
+    /**
+     * Set progress bar state for the terminal.
+     * Used by OSC 1337;SetProgress (iTerm2) and OSC 9;4 (Windows Terminal).
+     *
+     * @param state Progress state: HIDDEN, NORMAL, ERROR, INDETERMINATE, WARNING
+     * @param progress Progress percentage (0-100), or -1 for indeterminate
+     */
+    fun setProgress(state: ProgressState, progress: Int) {}
+
+    /**
+     * Progress bar states matching Windows Terminal/ConEmu conventions.
+     */
+    enum class ProgressState {
+        HIDDEN,        // No progress bar (state 0 or "end")
+        NORMAL,        // Normal progress (state 1 or "progress")
+        ERROR,         // Error state - red (state 2)
+        INDETERMINATE, // Indeterminate/pulsing (state 3)
+        WARNING        // Warning state - yellow (state 4)
+    }
+
     val windowForeground: Color?
         get() = null
 

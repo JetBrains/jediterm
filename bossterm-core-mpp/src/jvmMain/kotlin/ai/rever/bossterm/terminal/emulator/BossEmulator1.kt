@@ -246,6 +246,8 @@ class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
                 }
             }
 
+            9 -> return processOsc9Progress(args)
+
             10, 11 -> return processColorQuery(args)
             12 -> return processCursorColor(args)
             104, 1341 -> {
@@ -253,6 +255,8 @@ class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
                 myTerminal?.processCustomCommand(argList.subList(1, argList.size) as MutableList<String?>)
                 return true
             }
+
+            1337 -> return processITerm2Sequence(args)
         }
         // Log unhandled OSC sequences to help identify missing support
         if (LOG.isDebugEnabled()) {
@@ -415,6 +419,107 @@ class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
             }
         }
         return null
+    }
+
+    /**
+     * Handles OSC 9;4 (Windows Terminal / ConEmu progress bar).
+     * Format: OSC 9;4;state;progress ST
+     * States: 0=hidden, 1=normal, 2=error, 3=indeterminate, 4=warning
+     */
+    private fun processOsc9Progress(args: SystemCommandSequence): kotlin.Boolean {
+        val subCommand = args.getIntAt(1, -1)
+        if (subCommand != 4) {
+            // OSC 9 has other sub-commands, we only handle 4 (progress)
+            return false
+        }
+
+        val stateInt = args.getIntAt(2, 0)
+        val progress = args.getIntAt(3, -1)
+
+        val state = when (stateInt) {
+            0 -> TerminalDisplay.ProgressState.HIDDEN
+            1 -> TerminalDisplay.ProgressState.NORMAL
+            2 -> TerminalDisplay.ProgressState.ERROR
+            3 -> TerminalDisplay.ProgressState.INDETERMINATE
+            4 -> TerminalDisplay.ProgressState.WARNING
+            else -> TerminalDisplay.ProgressState.HIDDEN
+        }
+
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("OSC 9;4 progress: state=$state, progress=$progress")
+        }
+
+        myTerminal?.setProgress(state, progress)
+        return true
+    }
+
+    /**
+     * Handles OSC 1337 (iTerm2 proprietary sequences).
+     * Currently supports: SetProgress
+     * Format: OSC 1337;SetProgress=state;progress ST
+     * or: OSC 1337;SetProgress=progress ST (just percentage)
+     */
+    private fun processITerm2Sequence(args: SystemCommandSequence): kotlin.Boolean {
+        val command = args.getStringAt(1) ?: return false
+
+        // Parse SetProgress command
+        if (command.startsWith("SetProgress=")) {
+            val value = command.removePrefix("SetProgress=")
+            return parseITerm2Progress(value)
+        }
+
+        // Other iTerm2 commands can be added here
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Unhandled iTerm2 OSC 1337 command: $command")
+        }
+        return false
+    }
+
+    /**
+     * Parses iTerm2 SetProgress value.
+     * Formats:
+     * - "end" or empty: hide progress
+     * - "50" (number only): set progress to 50%
+     * - "progress;50": normal progress at 50%
+     * - "error;50": error state at 50%
+     */
+    private fun parseITerm2Progress(value: String): kotlin.Boolean {
+        if (value.isEmpty() || value == "end") {
+            myTerminal?.setProgress(TerminalDisplay.ProgressState.HIDDEN, 0)
+            return true
+        }
+
+        val parts = value.split(";")
+        val state: TerminalDisplay.ProgressState
+        val progress: Int
+
+        when {
+            parts.size == 1 -> {
+                // Just a number - normal progress
+                progress = parts[0].toIntOrNull() ?: return false
+                state = TerminalDisplay.ProgressState.NORMAL
+            }
+            parts.size >= 2 -> {
+                // state;progress format
+                state = when (parts[0].lowercase()) {
+                    "start", "progress" -> TerminalDisplay.ProgressState.NORMAL
+                    "end" -> TerminalDisplay.ProgressState.HIDDEN
+                    "error" -> TerminalDisplay.ProgressState.ERROR
+                    "warning" -> TerminalDisplay.ProgressState.WARNING
+                    "indeterminate" -> TerminalDisplay.ProgressState.INDETERMINATE
+                    else -> TerminalDisplay.ProgressState.NORMAL
+                }
+                progress = parts[1].toIntOrNull() ?: -1
+            }
+            else -> return false
+        }
+
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("iTerm2 SetProgress: state=$state, progress=$progress")
+        }
+
+        myTerminal?.setProgress(state, progress.coerceIn(-1, 100))
+        return true
     }
 
     @Throws(IOException::class)

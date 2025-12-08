@@ -21,6 +21,12 @@ interface Terminal {
 
     fun beep()
 
+    /**
+     * Set progress bar state.
+     * Used by OSC 1337;SetProgress (iTerm2) and OSC 9;4 (Windows Terminal).
+     */
+    fun setProgress(state: TerminalDisplay.ProgressState, progress: Int) {}
+
     fun backspace()
 
     fun horizontalTab()

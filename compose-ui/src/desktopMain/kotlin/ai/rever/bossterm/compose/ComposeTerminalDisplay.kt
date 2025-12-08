@@ -93,6 +93,8 @@ class ComposeTerminalDisplay : TerminalDisplay {
     private val _iconTitle = MutableStateFlow("")
     private val _mouseMode = mutableStateOf(MouseMode.MOUSE_REPORTING_NONE)
     private val _bellTrigger = mutableStateOf(0)
+    private val _progressState = mutableStateOf(TerminalDisplay.ProgressState.HIDDEN)
+    private val _progressValue = mutableStateOf(0)
 
     // Compose state properties
     val cursorX: State<Int> = _cursorX
@@ -103,6 +105,8 @@ class ComposeTerminalDisplay : TerminalDisplay {
     val termSize: State<TermSize> = _termSize
     val mouseMode: State<MouseMode> = _mouseMode
     val bellTrigger: State<Int> = _bellTrigger
+    val progressState: State<TerminalDisplay.ProgressState> = _progressState
+    val progressValue: State<Int> = _progressValue
     val windowTitleFlow: StateFlow<String> = _windowTitle.asStateFlow()
     val iconTitleFlow: StateFlow<String> = _iconTitle.asStateFlow()
 
@@ -154,6 +158,11 @@ class ComposeTerminalDisplay : TerminalDisplay {
     override fun beep() {
         // Increment bell trigger - UI layer observes this and handles sound/visual bell
         _bellTrigger.value++
+    }
+
+    override fun setProgress(state: TerminalDisplay.ProgressState, progress: Int) {
+        _progressState.value = state
+        _progressValue.value = progress.coerceIn(-1, 100)
     }
 
     override fun scrollArea(scrollRegionTop: Int, scrollRegionSize: Int, dy: Int) {

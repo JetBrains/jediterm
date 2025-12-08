@@ -927,6 +927,10 @@ class BossTerminal(
         myDisplay.beep()
     }
 
+    override fun setProgress(state: TerminalDisplay.ProgressState, progress: Int) {
+        myDisplay.setProgress(state, progress)
+    }
+
     override fun distanceToLineEnd(): Int {
         return myTerminalWidth - myCursorX
     }

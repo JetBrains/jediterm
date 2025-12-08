@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ai.rever.bossterm.terminal.TerminalDisplay
 
 /**
  * Tab bar component for multiple terminal sessions.
@@ -69,6 +70,8 @@ fun TabBar(
                     TabItem(
                         title = tab.title.value,
                         isActive = index == activeTabIndex,
+                        progressState = tab.display.progressState.value,
+                        progressValue = tab.display.progressValue.value,
                         onSelected = { onTabSelected(index) },
                         onClose = { onTabClosed(index) },
                         onContextMenu = {
@@ -121,18 +124,29 @@ fun TabBar(
 }
 
 /**
- * Individual tab item component.
+ * Individual tab item component with progress indicator.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun TabItem(
     title: String,
     isActive: Boolean,
+    progressState: TerminalDisplay.ProgressState,
+    progressValue: Int,
     onSelected: () -> Unit,
     onClose: () -> Unit,
     onContextMenu: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val showProgress = progressState != TerminalDisplay.ProgressState.HIDDEN
+    val progressColor = when (progressState) {
+        TerminalDisplay.ProgressState.NORMAL -> Color(0xFF4A90E2)  // Blue
+        TerminalDisplay.ProgressState.ERROR -> Color(0xFFE24A4A)   // Red
+        TerminalDisplay.ProgressState.WARNING -> Color(0xFFE2B44A) // Yellow/Orange
+        TerminalDisplay.ProgressState.INDETERMINATE -> Color(0xFF4A90E2) // Blue
+        TerminalDisplay.ProgressState.HIDDEN -> Color.Transparent
+    }
+
     Surface(
         onClick = onSelected,
         modifier = modifier
@@ -152,35 +166,65 @@ private fun TabItem(
             androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF404040))
         }
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 12.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            // Tab title - use Monospace font (Menlo on macOS) for monochrome symbols
-            Text(
-                text = title,
-                color = if (isActive) Color.White else Color(0xFFB0B0B0),
-                fontSize = 13.sp,
-                fontFamily = FontFamily.Monospace,  // Menlo has monochrome Dingbats (✳, ❯, etc.)
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
-
-            // Close button
-            IconButton(
-                onClick = onClose,
-                modifier = Modifier.size(20.dp)
+        Box(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Close Tab",
-                    tint = if (isActive) Color(0xFFB0B0B0) else Color(0xFF707070),
-                    modifier = Modifier.size(14.dp)
+                // Tab title - use Monospace font (Menlo on macOS) for monochrome symbols
+                Text(
+                    text = title,
+                    color = if (isActive) Color.White else Color(0xFFB0B0B0),
+                    fontSize = 13.sp,
+                    fontFamily = FontFamily.Monospace,  // Menlo has monochrome Dingbats (✳, ❯, etc.)
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
                 )
+
+                // Close button
+                IconButton(
+                    onClick = onClose,
+                    modifier = Modifier.size(20.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close Tab",
+                        tint = if (isActive) Color(0xFFB0B0B0) else Color(0xFF707070),
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
+
+            // Progress indicator at bottom of tab
+            if (showProgress) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .fillMaxWidth()
+                        .height(2.dp)
+                        .background(progressColor.copy(alpha = 0.3f))
+                ) {
+                    if (progressState == TerminalDisplay.ProgressState.INDETERMINATE) {
+                        // Indeterminate: full width pulsing bar
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(progressColor)
+                        )
+                    } else if (progressValue >= 0) {
+                        // Determinate: progress bar
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(progressValue / 100f)
+                                .fillMaxHeight()
+                                .background(progressColor)
+                        )
+                    }
+                }
             }
         }
     }

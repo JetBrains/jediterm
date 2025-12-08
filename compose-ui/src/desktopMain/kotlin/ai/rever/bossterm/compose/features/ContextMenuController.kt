@@ -21,6 +21,9 @@ import javax.swing.plaf.ColorUIResource
  * Uses AWT JPopupMenu for native context menu that can extend beyond window bounds.
  */
 class ContextMenuController {
+    // Track current popup to ensure proper dismissal before showing new one
+    private var currentPopup: JPopupMenu? = null
+
     /**
      * Menu item data class
      */
@@ -74,6 +77,11 @@ class ContextMenuController {
      * Show native AWT popup menu at screen coordinates with dark theme styling
      */
     private fun showNativeMenuAtScreen(screenX: Int, screenY: Int, items: List<MenuItem>) {
+        // Dismiss any existing popup first to prevent stuck menus
+        currentPopup?.let {
+            it.isVisible = false
+        }
+
         val popup = JPopupMenu().apply {
             // Dark theme colors
             background = Color(0x2B, 0x2B, 0x2B)
@@ -100,6 +108,9 @@ class ContextMenuController {
             }
         }
 
+        // Store reference for future dismissal
+        currentPopup = popup
+
         // Get the focused window to use as invoker
         val focusedWindow = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusedWindow
         if (focusedWindow != null) {
@@ -120,6 +131,11 @@ class ContextMenuController {
      * Hide context menu
      */
     fun hideMenu() {
+        // Dismiss native popup if visible
+        currentPopup?.let {
+            it.isVisible = false
+            currentPopup = null
+        }
         _menuState.value = MenuState()
     }
 

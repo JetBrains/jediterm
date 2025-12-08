@@ -562,13 +562,22 @@ class BossTerminal(
         )
 
         if (placement != null) {
-            // Move cursor past the image using the calculated cell height from placement
-            // The placement was calculated with placeholder metrics (10x24), which gives
-            // a reasonable estimate. UI will render at actual size.
+            // Move cursor past the image without adding newlines
+            // Images overlay content; cursor just moves to allow typing below
+            // The placement was calculated with placeholder metrics (10x24)
             val rowsToAdvance = placement.cellHeight
-            for (i in 0 until rowsToAdvance) {
-                newLine()
-            }
+
+            // Move cursor down directly (don't add newlines to buffer)
+            myCursorY += rowsToAdvance
+            myCursorYChanged = true
+
+            // Handle scrolling if cursor went below screen
+            scrollY()
+
+            // Move cursor to beginning of line (like iTerm2 does after image)
+            carriageReturn()
+
+            myDisplay.setCursor(myCursorX, myCursorY)
         }
 
         return placement

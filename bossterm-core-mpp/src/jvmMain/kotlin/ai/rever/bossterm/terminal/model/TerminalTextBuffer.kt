@@ -434,22 +434,15 @@ class TerminalTextBuffer internal constructor(
   ) {
     myLock.lock()
     try {
-      if (row < 0 || row >= screenLinesStorage.size) {
-        LOG.warn("writeImageCellRow: Invalid row={}, screenSize={}", row, screenLinesStorage.size)
-        return
-      }
+      if (row < 0 || row >= screenLinesStorage.size) return
 
       val line = screenLinesStorage[row]
-      var cellsWritten = 0
       for (cellX in 0 until cellWidth) {
         val col = startCol + cellX
         if (col < width) {
           line.setImageCell(col, ImageCell(imageId, cellX, cellY, cellWidth, cellHeight))
-          cellsWritten++
         }
       }
-
-      LOG.trace("writeImageCellRow: row={}, cellY={}, cellsWritten={}", row, cellY, cellsWritten)
     } finally {
       myLock.unlock()
     }

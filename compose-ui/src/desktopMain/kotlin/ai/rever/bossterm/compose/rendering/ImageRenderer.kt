@@ -106,12 +106,8 @@ object ImageRenderer {
             val screenRow = placement.anchorRow + scrollOffset
             val screenCol = placement.anchorCol
 
-            LOG.debug("Rendering image: anchorRow={}, scrollOffset={}, screenRow={}, screenCol={}, visibleRows={}",
-                placement.anchorRow, scrollOffset, screenRow, screenCol, visibleRows)
-
             // Skip if completely outside visible area
             if (screenRow + dimensions.cellHeight < 0 || screenRow >= visibleRows) {
-                LOG.debug("Image skipped: outside visible area")
                 continue
             }
 
@@ -119,22 +115,16 @@ object ImageRenderer {
             val x = screenCol * cellWidth
             val y = screenRow * cellHeight
 
-            LOG.debug("Image pixel position: x={}, y={}, cellWidth={}, cellHeight={}", x, y, cellWidth, cellHeight)
-
             // Calculate render size
             val renderWidth = dimensions.pixelWidth.toFloat()
             val renderHeight = dimensions.pixelHeight.toFloat()
 
             // Draw the image
-            try {
-                drawImage(
-                    image = bitmap,
-                    dstOffset = androidx.compose.ui.unit.IntOffset(x.toInt(), y.toInt()),
-                    dstSize = androidx.compose.ui.unit.IntSize(renderWidth.toInt(), renderHeight.toInt())
-                )
-            } catch (e: Exception) {
-                LOG.debug("Failed to render image {}: {}", placement.image.id, e.message)
-            }
+            drawImage(
+                image = bitmap,
+                dstOffset = androidx.compose.ui.unit.IntOffset(x.toInt(), y.toInt()),
+                dstSize = androidx.compose.ui.unit.IntSize(renderWidth.toInt(), renderHeight.toInt())
+            )
         }
     }
 
@@ -158,21 +148,8 @@ object ImageRenderer {
         val visibleStartRow = -scrollOffset
         val visibleEndRow = visibleStartRow + visibleRows
 
-        LOG.debug(
-            "getVisiblePlacements: allPlacements={}, scrollOffset={}, visibleRows={}, visibleStartRow={}, visibleEndRow={}",
-            allPlacements.size, scrollOffset, visibleRows, visibleStartRow, visibleEndRow
-        )
-
-        val filtered = allPlacements.filter { placement ->
-            val overlaps = placement.overlapsRows(visibleStartRow, visibleEndRow)
-            LOG.debug(
-                "  Placement imageId={}, anchorRow={}, cellH={} -> overlaps={}",
-                placement.image.id, placement.anchorRow, placement.cellHeight, overlaps
-            )
-            overlaps
+        return allPlacements.filter { placement ->
+            placement.overlapsRows(visibleStartRow, visibleEndRow)
         }
-
-        LOG.debug("getVisiblePlacements: returning {} visible placements", filtered.size)
-        return filtered
     }
 }

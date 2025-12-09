@@ -78,16 +78,9 @@ class TerminalImageStorage(
             pixelHeight = dimensions.pixelHeight
         )
 
-        val placementsBefore = placements.size
         images[image.id] = image
         placements = placements + placement  // COW: atomic reference swap
         totalBytes += image.data.size
-
-        LOG.debug(
-            "Added image id={}, row={}, col={}, cells={}x{}, pixels={}x{}, placements before={} after={}",
-            image.id, row, col, dimensions.cellWidth, dimensions.cellHeight,
-            dimensions.pixelWidth, dimensions.pixelHeight, placementsBefore, placements.size
-        )
 
         // Notify listeners
         for (listener in listeners) {
@@ -179,15 +172,7 @@ class TerminalImageStorage(
      * Get all current placements.
      * Returns the current snapshot - immutable due to COW pattern.
      */
-    fun getAllPlacements(): List<TerminalImagePlacement> {
-        val snapshot = placements
-        LOG.debug("getAllPlacements: returning {} placements", snapshot.size)
-        snapshot.forEachIndexed { index, p ->
-            LOG.debug("  [{}] imageId={}, anchorRow={}, anchorCol={}, cellW={}, cellH={}",
-                index, p.image.id, p.anchorRow, p.anchorCol, p.cellWidth, p.cellHeight)
-        }
-        return snapshot
-    }
+    fun getAllPlacements(): List<TerminalImagePlacement> = placements
 
     /**
      * Get an image by ID.

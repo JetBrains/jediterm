@@ -560,10 +560,6 @@ class BossTerminal(
         // Buffer row: 0 = first screen line, negative = history
         var bufferRow = myCursorY - 1  // 0-indexed screen row
         val anchorCol = myCursorX  // Save original column for placement
-        // myCursorX is already 0-indexed
-
-        LOG.info("processInlineImage: myCursorY={}, myCursorX={}, bufferRow={}, termSize={}x{}, cellDims={}x{}",
-            myCursorY, myCursorX, bufferRow, myTerminalWidth, myTerminalHeight, myCellWidthPx, myCellHeightPx)
 
         // Calculate image dimensions
         val dimensions = ImageDimensionCalculator.calculate(
@@ -579,13 +575,6 @@ class BossTerminal(
 
         // Strategy: Write image cells row by row, scrolling as needed
         // This ensures ALL image rows get ImageCell data, even those that scroll into history
-        val imageBottomRow = myCursorY + dimensions.cellHeight
-        val linesToScroll = (imageBottomRow - myTerminalHeight).coerceAtLeast(0)
-
-        LOG.info("Image placement: imageBottomRow={}, termHeight={}, linesToScroll={}, cellHeight={}",
-            imageBottomRow, myTerminalHeight, linesToScroll, dimensions.cellHeight)
-
-        // Write image cells row by row, scrolling when we hit the bottom
         var currentBufferRow = bufferRow
         for (cellY in 0 until dimensions.cellHeight) {
             // If we're at or past the bottom of the screen, scroll first
@@ -608,19 +597,10 @@ class BossTerminal(
             currentBufferRow++
         }
 
-        LOG.info("Image cells written: final bufferRow (anchor)={}", bufferRow)
-
-        LOG.info("Image placed as cells: anchorRow={}, anchorCol={}, cellSize={}x{}, imageId={}",
-            bufferRow, anchorCol, dimensions.cellWidth, dimensions.cellHeight, imageId)
-
         // Move cursor below the image (iTerm2 behavior)
+        // currentBufferRow now points to the row after the last image row
         myCursorX = 0
-        if (linesToScroll > 0) {
-            // Already scrolled, cursor is at bottom
-            myCursorY = myTerminalHeight
-        } else {
-            myCursorY = imageBottomRow
-        }
+        myCursorY = currentBufferRow.coerceAtMost(myTerminalHeight)
 
         myDisplay.setCursor(myCursorX, myCursorY)
 

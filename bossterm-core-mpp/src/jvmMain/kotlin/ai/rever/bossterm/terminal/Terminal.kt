@@ -326,6 +326,16 @@ interface Terminal {
      * Clear all images.
      */
     fun clearAllImages() {}
+
+    /**
+     * Set the cell dimensions in pixels.
+     * Called by the UI when cell dimensions are calculated/changed.
+     * Used for accurate image dimension calculations.
+     *
+     * @param cellWidthPx Width of a single cell in pixels
+     * @param cellHeightPx Height of a single cell in pixels
+     */
+    fun setCellDimensions(cellWidthPx: Float, cellHeightPx: Float) {}
 }
 
 /**

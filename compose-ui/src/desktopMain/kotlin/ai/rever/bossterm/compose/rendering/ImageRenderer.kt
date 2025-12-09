@@ -106,14 +106,20 @@ object ImageRenderer {
             val screenRow = placement.anchorRow + scrollOffset
             val screenCol = placement.anchorCol
 
+            LOG.debug("Rendering image: anchorRow={}, scrollOffset={}, screenRow={}, screenCol={}, visibleRows={}",
+                placement.anchorRow, scrollOffset, screenRow, screenCol, visibleRows)
+
             // Skip if completely outside visible area
             if (screenRow + dimensions.cellHeight < 0 || screenRow >= visibleRows) {
+                LOG.debug("Image skipped: outside visible area")
                 continue
             }
 
             // Calculate pixel position
             val x = screenCol * cellWidth
             val y = screenRow * cellHeight
+
+            LOG.debug("Image pixel position: x={}, y={}, cellWidth={}, cellHeight={}", x, y, cellWidth, cellHeight)
 
             // Calculate render size
             val renderWidth = dimensions.pixelWidth.toFloat()
@@ -152,8 +158,21 @@ object ImageRenderer {
         val visibleStartRow = -scrollOffset
         val visibleEndRow = visibleStartRow + visibleRows
 
-        return allPlacements.filter { placement ->
-            placement.overlapsRows(visibleStartRow, visibleEndRow)
+        LOG.debug(
+            "getVisiblePlacements: allPlacements={}, scrollOffset={}, visibleRows={}, visibleStartRow={}, visibleEndRow={}",
+            allPlacements.size, scrollOffset, visibleRows, visibleStartRow, visibleEndRow
+        )
+
+        val filtered = allPlacements.filter { placement ->
+            val overlaps = placement.overlapsRows(visibleStartRow, visibleEndRow)
+            LOG.debug(
+                "  Placement imageId={}, anchorRow={}, cellH={} -> overlaps={}",
+                placement.image.id, placement.anchorRow, placement.cellHeight, overlaps
+            )
+            overlaps
         }
+
+        LOG.debug("getVisiblePlacements: returning {} visible placements", filtered.size)
+        return filtered
     }
 }

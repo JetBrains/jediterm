@@ -97,10 +97,16 @@ class IncrementalSnapshotBuilder(
 
         // Process screen lines
         val newScreenLines = ArrayList<VersionedLine>(screenLinesStorage.size)
+        val linesWithImages = mutableListOf<Int>()
         for (i in 0 until screenLinesStorage.size) {
             val currentLine = screenLinesStorage[i]
             val currentVersion = currentLine.getSnapshotVersion()
             val prevVersionedLine = prev.screenLines.getOrNull(i)
+
+            // Track lines with image cells for debugging
+            if (currentLine.hasImageCells()) {
+                linesWithImages.add(i)
+            }
 
             if (prevVersionedLine != null && prevVersionedLine.version == currentVersion) {
                 // ZERO-COPY: reuse reference to previous line copy
@@ -112,6 +118,11 @@ class IncrementalSnapshotBuilder(
                 newScreenLines.add(VersionedLine(lineCopy, currentVersion))
                 screenLinesCopied++
             }
+        }
+
+        // Debug: Log if there are image cells
+        if (linesWithImages.isNotEmpty()) {
+            println("[DEBUG] IncrementalSnapshot: ${linesWithImages.size} lines have image cells at rows: $linesWithImages, copied=$screenLinesCopied, reused=$screenLinesReused")
         }
 
         // Process history lines

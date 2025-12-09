@@ -14,6 +14,8 @@ import ai.rever.bossterm.terminal.emulator.charset.GraphicSetState
 import ai.rever.bossterm.terminal.emulator.mouse.*
 import ai.rever.bossterm.terminal.model.hyperlinks.LinkInfo
 import ai.rever.bossterm.terminal.model.hyperlinks.LinkResultItem
+import ai.rever.bossterm.terminal.model.image.ImageDataCache
+import ai.rever.bossterm.terminal.model.image.ImageDimensionCalculator
 import ai.rever.bossterm.terminal.model.image.TerminalImage
 import ai.rever.bossterm.terminal.model.image.TerminalImageListener
 import ai.rever.bossterm.terminal.model.image.TerminalImagePlacement
@@ -95,6 +97,15 @@ class BossTerminal(
     private val myImageListeners: MutableList<TerminalImageListener> =
         CopyOnWriteArrayList<TerminalImageListener>()
     private val myImageStorage = TerminalImageStorage()
+
+    // Cell-based image storage - images stored as cells in buffer, flow with text
+    private val myImageDataCache = ImageDataCache()
+
+    // Cell dimensions in pixels - set by UI, used for image placement calculations
+    @Volatile
+    private var myCellWidthPx: Float = 10f  // Default estimate until UI sets actual value
+    @Volatile
+    private var myCellHeightPx: Float = 20f // Default estimate until UI sets actual value
 
     override fun setModeEnabled(mode: TerminalMode?, enabled: Boolean) {
         mode?.let {
@@ -545,41 +556,85 @@ class BossTerminal(
 
     override fun processInlineImage(image: TerminalImage): TerminalImagePlacement? {
         // Place image at current cursor position
-        // Row is buffer-relative (negative for history)
-        val bufferRow = myCursorY - 1 - terminalTextBuffer.historyLinesCount
+        // myCursorY is 1-indexed (1 to height), convert to 0-indexed buffer row
+        // Buffer row: 0 = first screen line, negative = history
+        var bufferRow = myCursorY - 1  // 0-indexed screen row
+        val anchorCol = myCursorX  // Save original column for placement
+        // myCursorX is already 0-indexed
 
-        // Create a preliminary placement - actual cell dimensions will be calculated
-        // by the UI layer which knows the font metrics
-        // Using 24px cell height as placeholder (typical for terminal fonts with line spacing)
-        val placement = myImageStorage.addImage(
+        LOG.info("processInlineImage: myCursorY={}, myCursorX={}, bufferRow={}, termSize={}x{}, cellDims={}x{}",
+            myCursorY, myCursorX, bufferRow, myTerminalWidth, myTerminalHeight, myCellWidthPx, myCellHeightPx)
+
+        // Calculate image dimensions
+        val dimensions = ImageDimensionCalculator.calculate(
             image = image,
-            row = bufferRow,
-            col = myCursorX,
-            cellWidthPx = 10f,  // Placeholder - recalculated by UI
-            cellHeightPx = 24f, // Placeholder (typical terminal font) - recalculated by UI
             terminalWidthCells = myTerminalWidth,
-            terminalHeightCells = myTerminalHeight
+            terminalHeightCells = myTerminalHeight,
+            cellWidthPx = myCellWidthPx,
+            cellHeightPx = myCellHeightPx
         )
 
-        if (placement != null) {
-            // Move cursor to the line after the image
-            // Images overlay content without modifying buffer
-            // The placement was calculated with placeholder metrics (10x24)
-            val rowsToAdvance = placement.cellHeight
+        // Store image data in cache
+        val imageId = myImageDataCache.storeImage(image)
 
-            // Position cursor at the row after the image, clamped to screen bounds
-            // Don't scroll - next actual output will trigger scrolling if needed
-            val targetRow = myCursorY + rowsToAdvance
-            myCursorY = minOf(targetRow, myScrollRegionBottom)
-            myCursorYChanged = true
+        // Strategy: Write image cells row by row, scrolling as needed
+        // This ensures ALL image rows get ImageCell data, even those that scroll into history
+        val imageBottomRow = myCursorY + dimensions.cellHeight
+        val linesToScroll = (imageBottomRow - myTerminalHeight).coerceAtLeast(0)
 
-            // Move cursor to beginning of line (like iTerm2 does after image)
-            carriageReturn()
+        LOG.info("Image placement: imageBottomRow={}, termHeight={}, linesToScroll={}, cellHeight={}",
+            imageBottomRow, myTerminalHeight, linesToScroll, dimensions.cellHeight)
 
-            myDisplay.setCursor(myCursorX, myCursorY)
+        // Write image cells row by row, scrolling when we hit the bottom
+        var currentBufferRow = bufferRow
+        for (cellY in 0 until dimensions.cellHeight) {
+            // If we're at or past the bottom of the screen, scroll first
+            if (currentBufferRow >= myTerminalHeight) {
+                scrollArea(myScrollRegionTop, scrollingRegionSize(), -1)
+                currentBufferRow = myTerminalHeight - 1  // Write to last row after scroll
+                bufferRow--  // Anchor moves up in buffer coordinates
+            }
+
+            // Write this row of image cells
+            terminalTextBuffer.writeImageCellRow(
+                row = currentBufferRow,
+                startCol = anchorCol,
+                imageId = imageId,
+                cellY = cellY,
+                cellWidth = dimensions.cellWidth,
+                cellHeight = dimensions.cellHeight
+            )
+
+            currentBufferRow++
         }
 
-        return placement
+        LOG.info("Image cells written: final bufferRow (anchor)={}", bufferRow)
+
+        LOG.info("Image placed as cells: anchorRow={}, anchorCol={}, cellSize={}x{}, imageId={}",
+            bufferRow, anchorCol, dimensions.cellWidth, dimensions.cellHeight, imageId)
+
+        // Move cursor below the image (iTerm2 behavior)
+        myCursorX = 0
+        if (linesToScroll > 0) {
+            // Already scrolled, cursor is at bottom
+            myCursorY = myTerminalHeight
+        } else {
+            myCursorY = imageBottomRow
+        }
+
+        myDisplay.setCursor(myCursorX, myCursorY)
+
+        // Return placement for backward compatibility with rendering
+        // anchorRow can be negative if image top scrolled into history
+        return TerminalImagePlacement(
+            image = image,
+            anchorRow = bufferRow,  // Can be negative for images in history
+            anchorCol = anchorCol,
+            cellWidth = dimensions.cellWidth,
+            cellHeight = dimensions.cellHeight,
+            pixelWidth = dimensions.pixelWidth,
+            pixelHeight = dimensions.pixelHeight
+        )
     }
 
     override fun getImagePlacements(startRow: Int, endRow: Int): List<TerminalImagePlacement> {
@@ -592,6 +647,21 @@ class BossTerminal(
 
     override fun clearAllImages() {
         myImageStorage.clearAll()
+        myImageDataCache.clearAll()
+    }
+
+    /**
+     * Get the image data cache for cell-based image rendering.
+     * Used by renderer to fetch image data by ID from ImageAnchorCells.
+     */
+    fun getImageDataCache(): ImageDataCache = myImageDataCache
+
+    override fun setCellDimensions(cellWidthPx: Float, cellHeightPx: Float) {
+        if (cellWidthPx > 0 && cellHeightPx > 0) {
+            myCellWidthPx = cellWidthPx
+            myCellHeightPx = cellHeightPx
+            LOG.debug("Cell dimensions updated: {}x{} px", cellWidthPx, cellHeightPx)
+        }
     }
 
     /**
@@ -632,6 +702,22 @@ class BossTerminal(
         myTabulator = DefaultTabulator(myTerminalWidth)
 
         myGraphicSetState = GraphicSetState()
+
+        // Register callback to adjust image anchors when lines move during resize
+        terminalTextBuffer.setResizeCallback(object : BufferResizeCallback {
+            override fun onLinesMovedToHistory(lineCount: Int) {
+                myImageStorage.adjustAnchorsForLinesToHistory(lineCount)
+            }
+            override fun onLinesRestoredFromHistory(lineCount: Int) {
+                myImageStorage.adjustAnchorsForLinesFromHistory(lineCount)
+            }
+            override fun getAnchorRowsToTrack(): Set<Int> {
+                return myImageStorage.getAnchorRows()
+            }
+            override fun onWidthChanged(anchorMapping: Map<Int, Int>) {
+                myImageStorage.reanchorImages(anchorMapping)
+            }
+        })
 
         reset(true)
     }

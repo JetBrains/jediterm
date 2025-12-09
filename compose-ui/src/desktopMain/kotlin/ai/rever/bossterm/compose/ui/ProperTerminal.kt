@@ -27,6 +27,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.scale
@@ -519,6 +520,11 @@ fun ProperTerminal(
 
   // Calculate line spacing gap (extra space added by line spacing)
   val lineSpacingGap = cellHeight - baseCellHeight
+
+  // Update terminal with actual cell dimensions for accurate image placement
+  LaunchedEffect(cellWidth, cellHeight) {
+    terminal.setCellDimensions(cellWidth, cellHeight)
+  }
 
   // SLOW_BLINK animation timer (configurable via settings.slowTextBlinkMs)
   // Wrapped with enableTextBlinking master toggle for accessibility
@@ -1321,7 +1327,14 @@ fun ProperTerminal(
           textBuffer.createIncrementalSnapshot()
         }
 
-        Canvas(modifier = Modifier.padding(start = 4.dp, top = 4.dp).fillMaxSize()) {
+        // Memoize image placements snapshot with same keys as bufferSnapshot
+        // This ensures placements are synchronized with buffer state and prevents race conditions
+        // where placements are updated while rendering is in progress
+        val imagePlacementsSnapshot = remember(display.redrawTrigger.value, textBuffer.width, textBuffer.height) {
+          terminal.getAllImagePlacements()  // Returns a defensive copy via synchronized block
+        }
+
+        Canvas(modifier = Modifier.padding(start = 4.dp, top = 4.dp).fillMaxSize().clipToBounds()) {
           // Guard against invalid canvas sizes during resize - prevents drawText constraint failures
           if (size.width < cellWidth || size.height < cellHeight) return@Canvas
 
@@ -1339,10 +1352,9 @@ fun ProperTerminal(
             Color(customCursorColor.red, customCursorColor.green, customCursorColor.blue)
           } else null
 
-          // Get visible image placements for rendering
-          val allImagePlacements = terminal.getAllImagePlacements()
+          // Filter image placements to visible area using memoized snapshot
           val visibleImagePlacements = ImageRenderer.getVisiblePlacements(
-            allPlacements = allImagePlacements,
+            allPlacements = imagePlacementsSnapshot,
             scrollOffset = scrollOffset,
             visibleRows = visibleRows
           )
@@ -1382,7 +1394,9 @@ fun ProperTerminal(
             rapidBlinkVisible = rapidBlinkVisible,
             imagePlacements = visibleImagePlacements,
             terminalWidthCells = bufferSnapshot.width,
-            terminalHeightCells = bufferSnapshot.height
+            terminalHeightCells = bufferSnapshot.height,
+            imageDataCache = terminal.getImageDataCache(),
+            placementsByImageId = visibleImagePlacements.associateBy { it.image.id }
           )
 
           // Render terminal using extracted renderer - returns detected hyperlinks

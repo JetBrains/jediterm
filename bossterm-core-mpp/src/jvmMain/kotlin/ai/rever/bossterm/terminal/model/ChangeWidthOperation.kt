@@ -1,6 +1,7 @@
 package ai.rever.bossterm.terminal.model
 
 import ai.rever.bossterm.core.compatibility.Point
+import ai.rever.bossterm.terminal.model.image.ImageCell
 import ai.rever.bossterm.terminal.util.GraphemeBoundaryUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -18,6 +19,10 @@ internal class ChangeWidthOperation(
     private var myCurrentLine: TerminalLine? = null
     private var myCurrentLineLength = 0
 
+    // Track image anchor rows for remapping after reflow (legacy - for TerminalImageStorage)
+    private val myAnchorRows: MutableSet<Int> = HashSet()
+    private val myAnchorMapping: MutableMap<Int, Int> = HashMap()
+
     fun addPointToTrack(point: Point, isForceVisible: Boolean) {
         if (isForceVisible && (point.y < 0 || point.y >= myTextBuffer.height)) {
             LOG.warn("Registered visible point {} is outside screen: [0, {}]", point, myTextBuffer.height - 1)
@@ -25,6 +30,22 @@ internal class ChangeWidthOperation(
         }
         myTrackingPoints.put(TrackingPoint(point, isForceVisible), null)
     }
+
+    /**
+     * Add an image anchor row to track through the reflow.
+     * The anchor row is screen-relative (0-indexed).
+     */
+    fun addAnchorRowToTrack(row: Int) {
+        myAnchorRows.add(row)
+        // Track as a point at column 0
+        addPointToTrack(Point(0, row), false)
+    }
+
+    /**
+     * Get the mapping of old anchor rows to new anchor rows after reflow.
+     * Must be called after run().
+     */
+    fun getAnchorMapping(): Map<Int, Int> = myAnchorMapping.toMap()
 
     fun getTrackedPoint(original: Point): Point {
         var result = myTrackingPoints.get(TrackingPoint(original, false))
@@ -136,6 +157,14 @@ internal class ChangeWidthOperation(
             p.x = min(myNewWidth, max(0, p.x))
             p.y = min(myNewHeight, max(0, p.y))
         }
+
+        // Build anchor mapping for image repositioning (legacy - for TerminalImageStorage)
+        for (oldRow in myAnchorRows) {
+            val trackedPoint = myTrackingPoints[TrackingPoint(0, oldRow, false)]
+            if (trackedPoint != null) {
+                myAnchorMapping[oldRow] = trackedPoint.y
+            }
+        }
     }
 
     private val emptyBottomLineCount: Int
@@ -160,7 +189,8 @@ internal class ChangeWidthOperation(
     }
 
     private fun addLine(line: TerminalLine) {
-        if (line.isNul) {
+        // Handle empty lines (no text, no images)
+        if (line.isNul && !line.hasImageCells()) {
             if (myCurrentLine != null) {
                 myCurrentLine = null
                 myCurrentLineLength = 0
@@ -169,26 +199,37 @@ internal class ChangeWidthOperation(
             return
         }
 
-        // Track if we added any content from this line
+        // Get image cells sorted by column
+        val imageCells = if (line.hasImageCells()) {
+            line.getAllImageCells().toSortedMap()
+        } else {
+            sortedMapOf()
+        }
+        val placedImageCols = mutableSetOf<Int>()
+
+        // Track current input column position
+        var inputCol = 0
         var addedContent = false
+
+        // Process text entries, interleaving image cells at their original positions
         line.forEachEntry(Consumer { entry: TerminalLine.TextEntry? ->
             if (entry?.isNul != false) {
                 return@Consumer
             }
             var entryProcessedLength = 0
             while (entryProcessedLength < entry.length) {
-                val currentLine = myCurrentLine
-                if (currentLine != null && myCurrentLineLength == myNewWidth) {
-                    currentLine.isWrapped = true
-                    myCurrentLine = null
-                    myCurrentLineLength = 0
+                // Place any image cells that come before current text position
+                val currentInputPos = inputCol + entryProcessedLength
+                for ((imgCol, imgCell) in imageCells) {
+                    if (imgCol !in placedImageCols && imgCol <= currentInputPos) {
+                        placeImageCell(imgCell)
+                        placedImageCols.add(imgCol)
+                        addedContent = true
+                    }
                 }
-                if (myCurrentLine == null) {
-                    val newLine = TerminalLine()
-                    myCurrentLine = newLine
-                    myCurrentLineLength = 0
-                    myAllLines.add(newLine)
-                }
+
+                // Ensure we have a current line
+                ensureCurrentLine()
 
                 // Calculate maximum length we can take
                 val maxLen = min(myNewWidth - myCurrentLineLength, entry.length - entryProcessedLength)
@@ -196,28 +237,36 @@ internal class ChangeWidthOperation(
                 // Get the text that we're about to split to analyze grapheme boundaries
                 val textToSplit = entry.text.subBuffer(entryProcessedLength, maxLen).toString()
 
-                // Find safe grapheme boundary to avoid splitting emoji, surrogate pairs, or ZWJ sequences
+                // Find safe grapheme boundary
                 val safeLen = GraphemeBoundaryUtils.findLastCompleteGraphemeBoundary(textToSplit)
-
-                // Use the safe length, but ensure we make progress (use at least 1 char if safeLen is 0)
-                val len = if (safeLen > 0) {
-                    safeLen
-                } else {
-                    LOG.warn("Unable to find safe grapheme boundary in text of length {}, forcing split at position 1", textToSplit.length)
-                    1
-                }
+                val len = if (safeLen > 0) safeLen else 1
 
                 val newEntry: TerminalLine.TextEntry = Companion.subEntry(entry, entryProcessedLength, len)
                 myCurrentLine?.appendEntry(newEntry)
                 myCurrentLineLength += len
                 entryProcessedLength += len
                 addedContent = true
+
+                // Wrap if line is full
+                if (myCurrentLineLength == myNewWidth) {
+                    myCurrentLine?.isWrapped = true
+                    myCurrentLine = null
+                    myCurrentLineLength = 0
+                }
             }
+            inputCol += entry.length
         })
 
-        // CRITICAL FIX: If this line had no content (empty entries) but is NOT nul,
-        // we still need to create a line for it. Otherwise it gets silently dropped,
-        // causing data loss on resize.
+        // Place any remaining image cells
+        for ((imgCol, imgCell) in imageCells) {
+            if (imgCol !in placedImageCols) {
+                placeImageCell(imgCell)
+                placedImageCols.add(imgCol)
+                addedContent = true
+            }
+        }
+
+        // Handle empty lines that aren't truly null
         if (!addedContent && myCurrentLine == null) {
             myAllLines.add(TerminalLine.Companion.createEmpty())
         }
@@ -226,6 +275,35 @@ internal class ChangeWidthOperation(
             myCurrentLine = null
             myCurrentLineLength = 0
         }
+    }
+
+    /**
+     * Ensure current line exists. Creates new line if needed.
+     */
+    private fun ensureCurrentLine() {
+        if (myCurrentLine == null) {
+            val newLine = TerminalLine()
+            myCurrentLine = newLine
+            myCurrentLineLength = 0
+            myAllLines.add(newLine)
+        }
+    }
+
+    /**
+     * Place a single image cell at current position.
+     * Image cells are treated like text - one cell per column position, wrap when line full.
+     */
+    private fun placeImageCell(cell: ImageCell) {
+        // Wrap if line is full
+        if (myCurrentLine != null && myCurrentLineLength == myNewWidth) {
+            myCurrentLine?.isWrapped = true
+            myCurrentLine = null
+            myCurrentLineLength = 0
+        }
+        ensureCurrentLine()
+
+        myCurrentLine?.setImageCell(myCurrentLineLength, cell)
+        myCurrentLineLength++
     }
 
     class TrackingPoint(val x: Int, val y: Int, val forceVisible: Boolean) {

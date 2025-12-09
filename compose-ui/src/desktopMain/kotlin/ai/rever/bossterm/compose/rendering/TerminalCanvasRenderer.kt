@@ -19,10 +19,13 @@ import ai.rever.bossterm.compose.util.ColorUtils
 import ai.rever.bossterm.terminal.CursorShape
 import ai.rever.bossterm.terminal.model.TerminalLine
 import ai.rever.bossterm.terminal.model.pool.VersionedBufferSnapshot
+import ai.rever.bossterm.terminal.model.image.ImageCell
+import ai.rever.bossterm.terminal.model.image.ImageDataCache
 import ai.rever.bossterm.terminal.model.image.TerminalImagePlacement
 import ai.rever.bossterm.terminal.util.CharUtils
 import ai.rever.bossterm.terminal.TextStyle as BossTextStyle
 import org.jetbrains.skia.FontMgr
+import org.slf4j.LoggerFactory
 
 /**
  * Holds all the state needed for terminal rendering.
@@ -78,10 +81,17 @@ data class RenderingContext(
     val slowBlinkVisible: Boolean,
     val rapidBlinkVisible: Boolean,
 
-    // Image placements
+    // Image placements (legacy approach - for backward compatibility)
     val imagePlacements: List<TerminalImagePlacement> = emptyList(),
     val terminalWidthCells: Int = 80,
-    val terminalHeightCells: Int = 24
+    val terminalHeightCells: Int = 24,
+
+    // Cell-based image rendering (new approach - images flow with text)
+    val imageDataCache: ImageDataCache? = null,
+
+    // Placement lookup by image ID - used for hybrid rendering fallback
+    // when ImageCell data is missing (e.g., for image rows that exceeded screen buffer)
+    val placementsByImageId: Map<Long, TerminalImagePlacement> = emptyMap()
 )
 
 /**
@@ -89,6 +99,7 @@ data class RenderingContext(
  * Separates rendering logic from the composable for better maintainability.
  */
 object TerminalCanvasRenderer {
+    private val LOG = LoggerFactory.getLogger(TerminalCanvasRenderer::class.java)
 
     /**
      * Main rendering entry point. Renders the entire terminal buffer.
@@ -102,11 +113,30 @@ object TerminalCanvasRenderer {
     fun DrawScope.renderTerminal(ctx: RenderingContext): Map<Int, List<Hyperlink>> {
         val hyperlinksCache = mutableMapOf<Int, List<Hyperlink>>()
 
+        // Debug: Log image rendering context
+        if (ctx.imagePlacements.isNotEmpty() || ctx.imageDataCache != null) {
+            LOG.debug(
+                "renderTerminal: placements={}, placementsByImageId={}, imageDataCache={}, scrollOffset={}, visibleRows={}",
+                ctx.imagePlacements.size,
+                ctx.placementsByImageId.size,
+                ctx.imageDataCache?.let { "present" } ?: "null",
+                ctx.scrollOffset,
+                ctx.visibleRows
+            )
+            ctx.imagePlacements.forEach { p ->
+                LOG.debug(
+                    "  Placement: imageId={}, anchorRow={}, anchorCol={}, cellW={}, cellH={}, pixelW={}, pixelH={}",
+                    p.image.id, p.anchorRow, p.anchorCol, p.cellWidth, p.cellHeight, p.pixelWidth, p.pixelHeight
+                )
+            }
+        }
+
         // Pass 1: Draw backgrounds
         renderBackgrounds(ctx)
 
-        // Pass 1.5: Draw inline images (after backgrounds, before text)
+        // Pass 1.5: Draw inline images (legacy - after backgrounds, before text)
         if (ctx.imagePlacements.isNotEmpty()) {
+            LOG.debug("renderImages: Calling legacy renderImages with {} placements", ctx.imagePlacements.size)
             renderImages(ctx)
         }
 
@@ -134,6 +164,25 @@ object TerminalCanvasRenderer {
                 terminalWidthCells = ctx.terminalWidthCells,
                 terminalHeightCells = ctx.terminalHeightCells
             )
+        }
+    }
+
+    /**
+     * Find a placement that covers the given buffer position.
+     * Used for hybrid rendering when ImageCell data is missing (overflow rows).
+     *
+     * @param ctx Rendering context with placements
+     * @param lineIndex Buffer line index (can be negative for history)
+     * @param col Column position
+     * @return Placement covering this cell, or null if none
+     */
+    private fun findPlacementCoveringPosition(
+        ctx: RenderingContext,
+        lineIndex: Int,
+        col: Int
+    ): TerminalImagePlacement? {
+        return ctx.imagePlacements.find { placement ->
+            placement.containsCell(lineIndex, col)
         }
     }
 
@@ -219,6 +268,14 @@ object TerminalCanvasRenderer {
         val snapshot = ctx.bufferSnapshot
         val hyperlinksCache = mutableMapOf<Int, List<Hyperlink>>()
 
+        // Debug counters for image rendering
+        var cellBasedImageCells = 0
+        var placementFallbackCells = 0
+        var imageCacheHits = 0
+        var imageCacheMisses = 0
+        var bitmapDecodeSuccess = 0
+        var bitmapDecodeFails = 0
+
         for (row in 0 until ctx.visibleRows) {
             val lineIndex = row - ctx.scrollOffset
             val line = snapshot.getLine(lineIndex)
@@ -279,6 +336,135 @@ object TerminalCanvasRenderer {
             var visualCol = 0
 
             while (col < ctx.visibleCols) {
+                // Check for image cell first (cell-based image rendering)
+                val imageCell = line.getImageCellAt(col)
+                if (imageCell != null) {
+                    // Flush any pending text batch before rendering image cell
+                    flushBatch()
+                    cellBasedImageCells++
+
+                    // Render this cell's portion of the image
+                    val image = ctx.imageDataCache?.getImage(imageCell.imageId)
+                    if (image == null) {
+                        imageCacheMisses++
+                        LOG.warn("Cell-based: Image not in cache, row={}, col={}, imageId={}", row, col, imageCell.imageId)
+                    } else {
+                        imageCacheHits++
+                    }
+                    if (image != null) {
+                        val bitmap = ImageRenderer.getOrDecodeImage(image)
+                        if (bitmap == null) {
+                            bitmapDecodeFails++
+                            LOG.warn("Cell-based: Bitmap decode failed, row={}, col={}, imageId={}", row, col, imageCell.imageId)
+                        } else {
+                            bitmapDecodeSuccess++
+                        }
+                        if (bitmap != null) {
+                            // Calculate source region - use exact boundaries to avoid gaps
+                            val srcX1 = imageCell.cellX * bitmap.width / imageCell.totalCellsX
+                            val srcX2 = (imageCell.cellX + 1) * bitmap.width / imageCell.totalCellsX
+                            val srcY1 = imageCell.cellY * bitmap.height / imageCell.totalCellsY
+                            val srcY2 = (imageCell.cellY + 1) * bitmap.height / imageCell.totalCellsY
+                            val srcX = srcX1
+                            val srcY = srcY1
+                            val srcW = (srcX2 - srcX1).coerceAtLeast(1)
+                            val srcH = (srcY2 - srcY1).coerceAtLeast(1)
+
+                            // Destination - use exact boundaries to avoid gaps
+                            val dstX1 = (visualCol * ctx.cellWidth).toInt()
+                            val dstX2 = ((visualCol + 1) * ctx.cellWidth).toInt()
+                            val dstY1 = (row * ctx.cellHeight).toInt()
+                            val dstY2 = ((row + 1) * ctx.cellHeight).toInt()
+                            val dstX = dstX1
+                            val dstY = dstY1
+                            val dstW = (dstX2 - dstX1).coerceAtLeast(1)
+                            val dstH = (dstY2 - dstY1).coerceAtLeast(1)
+
+                            // Draw the portion of the image for this cell
+                            drawImage(
+                                image = bitmap,
+                                srcOffset = androidx.compose.ui.unit.IntOffset(srcX, srcY),
+                                srcSize = androidx.compose.ui.unit.IntSize(srcW, srcH),
+                                dstOffset = androidx.compose.ui.unit.IntOffset(dstX, dstY),
+                                dstSize = androidx.compose.ui.unit.IntSize(dstW, dstH)
+                            )
+                        }
+                    }
+
+                    col++
+                    visualCol++
+                    continue
+                }
+
+                // Placement fallback: Check if this position is covered by a placement
+                // This handles overflow rows where ImageCell data wasn't written (image taller than screen)
+                val placement = findPlacementCoveringPosition(ctx, lineIndex, col)
+                if (placement != null) {
+                    // Flush any pending text batch before rendering image cell
+                    flushBatch()
+                    placementFallbackCells++
+
+                    // Calculate which cell this would be if cells existed
+                    val cellY = lineIndex - placement.anchorRow  // Row offset within image
+                    val cellX = col - placement.anchorCol        // Column offset within image
+
+                    LOG.debug(
+                        "Placement fallback: row={}, col={}, lineIndex={}, anchorRow={}, cellX={}, cellY={}, cellH={}, cellW={}",
+                        row, col, lineIndex, placement.anchorRow, cellX, cellY, placement.cellHeight, placement.cellWidth
+                    )
+
+                    // Validate bounds (should always pass if containsCell returned true)
+                    if (cellY in 0 until placement.cellHeight && cellX in 0 until placement.cellWidth) {
+                        // Get the image from cache
+                        val image = ctx.imageDataCache?.getImage(placement.image.id)
+                        if (image == null) {
+                            imageCacheMisses++
+                            LOG.warn("Placement fallback: Image not in cache, imageId={}", placement.image.id)
+                        } else {
+                            imageCacheHits++
+                        }
+                        if (image != null) {
+                            val bitmap = ImageRenderer.getOrDecodeImage(image)
+                            if (bitmap == null) {
+                                bitmapDecodeFails++
+                                LOG.warn("Placement fallback: Bitmap decode failed, imageId={}", placement.image.id)
+                            } else {
+                                bitmapDecodeSuccess++
+                            }
+                            if (bitmap != null) {
+                                // Calculate source region (same formula as cell-based rendering)
+                                val srcX1 = cellX * bitmap.width / placement.cellWidth
+                                val srcX2 = (cellX + 1) * bitmap.width / placement.cellWidth
+                                val srcY1 = cellY * bitmap.height / placement.cellHeight
+                                val srcY2 = (cellY + 1) * bitmap.height / placement.cellHeight
+                                val srcW = (srcX2 - srcX1).coerceAtLeast(1)
+                                val srcH = (srcY2 - srcY1).coerceAtLeast(1)
+
+                                // Calculate destination
+                                val dstX1 = (visualCol * ctx.cellWidth).toInt()
+                                val dstX2 = ((visualCol + 1) * ctx.cellWidth).toInt()
+                                val dstY1 = (row * ctx.cellHeight).toInt()
+                                val dstY2 = ((row + 1) * ctx.cellHeight).toInt()
+                                val dstW = (dstX2 - dstX1).coerceAtLeast(1)
+                                val dstH = (dstY2 - dstY1).coerceAtLeast(1)
+
+                                // Draw the portion of the image for this cell
+                                drawImage(
+                                    image = bitmap,
+                                    srcOffset = androidx.compose.ui.unit.IntOffset(srcX1, srcY1),
+                                    srcSize = androidx.compose.ui.unit.IntSize(srcW, srcH),
+                                    dstOffset = androidx.compose.ui.unit.IntOffset(dstX1, dstY1),
+                                    dstSize = androidx.compose.ui.unit.IntSize(dstW, dstH)
+                                )
+                            }
+                        }
+                    }
+
+                    col++
+                    visualCol++
+                    continue
+                }
+
                 val char = line.charAt(col)
                 val style = line.getStyleAt(col)
 
@@ -443,6 +629,14 @@ object TerminalCanvasRenderer {
             }
 
             flushBatch()
+        }
+
+        // Debug summary for image rendering
+        if (cellBasedImageCells > 0 || placementFallbackCells > 0) {
+            LOG.debug(
+                "renderText SUMMARY: cellBased={}, placementFallback={}, cacheHits={}, cacheMisses={}, bitmapOK={}, bitmapFail={}",
+                cellBasedImageCells, placementFallbackCells, imageCacheHits, imageCacheMisses, bitmapDecodeSuccess, bitmapDecodeFails
+            )
         }
 
         return hyperlinksCache

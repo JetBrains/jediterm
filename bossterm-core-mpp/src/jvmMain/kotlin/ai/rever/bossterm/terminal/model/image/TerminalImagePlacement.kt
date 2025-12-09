@@ -106,9 +106,14 @@ object ImageDimensionCalculator {
             val aspectRatio = image.intrinsicWidth.toFloat() / image.intrinsicHeight.toFloat()
 
             when {
-                // Both auto - use intrinsic size (already set above)
+                // Both auto - use intrinsic size but constrain to terminal width
                 image.widthSpec is DimensionSpec.Auto && image.heightSpec is DimensionSpec.Auto -> {
-                    // Keep intrinsic dimensions
+                    // If wider than terminal, scale down to fit while preserving aspect ratio
+                    if (targetWidthPx > terminalWidthPx) {
+                        val scale = terminalWidthPx / targetWidthPx
+                        targetWidthPx = terminalWidthPx.toInt()
+                        targetHeightPx = (targetHeightPx * scale).toInt()
+                    }
                 }
                 // Only width specified - calculate height
                 image.heightSpec is DimensionSpec.Auto -> {

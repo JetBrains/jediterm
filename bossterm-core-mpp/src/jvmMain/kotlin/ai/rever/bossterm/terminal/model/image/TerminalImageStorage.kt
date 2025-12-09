@@ -22,7 +22,12 @@ class TerminalImageStorage(
     }
 
     private val images = ConcurrentHashMap<Long, TerminalImage>()
-    private val placements = CopyOnWriteArrayList<TerminalImagePlacement>()
+
+    // Copy-on-Write pattern: Atomic reference swap for lock-free reads during rendering
+    // All updates create a new list and atomically swap the reference
+    @Volatile
+    private var placements: List<TerminalImagePlacement> = emptyList()
+
     private val listeners = CopyOnWriteArrayList<TerminalImageListener>()
 
     private var totalBytes: Long = 0
@@ -73,14 +78,15 @@ class TerminalImageStorage(
             pixelHeight = dimensions.pixelHeight
         )
 
+        val placementsBefore = placements.size
         images[image.id] = image
-        placements.add(placement)
+        placements = placements + placement  // COW: atomic reference swap
         totalBytes += image.data.size
 
         LOG.debug(
-            "Added image id={}, row={}, col={}, cells={}x{}, pixels={}x{}",
+            "Added image id={}, row={}, col={}, cells={}x{}, pixels={}x{}, placements before={} after={}",
             image.id, row, col, dimensions.cellWidth, dimensions.cellHeight,
-            dimensions.pixelWidth, dimensions.pixelHeight
+            dimensions.pixelWidth, dimensions.pixelHeight, placementsBefore, placements.size
         )
 
         // Notify listeners
@@ -96,7 +102,7 @@ class TerminalImageStorage(
      */
     fun removeImage(imageId: Long): Boolean {
         val image = images.remove(imageId) ?: return false
-        placements.removeIf { it.image.id == imageId }
+        placements = placements.filter { it.image.id != imageId }  // COW: atomic reference swap
         totalBytes -= image.data.size
 
         LOG.debug("Removed image id={}", imageId)
@@ -113,7 +119,7 @@ class TerminalImageStorage(
      */
     fun clearAll() {
         images.clear()
-        placements.clear()
+        placements = emptyList()  // COW: atomic reference swap
         totalBytes = 0
 
         LOG.debug("Cleared all images")
@@ -151,9 +157,8 @@ class TerminalImageStorage(
             images.remove(imageId)?.let { totalBytes -= it.data.size }
         }
 
-        // Update placements list
-        placements.clear()
-        placements.addAll(updatedPlacements)
+        // COW: atomic reference swap - no lock needed
+        placements = updatedPlacements
 
         // Notify listeners
         for (imageId in toRemove) {
@@ -172,9 +177,16 @@ class TerminalImageStorage(
 
     /**
      * Get all current placements.
+     * Returns the current snapshot - immutable due to COW pattern.
      */
     fun getAllPlacements(): List<TerminalImagePlacement> {
-        return placements.toList()
+        val snapshot = placements
+        LOG.debug("getAllPlacements: returning {} placements", snapshot.size)
+        snapshot.forEachIndexed { index, p ->
+            LOG.debug("  [{}] imageId={}, anchorRow={}, anchorCol={}, cellW={}, cellH={}",
+                index, p.image.id, p.anchorRow, p.anchorCol, p.cellWidth, p.cellHeight)
+        }
+        return snapshot
     }
 
     /**
@@ -214,8 +226,87 @@ class TerminalImageStorage(
             )
         }
 
-        placements.clear()
-        placements.addAll(updatedPlacements)
+        // COW: atomic reference swap - no lock needed
+        placements = updatedPlacements
+
+        for (listener in listeners) {
+            listener.onImagesUpdated(updatedPlacements)
+        }
+    }
+
+    /**
+     * Adjust image anchor rows when lines are moved from screen to history.
+     * Called during terminal height shrink.
+     *
+     * @param lineCount Number of lines moved to history
+     */
+    fun adjustAnchorsForLinesToHistory(lineCount: Int) {
+        if (lineCount <= 0 || placements.isEmpty()) return
+
+        LOG.debug("Adjusting image anchors for {} lines moved to history", lineCount)
+
+        val updatedPlacements = placements.map { placement ->
+            // Screen lines moved to history = all screen indices shift DOWN
+            // anchorRow 10 with 5 lines moved → anchorRow 5
+            placement.copy(anchorRow = placement.anchorRow - lineCount)
+        }
+
+        // COW: atomic reference swap - no lock needed
+        placements = updatedPlacements
+    }
+
+    /**
+     * Adjust image anchor rows when lines are restored from history to screen.
+     * Called during terminal height expand.
+     *
+     * @param lineCount Number of lines restored from history
+     */
+    fun adjustAnchorsForLinesFromHistory(lineCount: Int) {
+        if (lineCount <= 0 || placements.isEmpty()) return
+
+        LOG.debug("Adjusting image anchors for {} lines restored from history", lineCount)
+
+        val updatedPlacements = placements.map { placement ->
+            // Lines added to screen TOP = all screen indices shift UP
+            // anchorRow 5 with 3 lines added → anchorRow 8
+            placement.copy(anchorRow = placement.anchorRow + lineCount)
+        }
+
+        // COW: atomic reference swap - no lock needed
+        placements = updatedPlacements
+    }
+
+    /**
+     * Get all current anchor rows for tracking through width reflow.
+     * @return Set of screen-relative anchor rows (0-indexed)
+     */
+    fun getAnchorRows(): Set<Int> {
+        return placements.map { it.anchorRow }.toSet()
+    }
+
+    /**
+     * Reanchor images after width change using the provided mapping.
+     * @param anchorMapping Map of old anchor row -> new anchor row
+     */
+    fun reanchorImages(anchorMapping: Map<Int, Int>) {
+        if (anchorMapping.isEmpty() || placements.isEmpty()) return
+
+        LOG.debug("Reanchoring images with mapping: {}", anchorMapping)
+
+        val updatedPlacements = placements.map { placement ->
+            val newRow = anchorMapping[placement.anchorRow]
+            if (newRow != null) {
+                LOG.debug("Reanchoring image from row {} to row {}", placement.anchorRow, newRow)
+                placement.copy(anchorRow = newRow)
+            } else {
+                // Keep original position if not in mapping (shouldn't happen)
+                LOG.warn("No mapping found for anchor row {}", placement.anchorRow)
+                placement
+            }
+        }
+
+        // COW: atomic reference swap - no lock needed
+        placements = updatedPlacements
 
         for (listener in listeners) {
             listener.onImagesUpdated(updatedPlacements)

@@ -557,64 +557,41 @@ class BossTerminal(
     override fun processInlineImage(image: TerminalImage): TerminalImagePlacement? {
         // Place image at current cursor position
         // myCursorY is 1-indexed (1 to height), convert to 0-indexed buffer row
-        // Buffer row: 0 = first screen line, negative = history
-        var bufferRow = myCursorY - 1  // 0-indexed screen row
-        val anchorCol = myCursorX  // Save original column for placement
+        val anchorRow = myCursorY - 1
+        val anchorCol = myCursorX
 
-        // Calculate image dimensions
-        val dimensions = ImageDimensionCalculator.calculate(
+        // Store image in cache (renderer fetches by ID)
+        myImageDataCache.storeImage(image)
+
+        // Add to storage - this creates placement and handles scroll sync via onBufferScroll
+        val placement = myImageStorage.addImage(
             image = image,
-            terminalWidthCells = myTerminalWidth,
-            terminalHeightCells = myTerminalHeight,
+            row = anchorRow,
+            col = anchorCol,
             cellWidthPx = myCellWidthPx,
-            cellHeightPx = myCellHeightPx
-        )
+            cellHeightPx = myCellHeightPx,
+            terminalWidthCells = myTerminalWidth,
+            terminalHeightCells = myTerminalHeight
+        ) ?: return null
 
-        // Store image data in cache
-        val imageId = myImageDataCache.storeImage(image)
-
-        // Strategy: Write image cells row by row, scrolling as needed
-        // This ensures ALL image rows get ImageCell data, even those that scroll into history
-        var currentBufferRow = bufferRow
-        for (cellY in 0 until dimensions.cellHeight) {
-            // If we're at or past the bottom of the screen, scroll first
-            if (currentBufferRow >= myTerminalHeight) {
-                scrollArea(myScrollRegionTop, scrollingRegionSize(), -1)
-                currentBufferRow = myTerminalHeight - 1  // Write to last row after scroll
-                bufferRow--  // Anchor moves up in buffer coordinates
-            }
-
-            // Write this row of image cells
-            terminalTextBuffer.writeImageCellRow(
-                row = currentBufferRow,
-                startCol = anchorCol,
-                imageId = imageId,
-                cellY = cellY,
-                cellWidth = dimensions.cellWidth,
-                cellHeight = dimensions.cellHeight
-            )
-
-            currentBufferRow++
-        }
-
-        // Move cursor below the image (iTerm2 behavior)
-        // currentBufferRow now points to the row after the last image row
+        // Move cursor below image (iTerm2 behavior)
+        // Normal scrolling will trigger onBufferScroll which updates placement.anchorRow
         myCursorX = 0
-        myCursorY = currentBufferRow.coerceAtMost(myTerminalHeight)
+        val newCursorY = myCursorY + placement.cellHeight
+
+        if (newCursorY > myTerminalHeight) {
+            val linesToScroll = newCursorY - myTerminalHeight
+            for (i in 0 until linesToScroll) {
+                scrollArea(myScrollRegionTop, scrollingRegionSize(), -1)
+            }
+            myCursorY = myTerminalHeight
+        } else {
+            myCursorY = newCursorY
+        }
 
         myDisplay.setCursor(myCursorX, myCursorY)
 
-        // Return placement for backward compatibility with rendering
-        // anchorRow can be negative if image top scrolled into history
-        return TerminalImagePlacement(
-            image = image,
-            anchorRow = bufferRow,  // Can be negative for images in history
-            anchorCol = anchorCol,
-            cellWidth = dimensions.cellWidth,
-            cellHeight = dimensions.cellHeight,
-            pixelWidth = dimensions.pixelWidth,
-            pixelHeight = dimensions.pixelHeight
-        )
+        return placement
     }
 
     override fun getImagePlacements(startRow: Int, endRow: Int): List<TerminalImagePlacement> {

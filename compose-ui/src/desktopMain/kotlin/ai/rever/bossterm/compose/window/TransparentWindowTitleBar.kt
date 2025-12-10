@@ -1,6 +1,8 @@
 package ai.rever.bossterm.compose.window
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -14,7 +16,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -53,25 +57,31 @@ fun WindowScope.CustomTitleBar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // macOS-style traffic lights (close, minimize, maximize/fullscreen)
+            // Track group hover state - all icons show when any button is hovered
+            val groupInteractionSource = remember { MutableInteractionSource() }
+            val isGroupHovered by groupInteractionSource.collectIsHoveredAsState()
+
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.spacedBy(6.dp),  // ~3.5px margin between 12px buttons
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.hoverable(interactionSource = groupInteractionSource)
             ) {
                 // Close button (red)
-                TrafficLightButton(
-                    color = Color(0xFFFF5F57),
+                CloseButton(
+                    isGroupHovered = isGroupHovered,
                     onClick = onClose
                 )
 
                 // Minimize button (yellow)
-                TrafficLightButton(
-                    color = Color(0xFFFFBD2E),
+                MinimizeButton(
+                    isGroupHovered = isGroupHovered,
                     onClick = onMinimize
                 )
 
                 // Fullscreen/Maximize button (green)
                 // Click = Fullscreen, Option+Click = Maximize (macOS behavior)
-                GreenTrafficLightButton(
+                FullscreenButton(
+                    isGroupHovered = isGroupHovered,
                     onFullscreen = onFullscreen,
                     onMaximize = onMaximize
                 )
@@ -96,61 +106,130 @@ fun WindowScope.CustomTitleBar(
     }
 }
 
+// macOS traffic light colors (from official specs)
+private object TrafficLightColors {
+    // Close button (red) - with transparency for glass effect
+    val closeDefault = Color(0xFFFF6159)
+    val closeHover = Color(0xFFBF4942)
+    val closeIcon = Color(0xFF4D0000)
+    val closeBorder = Color(0x33000000)
+
+    // Minimize button (yellow)
+    val minimizeDefault = Color(0xFFFFBD2E)
+    val minimizeHover = Color(0xFFBF8E22)
+    val minimizeIcon = Color(0xFF995700)
+    val minimizeBorder = Color(0x33000000)
+
+    // Maximize button (green)
+    val maximizeDefault = Color(0xFF28C941)
+    val maximizeHover = Color(0xFF1D9730)
+    val maximizeIcon = Color(0xFF006500)
+    val maximizeBorder = Color(0x33000000)
+}
+
 /**
- * macOS-style traffic light button with hover effect.
+ * Close button (red) with × icon on hover.
+ * Icon: two 8px × 1px lines at 45° angles
  */
 @Composable
-private fun TrafficLightButton(
-    color: Color,
+private fun CloseButton(
+    isGroupHovered: Boolean,
     onClick: () -> Unit
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isHovered by interactionSource.collectIsHoveredAsState()
+    val bgColor = if (isGroupHovered) TrafficLightColors.closeHover else TrafficLightColors.closeDefault
 
     Box(
         modifier = Modifier
             .size(12.dp)
             .clip(CircleShape)
-            .background(
-                if (isHovered) color else color.copy(alpha = 0.85f)
-            )
-            .hoverable(interactionSource)
+            .background(bgColor)
+            .border(0.5.dp, TrafficLightColors.closeBorder, CircleShape)
             .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = { onClick() }
-                )
+                detectTapGestures(onTap = { onClick() })
             },
         contentAlignment = Alignment.Center
     ) {
-        // Button is just a colored circle
+        if (isGroupHovered) {
+            Canvas(modifier = Modifier.size(8.dp)) {
+                val strokeWidth = 1.dp.toPx()
+                // Draw × icon - two diagonal lines
+                drawLine(
+                    color = TrafficLightColors.closeIcon,
+                    start = Offset(0f, 0f),
+                    end = Offset(size.width, size.height),
+                    strokeWidth = strokeWidth,
+                    cap = StrokeCap.Round
+                )
+                drawLine(
+                    color = TrafficLightColors.closeIcon,
+                    start = Offset(size.width, 0f),
+                    end = Offset(0f, size.height),
+                    strokeWidth = strokeWidth,
+                    cap = StrokeCap.Round
+                )
+            }
+        }
     }
 }
 
 /**
- * Green traffic light button with macOS behavior:
- * - Click = Fullscreen
- * - Option+Click = Maximize (zoom)
+ * Minimize button (yellow) with − icon on hover.
+ * Icon: one 8px × 1px horizontal line
  */
 @Composable
-private fun GreenTrafficLightButton(
-    onFullscreen: () -> Unit,
-    onMaximize: () -> Unit
+private fun MinimizeButton(
+    isGroupHovered: Boolean,
+    onClick: () -> Unit
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isHovered by interactionSource.collectIsHoveredAsState()
-    val color = Color(0xFF28C840)
-
-    // Track if Option key is pressed
-    var isOptionPressed by remember { mutableStateOf(false) }
+    val bgColor = if (isGroupHovered) TrafficLightColors.minimizeHover else TrafficLightColors.minimizeDefault
 
     Box(
         modifier = Modifier
             .size(12.dp)
             .clip(CircleShape)
-            .background(
-                if (isHovered) color else color.copy(alpha = 0.85f)
-            )
-            .hoverable(interactionSource)
+            .background(bgColor)
+            .border(0.5.dp, TrafficLightColors.minimizeBorder, CircleShape)
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = { onClick() })
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        if (isGroupHovered) {
+            Canvas(modifier = Modifier.size(8.dp)) {
+                val strokeWidth = 1.dp.toPx()
+                // Draw − icon - horizontal line
+                drawLine(
+                    color = TrafficLightColors.minimizeIcon,
+                    start = Offset(0f, size.height / 2),
+                    end = Offset(size.width, size.height / 2),
+                    strokeWidth = strokeWidth,
+                    cap = StrokeCap.Round
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Fullscreen button (green) with diagonal arrows icon on hover.
+ * - Click = Fullscreen
+ * - Option+Click = Maximize (zoom)
+ * Icon: two triangular arrows pointing to opposite corners
+ */
+@Composable
+private fun FullscreenButton(
+    isGroupHovered: Boolean,
+    onFullscreen: () -> Unit,
+    onMaximize: () -> Unit
+) {
+    val bgColor = if (isGroupHovered) TrafficLightColors.maximizeHover else TrafficLightColors.maximizeDefault
+
+    Box(
+        modifier = Modifier
+            .size(12.dp)
+            .clip(CircleShape)
+            .background(bgColor)
+            .border(0.5.dp, TrafficLightColors.maximizeBorder, CircleShape)
             .pointerInput(Unit) {
                 awaitPointerEventScope {
                     while (true) {
@@ -175,6 +254,68 @@ private fun GreenTrafficLightButton(
             },
         contentAlignment = Alignment.Center
     ) {
-        // Button is just a colored circle
+        if (isGroupHovered) {
+            Canvas(modifier = Modifier.size(8.dp)) {
+                val strokeWidth = 1.dp.toPx()
+                val iconColor = TrafficLightColors.maximizeIcon
+
+                // Draw two small triangular arrows pointing to opposite corners
+                // Top-right arrow (↗)
+                val trX = size.width
+                val trY = 0f
+                // Arrow stem
+                drawLine(
+                    color = iconColor,
+                    start = Offset(size.width * 0.35f, size.height * 0.65f),
+                    end = Offset(trX, trY),
+                    strokeWidth = strokeWidth,
+                    cap = StrokeCap.Round
+                )
+                // Arrow head - horizontal part
+                drawLine(
+                    color = iconColor,
+                    start = Offset(trX, trY),
+                    end = Offset(trX - size.width * 0.35f, trY),
+                    strokeWidth = strokeWidth,
+                    cap = StrokeCap.Round
+                )
+                // Arrow head - vertical part
+                drawLine(
+                    color = iconColor,
+                    start = Offset(trX, trY),
+                    end = Offset(trX, trY + size.height * 0.35f),
+                    strokeWidth = strokeWidth,
+                    cap = StrokeCap.Round
+                )
+
+                // Bottom-left arrow (↙)
+                val blX = 0f
+                val blY = size.height
+                // Arrow stem
+                drawLine(
+                    color = iconColor,
+                    start = Offset(size.width * 0.65f, size.height * 0.35f),
+                    end = Offset(blX, blY),
+                    strokeWidth = strokeWidth,
+                    cap = StrokeCap.Round
+                )
+                // Arrow head - horizontal part
+                drawLine(
+                    color = iconColor,
+                    start = Offset(blX, blY),
+                    end = Offset(blX + size.width * 0.35f, blY),
+                    strokeWidth = strokeWidth,
+                    cap = StrokeCap.Round
+                )
+                // Arrow head - vertical part
+                drawLine(
+                    color = iconColor,
+                    start = Offset(blX, blY),
+                    end = Offset(blX, blY - size.height * 0.35f),
+                    strokeWidth = strokeWidth,
+                    cap = StrokeCap.Round
+                )
+            }
+        }
     }
 }

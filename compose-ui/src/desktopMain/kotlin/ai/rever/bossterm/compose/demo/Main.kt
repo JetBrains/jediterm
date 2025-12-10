@@ -413,9 +413,9 @@ fun main() = application {
                     shape = RoundedCornerShape(cornerRadius)
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        // Background layer: either image or faux blur effect
+                        // Background layer: either image or glass blur effect
                         if (backgroundImage != null) {
-                            // Background image with blur effect
+                            // Background image with blur
                             androidx.compose.foundation.Image(
                                 bitmap = backgroundImage,
                                 contentDescription = "Background",
@@ -426,22 +426,20 @@ fun main() = application {
                                     .then(
                                         if (windowSettings.windowBlur) {
                                             Modifier.blur(windowSettings.blurRadius.dp)
-                                        } else {
-                                            Modifier
-                                        }
+                                        } else Modifier
                                     )
                             )
                         } else if (!useNativeTitleBar && windowSettings.backgroundOpacity < 1.0f && windowSettings.windowBlur) {
-                            // Faux blur effect: grey gradient overlay to simulate frosted glass
+                            // Frosted glass effect - radial gradient
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .background(
                                         brush = Brush.radialGradient(
                                             colors = listOf(
-                                                Color.Gray.copy(alpha = 0.3f),
-                                                Color.DarkGray.copy(alpha = 0.4f),
-                                                Color.Gray.copy(alpha = 0.35f)
+                                                Color.White.copy(alpha = 0.3f),
+                                                Color.Gray.copy(alpha = 0.4f),
+                                                Color.DarkGray.copy(alpha = 0.35f)
                                             )
                                         )
                                     )

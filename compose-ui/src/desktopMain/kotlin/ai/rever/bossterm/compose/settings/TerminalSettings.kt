@@ -125,6 +125,14 @@ data class TerminalSettings(
     // ===== Behavior Settings =====
 
     /**
+     * Use login session on macOS (shows "Last login" message).
+     * When true, uses 'login -fp $USER' to properly register the session in utmp/wtmp.
+     * When false, directly spawns shell with -l flag.
+     * Only affects macOS; other platforms always use direct shell spawn.
+     */
+    val useLoginSession: Boolean = true,
+
+    /**
      * Automatically copy selected text to clipboard
      */
     val copyOnSelect: Boolean = false,

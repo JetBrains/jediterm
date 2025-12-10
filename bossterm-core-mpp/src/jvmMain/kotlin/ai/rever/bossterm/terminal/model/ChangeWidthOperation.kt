@@ -119,28 +119,32 @@ internal class ChangeWidthOperation(
             }
         }
 
-        // CRITICAL: screenStartInd must be >= myAllLines.size - myNewHeight to prevent data loss
+        // CRITICAL: Keep cursor in view by positioning screen window around cursor
         // Screen shows [screenStartInd, screenStartInd + myNewHeight), history gets [0, screenStartInd)
-        // If screenStartInd is too low, lines at the end would be lost!
-        val minScreenStartToPreserveAll = max(0, myAllLines.size - myNewHeight)
 
-        // Start with showing the last myNewHeight lines (most recent content)
-        screenStartInd = minScreenStartToPreserveAll
+        // Find cursor's new Y position after reflow
+        var cursorNewY = 0
+        for (entry in myTrackingPoints.entries) {
+            if (entry.key.forceVisible && entry.value != null) {
+                cursorNewY = max(cursorNewY, entry.value!!.y)
+            }
+        }
 
-        // If cursor is within the screen range, we're fine
-        // If cursor is above screen (in history after rewrap), cursor will be clamped later
-        // We prioritize NOT LOSING DATA over showing cursor
+        // Position screen so cursor is visible
+        // Screen should start at max(0, cursorNewY - myNewHeight + 1) to keep cursor at bottom
+        // But also can't start beyond myAllLines.size - myNewHeight (would lose lines at end)
+        val minScreenStart = max(0, cursorNewY - myNewHeight + 1)
+        val maxScreenStart = max(0, myAllLines.size - myNewHeight)
+        screenStartInd = min(minScreenStart, maxScreenStart)
 
-        // screenEndInd will equal myAllLines.size since screenStartInd = myAllLines.size - myNewHeight
-        // This ensures ALL content from screenStartInd to end is on screen (no loss)
         val screenEndInd = min(screenStartInd + myNewHeight, myAllLines.size)
 
-        // History gets ALL lines before screen [0, screenStartInd)
+        // History gets all lines before screen [0, screenStartInd)
         val historySublist = myAllLines.subList(0, screenStartInd).filterNotNull()
         historyLinesStorage.clear()
         historyLinesStorage.addAllToBottom(historySublist)
 
-        // Screen gets lines [screenStartInd, screenEndInd) - always the LAST lines
+        // Screen gets lines [screenStartInd, screenEndInd)
         val screenSublist = myAllLines.subList(screenStartInd, screenEndInd).filterNotNull()
         screenLinesStorage.clear()
         screenLinesStorage.addAllToBottom(screenSublist)

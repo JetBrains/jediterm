@@ -599,17 +599,18 @@ object TerminalCanvasRenderer {
 
     /**
      * Render the terminal cursor.
-     * Only renders when cursor is within the visible viewport (accounts for scroll offset).
+     * Cursor is rendered at its buffer position - when scrolled into history,
+     * cursor will be below the visible area and won't be rendered.
      */
     private fun DrawScope.renderCursor(ctx: RenderingContext) {
-        // Calculate cursor's visual position accounting for scroll offset
-        // cursorY is 1-indexed in the screen buffer, so adjust to 0-indexed
-        val adjustedCursorY = (ctx.cursorY - 1).coerceAtLeast(0)
-        val cursorScreenRow = adjustedCursorY - ctx.scrollOffset
+        // cursorY is 1-indexed in the screen buffer, adjust to 0-indexed
+        val bufferCursorY = (ctx.cursorY - 1).coerceAtLeast(0)
+        // Convert buffer position to screen position by adding scrollOffset
+        // scrollOffset=0 means viewing current screen, scrollOffset>0 means scrolled into history
+        // When scrolled up, cursor (at bottom of buffer) will be below visible area
+        val cursorScreenRow = bufferCursorY + ctx.scrollOffset
 
-        // Don't render cursor if scrolled away from current screen
-        // Cursor is always in the screen buffer (not history), so when scrollOffset > 0
-        // and cursor row is outside visible range, hide it
+        // Don't render cursor if outside visible area
         if (cursorScreenRow < 0 || cursorScreenRow >= ctx.visibleRows) {
             return
         }

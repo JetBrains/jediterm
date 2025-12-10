@@ -171,27 +171,40 @@ class TerminalTextBuffer internal constructor(
       if (!alternateBuffer) {
         val lineDiffCount = oldHeight - newHeight
 
-        // We need to move lines from text buffer to the scroll buffer,
-        // but empty bottom lines up to the cursor can be collapsed
+        // Keep cursor in view: cursor must end up at row < newHeight
+        // If cursor is currently at row Y, we need cursor to be at row min(Y, newHeight-1)
 
-        // Number of lines to remove until the new height or cursor if it is located below the new height.
-        val maxBottomLinesToRemove = min(lineDiffCount, max(0, oldHeight - oldCursorY))
-        // Number of already empty lines on the screen (but not greater than required count to remove)
-        val emptyLinesCount = min(maxBottomLinesToRemove, oldHeight - screenLinesStorage.size)
-        // Count of lines to remove from the screen buffer (TerminalLine objects are created for those lines)
-        val actualLinesToRemove = maxBottomLinesToRemove - emptyLinesCount
-        // Total count of already empty lines and removed empty lines
-        val emptyLinesDeleted = emptyLinesCount + removeBottomEmptyLines(actualLinesToRemove)
+        // Lines we MUST remove from top to keep cursor in view
+        val linesToRemoveFromTop = max(0, oldCursorY - newHeight + 1)
+        // Remaining lines to remove come from bottom
+        val linesToRemoveFromBottom = lineDiffCount - linesToRemoveFromTop
 
-        val screenLinesToMove = lineDiffCount - emptyLinesDeleted
-        val removedLines = screenLinesStorage.removeFromTop(screenLinesToMove)
-        addLinesToHistory(removedLines)
-        newCursorY = oldCursorY - screenLinesToMove
-        selection?.shiftY(-screenLinesToMove)
-        // Notify callback so image anchors can be adjusted
-        if (screenLinesToMove > 0) {
-          resizeCallback?.onLinesMovedToHistory(screenLinesToMove)
+        // Remove from bottom first (preserves content at/above cursor)
+        if (linesToRemoveFromBottom > 0) {
+          // First account for virtual empty lines (lines beyond screenLinesStorage.size)
+          val emptyLinesCount = min(linesToRemoveFromBottom, oldHeight - screenLinesStorage.size)
+          val nonEmptyToRemove = linesToRemoveFromBottom - emptyLinesCount
+          if (nonEmptyToRemove > 0) {
+            // Try to remove empty lines from bottom of storage first
+            val actualEmptyRemoved = removeBottomEmptyLines(nonEmptyToRemove)
+            val stillNeedToRemove = nonEmptyToRemove - actualEmptyRemoved
+            if (stillNeedToRemove > 0) {
+              // Remove non-empty lines from bottom (discarded, not added to history)
+              screenLinesStorage.removeFromBottom(stillNeedToRemove)
+            }
+          }
         }
+
+        // Remove from top only if cursor would be off-screen
+        if (linesToRemoveFromTop > 0) {
+          val removedLines = screenLinesStorage.removeFromTop(linesToRemoveFromTop)
+          addLinesToHistory(removedLines)
+          newCursorY = oldCursorY - linesToRemoveFromTop
+          selection?.shiftY(-linesToRemoveFromTop)
+          // Notify callback so image anchors can be adjusted
+          resizeCallback?.onLinesMovedToHistory(linesToRemoveFromTop)
+        }
+        // else: cursor stays at same position, no adjustment needed
       }
       else {
         newCursorY = oldCursorY

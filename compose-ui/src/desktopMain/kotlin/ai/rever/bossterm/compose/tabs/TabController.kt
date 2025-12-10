@@ -146,20 +146,32 @@ class TabController(
      */
     fun createTab(
         workingDir: String? = null,
-        command: String = System.getenv("SHELL") ?: "/bin/bash",
+        command: String? = null,
         arguments: List<String> = emptyList(),
         onProcessExit: (() -> Unit)? = null
     ): TerminalTab {
         tabCounter++
 
-        // Ensure shell is started as login shell to get proper PATH from /etc/zprofile
-        // This is critical for GUI apps that don't inherit terminal environment
-        val effectiveArguments = if (arguments.isEmpty() &&
-            (command.endsWith("/zsh") || command.endsWith("/bash") ||
-             command == "zsh" || command == "bash")) {
-            listOf("-l")  // Login shell flag
+        // On macOS, optionally use 'login -fp $USER' to properly register the session
+        // This shows "Last login" message and registers in utmp/wtmp like iTerm2
+        val isMacOS = System.getProperty("os.name")?.lowercase()?.contains("mac") == true
+        val username = System.getProperty("user.name")
+
+        val (effectiveCommand, effectiveArguments) = if (command == null && arguments.isEmpty() && isMacOS && username != null && settings.useLoginSession) {
+            // Use login command on macOS for proper session registration
+            "/usr/bin/login" to listOf("-fp", username)
         } else {
-            arguments
+            // Use provided command or fall back to shell
+            val shellCommand = command ?: System.getenv("SHELL") ?: "/bin/bash"
+            // Ensure shell is started as login shell to get proper PATH from /etc/zprofile
+            val shellArgs = if (arguments.isEmpty() &&
+                (shellCommand.endsWith("/zsh") || shellCommand.endsWith("/bash") ||
+                 shellCommand == "zsh" || shellCommand == "bash")) {
+                listOf("-l")  // Login shell flag
+            } else {
+                arguments
+            }
+            shellCommand to shellArgs
         }
 
         // Initialize terminal components
@@ -231,7 +243,7 @@ class TabController(
                 settings = settings
             ).also { model ->
                 // Detect shell type for word boundary calculation (bash vs zsh)
-                val shellType = TypeAheadTerminalModel.commandLineToShellType((listOf(command) + effectiveArguments).toMutableList())
+                val shellType = TypeAheadTerminalModel.commandLineToShellType((listOf(effectiveCommand) + effectiveArguments).toMutableList())
                 model.setShellType(shellType)
             }
         } else {
@@ -315,7 +327,7 @@ class TabController(
         }
 
         // Initialize the terminal session (spawn PTY, start coroutines)
-        initializeTerminalSession(tab, workingDir, command, effectiveArguments)
+        initializeTerminalSession(tab, workingDir, effectiveCommand, effectiveArguments)
 
         // Add to tabs list
         tabs.add(tab)
@@ -350,18 +362,30 @@ class TabController(
      */
     fun createSessionForSplit(
         workingDir: String? = null,
-        command: String = System.getenv("SHELL") ?: "/bin/bash",
+        command: String? = null,
         arguments: List<String> = emptyList(),
         sessionTitle: String = "Split",
         onProcessExit: (() -> Unit)? = null
     ): TerminalSession {
-        // Ensure shell is started as login shell to get proper PATH from /etc/zprofile
-        val effectiveArguments = if (arguments.isEmpty() &&
-            (command.endsWith("/zsh") || command.endsWith("/bash") ||
-             command == "zsh" || command == "bash")) {
-            listOf("-l")  // Login shell flag
+        // On macOS, optionally use 'login -fp $USER' for proper session registration
+        val isMacOS = System.getProperty("os.name")?.lowercase()?.contains("mac") == true
+        val username = System.getProperty("user.name")
+
+        val (effectiveCommand, effectiveArguments) = if (command == null && arguments.isEmpty() && isMacOS && username != null && settings.useLoginSession) {
+            // Use login command on macOS for proper session registration
+            "/usr/bin/login" to listOf("-fp", username)
         } else {
-            arguments
+            // Use provided command or fall back to shell
+            val shellCommand = command ?: System.getenv("SHELL") ?: "/bin/bash"
+            // Ensure shell is started as login shell to get proper PATH from /etc/zprofile
+            val shellArgs = if (arguments.isEmpty() &&
+                (shellCommand.endsWith("/zsh") || shellCommand.endsWith("/bash") ||
+                 shellCommand == "zsh" || shellCommand == "bash")) {
+                listOf("-l")  // Login shell flag
+            } else {
+                arguments
+            }
+            shellCommand to shellArgs
         }
 
         // Initialize terminal components (same as createTab)
@@ -433,7 +457,7 @@ class TabController(
                 settings = settings
             ).also { model ->
                 val shellType = TypeAheadTerminalModel.commandLineToShellType(
-                    (listOf(command) + effectiveArguments).toMutableList()
+                    (listOf(effectiveCommand) + effectiveArguments).toMutableList()
                 )
                 model.setShellType(shellType)
             }
@@ -510,7 +534,7 @@ class TabController(
 
         // Initialize the terminal session (spawn PTY, start coroutines)
         // Note: We don't pass onProcessExit since split pane lifecycle is managed separately
-        initializeTerminalSession(session, workingDir, command, effectiveArguments)
+        initializeTerminalSession(session, workingDir, effectiveCommand, effectiveArguments)
 
         return session
     }

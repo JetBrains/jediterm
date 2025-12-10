@@ -415,6 +415,15 @@ fun main() = application {
                     shape = RoundedCornerShape(cornerRadius)
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
+                        // Create blur effect outside lambda to trigger recomposition on radius change
+                        val blurEffect = remember(windowSettings.blurRadius) {
+                            BlurEffect(
+                                windowSettings.blurRadius,
+                                windowSettings.blurRadius,
+                                TileMode.Decal
+                            )
+                        }
+
                         // Background layer: either image or glass blur effect
                         if (backgroundImage != null) {
                             // Background image with BlurEffect API
@@ -428,11 +437,7 @@ fun main() = application {
                                     .then(
                                         if (windowSettings.windowBlur) {
                                             Modifier.graphicsLayer {
-                                                renderEffect = BlurEffect(
-                                                    windowSettings.blurRadius,
-                                                    windowSettings.blurRadius,
-                                                    TileMode.Decal
-                                                )
+                                                renderEffect = blurEffect
                                             }
                                         } else {
                                             Modifier
@@ -454,11 +459,7 @@ fun main() = application {
                                         )
                                     )
                                     .graphicsLayer {
-                                        renderEffect = BlurEffect(
-                                            windowSettings.blurRadius,
-                                            windowSettings.blurRadius,
-                                            TileMode.Decal
-                                        )
+                                        renderEffect = blurEffect
                                     }
                             )
                         }

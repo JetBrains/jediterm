@@ -28,6 +28,7 @@ import ai.rever.bossterm.compose.window.configureWindowTransparency
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Surface
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Brush
@@ -418,16 +419,14 @@ fun main() = application {
                         // Background layer: either image or glass blur effect
                         // Use key() to force recomposition when blur settings change
                         key(windowSettings.blurRadius, windowSettings.windowBlur) {
-                            if (backgroundImage != null) {
-                                // Background image with BlurEffect API
-                                val imageBlurEffect = if (windowSettings.windowBlur) {
-                                    BlurEffect(
-                                        windowSettings.blurRadius,
-                                        windowSettings.blurRadius,
-                                        TileMode.Decal
-                                    )
-                                } else null
+                            val blurModifier = if (windowSettings.windowBlur) {
+                                Modifier.blur(windowSettings.blurRadius.dp)
+                            } else {
+                                Modifier
+                            }
 
+                            if (backgroundImage != null) {
+                                // Background image with blur
                                 androidx.compose.foundation.Image(
                                     bitmap = backgroundImage,
                                     contentDescription = "Background",
@@ -435,33 +434,23 @@ fun main() = application {
                                     alpha = windowSettings.backgroundImageOpacity,
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .graphicsLayer {
-                                            renderEffect = imageBlurEffect
-                                        }
+                                        .then(blurModifier)
                                 )
                             } else if (!useNativeTitleBar && windowSettings.backgroundOpacity < 1.0f && windowSettings.windowBlur) {
-                                // Glass blur effect using BlurEffect API (frosted glass appearance)
-                                val glassBlurEffect = BlurEffect(
-                                    windowSettings.blurRadius,
-                                    windowSettings.blurRadius,
-                                    TileMode.Decal
-                                )
-
+                                // Frosted glass effect - blur a noise pattern for glass texture
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .background(
                                             brush = Brush.radialGradient(
                                                 colors = listOf(
-                                                    Color.White.copy(alpha = 0.15f),
-                                                    Color.Gray.copy(alpha = 0.2f),
-                                                    Color.White.copy(alpha = 0.1f)
+                                                    Color.White.copy(alpha = 0.2f),
+                                                    Color.Gray.copy(alpha = 0.3f),
+                                                    Color.White.copy(alpha = 0.15f)
                                                 )
                                             )
                                         )
-                                        .graphicsLayer {
-                                            renderEffect = glassBlurEffect
-                                        }
+                                        .then(blurModifier)
                                 )
                             }
                         }

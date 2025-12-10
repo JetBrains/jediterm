@@ -383,7 +383,7 @@ jobs:
   publish-libraries:
     needs: [prepare-version, create-release]
     runs-on: macos-latest
-    environment: release
+    # No environment needed - build-macos already requires 'release' environment approval
 
     steps:
       - name: Checkout Repository

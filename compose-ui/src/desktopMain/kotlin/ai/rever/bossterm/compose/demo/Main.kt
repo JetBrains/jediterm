@@ -442,18 +442,16 @@ fun main() = application {
                                         }
                                 )
                             } else if (!useNativeTitleBar && windowSettings.backgroundOpacity < 1.0f && windowSettings.windowBlur) {
-                                // Frosted glass effect - more visible gradient for blur to affect
+                                // Frosted glass effect - radial gradient for softer appearance
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .background(
-                                            brush = Brush.linearGradient(
+                                            brush = Brush.radialGradient(
                                                 colors = listOf(
-                                                    Color.White.copy(alpha = 0.4f),
-                                                    Color.Gray.copy(alpha = 0.5f),
-                                                    Color.DarkGray.copy(alpha = 0.4f),
-                                                    Color.Gray.copy(alpha = 0.5f),
-                                                    Color.White.copy(alpha = 0.4f)
+                                                    Color.White.copy(alpha = 0.3f),
+                                                    Color.Gray.copy(alpha = 0.4f),
+                                                    Color.DarkGray.copy(alpha = 0.35f)
                                                 )
                                             )
                                         )

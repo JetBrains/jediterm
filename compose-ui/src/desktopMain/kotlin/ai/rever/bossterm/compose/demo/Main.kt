@@ -30,11 +30,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Surface
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TileMode
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.WindowPlacement
 import kotlinx.coroutines.launch
@@ -417,49 +414,37 @@ fun main() = application {
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
                         // Background layer: either image or glass blur effect
-                        // Use key() to force recomposition when blur settings change
-                        key(windowSettings.blurRadius, windowSettings.windowBlur) {
-                            // Use BlurEffect like traffic lights (which works)
-                            val blurEffect = if (windowSettings.windowBlur) {
-                                BlurEffect(
-                                    windowSettings.blurRadius,
-                                    windowSettings.blurRadius,
-                                    TileMode.Clamp
-                                )
-                            } else null
-
-                            if (backgroundImage != null) {
-                                // Background image with blur
-                                androidx.compose.foundation.Image(
-                                    bitmap = backgroundImage,
-                                    contentDescription = "Background",
-                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                                    alpha = windowSettings.backgroundImageOpacity,
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .graphicsLayer {
-                                            renderEffect = blurEffect
-                                        }
-                                )
-                            } else if (!useNativeTitleBar && windowSettings.backgroundOpacity < 1.0f && windowSettings.windowBlur) {
-                                // Frosted glass effect - radial gradient for softer appearance
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(
-                                            brush = Brush.radialGradient(
-                                                colors = listOf(
-                                                    Color.White.copy(alpha = 0.3f),
-                                                    Color.Gray.copy(alpha = 0.4f),
-                                                    Color.DarkGray.copy(alpha = 0.35f)
-                                                )
+                        if (backgroundImage != null) {
+                            // Background image with blur
+                            androidx.compose.foundation.Image(
+                                bitmap = backgroundImage,
+                                contentDescription = "Background",
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                alpha = windowSettings.backgroundImageOpacity,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .then(
+                                        if (windowSettings.windowBlur) {
+                                            Modifier.blur(windowSettings.blurRadius.dp)
+                                        } else Modifier
+                                    )
+                            )
+                        } else if (!useNativeTitleBar && windowSettings.backgroundOpacity < 1.0f && windowSettings.windowBlur) {
+                            // Frosted glass effect - radial gradient
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        brush = Brush.radialGradient(
+                                            colors = listOf(
+                                                Color.White.copy(alpha = 0.3f),
+                                                Color.Gray.copy(alpha = 0.4f),
+                                                Color.DarkGray.copy(alpha = 0.35f)
                                             )
                                         )
-                                        .graphicsLayer {
-                                            renderEffect = blurEffect
-                                        }
-                                )
-                            }
+                                    )
+                                    .blur(windowSettings.blurRadius.dp)
+                            )
                         }
 
                     Column(modifier = Modifier.fillMaxSize()) {

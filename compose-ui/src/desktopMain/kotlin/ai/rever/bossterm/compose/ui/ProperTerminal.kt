@@ -76,7 +76,6 @@ import ai.rever.bossterm.compose.scrollbar.AlwaysVisibleScrollbar
 import ai.rever.bossterm.compose.scrollbar.computeMatchPositions
 import ai.rever.bossterm.compose.scrollbar.rememberTerminalScrollbarAdapter
 import ai.rever.bossterm.compose.search.SearchBar
-import ai.rever.bossterm.compose.rendering.ImageRenderer
 import ai.rever.bossterm.compose.rendering.RenderingContext
 import ai.rever.bossterm.compose.rendering.TerminalCanvasRenderer
 import ai.rever.bossterm.compose.selection.SelectionEngine
@@ -1327,13 +1326,6 @@ fun ProperTerminal(
           textBuffer.createIncrementalSnapshot()
         }
 
-        // Memoize image placements snapshot with same keys as bufferSnapshot
-        // This ensures placements are synchronized with buffer state and prevents race conditions
-        // where placements are updated while rendering is in progress
-        val imagePlacementsSnapshot = remember(display.redrawTrigger.value, textBuffer.width, textBuffer.height) {
-          terminal.getAllImagePlacements()  // Returns a defensive copy via synchronized block
-        }
-
         Canvas(modifier = Modifier.padding(start = 4.dp, top = 4.dp).fillMaxSize().clipToBounds()) {
           // Guard against invalid canvas sizes during resize - prevents drawText constraint failures
           if (size.width < cellWidth || size.height < cellHeight) return@Canvas
@@ -1351,13 +1343,6 @@ fun ProperTerminal(
           val baseCursorColor = if (customCursorColor != null) {
             Color(customCursorColor.red, customCursorColor.green, customCursorColor.blue)
           } else null
-
-          // Filter image placements to visible area using memoized snapshot
-          val visibleImagePlacements = ImageRenderer.getVisiblePlacements(
-            allPlacements = imagePlacementsSnapshot,
-            scrollOffset = scrollOffset,
-            visibleRows = visibleRows
-          )
 
           // Build rendering context with all state
           val renderingContext = RenderingContext(
@@ -1392,11 +1377,9 @@ fun ProperTerminal(
             isModifierPressed = isModifierPressed,
             slowBlinkVisible = slowBlinkVisible,
             rapidBlinkVisible = rapidBlinkVisible,
-            imagePlacements = visibleImagePlacements,
-            terminalWidthCells = bufferSnapshot.width,
-            terminalHeightCells = bufferSnapshot.height,
             imageDataCache = terminal.getImageDataCache(),
-            placementsByImageId = visibleImagePlacements.associateBy { it.image.id }
+            terminalWidthCells = bufferSnapshot.width,
+            terminalHeightCells = bufferSnapshot.height
           )
 
           // Render terminal using extracted renderer - returns detected hyperlinks

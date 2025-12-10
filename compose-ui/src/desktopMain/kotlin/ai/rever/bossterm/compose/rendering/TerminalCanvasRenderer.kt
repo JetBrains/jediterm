@@ -21,7 +21,6 @@ import ai.rever.bossterm.terminal.model.TerminalLine
 import ai.rever.bossterm.terminal.model.pool.VersionedBufferSnapshot
 import ai.rever.bossterm.terminal.model.image.ImageCell
 import ai.rever.bossterm.terminal.model.image.ImageDataCache
-import ai.rever.bossterm.terminal.model.image.TerminalImagePlacement
 import ai.rever.bossterm.terminal.util.CharUtils
 import ai.rever.bossterm.terminal.TextStyle as BossTextStyle
 import org.jetbrains.skia.FontMgr
@@ -80,17 +79,10 @@ data class RenderingContext(
     val slowBlinkVisible: Boolean,
     val rapidBlinkVisible: Boolean,
 
-    // Image placements (legacy approach - for backward compatibility)
-    val imagePlacements: List<TerminalImagePlacement> = emptyList(),
-    val terminalWidthCells: Int = 80,
-    val terminalHeightCells: Int = 24,
-
-    // Cell-based image rendering (new approach - images flow with text)
+    // Cell-based image rendering (images flow with text)
     val imageDataCache: ImageDataCache? = null,
-
-    // Placement lookup by image ID - used for hybrid rendering fallback
-    // when ImageCell data is missing (e.g., for image rows that exceeded screen buffer)
-    val placementsByImageId: Map<Long, TerminalImagePlacement> = emptyMap()
+    val terminalWidthCells: Int = 80,
+    val terminalHeightCells: Int = 24
 )
 
 /**
@@ -114,11 +106,6 @@ object TerminalCanvasRenderer {
         // Pass 1: Draw backgrounds
         renderBackgrounds(ctx)
 
-        // Pass 1.5: Draw inline images (legacy - after backgrounds, before text)
-        if (ctx.imagePlacements.isNotEmpty()) {
-            renderImages(ctx)
-        }
-
         // Pass 2: Draw text and collect hyperlinks
         val detectedHyperlinks = renderText(ctx)
         hyperlinksCache.putAll(detectedHyperlinks)
@@ -127,42 +114,6 @@ object TerminalCanvasRenderer {
         renderOverlays(ctx)
 
         return hyperlinksCache
-    }
-
-    /**
-     * Pass 1.5: Render inline images.
-     */
-    private fun DrawScope.renderImages(ctx: RenderingContext) {
-        with(ImageRenderer) {
-            renderImages(
-                placements = ctx.imagePlacements,
-                cellWidth = ctx.cellWidth,
-                cellHeight = ctx.cellHeight,
-                scrollOffset = ctx.scrollOffset,
-                visibleRows = ctx.visibleRows,
-                terminalWidthCells = ctx.terminalWidthCells,
-                terminalHeightCells = ctx.terminalHeightCells
-            )
-        }
-    }
-
-    /**
-     * Find a placement that covers the given buffer position.
-     * Used for hybrid rendering when ImageCell data is missing (overflow rows).
-     *
-     * @param ctx Rendering context with placements
-     * @param lineIndex Buffer line index (can be negative for history)
-     * @param col Column position
-     * @return Placement covering this cell, or null if none
-     */
-    private fun findPlacementCoveringPosition(
-        ctx: RenderingContext,
-        lineIndex: Int,
-        col: Int
-    ): TerminalImagePlacement? {
-        return ctx.imagePlacements.find { placement ->
-            placement.containsCell(lineIndex, col)
-        }
     }
 
     /**
@@ -346,57 +297,6 @@ object TerminalCanvasRenderer {
                                 dstOffset = androidx.compose.ui.unit.IntOffset(dstX, dstY),
                                 dstSize = androidx.compose.ui.unit.IntSize(dstW, dstH)
                             )
-                        }
-                    }
-
-                    col++
-                    visualCol++
-                    continue
-                }
-
-                // Placement fallback: Check if this position is covered by a placement
-                // This handles overflow rows where ImageCell data wasn't written (image taller than screen)
-                val placement = findPlacementCoveringPosition(ctx, lineIndex, col)
-                if (placement != null) {
-                    // Flush any pending text batch before rendering image cell
-                    flushBatch()
-
-                    // Calculate which cell this would be if cells existed
-                    val cellY = lineIndex - placement.anchorRow  // Row offset within image
-                    val cellX = col - placement.anchorCol        // Column offset within image
-
-                    // Validate bounds (should always pass if containsCell returned true)
-                    if (cellY in 0 until placement.cellHeight && cellX in 0 until placement.cellWidth) {
-                        // Get the image from cache
-                        val image = ctx.imageDataCache?.getImage(placement.image.id)
-                        if (image != null) {
-                            val bitmap = ImageRenderer.getOrDecodeImage(image)
-                            if (bitmap != null) {
-                                // Calculate source region (same formula as cell-based rendering)
-                                val srcX1 = cellX * bitmap.width / placement.cellWidth
-                                val srcX2 = (cellX + 1) * bitmap.width / placement.cellWidth
-                                val srcY1 = cellY * bitmap.height / placement.cellHeight
-                                val srcY2 = (cellY + 1) * bitmap.height / placement.cellHeight
-                                val srcW = (srcX2 - srcX1).coerceAtLeast(1)
-                                val srcH = (srcY2 - srcY1).coerceAtLeast(1)
-
-                                // Calculate destination
-                                val dstX1 = (visualCol * ctx.cellWidth).toInt()
-                                val dstX2 = ((visualCol + 1) * ctx.cellWidth).toInt()
-                                val dstY1 = (row * ctx.cellHeight).toInt()
-                                val dstY2 = ((row + 1) * ctx.cellHeight).toInt()
-                                val dstW = (dstX2 - dstX1).coerceAtLeast(1)
-                                val dstH = (dstY2 - dstY1).coerceAtLeast(1)
-
-                                // Draw the portion of the image for this cell
-                                drawImage(
-                                    image = bitmap,
-                                    srcOffset = androidx.compose.ui.unit.IntOffset(srcX1, srcY1),
-                                    srcSize = androidx.compose.ui.unit.IntSize(srcW, srcH),
-                                    dstOffset = androidx.compose.ui.unit.IntOffset(dstX1, dstY1),
-                                    dstSize = androidx.compose.ui.unit.IntSize(dstW, dstH)
-                                )
-                            }
                         }
                     }
 

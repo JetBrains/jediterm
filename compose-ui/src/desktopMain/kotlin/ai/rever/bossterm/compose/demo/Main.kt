@@ -419,11 +419,14 @@ fun main() = application {
                         // Background layer: either image or glass blur effect
                         // Use key() to force recomposition when blur settings change
                         key(windowSettings.blurRadius, windowSettings.windowBlur) {
-                            val blurModifier = if (windowSettings.windowBlur) {
-                                Modifier.blur(windowSettings.blurRadius.dp)
-                            } else {
-                                Modifier
-                            }
+                            // Use BlurEffect like traffic lights (which works)
+                            val blurEffect = if (windowSettings.windowBlur) {
+                                BlurEffect(
+                                    windowSettings.blurRadius,
+                                    windowSettings.blurRadius,
+                                    TileMode.Clamp
+                                )
+                            } else null
 
                             if (backgroundImage != null) {
                                 // Background image with blur
@@ -434,23 +437,29 @@ fun main() = application {
                                     alpha = windowSettings.backgroundImageOpacity,
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .then(blurModifier)
+                                        .graphicsLayer {
+                                            renderEffect = blurEffect
+                                        }
                                 )
                             } else if (!useNativeTitleBar && windowSettings.backgroundOpacity < 1.0f && windowSettings.windowBlur) {
-                                // Frosted glass effect - blur a noise pattern for glass texture
+                                // Frosted glass effect - more visible gradient for blur to affect
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .background(
-                                            brush = Brush.radialGradient(
+                                            brush = Brush.linearGradient(
                                                 colors = listOf(
-                                                    Color.White.copy(alpha = 0.2f),
-                                                    Color.Gray.copy(alpha = 0.3f),
-                                                    Color.White.copy(alpha = 0.15f)
+                                                    Color.White.copy(alpha = 0.4f),
+                                                    Color.Gray.copy(alpha = 0.5f),
+                                                    Color.DarkGray.copy(alpha = 0.4f),
+                                                    Color.Gray.copy(alpha = 0.5f),
+                                                    Color.White.copy(alpha = 0.4f)
                                                 )
                                             )
                                         )
-                                        .then(blurModifier)
+                                        .graphicsLayer {
+                                            renderEffect = blurEffect
+                                        }
                                 )
                             }
                         }

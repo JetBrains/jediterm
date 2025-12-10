@@ -17,12 +17,8 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.TileMode
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -132,19 +128,8 @@ private object TrafficLightColors {
 }
 
 /**
- * Glass effect modifier for traffic light buttons.
- * Applies blur to content behind the button for a frosted glass appearance.
- */
-private fun Modifier.glassEffect(blur: Float = 20f) = this.then(
-    graphicsLayer {
-        renderEffect = BlurEffect(blur, blur, TileMode.Decal)
-    }
-)
-
-/**
  * Close button (red) with × icon on hover.
  * Icon: two 8px × 1px lines at 45° angles
- * Features glass blur effect on background.
  */
 @Composable
 private fun CloseButton(
@@ -156,9 +141,8 @@ private fun CloseButton(
     Box(
         modifier = Modifier
             .size(12.dp)
-            .glassEffect(blur = 8f)
             .clip(CircleShape)
-            .background(bgColor.copy(alpha = 0.85f))
+            .background(bgColor)
             .border(0.5.dp, TrafficLightColors.closeBorder, CircleShape)
             .pointerInput(Unit) {
                 detectTapGestures(onTap = { onClick() })
@@ -191,7 +175,6 @@ private fun CloseButton(
 /**
  * Minimize button (yellow) with − icon on hover.
  * Icon: one 8px × 1px horizontal line
- * Features glass blur effect on background.
  */
 @Composable
 private fun MinimizeButton(
@@ -203,9 +186,8 @@ private fun MinimizeButton(
     Box(
         modifier = Modifier
             .size(12.dp)
-            .glassEffect(blur = 8f)
             .clip(CircleShape)
-            .background(bgColor.copy(alpha = 0.85f))
+            .background(bgColor)
             .border(0.5.dp, TrafficLightColors.minimizeBorder, CircleShape)
             .pointerInput(Unit) {
                 detectTapGestures(onTap = { onClick() })
@@ -233,7 +215,6 @@ private fun MinimizeButton(
  * - Click = Fullscreen
  * - Option+Click = Maximize (zoom)
  * Icon: two triangular arrows pointing to opposite corners
- * Features glass blur effect on background.
  */
 @Composable
 private fun FullscreenButton(
@@ -246,9 +227,8 @@ private fun FullscreenButton(
     Box(
         modifier = Modifier
             .size(12.dp)
-            .glassEffect(blur = 8f)
             .clip(CircleShape)
-            .background(bgColor.copy(alpha = 0.85f))
+            .background(bgColor)
             .border(0.5.dp, TrafficLightColors.maximizeBorder, CircleShape)
             .pointerInput(Unit) {
                 awaitPointerEventScope {

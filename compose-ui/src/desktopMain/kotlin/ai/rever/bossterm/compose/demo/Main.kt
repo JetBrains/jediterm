@@ -415,53 +415,55 @@ fun main() = application {
                     shape = RoundedCornerShape(cornerRadius)
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        // Create blur effect outside lambda to trigger recomposition on radius change
-                        val blurEffect = remember(windowSettings.blurRadius) {
-                            BlurEffect(
-                                windowSettings.blurRadius,
-                                windowSettings.blurRadius,
-                                TileMode.Decal
-                            )
-                        }
-
                         // Background layer: either image or glass blur effect
-                        if (backgroundImage != null) {
-                            // Background image with BlurEffect API
-                            androidx.compose.foundation.Image(
-                                bitmap = backgroundImage,
-                                contentDescription = "Background",
-                                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                                alpha = windowSettings.backgroundImageOpacity,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .then(
-                                        if (windowSettings.windowBlur) {
-                                            Modifier.graphicsLayer {
-                                                renderEffect = blurEffect
-                                            }
-                                        } else {
-                                            Modifier
-                                        }
+                        // Use key() to force recomposition when blur settings change
+                        key(windowSettings.blurRadius, windowSettings.windowBlur) {
+                            if (backgroundImage != null) {
+                                // Background image with BlurEffect API
+                                val imageBlurEffect = if (windowSettings.windowBlur) {
+                                    BlurEffect(
+                                        windowSettings.blurRadius,
+                                        windowSettings.blurRadius,
+                                        TileMode.Decal
                                     )
-                            )
-                        } else if (!useNativeTitleBar && windowSettings.backgroundOpacity < 1.0f && windowSettings.windowBlur) {
-                            // Glass blur effect using BlurEffect API (frosted glass appearance)
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(
-                                        brush = Brush.radialGradient(
-                                            colors = listOf(
-                                                Color.White.copy(alpha = 0.15f),
-                                                Color.Gray.copy(alpha = 0.2f),
-                                                Color.White.copy(alpha = 0.1f)
+                                } else null
+
+                                androidx.compose.foundation.Image(
+                                    bitmap = backgroundImage,
+                                    contentDescription = "Background",
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                    alpha = windowSettings.backgroundImageOpacity,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .graphicsLayer {
+                                            renderEffect = imageBlurEffect
+                                        }
+                                )
+                            } else if (!useNativeTitleBar && windowSettings.backgroundOpacity < 1.0f && windowSettings.windowBlur) {
+                                // Glass blur effect using BlurEffect API (frosted glass appearance)
+                                val glassBlurEffect = BlurEffect(
+                                    windowSettings.blurRadius,
+                                    windowSettings.blurRadius,
+                                    TileMode.Decal
+                                )
+
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(
+                                            brush = Brush.radialGradient(
+                                                colors = listOf(
+                                                    Color.White.copy(alpha = 0.15f),
+                                                    Color.Gray.copy(alpha = 0.2f),
+                                                    Color.White.copy(alpha = 0.1f)
+                                                )
                                             )
                                         )
-                                    )
-                                    .graphicsLayer {
-                                        renderEffect = blurEffect
-                                    }
-                            )
+                                        .graphicsLayer {
+                                            renderEffect = glassBlurEffect
+                                        }
+                                )
+                            }
                         }
 
                     Column(modifier = Modifier.fillMaxSize()) {

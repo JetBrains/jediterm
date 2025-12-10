@@ -28,10 +28,12 @@ import ai.rever.bossterm.compose.window.configureWindowTransparency
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Surface
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.WindowPlacement
 import kotlinx.coroutines.launch
@@ -413,9 +415,9 @@ fun main() = application {
                     shape = RoundedCornerShape(cornerRadius)
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        // Background layer: either image or faux blur effect
+                        // Background layer: either image or glass blur effect
                         if (backgroundImage != null) {
-                            // Background image with blur effect
+                            // Background image with BlurEffect API
                             androidx.compose.foundation.Image(
                                 bitmap = backgroundImage,
                                 contentDescription = "Background",
@@ -425,27 +427,39 @@ fun main() = application {
                                     .fillMaxSize()
                                     .then(
                                         if (windowSettings.windowBlur) {
-                                            Modifier.blur(windowSettings.blurRadius.dp)
+                                            Modifier.graphicsLayer {
+                                                renderEffect = BlurEffect(
+                                                    windowSettings.blurRadius,
+                                                    windowSettings.blurRadius,
+                                                    TileMode.Decal
+                                                )
+                                            }
                                         } else {
                                             Modifier
                                         }
                                     )
                             )
                         } else if (!useNativeTitleBar && windowSettings.backgroundOpacity < 1.0f && windowSettings.windowBlur) {
-                            // Faux blur effect: grey gradient overlay to simulate frosted glass
+                            // Glass blur effect using BlurEffect API (frosted glass appearance)
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .background(
                                         brush = Brush.radialGradient(
                                             colors = listOf(
-                                                Color.Gray.copy(alpha = 0.3f),
-                                                Color.DarkGray.copy(alpha = 0.4f),
-                                                Color.Gray.copy(alpha = 0.35f)
+                                                Color.White.copy(alpha = 0.15f),
+                                                Color.Gray.copy(alpha = 0.2f),
+                                                Color.White.copy(alpha = 0.1f)
                                             )
                                         )
                                     )
-                                    .blur(windowSettings.blurRadius.dp)
+                                    .graphicsLayer {
+                                        renderEffect = BlurEffect(
+                                            windowSettings.blurRadius,
+                                            windowSettings.blurRadius,
+                                            TileMode.Decal
+                                        )
+                                    }
                             )
                         }
 

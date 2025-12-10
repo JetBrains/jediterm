@@ -2,6 +2,7 @@ package ai.rever.bossterm.terminal.model
 
 import ai.rever.bossterm.terminal.StyledTextConsumer
 import ai.rever.bossterm.terminal.TextStyle
+import ai.rever.bossterm.terminal.model.image.ImageCell
 import ai.rever.bossterm.terminal.util.CharUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -39,6 +40,13 @@ class TerminalLine {
     private var snapshotVersion: Long = 0L
 
     /**
+     * Sparse map of column -> image cell.
+     * Null when line has no images (memory efficient).
+     * Each cell stores which portion of image it renders - cells reflow like text.
+     */
+    private var myImageCells: MutableMap<Int, ImageCell>? = null
+
+    /**
      * Get the current snapshot version for copy-on-write optimization.
      * @return current version number (increments on every mutation)
      */
@@ -51,6 +59,59 @@ class TerminalLine {
     private fun incrementSnapshotVersion() {
         snapshotVersion++
     }
+
+    // ============ Image Cell Methods ============
+
+    /**
+     * Get image cell at column, or null if text/empty.
+     */
+    fun getImageCellAt(col: Int): ImageCell? = myImageCells?.get(col)
+
+    /**
+     * Check if any image cells exist in this line.
+     */
+    fun hasImageCells(): Boolean = myImageCells?.isNotEmpty() == true
+
+    /**
+     * Get all image cells in this line.
+     * @return Map of column -> image cell, or empty map if none
+     */
+    fun getAllImageCells(): Map<Int, ImageCell> = myImageCells?.toMap() ?: emptyMap()
+
+    /**
+     * Set image cell at column.
+     * Each cell knows its position within the image grid for rendering.
+     */
+    fun setImageCell(col: Int, cell: ImageCell) {
+        if (myImageCells == null) myImageCells = mutableMapOf()
+        myImageCells!![col] = cell
+        incrementSnapshotVersion()
+    }
+
+    /**
+     * Clear image cells in range [startCol, endCol).
+     * Called when text overwrites image area.
+     */
+    fun clearImageCellsInRange(startCol: Int, endCol: Int) {
+        val cells = myImageCells ?: return
+        for (col in startCol until endCol) {
+            cells.remove(col)
+        }
+        if (cells.isEmpty()) myImageCells = null
+        incrementSnapshotVersion()
+    }
+
+    /**
+     * Clear all image cells in this line.
+     */
+    fun clearAllImageCells() {
+        if (myImageCells != null) {
+            myImageCells = null
+            incrementSnapshotVersion()
+        }
+    }
+
+    // ============ End Image Cell Methods ============
 
     constructor()
 
@@ -79,6 +140,10 @@ class TerminalLine {
             result.myTextEntries.add(TextEntry(entry.style, entry.text))
         }
         result.isWrapped = this.isWrapped
+        // Copy image cells if present
+        myImageCells?.let { cells ->
+            result.myImageCells = cells.toMutableMap()
+        }
         return result
     }
 
@@ -101,6 +166,7 @@ class TerminalLine {
     fun clear(filler: TextEntry) {
         myTextEntries.clear()
         myTextEntries.add(filler)
+        myImageCells = null  // Clear all image cells
         incrementSnapshotVersion()
     }
 
@@ -113,6 +179,11 @@ class TerminalLine {
     }
 
     private fun writeCharacters(x: Int, style: TextStyle, characters: CharBuffer) {
+        // Clear any image cells in the write range - text overwrites images
+        if (myImageCells != null) {
+            clearImageCellsInRange(x, x + characters.length)
+        }
+
         var len = myTextEntries.length()
 
         if (x >= len) {

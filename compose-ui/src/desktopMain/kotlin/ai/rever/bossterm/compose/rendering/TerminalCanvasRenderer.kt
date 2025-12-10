@@ -19,6 +19,8 @@ import ai.rever.bossterm.compose.util.ColorUtils
 import ai.rever.bossterm.terminal.CursorShape
 import ai.rever.bossterm.terminal.model.TerminalLine
 import ai.rever.bossterm.terminal.model.pool.VersionedBufferSnapshot
+import ai.rever.bossterm.terminal.model.image.ImageCell
+import ai.rever.bossterm.terminal.model.image.ImageDataCache
 import ai.rever.bossterm.terminal.util.CharUtils
 import ai.rever.bossterm.terminal.TextStyle as BossTextStyle
 import org.jetbrains.skia.FontMgr
@@ -75,7 +77,12 @@ data class RenderingContext(
 
     // Blink state
     val slowBlinkVisible: Boolean,
-    val rapidBlinkVisible: Boolean
+    val rapidBlinkVisible: Boolean,
+
+    // Cell-based image rendering (images flow with text)
+    val imageDataCache: ImageDataCache? = null,
+    val terminalWidthCells: Int = 80,
+    val terminalHeightCells: Int = 24
 )
 
 /**
@@ -251,6 +258,53 @@ object TerminalCanvasRenderer {
             var visualCol = 0
 
             while (col < ctx.visibleCols) {
+                // Check for image cell first (cell-based image rendering)
+                val imageCell = line.getImageCellAt(col)
+                if (imageCell != null) {
+                    // Flush any pending text batch before rendering image cell
+                    flushBatch()
+
+                    // Render this cell's portion of the image
+                    val image = ctx.imageDataCache?.getImage(imageCell.imageId)
+                    if (image != null) {
+                        val bitmap = ImageRenderer.getOrDecodeImage(image)
+                        if (bitmap != null) {
+                            // Calculate source region - use exact boundaries to avoid gaps
+                            val srcX1 = imageCell.cellX * bitmap.width / imageCell.totalCellsX
+                            val srcX2 = (imageCell.cellX + 1) * bitmap.width / imageCell.totalCellsX
+                            val srcY1 = imageCell.cellY * bitmap.height / imageCell.totalCellsY
+                            val srcY2 = (imageCell.cellY + 1) * bitmap.height / imageCell.totalCellsY
+                            val srcX = srcX1
+                            val srcY = srcY1
+                            val srcW = (srcX2 - srcX1).coerceAtLeast(1)
+                            val srcH = (srcY2 - srcY1).coerceAtLeast(1)
+
+                            // Destination - use exact boundaries to avoid gaps
+                            val dstX1 = (visualCol * ctx.cellWidth).toInt()
+                            val dstX2 = ((visualCol + 1) * ctx.cellWidth).toInt()
+                            val dstY1 = (row * ctx.cellHeight).toInt()
+                            val dstY2 = ((row + 1) * ctx.cellHeight).toInt()
+                            val dstX = dstX1
+                            val dstY = dstY1
+                            val dstW = (dstX2 - dstX1).coerceAtLeast(1)
+                            val dstH = (dstY2 - dstY1).coerceAtLeast(1)
+
+                            // Draw the portion of the image for this cell
+                            drawImage(
+                                image = bitmap,
+                                srcOffset = androidx.compose.ui.unit.IntOffset(srcX, srcY),
+                                srcSize = androidx.compose.ui.unit.IntSize(srcW, srcH),
+                                dstOffset = androidx.compose.ui.unit.IntOffset(dstX, dstY),
+                                dstSize = androidx.compose.ui.unit.IntSize(dstW, dstH)
+                            )
+                        }
+                    }
+
+                    col++
+                    visualCol++
+                    continue
+                }
+
                 val char = line.charAt(col)
                 val style = line.getStyleAt(col)
 

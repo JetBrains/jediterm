@@ -9,7 +9,13 @@ import ai.rever.bossterm.terminal.emulator.mouse.MouseMode
 import ai.rever.bossterm.terminal.util.CharUtils
 import ai.rever.bossterm.terminal.util.GraphemeCluster
 import ai.rever.bossterm.terminal.util.GraphemeUtils
+import ai.rever.bossterm.terminal.model.image.DimensionSpec
+import ai.rever.bossterm.terminal.model.image.ImageFormat
+import ai.rever.bossterm.terminal.model.image.TerminalImage
 import org.slf4j.Logger
+import java.util.Base64
+import javax.imageio.ImageIO
+import java.io.ByteArrayInputStream
 import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.lang.Boolean
@@ -36,6 +42,21 @@ import kotlin.plus
  */
 class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
     DataStreamIteratingEmulator(dataStream, terminal) {
+
+    // ===== Multipart File Transfer State =====
+    // Tracks in-progress multipart file uploads (OSC 1337;MultipartFile/FilePart/FileEnd)
+    private data class MultipartFileState(
+        var name: String? = null,
+        var size: Int? = null,
+        var widthSpec: String? = null,
+        var heightSpec: String? = null,
+        var preserveAspectRatio: kotlin.Boolean = true,
+        var inline: kotlin.Boolean = false,
+        val base64Chunks: StringBuilder = StringBuilder()
+    )
+
+    private var multipartState: MultipartFileState? = null
+
     @Throws(IOException::class)
     public override fun processChar(ch: Char, terminal: Terminal?) {
         when (ch) {
@@ -602,9 +623,9 @@ class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
 
     /**
      * Handles OSC 1337 (iTerm2 proprietary sequences).
-     * Currently supports: SetProgress
+     * Supports: SetProgress, File (inline images)
      * Format: OSC 1337;SetProgress=state;progress ST
-     * or: OSC 1337;SetProgress=progress ST (just percentage)
+     * Format: OSC 1337;File=[args]:base64data ST
      */
     private fun processITerm2Sequence(args: SystemCommandSequence): kotlin.Boolean {
         val command = args.getStringAt(1) ?: return false
@@ -629,11 +650,287 @@ class BossEmulator(dataStream: TerminalDataStream, terminal: Terminal?) :
             return parseITerm2Progress(fullValue)
         }
 
+        // Parse File (inline image) command - legacy single-sequence format
+        // Format: File=[name=...][;size=...][;width=...][;height=...][;preserveAspectRatio=...][;inline=...]:base64data
+        if (command.startsWith("File=") || command == "File") {
+            return processITerm2File(args)
+        }
+
+        // Parse MultipartFile (chunked image) command - iTerm2 3.5+ format
+        // Format: MultipartFile=[arguments] (no data, just metadata)
+        if (command.startsWith("MultipartFile=") || command == "MultipartFile") {
+            return processITerm2MultipartFileStart(args)
+        }
+
+        // Parse FilePart (chunk of multipart file)
+        // Format: FilePart=base64chunk
+        if (command.startsWith("FilePart=") || command == "FilePart") {
+            return processITerm2FilePart(args)
+        }
+
+        // Parse FileEnd (end of multipart file)
+        // Format: FileEnd
+        if (command == "FileEnd") {
+            return processITerm2FileEnd()
+        }
+
         // Other iTerm2 commands can be added here
         if (LOG.isDebugEnabled()) {
             LOG.debug("Unhandled iTerm2 OSC 1337 command: $command")
         }
         return false
+    }
+
+    /**
+     * Handles OSC 1337;File (inline images).
+     * Format: OSC 1337;File=[arguments]:base64data ST
+     *
+     * Arguments (all optional):
+     * - name=base64_filename
+     * - size=bytes
+     * - width=N|Npx|N%|auto
+     * - height=N|Npx|N%|auto
+     * - preserveAspectRatio=0|1
+     * - inline=0|1 (must be 1 for inline display)
+     */
+    private fun processITerm2File(args: SystemCommandSequence): kotlin.Boolean {
+        // Reconstruct the full command from args (may be split on semicolons)
+        val parts = mutableListOf<String>()
+        var i = 1
+        while (args.getStringAt(i) != null) {
+            parts.add(args.getStringAt(i)!!)
+            i++
+        }
+        val fullCommand = parts.joinToString(";")
+
+        // Find the colon separator between arguments and base64 data
+        val colonIndex = fullCommand.indexOf(':')
+        if (colonIndex == -1) {
+            return false
+        }
+
+        val argsStr = fullCommand.substring(0, colonIndex).removePrefix("File=").removePrefix("File")
+        val base64Data = fullCommand.substring(colonIndex + 1)
+
+        if (base64Data.isEmpty()) {
+            return false
+        }
+
+        // Parse arguments
+        var name: String? = null
+        var size: Int? = null
+        var widthSpec: String? = null
+        var heightSpec: String? = null
+        var preserveAspectRatio = true
+        var inline = false
+
+        for (arg in argsStr.split(";")) {
+            if (arg.isEmpty()) continue
+            val eqIndex = arg.indexOf('=')
+            if (eqIndex == -1) continue
+
+            val key = arg.substring(0, eqIndex).lowercase()
+            val value = arg.substring(eqIndex + 1)
+
+            when (key) {
+                "name" -> {
+                    try {
+                        name = String(Base64.getDecoder().decode(value), Charsets.UTF_8)
+                    } catch (e: Exception) {
+                        // Ignore invalid filename encoding
+                    }
+                }
+                "size" -> size = value.toIntOrNull()
+                "width" -> widthSpec = value
+                "height" -> heightSpec = value
+                "preserveaspectratio" -> preserveAspectRatio = value != "0"
+                "inline" -> inline = value == "1"
+            }
+        }
+
+        // Only display if inline=1
+        if (!inline) {
+            return true  // Acknowledge but don't display (download mode)
+        }
+
+        // Decode base64 image data
+        val imageData: ByteArray
+        try {
+            // Remove any whitespace/newlines and decode
+            val cleanBase64 = base64Data.replace(Regex("\\s"), "")
+            imageData = Base64.getDecoder().decode(cleanBase64)
+        } catch (e: Exception) {
+            return false
+        }
+
+        // Detect image format and get intrinsic dimensions
+        val format = ImageFormat.detect(imageData)
+        var intrinsicWidth = 0
+        var intrinsicHeight = 0
+
+        try {
+            val bufferedImage = ImageIO.read(ByteArrayInputStream(imageData))
+            if (bufferedImage != null) {
+                intrinsicWidth = bufferedImage.width
+                intrinsicHeight = bufferedImage.height
+            }
+        } catch (e: Exception) {
+            // Failed to read image dimensions
+        }
+
+        if (intrinsicWidth == 0 || intrinsicHeight == 0) {
+            return false
+        }
+
+        // Create terminal image
+        val image = TerminalImage(
+            data = imageData,
+            name = name,
+            format = format,
+            intrinsicWidth = intrinsicWidth,
+            intrinsicHeight = intrinsicHeight,
+            widthSpec = DimensionSpec.parse(widthSpec),
+            heightSpec = DimensionSpec.parse(heightSpec),
+            preserveAspectRatio = preserveAspectRatio
+        )
+
+        // Send to terminal for placement
+        val placement = myTerminal?.processInlineImage(image)
+        return placement != null
+    }
+
+    /**
+     * Handles OSC 1337;MultipartFile (start of chunked image transfer).
+     * Format: OSC 1337;MultipartFile=[arguments] ST
+     * Arguments are the same as File= but without the base64 data.
+     */
+    private fun processITerm2MultipartFileStart(args: SystemCommandSequence): kotlin.Boolean {
+        // Reconstruct the full command from args
+        val parts = mutableListOf<String>()
+        var i = 1
+        while (args.getStringAt(i) != null) {
+            parts.add(args.getStringAt(i)!!)
+            i++
+        }
+        val fullCommand = parts.joinToString(";")
+        val argsStr = fullCommand.removePrefix("MultipartFile=").removePrefix("MultipartFile")
+
+        // Reset any existing multipart state
+        multipartState = MultipartFileState()
+
+        // Parse arguments (same as File=)
+        for (arg in argsStr.split(";")) {
+            if (arg.isEmpty()) continue
+            val eqIndex = arg.indexOf('=')
+            if (eqIndex == -1) continue
+
+            val key = arg.substring(0, eqIndex).lowercase()
+            val value = arg.substring(eqIndex + 1)
+
+            when (key) {
+                "name" -> {
+                    try {
+                        multipartState?.name = String(Base64.getDecoder().decode(value), Charsets.UTF_8)
+                    } catch (e: Exception) {
+                        // Ignore invalid filename encoding
+                    }
+                }
+                "size" -> multipartState?.size = value.toIntOrNull()
+                "width" -> multipartState?.widthSpec = value
+                "height" -> multipartState?.heightSpec = value
+                "preserveaspectratio" -> multipartState?.preserveAspectRatio = value != "0"
+                "inline" -> multipartState?.inline = value == "1"
+            }
+        }
+
+        return true
+    }
+
+    /**
+     * Handles OSC 1337;FilePart (chunk of multipart file).
+     * Format: OSC 1337;FilePart=base64chunk ST
+     */
+    private fun processITerm2FilePart(args: SystemCommandSequence): kotlin.Boolean {
+        val state = multipartState ?: return false  // No active multipart transfer
+
+        // Reconstruct the full command
+        val parts = mutableListOf<String>()
+        var i = 1
+        while (args.getStringAt(i) != null) {
+            parts.add(args.getStringAt(i)!!)
+            i++
+        }
+        val fullCommand = parts.joinToString(";")
+        val base64Chunk = fullCommand.removePrefix("FilePart=").removePrefix("FilePart")
+
+        // Accumulate the chunk
+        state.base64Chunks.append(base64Chunk)
+
+        return true
+    }
+
+    /**
+     * Handles OSC 1337;FileEnd (end of multipart file).
+     * Format: OSC 1337;FileEnd ST
+     * Finalizes the multipart transfer and displays the image.
+     */
+    private fun processITerm2FileEnd(): kotlin.Boolean {
+        val state = multipartState ?: return false  // No active multipart transfer
+
+        // Only display if inline=1
+        if (!state.inline) {
+            multipartState = null
+            return true  // Acknowledge but don't display (download mode)
+        }
+
+        // Decode accumulated base64 data
+        val imageData: ByteArray
+        try {
+            val cleanBase64 = state.base64Chunks.toString().replace(Regex("\\s"), "")
+            imageData = Base64.getDecoder().decode(cleanBase64)
+        } catch (e: Exception) {
+            multipartState = null
+            return false
+        }
+
+        // Detect image format and get intrinsic dimensions
+        val format = ImageFormat.detect(imageData)
+        var intrinsicWidth = 0
+        var intrinsicHeight = 0
+
+        try {
+            val bufferedImage = ImageIO.read(ByteArrayInputStream(imageData))
+            if (bufferedImage != null) {
+                intrinsicWidth = bufferedImage.width
+                intrinsicHeight = bufferedImage.height
+            }
+        } catch (e: Exception) {
+            // Failed to read image dimensions
+        }
+
+        if (intrinsicWidth == 0 || intrinsicHeight == 0) {
+            multipartState = null
+            return false
+        }
+
+        // Create terminal image
+        val image = TerminalImage(
+            data = imageData,
+            name = state.name,
+            format = format,
+            intrinsicWidth = intrinsicWidth,
+            intrinsicHeight = intrinsicHeight,
+            widthSpec = DimensionSpec.parse(state.widthSpec),
+            heightSpec = DimensionSpec.parse(state.heightSpec),
+            preserveAspectRatio = state.preserveAspectRatio
+        )
+
+        // Clear multipart state
+        multipartState = null
+
+        // Send to terminal for placement
+        val placement = myTerminal?.processInlineImage(image)
+        return placement != null
     }
 
     /**

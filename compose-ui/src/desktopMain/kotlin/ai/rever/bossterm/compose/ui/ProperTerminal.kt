@@ -27,6 +27,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.scale
@@ -518,6 +519,11 @@ fun ProperTerminal(
 
   // Calculate line spacing gap (extra space added by line spacing)
   val lineSpacingGap = cellHeight - baseCellHeight
+
+  // Update terminal with actual cell dimensions for accurate image placement
+  LaunchedEffect(cellWidth, cellHeight) {
+    terminal.setCellDimensions(cellWidth, cellHeight)
+  }
 
   // SLOW_BLINK animation timer (configurable via settings.slowTextBlinkMs)
   // Wrapped with enableTextBlinking master toggle for accessibility
@@ -1320,7 +1326,7 @@ fun ProperTerminal(
           textBuffer.createIncrementalSnapshot()
         }
 
-        Canvas(modifier = Modifier.padding(start = 4.dp, top = 4.dp).fillMaxSize()) {
+        Canvas(modifier = Modifier.padding(start = 4.dp, top = 4.dp).fillMaxSize().clipToBounds()) {
           // Guard against invalid canvas sizes during resize - prevents drawText constraint failures
           if (size.width < cellWidth || size.height < cellHeight) return@Canvas
 
@@ -1370,7 +1376,10 @@ fun ProperTerminal(
             hoveredHyperlink = hoveredHyperlink,
             isModifierPressed = isModifierPressed,
             slowBlinkVisible = slowBlinkVisible,
-            rapidBlinkVisible = rapidBlinkVisible
+            rapidBlinkVisible = rapidBlinkVisible,
+            imageDataCache = terminal.getImageDataCache(),
+            terminalWidthCells = bufferSnapshot.width,
+            terminalHeightCells = bufferSnapshot.height
           )
 
           // Render terminal using extracted renderer - returns detected hyperlinks

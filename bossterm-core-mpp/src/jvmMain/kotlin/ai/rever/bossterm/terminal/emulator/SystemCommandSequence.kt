@@ -14,7 +14,9 @@ internal class SystemCommandSequence
 
   init {
     val textBuf = StringBuilder()
-    val maxLength = 4096  // Maximum OSC sequence length to prevent DoS attacks
+    // Large limit to support inline images (OSC 1337;File)
+    // A 10MB image = ~13MB base64 = 13 million characters
+    val maxLength = 50 * 1024 * 1024  // 50MB max for inline images
 
     do {
       if (textBuf.length >= maxLength) {

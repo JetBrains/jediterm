@@ -7,6 +7,7 @@ import ai.rever.bossterm.terminal.StyledTextConsumer
 import ai.rever.bossterm.terminal.TextStyle
 import ai.rever.bossterm.terminal.model.TerminalLine.TextEntry
 import ai.rever.bossterm.terminal.model.hyperlinks.TextProcessing
+import ai.rever.bossterm.terminal.model.image.ImageCell
 import ai.rever.bossterm.terminal.model.pool.IncrementalSnapshotBuilder
 import ai.rever.bossterm.terminal.model.pool.VersionedBufferSnapshot
 import ai.rever.bossterm.terminal.util.CharUtils
@@ -90,6 +91,13 @@ class TerminalTextBuffer internal constructor(
   private val historyBufferListeners: MutableList<TerminalHistoryBufferListener> = CopyOnWriteArrayList()
   private val changesMulticaster: TextBufferChangesMulticaster = TextBufferChangesMulticaster()
 
+  // Callback for notifying when lines move between screen and history during resize
+  private var resizeCallback: BufferResizeCallback? = null
+
+  fun setResizeCallback(callback: BufferResizeCallback?) {
+    resizeCallback = callback
+  }
+
   // ===== BATCH CHANGE TRACKING =====
   // Suppresses intermediate modelChanged events during rapid sequences like clear+write
   @Volatile
@@ -133,6 +141,11 @@ class TerminalTextBuffer internal constructor(
           changeWidthOperation.addPointToTrack(selectionEnd, false)
         }
       }
+      // Track image anchor rows through the reflow
+      val anchorRows = resizeCallback?.getAnchorRowsToTrack() ?: emptySet()
+      for (row in anchorRows) {
+        changeWidthOperation.addAnchorRowToTrack(row)
+      }
       changeWidthOperation.run()
       width = newWidth
       height = newHeight
@@ -145,6 +158,10 @@ class TerminalTextBuffer internal constructor(
         if (selectionEnd != null) {
           selectionEnd.setLocation(changeWidthOperation.getTrackedPoint(selectionEnd))
         }
+      }
+      // Notify callback with anchor mapping so images can be repositioned
+      if (anchorRows.isNotEmpty()) {
+        resizeCallback?.onWidthChanged(changeWidthOperation.getAnchorMapping())
       }
       changesMulticaster.widthResized()
     }
@@ -171,6 +188,10 @@ class TerminalTextBuffer internal constructor(
         addLinesToHistory(removedLines)
         newCursorY = oldCursorY - screenLinesToMove
         selection?.shiftY(-screenLinesToMove)
+        // Notify callback so image anchors can be adjusted
+        if (screenLinesToMove > 0) {
+          resizeCallback?.onLinesMovedToHistory(screenLinesToMove)
+        }
       }
       else {
         newCursorY = oldCursorY
@@ -189,6 +210,10 @@ class TerminalTextBuffer internal constructor(
           screenLinesStorage.addAllToTop(removedLines)
           newCursorY = oldCursorY + historyLinesCount
           selection?.shiftY(historyLinesCount)
+          // Notify callback so image anchors can be adjusted
+          if (historyLinesCount > 0) {
+            resizeCallback?.onLinesRestoredFromHistory(historyLinesCount)
+          }
         }
         else {
           newCursorY = oldCursorY
@@ -331,6 +356,96 @@ class TerminalTextBuffer internal constructor(
     textProcessing?.processHyperlinks(screenLinesStorage, line)
     fireModelChangeEvent()
     changesMulticaster.linesChanged(fromIndex = y - 1)
+  }
+
+  /**
+   * Write image cells spanning multiple rows.
+   * Called from BossTerminal.processInlineImage() when using cell-based image rendering.
+   *
+   * @param startRow Screen row (0-indexed) for top of image
+   * @param startCol Column for left edge of image
+   * @param imageId ID of image in ImageDataCache
+   * @param cellWidth Width in cells
+   * @param cellHeight Height in cells
+   */
+  fun writeImageCells(
+    startRow: Int,
+    startCol: Int,
+    imageId: Long,
+    cellWidth: Int,
+    cellHeight: Int,
+    cellYOffset: Int = 0  // Skip first N rows of image (for images partially in history)
+  ) {
+    myLock.lock()
+    try {
+      // Ensure startRow is valid
+      if (startRow < 0 || startRow >= screenLinesStorage.size) {
+        LOG.warn("writeImageCells: Invalid startRow={}, screenSize={}", startRow, screenLinesStorage.size)
+        return
+      }
+
+      // Write image cells - each cell knows its position in the image grid
+      // cellYOffset allows skipping the first N rows (when image top is in history)
+      var cellsWritten = 0
+      var rowsWritten = 0
+      for (cellY in cellYOffset until cellHeight) {
+        val row = startRow + (cellY - cellYOffset)  // Buffer row to write to
+        if (row >= screenLinesStorage.size) {
+          LOG.debug(
+            "writeImageCells: Image overflow - row {} >= screenSize {}, wrote cells {}-{} of {} rows. " +
+            "Remaining rows will use placement-based rendering.",
+            row, screenLinesStorage.size, cellYOffset, cellY - 1, cellHeight
+          )
+          break
+        }
+
+        val line = screenLinesStorage[row]
+        for (cellX in 0 until cellWidth) {
+          val col = startCol + cellX
+          if (col < width) {
+            // cellY is the actual position in the image grid (not adjusted for offset)
+            line.setImageCell(col, ImageCell(imageId, cellX, cellY, cellWidth, cellHeight))
+            cellsWritten++
+          }
+        }
+        rowsWritten++
+      }
+      LOG.debug("writeImageCells: wrote {} cells across {} rows (imageId={}, {}x{} cells, startRow={}, cellYOffset={})",
+        cellsWritten, rowsWritten, imageId, cellWidth, cellHeight, startRow, cellYOffset)
+
+      fireModelChangeEvent()
+      changesMulticaster.linesChanged(fromIndex = startRow)
+    } finally {
+      myLock.unlock()
+    }
+  }
+
+  /**
+   * Write a single row of image cells.
+   * Used when writing image rows one at a time with scrolling in between.
+   */
+  fun writeImageCellRow(
+    row: Int,
+    startCol: Int,
+    imageId: Long,
+    cellY: Int,
+    cellWidth: Int,
+    cellHeight: Int
+  ) {
+    myLock.lock()
+    try {
+      if (row < 0 || row >= screenLinesStorage.size) return
+
+      val line = screenLinesStorage[row]
+      for (cellX in 0 until cellWidth) {
+        val col = startCol + cellX
+        if (col < width) {
+          line.setImageCell(col, ImageCell(imageId, cellX, cellY, cellWidth, cellHeight))
+        }
+      }
+    } finally {
+      myLock.unlock()
+    }
   }
 
   fun scrollArea(scrollRegionTop: Int, dy: Int, scrollRegionBottom: Int) {
@@ -793,4 +908,36 @@ data class BufferSnapshot(
       historyLines.getOrNull(historyIndex) ?: TerminalLine.createEmpty()
     }
   }
+}
+
+/**
+ * Callback interface for buffer resize events.
+ * Used to notify when lines move between screen and history during resize.
+ */
+interface BufferResizeCallback {
+  /**
+   * Called when lines are moved from screen buffer to history during height shrink.
+   * Image anchors should be adjusted: anchorRow -= lineCount
+   */
+  fun onLinesMovedToHistory(lineCount: Int)
+
+  /**
+   * Called when lines are restored from history to screen buffer during height expand.
+   * Image anchors should be adjusted: anchorRow += lineCount
+   */
+  fun onLinesRestoredFromHistory(lineCount: Int)
+
+  /**
+   * Called before width change to get anchor rows that need tracking through reflow.
+   * @return Set of screen-relative anchor rows (0-indexed) to track
+   */
+  fun getAnchorRowsToTrack(): Set<Int>
+
+  /**
+   * Called when terminal width changes and lines are reflowed.
+   * Image anchors need to be remapped using the provided mapping.
+   *
+   * @param anchorMapping Map of old anchor row -> new anchor row (screen-relative, 0-indexed)
+   */
+  fun onWidthChanged(anchorMapping: Map<Int, Int>)
 }

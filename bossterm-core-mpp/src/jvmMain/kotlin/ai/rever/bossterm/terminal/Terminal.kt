@@ -9,6 +9,9 @@ import ai.rever.bossterm.terminal.model.StyleState
 import ai.rever.bossterm.terminal.model.CommandStateListener
 import ai.rever.bossterm.terminal.model.TerminalApplicationTitleListener
 import ai.rever.bossterm.terminal.model.TerminalResizeListener
+import ai.rever.bossterm.terminal.model.image.TerminalImage
+import ai.rever.bossterm.terminal.model.image.TerminalImageListener
+import ai.rever.bossterm.terminal.model.image.TerminalImagePlacement
 import java.io.UnsupportedEncodingException
 
 /**
@@ -288,6 +291,51 @@ interface Terminal {
      * @param data The base64-encoded data to set, "?" to query, or empty to clear
      */
     fun processClipboard(selection: Char, data: String) {}
+
+    // ===== Inline Images (OSC 1337;File) =====
+
+    fun addImageListener(listener: TerminalImageListener) {}
+
+    fun removeImageListener(listener: TerminalImageListener) {}
+
+    /**
+     * Called when an inline image is received (OSC 1337;File).
+     * The image will be placed at the current cursor position.
+     *
+     * @param image The parsed image with its data and dimension specs
+     * @return The placement if successful, null otherwise
+     */
+    fun processInlineImage(image: TerminalImage): TerminalImagePlacement? { return null }
+
+    /**
+     * Get all image placements in the given row range.
+     * Used by the renderer to draw images.
+     *
+     * @param startRow Start row (can be negative for history)
+     * @param endRow End row
+     * @return List of placements overlapping the range
+     */
+    fun getImagePlacements(startRow: Int, endRow: Int): List<TerminalImagePlacement> { return emptyList() }
+
+    /**
+     * Get all image placements.
+     */
+    fun getAllImagePlacements(): List<TerminalImagePlacement> { return emptyList() }
+
+    /**
+     * Clear all images.
+     */
+    fun clearAllImages() {}
+
+    /**
+     * Set the cell dimensions in pixels.
+     * Called by the UI when cell dimensions are calculated/changed.
+     * Used for accurate image dimension calculations.
+     *
+     * @param cellWidthPx Width of a single cell in pixels
+     * @param cellHeightPx Height of a single cell in pixels
+     */
+    fun setCellDimensions(cellWidthPx: Float, cellHeightPx: Float) {}
 }
 
 /**

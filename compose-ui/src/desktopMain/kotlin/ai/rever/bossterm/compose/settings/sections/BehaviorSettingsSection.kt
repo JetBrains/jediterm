@@ -19,6 +19,18 @@ fun BehaviorSettingsSection(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
+        // Shell Settings
+        SettingsSection(title = "Shell") {
+            SettingsToggle(
+                label = "Use Login Session (macOS)",
+                checked = settings.useLoginSession,
+                onCheckedChange = { onSettingsChange(settings.copy(useLoginSession = it)) },
+                description = "Show 'Last login' message and register in utmp/wtmp"
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
         // Clipboard Settings
         SettingsSection(title = "Clipboard") {
             SettingsToggle(

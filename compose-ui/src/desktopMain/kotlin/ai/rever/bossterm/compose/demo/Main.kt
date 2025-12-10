@@ -208,16 +208,13 @@ fun main() = application {
                             } ?: ge.defaultScreenDevice
 
                             val screenBounds = screenDevice.defaultConfiguration.bounds
-                            val insets = java.awt.Toolkit.getDefaultToolkit().getScreenInsets(
-                                screenDevice.defaultConfiguration
-                            )
 
-                            // Set window to fill available screen space (excluding menu bar/dock)
+                            // Set window to fill entire screen (true fullscreen, covers menu bar/dock)
                             awtWindow.setBounds(
-                                screenBounds.x + insets.left,
-                                screenBounds.y + insets.top,
-                                screenBounds.width - insets.left - insets.right,
-                                screenBounds.height - insets.top - insets.bottom
+                                screenBounds.x,
+                                screenBounds.y,
+                                screenBounds.width,
+                                screenBounds.height
                             )
                         } else if (windowState.placement == WindowPlacement.Floating && previousBounds != null) {
                             // Restore previous bounds when exiting fullscreen

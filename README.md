@@ -140,6 +140,8 @@ Settings are stored in `~/.bossterm/settings.json`:
 
 ```json
 {
+  "fontSize": 14,
+  "fontName": "JetBrains Mono",
   "copyOnSelect": true,
   "pasteOnMiddleClick": true,
   "scrollbackLines": 10000,
@@ -149,6 +151,8 @@ Settings are stored in `~/.bossterm/settings.json`:
   "notifyMinDurationSeconds": 5
 }
 ```
+
+> **Note:** For `fontName`, use a monospace font name installed on your system (e.g., "SF Mono", "Menlo", "JetBrains Mono"). If not set, BossTerm uses the bundled MesloLGS Nerd Font which includes powerline symbols.
 
 ## Embedding in Your App
 
@@ -230,6 +234,9 @@ fun MyApp() {
 
     // With custom settings path
     EmbeddableTerminal(settingsPath = "/path/to/settings.json")
+
+    // With custom font (via settings)
+    EmbeddableTerminal(settings = TerminalSettings(fontName = "JetBrains Mono"))
 
     // With callbacks
     EmbeddableTerminal(

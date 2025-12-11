@@ -468,6 +468,119 @@ fun SettingsDropdown(
 }
 
 /**
+ * A sectioned dropdown selector with grouped options.
+ * Each section has a non-selectable header.
+ */
+@Composable
+fun SettingsSectionedDropdown(
+    label: String,
+    sections: Map<String, List<String>>,
+    selectedOption: String,
+    onOptionSelected: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    description: String? = null,
+    enabled: Boolean = true
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(6.dp))
+            .background(SurfaceColor)
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = label,
+                    color = if (enabled) TextPrimary else TextMuted,
+                    fontSize = 13.sp
+                )
+                if (description != null) {
+                    Text(
+                        text = description,
+                        color = TextMuted,
+                        fontSize = 11.sp,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+            }
+            Box {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(BackgroundColor)
+                        .border(1.dp, BorderColor, RoundedCornerShape(4.dp))
+                        .clickable(enabled = enabled) { expanded = true }
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = selectedOption,
+                        color = TextPrimary,
+                        fontSize = 13.sp,
+                        maxLines = 1
+                    )
+                    Icon(
+                        imageVector = Icons.Default.ArrowDropDown,
+                        contentDescription = "Expand",
+                        tint = TextSecondary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier
+                        .background(SurfaceColor)
+                        .heightIn(max = 400.dp)
+                ) {
+                    sections.forEach { (sectionName, options) ->
+                        // Section header (non-selectable)
+                        DropdownMenuItem(
+                            onClick = { /* Non-selectable */ },
+                            enabled = false
+                        ) {
+                            Text(
+                                text = sectionName,
+                                color = AccentColor,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        // Section items
+                        options.forEach { option ->
+                            DropdownMenuItem(
+                                onClick = {
+                                    onOptionSelected(option)
+                                    expanded = false
+                                },
+                                modifier = Modifier.padding(start = 8.dp)
+                            ) {
+                                Text(
+                                    text = option,
+                                    color = if (option == selectedOption) AccentColor else TextPrimary,
+                                    fontSize = 13.sp
+                                )
+                            }
+                        }
+                        // Divider between sections (except after last)
+                        if (sectionName != sections.keys.last()) {
+                            Divider(color = BorderColor, modifier = Modifier.padding(vertical = 4.dp))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
  * A color setting with preview swatch that opens a color picker.
  */
 @Composable

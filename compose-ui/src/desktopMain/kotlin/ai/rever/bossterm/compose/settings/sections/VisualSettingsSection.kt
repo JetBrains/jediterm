@@ -23,6 +23,11 @@ import ai.rever.bossterm.compose.settings.SettingsTheme.SurfaceColor
 import ai.rever.bossterm.compose.settings.SettingsTheme.TextPrimary
 import ai.rever.bossterm.compose.settings.SettingsTheme.TextSecondary
 import ai.rever.bossterm.compose.settings.components.*
+import ai.rever.bossterm.compose.util.BUNDLED_FONT_NAME
+import ai.rever.bossterm.compose.util.getCategorizedFonts
+import ai.rever.bossterm.compose.util.FONT_SECTION_BUNDLED
+import ai.rever.bossterm.compose.util.FONT_SECTION_FIXED_PITCH
+import ai.rever.bossterm.compose.util.FONT_SECTION_VARIABLE_PITCH
 
 /**
  * Visual settings section: font, text rendering, and transparency.
@@ -38,9 +43,27 @@ fun VisualSettingsSection(
     var showRestartDialog by remember { mutableStateOf(false) }
     var pendingNativeTitleBarValue by remember { mutableStateOf(false) }
 
+    // Get categorized fonts (cached)
+    val categorizedFonts = remember { getCategorizedFonts() }
+
     Column(modifier = modifier) {
         // Font Settings
         SettingsSection(title = "Font") {
+            SettingsSectionedDropdown(
+                label = "Font Family",
+                sections = linkedMapOf(
+                    FONT_SECTION_BUNDLED to (categorizedFonts[FONT_SECTION_BUNDLED] ?: emptyList()),
+                    FONT_SECTION_FIXED_PITCH to (categorizedFonts[FONT_SECTION_FIXED_PITCH] ?: emptyList()),
+                    FONT_SECTION_VARIABLE_PITCH to (categorizedFonts[FONT_SECTION_VARIABLE_PITCH] ?: emptyList())
+                ),
+                selectedOption = settings.fontName ?: BUNDLED_FONT_NAME,
+                onOptionSelected = { selected ->
+                    val fontName = if (selected == BUNDLED_FONT_NAME) null else selected
+                    onSettingsChange(settings.copy(fontName = fontName))
+                },
+                description = "Fixed pitch fonts recommended for terminals"
+            )
+
             SettingsSlider(
                 label = "Font Size",
                 value = settings.fontSize,

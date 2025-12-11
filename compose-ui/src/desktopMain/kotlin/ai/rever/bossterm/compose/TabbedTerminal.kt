@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import ai.rever.bossterm.compose.menu.MenuActions
+import ai.rever.bossterm.compose.util.loadTerminalFont
 import ai.rever.bossterm.compose.settings.SettingsManager
 import ai.rever.bossterm.compose.splits.NavigationDirection
 import ai.rever.bossterm.compose.splits.SplitContainer
@@ -65,9 +65,9 @@ fun TabbedTerminal(
     val settingsManager = remember { SettingsManager.instance }
     val settings by settingsManager.settings.collectAsState()
 
-    // Load font once and share across all tabs
-    val sharedFont = remember {
-        loadTerminalFont()
+    // Load font once and share across all tabs (supports custom font via settings)
+    val sharedFont = remember(settings.fontName) {
+        loadTerminalFont(settings.fontName)
     }
 
     // Create tab controller with window focus tracking for notifications
@@ -355,34 +355,5 @@ fun TabbedTerminal(
                 modifier = Modifier.fillMaxSize()
             )
         }
-    }
-}
-
-/**
- * Load terminal font with fallback to system monospace.
- */
-private fun loadTerminalFont(): FontFamily {
-    return try {
-        val fontStream = object {}.javaClass.classLoader
-            ?.getResourceAsStream("fonts/MesloLGSNF-Regular.ttf")
-            ?: return FontFamily.Monospace
-
-        val tempFile = java.io.File.createTempFile("MesloLGSNF", ".ttf")
-        tempFile.deleteOnExit()
-        fontStream.use { input ->
-            tempFile.outputStream().use { output ->
-                input.copyTo(output)
-            }
-        }
-
-        FontFamily(
-            androidx.compose.ui.text.platform.Font(
-                file = tempFile,
-                weight = FontWeight.Normal
-            )
-        )
-    } catch (e: Exception) {
-        System.err.println("Failed to load terminal font: ${e.message}")
-        FontFamily.Monospace
     }
 }

@@ -19,6 +19,14 @@ data class TerminalSettings(
     val fontSize: Float = 14f,
 
     /**
+     * Font name for terminal text.
+     * When set, uses a system font instead of the bundled MesloLGS Nerd Font.
+     * Use a monospace font for best results.
+     * Example: "JetBrains Mono", "SF Mono", "Menlo"
+     */
+    val fontName: String? = null,
+
+    /**
      * Line spacing multiplier (1.0 = normal, 1.5 = 1.5x spacing)
      */
     val lineSpacing: Float = 1.0f,

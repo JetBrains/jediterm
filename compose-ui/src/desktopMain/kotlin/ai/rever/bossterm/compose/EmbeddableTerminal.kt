@@ -2,8 +2,6 @@ package ai.rever.bossterm.compose
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -11,6 +9,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import ai.rever.bossterm.compose.terminal.BlockingTerminalDataStream
 import ai.rever.bossterm.compose.ui.ProperTerminal
+import ai.rever.bossterm.compose.util.loadTerminalFont
 import ai.rever.bossterm.compose.features.ContextMenuController
 import ai.rever.bossterm.compose.ime.IMEState
 import ai.rever.bossterm.compose.settings.SettingsLoader
@@ -37,6 +36,11 @@ import ai.rever.bossterm.terminal.model.TerminalTextBuffer
  * EmbeddableTerminal(settingsPath = "/path/to/my-settings.json")
  * ```
  *
+ * Custom font (via settings):
+ * ```kotlin
+ * EmbeddableTerminal(settings = TerminalSettings(fontPath = "/path/to/MyFont.ttf"))
+ * ```
+ *
  * With callbacks:
  * ```kotlin
  * EmbeddableTerminal(
@@ -60,7 +64,7 @@ import ai.rever.bossterm.terminal.model.TerminalTextBuffer
  *
  * @param state Optional EmbeddableTerminalState for programmatic control
  * @param settingsPath Path to custom settings JSON file. If null, uses ~/.bossterm/settings.json
- * @param settings Direct TerminalSettings object. Overrides settingsPath if provided
+ * @param settings Direct TerminalSettings object. Overrides settingsPath if provided. Use settings.fontPath for custom fonts.
  * @param command Shell command to run. Defaults to $SHELL or /bin/zsh
  * @param workingDirectory Initial working directory. Defaults to user home
  * @param environment Additional environment variables to set
@@ -93,9 +97,9 @@ fun EmbeddableTerminal(
     // Effective shell command
     val effectiveCommand = command ?: System.getenv("SHELL") ?: "/bin/zsh"
 
-    // Load font (shared across terminal instances)
-    val terminalFont = remember {
-        loadTerminalFont()
+    // Load font from settings.fontName or use default bundled font (shared across terminal instances)
+    val terminalFont = remember(resolvedSettings.fontName) {
+        loadTerminalFont(resolvedSettings.fontName)
     }
 
     // Create internal session
@@ -269,35 +273,6 @@ class EmbeddableTerminalState {
 @Composable
 fun rememberEmbeddableTerminalState(): EmbeddableTerminalState {
     return remember { EmbeddableTerminalState() }
-}
-
-/**
- * Load terminal font with fallback to system monospace.
- */
-private fun loadTerminalFont(): FontFamily {
-    return try {
-        val fontStream = object {}.javaClass.classLoader
-            ?.getResourceAsStream("fonts/MesloLGSNF-Regular.ttf")
-            ?: return FontFamily.Monospace
-
-        val tempFile = java.io.File.createTempFile("MesloLGSNF", ".ttf")
-        tempFile.deleteOnExit()
-        fontStream.use { input ->
-            tempFile.outputStream().use { output ->
-                input.copyTo(output)
-            }
-        }
-
-        FontFamily(
-            androidx.compose.ui.text.platform.Font(
-                file = tempFile,
-                weight = FontWeight.Normal
-            )
-        )
-    } catch (e: Exception) {
-        System.err.println("Failed to load terminal font: ${e.message}")
-        FontFamily.Monospace
-    }
 }
 
 /**

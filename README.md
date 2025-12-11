@@ -35,20 +35,28 @@ cd BossTerm
 - **Native Performance** - Built with Kotlin/Compose Desktop for smooth 60fps rendering
 - **Multiple Windows** - Cmd/Ctrl+N opens new window, each with independent tabs
 - **Multiple Tabs** - Ctrl+T new tab, Ctrl+W close, Ctrl+Tab switch
+- **Split Panes** - Horizontal/vertical splits with Cmd+D / Cmd+Shift+D
+- **Themes** - Built-in theme presets (Dracula, Solarized, Nord, etc.) with custom theme support
+- **Window Transparency** - Adjustable opacity with background blur effects
+- **Background Images** - Custom background images with blur and opacity controls
 - **Xterm Emulation** - Full VT100/Xterm compatibility
 - **True Color** - Full 256 color and 24-bit true color support
 - **Mouse Reporting** - Click, scroll, and drag support for terminal apps (vim, tmux, htop, less, fzf)
 - **Full Unicode** - Emoji (👨‍👩‍👧‍👦), variation selectors (☁️), surrogate pairs, combining characters
 - **Nerd Fonts** - Built-in support for powerline symbols and devicons
+- **Inline Images** - Display images in terminal via iTerm2's imgcat (OSC 1337)
+- **Progress Bar** - Visual progress indicator for long-running commands (OSC 1337)
 - **Search** - Ctrl/Cmd+F to search terminal history with regex support
 - **Hyperlink Detection** - Auto-detect URLs, file paths, emails with Ctrl+Click to open
-- **Copy/Paste** - Standard clipboard + copy-on-select + middle-click paste
+- **Copy/Paste** - Standard clipboard + copy-on-select + middle-click paste + OSC 52
 - **Context Menu** - Right-click for Copy, Paste, Clear, Select All
 - **Drag & Drop** - Drop files onto terminal to paste shell-escaped paths (iTerm2 style)
 - **Auto-Scroll Selection** - Drag selection beyond bounds to scroll through history
 - **IME Support** - Full Chinese/Japanese/Korean input method support
+- **Visual Bell** - Configurable visual flash for BEL character
 - **Command Notifications** - System notifications when long commands complete (OSC 133)
 - **OSC 7 Support** - Working directory tracking for new tabs
+- **Settings UI** - Full GUI settings panel with live preview
 - **Debug Tools** - Built-in terminal debugging with Ctrl+Shift+D
 - **Customizable** - JSON-based settings at `~/.bossterm/settings.json`
 
@@ -58,14 +66,17 @@ cd BossTerm
 |----------|--------|
 | Ctrl/Cmd+N | New window |
 | Ctrl/Cmd+T | New tab |
-| Ctrl/Cmd+W | Close tab |
+| Ctrl/Cmd+W | Close tab/pane |
 | Ctrl+Tab | Next tab |
 | Ctrl+Shift+Tab | Previous tab |
 | Ctrl/Cmd+1-9 | Jump to tab |
+| Ctrl/Cmd+D | Split pane vertically |
+| Ctrl/Cmd+Shift+D | Split pane horizontally |
+| Ctrl/Cmd+Option+Arrow | Navigate between panes |
+| Ctrl/Cmd+, | Open settings |
 | Ctrl/Cmd+F | Search |
 | Ctrl/Cmd+C | Copy |
 | Ctrl/Cmd+V | Paste |
-| Ctrl/Cmd+Shift+D | Toggle debug panel |
 | Ctrl+Space | Toggle IME |
 
 ## Shell Integration

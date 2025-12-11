@@ -38,7 +38,7 @@ import ai.rever.bossterm.terminal.model.TerminalTextBuffer
  *
  * Custom font (via settings):
  * ```kotlin
- * EmbeddableTerminal(settings = TerminalSettings(fontPath = "/path/to/MyFont.ttf"))
+ * EmbeddableTerminal(settings = TerminalSettings(fontName = "JetBrains Mono"))
  * ```
  *
  * With callbacks:
@@ -51,20 +51,25 @@ import ai.rever.bossterm.terminal.model.TerminalTextBuffer
  * )
  * ```
  *
- * Programmatic control:
+ * Programmatic control with session preservation:
  * ```kotlin
- * val state = rememberEmbeddableTerminalState()
+ * // Session survives when EmbeddableTerminal leaves composition
+ * val state = rememberEmbeddableTerminalState(autoDispose = false)
  *
- * Button(onClick = { state.write("ls -la\n") }) {
- *     Text("Run ls")
+ * if (showTerminal) {
+ *     EmbeddableTerminal(state = state)
  * }
+ * // Terminal process keeps running even when hidden!
  *
- * EmbeddableTerminal(state = state)
+ * // Don't forget to dispose when truly done:
+ * DisposableEffect(Unit) {
+ *     onDispose { state.dispose() }
+ * }
  * ```
  *
- * @param state Optional EmbeddableTerminalState for programmatic control
+ * @param state Optional EmbeddableTerminalState for programmatic control and session preservation
  * @param settingsPath Path to custom settings JSON file. If null, uses ~/.bossterm/settings.json
- * @param settings Direct TerminalSettings object. Overrides settingsPath if provided. Use settings.fontPath for custom fonts.
+ * @param settings Direct TerminalSettings object. Overrides settingsPath if provided.
  * @param command Shell command to run. Defaults to $SHELL or /bin/zsh
  * @param workingDirectory Initial working directory. Defaults to user home
  * @param environment Additional environment variables to set
@@ -89,6 +94,9 @@ fun EmbeddableTerminal(
     onNewWindow: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    // Use provided state or create auto-disposing one
+    val effectiveState = state ?: rememberEmbeddableTerminalState(autoDispose = true)
+
     // Resolve settings: direct > path > default
     val resolvedSettings = remember(settings, settingsPath) {
         SettingsLoader.resolveSettings(settings, settingsPath)
@@ -97,27 +105,31 @@ fun EmbeddableTerminal(
     // Effective shell command
     val effectiveCommand = command ?: System.getenv("SHELL") ?: "/bin/zsh"
 
-    // Load font from settings.fontName or use default bundled font (shared across terminal instances)
+    // Load font from settings.fontName or use default bundled font
     val terminalFont = remember(resolvedSettings.fontName) {
         loadTerminalFont(resolvedSettings.fontName)
     }
 
-    // Create internal session
-    val session = remember {
-        createTerminalSession(
-            settings = resolvedSettings,
-            onOutput = onOutput
-        )
+    // Initialize session if not already done (session lives in state, not composable)
+    LaunchedEffect(effectiveState, resolvedSettings, effectiveCommand) {
+        if (effectiveState.session == null) {
+            effectiveState.initializeSession(
+                settings = resolvedSettings,
+                command = effectiveCommand,
+                workingDirectory = workingDirectory,
+                environment = environment,
+                onOutput = onOutput,
+                onExit = onExit
+            )
+        }
     }
 
-    // Wire up state if provided
-    LaunchedEffect(state, session) {
-        state?.session = session
-    }
+    // Get current session (may be null during initialization)
+    val session = effectiveState.session
 
     // Wire up title change callback
     LaunchedEffect(session, onTitleChange) {
-        if (onTitleChange != null) {
+        if (session != null && onTitleChange != null) {
             session.display.windowTitleFlow.collectLatest { title ->
                 if (title.isNotEmpty()) {
                     onTitleChange(title)
@@ -127,48 +139,60 @@ fun EmbeddableTerminal(
     }
 
     // Fire onReady when connected
-    val connectionState by session.connectionState
+    val connectionState = session?.connectionState?.value
     LaunchedEffect(connectionState) {
         if (connectionState is ConnectionState.Connected && onReady != null) {
             onReady()
         }
     }
 
-    // Initialize PTY process
-    LaunchedEffect(session) {
-        initializeProcess(
-            session = session,
-            command = effectiveCommand,
-            workingDirectory = workingDirectory,
-            environment = environment,
-            onExit = onExit
+    // Render terminal if session exists
+    if (session != null) {
+        ProperTerminal(
+            tab = session,
+            isActiveTab = true,
+            sharedFont = terminalFont,
+            onTabTitleChange = { onTitleChange?.invoke(it) },
+            onNewWindow = onNewWindow ?: {},
+            modifier = modifier
         )
     }
-
-    // Cleanup on dispose
-    DisposableEffect(session) {
-        onDispose {
-            session.dispose()
-            state?.session = null
-        }
-    }
-
-    // Render terminal
-    ProperTerminal(
-        tab = session,
-        isActiveTab = true,
-        sharedFont = terminalFont,
-        onTabTitleChange = { onTitleChange?.invoke(it) },
-        onNewWindow = onNewWindow ?: {},
-        modifier = modifier
-    )
 }
 
 /**
  * State holder for controlling an EmbeddableTerminal programmatically.
+ *
+ * The session lifecycle is owned by this state, not by the EmbeddableTerminal composable.
+ * This means the terminal process survives when EmbeddableTerminal leaves the composition tree.
+ *
+ * Usage patterns:
+ *
+ * 1. Auto-dispose (default): Session disposed when state is forgotten
+ * ```kotlin
+ * val state = rememberEmbeddableTerminalState()  // autoDispose = true
+ * EmbeddableTerminal(state = state)
+ * ```
+ *
+ * 2. Manual lifecycle: Session preserved across navigation
+ * ```kotlin
+ * val state = rememberEmbeddableTerminalState(autoDispose = false)
+ * // Must call state.dispose() when done!
+ * ```
+ *
+ * 3. App-level state: Session outlives composition entirely
+ * ```kotlin
+ * // At app level (outside @Composable)
+ * val terminalState = EmbeddableTerminalState()
+ *
+ * @Composable fun App() {
+ *     EmbeddableTerminal(state = terminalState)
+ *     DisposableEffect(Unit) { onDispose { terminalState.dispose() } }
+ * }
+ * ```
  */
 class EmbeddableTerminalState {
-    internal var session: TerminalSession? by mutableStateOf(null)
+    internal var session: TerminalTab? by mutableStateOf(null)
+    private var initialized = false
 
     /**
      * Whether the terminal is connected to a shell process.
@@ -183,10 +207,56 @@ class EmbeddableTerminalState {
         get() = session?.connectionState?.value is ConnectionState.Initializing
 
     /**
+     * Whether the session has been disposed.
+     */
+    val isDisposed: Boolean
+        get() = session == null && initialized
+
+    /**
      * Current scroll offset in lines from the bottom.
      */
     val scrollOffset: Int
         get() = session?.scrollOffset?.value ?: 0
+
+    /**
+     * Initialize the terminal session. Called automatically by EmbeddableTerminal.
+     * Only initializes once; subsequent calls are no-ops.
+     */
+    internal fun initializeSession(
+        settings: TerminalSettings,
+        command: String,
+        workingDirectory: String?,
+        environment: Map<String, String>?,
+        onOutput: ((String) -> Unit)?,
+        onExit: ((Int) -> Unit)?
+    ) {
+        if (initialized) return
+        initialized = true
+
+        // Create session
+        session = createTerminalSession(settings, onOutput)
+
+        // Start process in session's coroutine scope
+        session?.coroutineScope?.launch {
+            initializeProcess(
+                session = session!!,
+                command = command,
+                workingDirectory = workingDirectory,
+                environment = environment,
+                onExit = onExit
+            )
+        }
+    }
+
+    /**
+     * Dispose the terminal session and kill the process.
+     * After disposal, this state can be reused by calling EmbeddableTerminal again.
+     */
+    fun dispose() {
+        session?.dispose()
+        session = null
+        initialized = false
+    }
 
     /**
      * Send text input to the terminal.
@@ -268,11 +338,22 @@ class EmbeddableTerminalState {
 /**
  * Remember an EmbeddableTerminalState for controlling an EmbeddableTerminal composable.
  *
+ * @param autoDispose If true (default), the session is disposed when this state is forgotten
+ *                    (i.e., when the composable that called this leaves composition).
+ *                    If false, you must manually call state.dispose() when done.
  * @return EmbeddableTerminalState instance that persists across recompositions
  */
 @Composable
-fun rememberEmbeddableTerminalState(): EmbeddableTerminalState {
-    return remember { EmbeddableTerminalState() }
+fun rememberEmbeddableTerminalState(autoDispose: Boolean = true): EmbeddableTerminalState {
+    val state = remember { EmbeddableTerminalState() }
+
+    if (autoDispose) {
+        DisposableEffect(state) {
+            onDispose { state.dispose() }
+        }
+    }
+
+    return state
 }
 
 /**

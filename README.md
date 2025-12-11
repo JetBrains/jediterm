@@ -32,19 +32,24 @@ cd BossTerm
 
 ## Features
 
-- **Native Performance** - Built with Kotlin/Compose Desktop for smooth rendering
+- **Native Performance** - Built with Kotlin/Compose Desktop for smooth 60fps rendering
 - **Multiple Windows** - Cmd/Ctrl+N opens new window, each with independent tabs
 - **Multiple Tabs** - Ctrl+T new tab, Ctrl+W close, Ctrl+Tab switch
 - **Xterm Emulation** - Full VT100/Xterm compatibility
-- **256 Colors** - Full color support including true color (24-bit)
-- **Mouse Support** - Click, scroll, and drag support for terminal apps (vim, tmux, htop)
-- **Search** - Ctrl/Cmd+F to search terminal history
+- **True Color** - Full 256 color and 24-bit true color support
+- **Mouse Reporting** - Click, scroll, and drag support for terminal apps (vim, tmux, htop, less, fzf)
+- **Full Unicode** - Emoji (👨‍👩‍👧‍👦), variation selectors (☁️), surrogate pairs, combining characters
+- **Nerd Fonts** - Built-in support for powerline symbols and devicons
+- **Search** - Ctrl/Cmd+F to search terminal history with regex support
 - **Hyperlink Detection** - Auto-detect URLs, file paths, emails with Ctrl+Click to open
-- **Copy/Paste** - Standard clipboard operations + copy-on-select option
+- **Copy/Paste** - Standard clipboard + copy-on-select + middle-click paste
+- **Context Menu** - Right-click for Copy, Paste, Clear, Select All
 - **Drag & Drop** - Drop files onto terminal to paste shell-escaped paths (iTerm2 style)
+- **Auto-Scroll Selection** - Drag selection beyond bounds to scroll through history
 - **IME Support** - Full Chinese/Japanese/Korean input method support
-- **Debug Tools** - Built-in terminal debugging with Ctrl+Shift+D
+- **Command Notifications** - System notifications when long commands complete (OSC 133)
 - **OSC 7 Support** - Working directory tracking for new tabs
+- **Debug Tools** - Built-in terminal debugging with Ctrl+Shift+D
 - **Customizable** - JSON-based settings at `~/.bossterm/settings.json`
 
 ## Keyboard Shortcuts
@@ -65,17 +70,36 @@ cd BossTerm
 
 ## Shell Integration
 
-Enable working directory tracking for new tabs:
+Enable working directory tracking and command completion notifications:
 
 **Bash** (`~/.bashrc`):
 ```bash
-PROMPT_COMMAND='echo -ne "\033]7;file://${HOSTNAME}${PWD}\007"'
+# OSC 7 (directory tracking) + OSC 133 (command notifications)
+__prompt_command() {
+    local exit_code=$?
+    echo -ne "\033]133;D;${exit_code}\007"  # Command finished
+    echo -ne "\033]133;A\007"                # Prompt starting
+    echo -ne "\033]7;file://${HOSTNAME}${PWD}\007"  # Working directory
+}
+PROMPT_COMMAND='__prompt_command'
+trap 'echo -ne "\033]133;B\007"' DEBUG  # Command starting
 ```
 
 **Zsh** (`~/.zshrc`):
 ```bash
-precmd() { echo -ne "\033]7;file://${HOST}${PWD}\007" }
+# OSC 7 (directory tracking) + OSC 133 (command notifications)
+precmd() {
+    local exit_code=$?
+    print -Pn "\e]133;D;${exit_code}\a"      # Command finished
+    print -Pn "\e]133;A\a"                   # Prompt starting
+    print -Pn "\e]7;file://${HOST}${PWD}\a"  # Working directory
+}
+preexec() { print -Pn "\e]133;B\a" }         # Command starting
 ```
+
+This enables:
+- New tabs inherit working directory from active tab
+- System notifications when commands > 5 seconds complete while window is unfocused
 
 ## Project Structure
 
@@ -109,7 +133,9 @@ Settings are stored in `~/.bossterm/settings.json`:
   "pasteOnMiddleClick": true,
   "scrollbackLines": 10000,
   "cursorBlinkRate": 500,
-  "enableMouseReporting": true
+  "enableMouseReporting": true,
+  "notifyOnCommandComplete": true,
+  "notifyMinDurationSeconds": 5
 }
 ```
 

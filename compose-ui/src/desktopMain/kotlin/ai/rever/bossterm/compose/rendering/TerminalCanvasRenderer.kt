@@ -821,8 +821,14 @@ object TerminalCanvasRenderer {
             // True color emoji (with variation selector) - use system font for color rendering
             FontFamily.Default
         } else if (isEmojiOrWideSymbol || isTechnicalSymbol) {
-            // Symbols/emoji without variation selector - terminal font (MesloLGS) has these
-            ctx.measurementFontFamily
+            // Symbols/emoji without variation selector
+            if (ctx.settings.preferTerminalFontForSymbols) {
+                // Terminal font (MesloLGS Nerd Font) has these symbols - better for Linux
+                ctx.measurementFontFamily
+            } else {
+                // Use system default (Apple Color Emoji on macOS)
+                FontFamily.Default
+            }
         } else if (isCursiveOrMath) {
             // Math symbols - try STIX Two Math, fallback to terminal font
             val skiaTypeface = FontMgr.default.matchFamilyStyle("STIX Two Math", org.jetbrains.skia.FontStyle.NORMAL)

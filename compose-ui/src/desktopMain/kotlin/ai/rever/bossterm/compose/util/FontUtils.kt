@@ -112,6 +112,43 @@ fun loadTerminalFont(fontName: String? = null): FontFamily {
 }
 
 /**
+ * Lazily loaded bundled symbol font (Noto Sans Symbols 2).
+ * Used as fallback for symbols like ⏵ ★ ⚡ when system font lacks coverage.
+ */
+val bundledSymbolFont: FontFamily by lazy {
+    loadBundledSymbolFont()
+}
+
+/**
+ * Load the bundled Noto Sans Symbols 2 font for symbol fallback.
+ */
+private fun loadBundledSymbolFont(): FontFamily {
+    return try {
+        val fontStream = object {}.javaClass.classLoader
+            ?.getResourceAsStream("fonts/NotoSansSymbols2-Regular.ttf")
+            ?: return FontFamily.Default
+
+        val tempFile = java.io.File.createTempFile("NotoSansSymbols2", ".ttf")
+        tempFile.deleteOnExit()
+        fontStream.use { input ->
+            tempFile.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        }
+
+        FontFamily(
+            androidx.compose.ui.text.platform.Font(
+                file = tempFile,
+                weight = FontWeight.Normal
+            )
+        )
+    } catch (e: Exception) {
+        System.err.println("Failed to load bundled symbol font: ${e.message}")
+        FontFamily.Default
+    }
+}
+
+/**
  * Load the bundled MesloLGS Nerd Font.
  */
 private fun loadBundledFont(): FontFamily {

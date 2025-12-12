@@ -1,8 +1,11 @@
 package ai.rever.bossterm.compose
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import ai.rever.bossterm.compose.menu.MenuActions
@@ -78,6 +81,9 @@ fun TabbedTerminal(
             isWindowFocused = isWindowFocused
         )
     }
+
+    // Track window focus state reactively for overlay
+    val isWindowFocusedState by remember { derivedStateOf { isWindowFocused() } }
 
     // Track SplitViewState per tab (tab.id -> SplitViewState)
     val splitStates = remember { mutableStateMapOf<String, SplitViewState>() }
@@ -208,10 +214,11 @@ fun TabbedTerminal(
         }
     }
 
-    // Tab UI layout
-    Column(modifier = modifier.fillMaxSize()) {
-        // Tab bar at top (only show when multiple tabs)
-        if (tabController.tabs.size > 1) {
+    // Tab UI layout with focus overlay support
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Tab bar at top (only show when multiple tabs)
+            if (tabController.tabs.size > 1) {
             TabBar(
                 tabs = tabController.tabs,
                 activeTabIndex = tabController.activeTabIndex,
@@ -353,6 +360,16 @@ fun TabbedTerminal(
                 splitFocusBorderColor = settings.splitFocusBorderColorValue,
                 splitMinimumSize = settings.splitMinimumSize,
                 modifier = Modifier.fillMaxSize()
+            )
+        }
+        }
+
+        // Semi-transparent overlay when window loses focus
+        if (!isWindowFocusedState && settings.showUnfocusedOverlay) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.White.copy(alpha = 0.15f))
             )
         }
     }

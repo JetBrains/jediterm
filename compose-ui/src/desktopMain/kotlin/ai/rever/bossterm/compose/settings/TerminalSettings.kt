@@ -50,6 +50,14 @@ data class TerminalSettings(
     val useAntialiasing: Boolean = true,
 
     /**
+     * Use bundled symbol font (Noto Sans Symbols 2) for symbols like ⏵ ★ ⚡.
+     * null (default): Platform-specific - macOS uses Apple Color Emoji, Linux uses bundled font.
+     * true: Always use bundled Noto Sans Symbols 2.
+     * false: Always use system default font.
+     */
+    val preferTerminalFontForSymbols: Boolean? = null,
+
+    /**
      * Default foreground color (serialized as ARGB hex)
      */
     val defaultForeground: String = "0xFFFFFFFF",
@@ -129,6 +137,12 @@ data class TerminalSettings(
      * Changing this requires app restart to take effect.
      */
     val useNativeTitleBar: Boolean = true,
+
+    /**
+     * Show semi-transparent overlay when window loses focus.
+     * Helps identify which terminal window is currently active.
+     */
+    val showUnfocusedOverlay: Boolean = true,
 
     // ===== Behavior Settings =====
 

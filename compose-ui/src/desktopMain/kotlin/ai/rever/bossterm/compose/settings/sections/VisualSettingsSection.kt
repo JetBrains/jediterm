@@ -102,6 +102,26 @@ fun VisualSettingsSection(
                 onCheckedChange = { onSettingsChange(settings.copy(useAntialiasing = it)) },
                 description = "Smooth text rendering"
             )
+
+            SettingsDropdown(
+                label = "Symbol Font",
+                options = listOf("Platform Default", "Bundled (Noto Sans Symbols 2)", "System Default"),
+                selectedOption = when (settings.preferTerminalFontForSymbols) {
+                    null -> "Platform Default"
+                    true -> "Bundled (Noto Sans Symbols 2)"
+                    false -> "System Default"
+                },
+                onOptionSelected = { selected ->
+                    val value = when (selected) {
+                        "Platform Default" -> null
+                        "Bundled (Noto Sans Symbols 2)" -> true
+                        "System Default" -> false
+                        else -> null
+                    }
+                    onSettingsChange(settings.copy(preferTerminalFontForSymbols = value))
+                },
+                description = "Font for symbols like ⏵ ★ ⚡ (Platform Default: Apple on macOS, Bundled on Linux)"
+            )
         }
 
         Spacer(modifier = Modifier.height(24.dp))

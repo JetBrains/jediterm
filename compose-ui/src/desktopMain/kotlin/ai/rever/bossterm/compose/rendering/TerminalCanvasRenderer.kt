@@ -817,14 +817,36 @@ object TerminalCanvasRenderer {
         isItalic: Boolean,
         isUnderline: Boolean
     ) {
-        val fontForChar = if (isEmojiOrWideSymbol || isEmojiWithVariationSelector || isCursiveOrMath) {
+        val isMacOS = System.getProperty("os.name")?.lowercase()?.contains("mac") == true
+        // Default: macOS uses system font for emoji, Linux uses bundled font. Setting overrides this.
+        val useSystemFontForEmoji = if (ctx.settings.preferTerminalFontForSymbols != null) {
+            !ctx.settings.preferTerminalFontForSymbols!!
+        } else {
+            isMacOS  // Default: system font on macOS, bundled on Linux
+        }
+        val fontForChar = if (isEmojiWithVariationSelector) {
+            // True color emoji (with variation selector) - use system font for color rendering
             FontFamily.Default
-        } else if (isTechnicalSymbol) {
-            val skiaTypeface = FontMgr.default.matchFamilyStyle("STIX Two Math", org.jetbrains.skia.FontStyle.NORMAL)
-            if (skiaTypeface != null) {
-                FontFamily(androidx.compose.ui.text.platform.Typeface(skiaTypeface))
+        } else if (isEmojiOrWideSymbol) {
+            // Emoji/symbols without variation selector - platform specific
+            if (useSystemFontForEmoji) {
+                FontFamily.Default
             } else {
-                ctx.measurementFontFamily
+                ai.rever.bossterm.compose.util.bundledSymbolFont
+            }
+        } else if (isTechnicalSymbol || isCursiveOrMath) {
+            // Technical symbols (⏸ ⏵) and math - platform specific like other symbols
+            if (useSystemFontForEmoji) {
+                // macOS default or user chose system: use STIX Two Math → terminal font
+                val skiaTypeface = FontMgr.default.matchFamilyStyle("STIX Two Math", org.jetbrains.skia.FontStyle.NORMAL)
+                if (skiaTypeface != null) {
+                    FontFamily(androidx.compose.ui.text.platform.Typeface(skiaTypeface))
+                } else {
+                    ctx.measurementFontFamily
+                }
+            } else {
+                // Linux default or user chose bundled: use bundled symbol font
+                ai.rever.bossterm.compose.util.bundledSymbolFont
             }
         } else {
             ctx.measurementFontFamily

@@ -817,16 +817,19 @@ object TerminalCanvasRenderer {
         isItalic: Boolean,
         isUnderline: Boolean
     ) {
+        val isMacOS = System.getProperty("os.name")?.lowercase()?.contains("mac") == true
         val fontForChar = if (isEmojiWithVariationSelector) {
             // True color emoji (with variation selector) - use system font for color rendering
             FontFamily.Default
         } else if (isEmojiOrWideSymbol || isTechnicalSymbol) {
             // Symbols/emoji without variation selector
-            if (ctx.settings.preferTerminalFontForSymbols) {
-                // Use bundled Noto Sans Symbols 2 - works on Linux
+            if (isMacOS) {
+                // macOS: Apple Color Emoji has excellent symbol coverage
+                FontFamily.Default
+            } else if (ctx.settings.preferTerminalFontForSymbols) {
+                // Linux: Use bundled Noto Sans Symbols 2
                 ai.rever.bossterm.compose.util.bundledSymbolFont
             } else {
-                // Use system default (Apple Color Emoji on macOS)
                 FontFamily.Default
             }
         } else if (isCursiveOrMath) {

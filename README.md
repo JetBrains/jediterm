@@ -254,6 +254,19 @@ fun MyApp() {
     }
 
     EmbeddableTerminal(state = state)
+
+    // Session preservation across navigation/visibility changes
+    val persistentState = rememberEmbeddableTerminalState(autoDispose = false)
+
+    if (showTerminal) {
+        EmbeddableTerminal(state = persistentState)
+    }
+    // Terminal process keeps running even when hidden!
+
+    // Don't forget to dispose when truly done:
+    DisposableEffect(Unit) {
+        onDispose { persistentState.dispose() }
+    }
 }
 ```
 

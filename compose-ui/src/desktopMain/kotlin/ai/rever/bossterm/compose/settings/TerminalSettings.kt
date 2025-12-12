@@ -130,6 +130,12 @@ data class TerminalSettings(
      */
     val useNativeTitleBar: Boolean = true,
 
+    /**
+     * Show semi-transparent overlay when window loses focus.
+     * Helps identify which terminal window is currently active.
+     */
+    val showUnfocusedOverlay: Boolean = true,
+
     // ===== Behavior Settings =====
 
     /**

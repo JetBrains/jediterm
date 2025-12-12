@@ -57,6 +57,30 @@ val nerdFont = remember {
 
 **Working**: ☁️ ☀️ ⭐ ❤️ ✨ ⚡ ⚠️ ✅ ❌ ☑️ ✔️ ➡️
 
+### Symbol Font Fallback (Cross-Platform)
+
+**Problem**: Symbols like ⏵ ⏸ ★ don't render on Linux because `FontFamily.Default` lacks coverage.
+
+**Solution**: Platform-specific font selection in `TerminalCanvasRenderer.kt`:
+
+| Character Type | macOS (default) | Linux (default) | Setting Override |
+|----------------|-----------------|-----------------|------------------|
+| Emoji + variation selector (☁️) | FontFamily.Default | FontFamily.Default | N/A |
+| Emoji/wide symbols (★ ⚡) | FontFamily.Default | Bundled Noto Sans Symbols 2 | `preferTerminalFontForSymbols` |
+| Technical symbols (⏸ ⏵) | STIX Two Math → terminal font | STIX Two Math → terminal font | `preferTerminalFontForSymbols=true` uses bundled |
+| Math/cursive | STIX Two Math → terminal font | STIX Two Math → terminal font | Same |
+
+**Bundled Fonts**:
+- `MesloLGSNF-Regular.ttf` (2.5MB) - Terminal font with Nerd Font glyphs
+- `NotoSansSymbols2-Regular.ttf` (641KB) - Symbol fallback for Linux
+
+**Settings** (`~/.bossterm/settings.json`):
+- `preferTerminalFontForSymbols: null` (default) - Platform-specific behavior
+- `preferTerminalFontForSymbols: true` - Force bundled Noto Sans Symbols 2
+- `preferTerminalFontForSymbols: false` - Force system default font
+
+**Key File**: `compose-ui/.../rendering/TerminalCanvasRenderer.kt` (lines 820-853)
+
 ### Terminal Output Processing
 
 **Blocking Data Stream Architecture**: Prevents CSI code truncation.
@@ -239,13 +263,11 @@ ps aux | grep "ai.rever.bossterm.compose.demo.MainKt"
 # Always use dev branch
 git checkout dev
 
-# Commit with proper format
+# Commit with proper format (NO Co-Authored-By line)
 git add .
 git commit -m "Your message
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>"
+🤖 Generated with [Claude Code](https://claude.com/claude-code)"
 
 # Push to dev
 git push origin dev
@@ -253,6 +275,8 @@ git push origin dev
 # Create PR to master when ready
 gh pr create --base master --head dev --title "Your PR title" --body "Description"
 ```
+
+**Important:** Do NOT include `Co-Authored-By: Claude` in commits.
 
 ## Key Files
 

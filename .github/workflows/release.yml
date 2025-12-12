@@ -416,14 +416,15 @@ jobs:
           retention-days: 30
 
       # Optional: Publish to Snap Store (requires SNAPCRAFT_STORE_CREDENTIALS secret)
+      # To get credentials: snapcraft export-login --snaps=bossterm --acls package_access,package_push,package_update,package_release credentials.txt
       - name: Publish to Snap Store
-        if: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS != '' }}
+        if: env.SNAPCRAFT_STORE_CREDENTIALS != ''
         uses: snapcore/action-publish@v1
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
         with:
           snap: ${{ steps.snapcraft.outputs.snap }}
-          release: stable
+          release: edge
 
   create-release:
     needs: [prepare-version, build-macos, build-linux-amd64, build-linux-arm64, build-snap]

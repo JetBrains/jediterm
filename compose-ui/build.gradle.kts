@@ -124,12 +124,15 @@ compose.desktop {
     application {
         mainClass = "ai.rever.bossterm.compose.demo.MainKt"
 
-        // JVM args for macOS blur effect (access to internal AWT classes)
+        // JVM args for platform-specific features (access to internal AWT classes)
         jvmArgs += listOf(
+            // macOS blur effect
             "--add-opens", "java.desktop/sun.lwawt=ALL-UNNAMED",
             "--add-opens", "java.desktop/sun.lwawt.macosx=ALL-UNNAMED",
             "--add-opens", "java.desktop/java.awt=ALL-UNNAMED",
-            "--add-opens", "java.desktop/java.awt.peer=ALL-UNNAMED"
+            "--add-opens", "java.desktop/java.awt.peer=ALL-UNNAMED",
+            // Linux X11 WM_CLASS for proper taskbar icon/name
+            "--add-opens", "java.desktop/sun.awt.X11=ALL-UNNAMED"
         )
 
         nativeDistributions {

@@ -43,19 +43,22 @@ import androidx.compose.ui.unit.DpSize
 
 /**
  * Set WM_CLASS for proper Linux desktop integration.
- * This must be called before any AWT windows are created.
+ * Must be called before any windows are created.
+ * Requires JVM arg: --add-opens java.desktop/sun.awt.X11=ALL-UNNAMED
  */
 private fun setLinuxWMClass() {
     if (!System.getProperty("os.name").lowercase().contains("linux")) return
 
     try {
-        // Set the AWT application class name for X11 WM_CLASS
+        // Get toolkit instance (creates it if needed)
         val toolkit = java.awt.Toolkit.getDefaultToolkit()
-        val field = toolkit.javaClass.getDeclaredField("awtAppClassName")
-        field.isAccessible = true
-        field.set(toolkit, "bossterm")
+        if (toolkit.javaClass.name == "sun.awt.X11.XToolkit") {
+            val field = toolkit.javaClass.getDeclaredField("awtAppClassName")
+            field.isAccessible = true
+            field.set(toolkit, "bossterm")
+        }
     } catch (e: Exception) {
-        // Ignore - best effort, StartupWMClass in .desktop file is primary mechanism
+        System.err.println("Could not set WM_CLASS: ${e.message}")
     }
 }
 

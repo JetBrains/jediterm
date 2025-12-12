@@ -133,7 +133,11 @@ compose.desktop {
         )
 
         nativeDistributions {
-            targetFormats(org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg)
+            targetFormats(
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg,
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Deb,
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Rpm
+            )
 
             packageName = "BossTerm"
             packageVersion = project.version.toString().removeSuffix("-SNAPSHOT")
@@ -170,6 +174,16 @@ compose.desktop {
                         <string>11.0</string>
                     """.trimIndent()
                 }
+            }
+
+            linux {
+                iconFile.set(rootProject.file("BossTerm.png"))
+                debMaintainer = "shivang.risa@gmail.com"
+                menuGroup = "System;TerminalEmulator"
+                appCategory = "Utility"
+                shortcut = true
+                // RPM-specific options
+                rpmLicenseType = "LGPL-3.0"
             }
 
             // Include required JVM modules

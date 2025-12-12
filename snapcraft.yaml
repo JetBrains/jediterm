@@ -1,0 +1,84 @@
+name: bossterm
+base: core22
+version: '1.0'
+summary: Modern terminal emulator built with Kotlin/Compose Desktop
+description: |
+  BossTerm is a feature-rich terminal emulator with:
+  - Multiple tabs with Ctrl+T/W/Tab shortcuts
+  - Search with Ctrl+F (case-sensitive, regex support)
+  - Hyperlink detection (URLs, file paths, emails)
+  - Full emoji and Unicode support (including skin tones, ZWJ sequences)
+  - Copy-on-select and middle-click paste
+  - IME support for CJK input
+  - Command completion notifications
+  - Mouse reporting for vim, tmux, htop, etc.
+
+grade: stable
+confinement: classic
+
+# Multi-architecture support
+architectures:
+  - build-on: [amd64]
+    build-for: [amd64]
+  - build-on: [arm64]
+    build-for: [arm64]
+
+apps:
+  bossterm:
+    command: bin/bossterm
+    desktop: usr/share/applications/bossterm.desktop
+    environment:
+      JAVA_HOME: $SNAP/usr/lib/jvm/java-17-openjdk-$SNAP_ARCH
+      PATH: $JAVA_HOME/bin:$PATH
+
+parts:
+  bossterm:
+    plugin: gradle
+    source: .
+    gradle-options: [':compose-ui:packageUberJarForCurrentOS', '--no-daemon']
+    gradle-output-dir: compose-ui/build/compose/jars
+    build-packages:
+      - openjdk-17-jdk
+    stage-packages:
+      - openjdk-17-jre-headless
+      - libxrender1
+      - libxtst6
+      - libxi6
+      - libxrandr2
+      - libfreetype6
+      - libfontconfig1
+    override-build: |
+      # Build the uber JAR
+      craftctl default
+
+      # Create launcher script
+      mkdir -p $CRAFT_PART_INSTALL/bin
+      cat > $CRAFT_PART_INSTALL/bin/bossterm << 'EOF'
+      #!/bin/bash
+      SNAP_DIR="$(dirname "$(dirname "$(readlink -f "$0")")")"
+      JAVA_HOME="$SNAP_DIR/usr/lib/jvm/java-17-openjdk-$(dpkg --print-architecture)"
+      JAR_FILE="$(find "$SNAP_DIR" -name "bossterm*.jar" -type f | head -1)"
+
+      exec "$JAVA_HOME/bin/java" \
+        -Xmx2G \
+        --add-opens java.desktop/sun.awt=ALL-UNNAMED \
+        --add-opens java.desktop/java.awt=ALL-UNNAMED \
+        --add-opens java.desktop/java.awt.peer=ALL-UNNAMED \
+        -jar "$JAR_FILE" "$@"
+      EOF
+      chmod +x $CRAFT_PART_INSTALL/bin/bossterm
+
+      # Copy desktop entry
+      mkdir -p $CRAFT_PART_INSTALL/usr/share/applications
+      cp $CRAFT_PART_SRC/snap/gui/bossterm.desktop $CRAFT_PART_INSTALL/usr/share/applications/
+
+  gui-assets:
+    plugin: dump
+    source: snap/gui
+    organize:
+      bossterm.png: meta/gui/bossterm.png
+      bossterm.desktop: usr/share/applications/bossterm.desktop
+
+layout:
+  /usr/share/fonts:
+    bind: $SNAP/usr/share/fonts

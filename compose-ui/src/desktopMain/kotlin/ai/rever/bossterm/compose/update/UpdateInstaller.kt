@@ -47,11 +47,9 @@ object UpdateInstaller {
         return try {
             val filename = file.name
             val versionStr = when {
-                // macOS: BossTerm-1.0.0-macos.dmg
+                // macOS: BossTerm-1.0.0.dmg
                 filename.endsWith(".dmg") -> filename
                     .removePrefix("BossTerm-")
-                    .removeSuffix("-macos.dmg")
-                    .removeSuffix("-Universal.dmg")
                     .removeSuffix(".dmg")
                 // Windows: BossTerm-1.0.0.msi
                 filename.endsWith(".msi") -> filename

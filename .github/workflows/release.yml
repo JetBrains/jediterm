@@ -447,7 +447,7 @@ jobs:
           VERSION="${{ needs.prepare-version.outputs.version }}"
 
           # macOS
-          find ./artifacts -name "*.dmg" -exec cp {} ./release-assets/BossTerm-${VERSION}-macos.dmg \;
+          find ./artifacts -name "*.dmg" -exec cp {} ./release-assets/BossTerm-${VERSION}.dmg \;
 
           # Linux AMD64
           find ./artifacts -name "*.deb" -path "*amd64*" -exec cp {} ./release-assets/bossterm_${VERSION}_amd64.deb \;
@@ -487,7 +487,7 @@ jobs:
 
             | Platform | Architecture | Package |
             |----------|--------------|---------|
-            | **macOS** | Universal | `BossTerm-${{ needs.prepare-version.outputs.version }}-macos.dmg` |
+            | **macOS** | Universal | `BossTerm-${{ needs.prepare-version.outputs.version }}.dmg` |
             | **Ubuntu/Debian** | AMD64 | `bossterm_${{ needs.prepare-version.outputs.version }}_amd64.deb` |
             | **Ubuntu/Debian** | ARM64 | `bossterm_${{ needs.prepare-version.outputs.version }}_arm64.deb` |
             | **Fedora/RHEL** | AMD64 | `bossterm-${{ needs.prepare-version.outputs.version }}.x86_64.rpm` |

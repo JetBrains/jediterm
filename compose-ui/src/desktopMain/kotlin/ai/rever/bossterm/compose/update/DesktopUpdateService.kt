@@ -257,7 +257,7 @@ class DesktopUpdateService {
 
     fun getExpectedAssetName(version: Version): String {
         return when (getCurrentPlatform()) {
-            "macOS" -> "BossTerm-${version}-macos.dmg"
+            "macOS" -> "BossTerm-${version}.dmg"
             "Windows" -> "BossTerm-${version}.msi"
             "Linux-deb" -> "bossterm_${version}_${getLinuxArch()}.deb"
             "Linux-rpm" -> "bossterm-${version}.${getRpmArch()}.rpm"

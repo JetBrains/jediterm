@@ -818,19 +818,21 @@ object TerminalCanvasRenderer {
         isUnderline: Boolean
     ) {
         val isMacOS = System.getProperty("os.name")?.lowercase()?.contains("mac") == true
+        // Default: macOS uses system font, Linux uses bundled font. Setting overrides this.
+        val useSystemFont = if (ctx.settings.preferTerminalFontForSymbols != null) {
+            !ctx.settings.preferTerminalFontForSymbols!!
+        } else {
+            isMacOS  // Default: system font on macOS, bundled on Linux
+        }
         val fontForChar = if (isEmojiWithVariationSelector) {
             // True color emoji (with variation selector) - use system font for color rendering
             FontFamily.Default
         } else if (isEmojiOrWideSymbol || isTechnicalSymbol) {
             // Symbols/emoji without variation selector
-            if (isMacOS) {
-                // macOS: Apple Color Emoji has excellent symbol coverage
+            if (useSystemFont) {
                 FontFamily.Default
-            } else if (ctx.settings.preferTerminalFontForSymbols) {
-                // Linux: Use bundled Noto Sans Symbols 2
-                ai.rever.bossterm.compose.util.bundledSymbolFont
             } else {
-                FontFamily.Default
+                ai.rever.bossterm.compose.util.bundledSymbolFont
             }
         } else if (isCursiveOrMath) {
             // Math symbols - try STIX Two Math, fallback to terminal font

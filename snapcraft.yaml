@@ -1,6 +1,6 @@
 name: bossterm
 base: core22
-version: '1.0'
+version: '1.0.0'
 summary: Modern terminal emulator built with Kotlin/Compose Desktop
 description: |
   BossTerm is a feature-rich terminal emulator with:
@@ -16,68 +16,76 @@ description: |
 grade: stable
 confinement: classic
 
-# Multi-architecture support
-architectures:
-  - build-on: [amd64]
-    build-for: [amd64]
-  - build-on: [arm64]
-    build-for: [arm64]
-
 apps:
   bossterm:
     command: bin/bossterm
     desktop: usr/share/applications/bossterm.desktop
     environment:
-      JAVA_HOME: $SNAP/usr/lib/jvm/java-17-openjdk-$SNAP_ARCH
+      JAVA_HOME: $SNAP/usr/lib/jvm/java-17-openjdk-$CRAFT_ARCH_BUILD_FOR
       PATH: $JAVA_HOME/bin:$PATH
 
 parts:
   bossterm:
-    plugin: gradle
+    plugin: nil
     source: .
-    gradle-options: [':compose-ui:packageUberJarForCurrentOS', '--no-daemon']
-    gradle-output-dir: compose-ui/build/compose/jars
     build-packages:
       - openjdk-17-jdk
+      - wget
     stage-packages:
-      - openjdk-17-jre-headless
+      - openjdk-17-jre
       - libxrender1
       - libxtst6
       - libxi6
       - libxrandr2
       - libfreetype6
       - libfontconfig1
+      - libgl1
+      - libx11-6
     override-build: |
-      # Build the uber JAR
-      craftctl default
+      # Build the uber JAR using Gradle
+      ./gradlew :compose-ui:packageUberJarForCurrentOS --no-daemon
+
+      # Find and copy the JAR (path varies based on build location)
+      mkdir -p $CRAFT_PART_INSTALL/lib
+      JAR_FILE=$(find . -name "BossTerm*.jar" -path "*compose/jars*" -type f 2>/dev/null | head -1)
+      if [ -z "$JAR_FILE" ]; then
+        JAR_FILE=$(find . -name "*.jar" -path "*compose/jars*" -type f 2>/dev/null | head -1)
+      fi
+      cp "$JAR_FILE" $CRAFT_PART_INSTALL/lib/bossterm.jar
 
       # Create launcher script
       mkdir -p $CRAFT_PART_INSTALL/bin
-      cat > $CRAFT_PART_INSTALL/bin/bossterm << 'EOF'
+      cat > $CRAFT_PART_INSTALL/bin/bossterm << 'LAUNCHER'
       #!/bin/bash
       SNAP_DIR="$(dirname "$(dirname "$(readlink -f "$0")")")"
-      JAVA_HOME="$SNAP_DIR/usr/lib/jvm/java-17-openjdk-$(dpkg --print-architecture)"
-      JAR_FILE="$(find "$SNAP_DIR" -name "bossterm*.jar" -type f | head -1)"
+
+      # Find Java
+      if [ -d "$SNAP_DIR/usr/lib/jvm" ]; then
+        JAVA_HOME="$(find "$SNAP_DIR/usr/lib/jvm" -maxdepth 1 -type d -name "java-17-openjdk-*" | head -1)"
+      fi
+
+      if [ -z "$JAVA_HOME" ] || [ ! -x "$JAVA_HOME/bin/java" ]; then
+        echo "Error: Java not found in snap"
+        exit 1
+      fi
+
+      JAR_FILE="$SNAP_DIR/lib/bossterm.jar"
 
       exec "$JAVA_HOME/bin/java" \
         -Xmx2G \
         --add-opens java.desktop/sun.awt=ALL-UNNAMED \
+        --add-opens java.desktop/sun.awt.X11=ALL-UNNAMED \
         --add-opens java.desktop/java.awt=ALL-UNNAMED \
         --add-opens java.desktop/java.awt.peer=ALL-UNNAMED \
         -jar "$JAR_FILE" "$@"
-      EOF
+      LAUNCHER
       chmod +x $CRAFT_PART_INSTALL/bin/bossterm
 
-      # Copy desktop entry
+      # Copy desktop entry and icon
       mkdir -p $CRAFT_PART_INSTALL/usr/share/applications
-      cp $CRAFT_PART_SRC/snap/gui/bossterm.desktop $CRAFT_PART_INSTALL/usr/share/applications/
-
-  gui-assets:
-    plugin: dump
-    source: snap/gui
-    organize:
-      bossterm.png: meta/gui/bossterm.png
-      bossterm.desktop: usr/share/applications/bossterm.desktop
+      mkdir -p $CRAFT_PART_INSTALL/meta/gui
+      cp snap/gui/bossterm.desktop $CRAFT_PART_INSTALL/usr/share/applications/
+      cp snap/gui/bossterm.png $CRAFT_PART_INSTALL/meta/gui/icon.png
 
 layout:
   /usr/share/fonts:

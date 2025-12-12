@@ -6,3 +6,9 @@ build/
 .kotlin/
 local.properties
 */hs_err_pid*.log
+
+# Snap build artifacts
+*.snap
+parts/
+prime/
+stage/

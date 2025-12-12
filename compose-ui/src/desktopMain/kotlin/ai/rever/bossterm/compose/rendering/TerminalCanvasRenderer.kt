@@ -835,18 +835,18 @@ object TerminalCanvasRenderer {
                 ai.rever.bossterm.compose.util.bundledSymbolFont
             }
         } else if (isTechnicalSymbol || isCursiveOrMath) {
-            // Technical symbols (⏸ ⏵) and math - use STIX Two Math, fallback to terminal font
-            // This preserves original behavior: NOT FontFamily.Default
-            if (ctx.settings.preferTerminalFontForSymbols == true) {
-                // User explicitly wants bundled font
-                ai.rever.bossterm.compose.util.bundledSymbolFont
-            } else {
+            // Technical symbols (⏸ ⏵) and math - platform specific like other symbols
+            if (useSystemFontForEmoji) {
+                // macOS default or user chose system: use STIX Two Math → terminal font
                 val skiaTypeface = FontMgr.default.matchFamilyStyle("STIX Two Math", org.jetbrains.skia.FontStyle.NORMAL)
                 if (skiaTypeface != null) {
                     FontFamily(androidx.compose.ui.text.platform.Typeface(skiaTypeface))
                 } else {
                     ctx.measurementFontFamily
                 }
+            } else {
+                // Linux default or user chose bundled: use bundled symbol font
+                ai.rever.bossterm.compose.util.bundledSymbolFont
             }
         } else {
             ctx.measurementFontFamily

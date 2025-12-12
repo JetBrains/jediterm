@@ -50,8 +50,8 @@ data class TerminalSettings(
     val useAntialiasing: Boolean = true,
 
     /**
-     * Prefer terminal font (MesloLGS Nerd Font) for symbols like ⏵ ★ ⚡.
-     * When true: Uses bundled Nerd Font which has better symbol coverage (recommended for Linux).
+     * Use bundled symbol font (Noto Sans Symbols 2) for symbols like ⏵ ★ ⚡.
+     * When true: Uses bundled symbol font - recommended for Linux where system fonts lack coverage.
      * When false: Uses system default font (Apple Color Emoji on macOS).
      */
     val preferTerminalFontForSymbols: Boolean = true,

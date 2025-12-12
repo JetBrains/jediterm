@@ -823,8 +823,8 @@ object TerminalCanvasRenderer {
         } else if (isEmojiOrWideSymbol || isTechnicalSymbol) {
             // Symbols/emoji without variation selector
             if (ctx.settings.preferTerminalFontForSymbols) {
-                // Terminal font (MesloLGS Nerd Font) has these symbols - better for Linux
-                ctx.measurementFontFamily
+                // Use bundled Noto Sans Symbols 2 - works on Linux
+                ai.rever.bossterm.compose.util.bundledSymbolFont
             } else {
                 // Use system default (Apple Color Emoji on macOS)
                 FontFamily.Default

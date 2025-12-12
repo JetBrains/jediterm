@@ -42,6 +42,24 @@ import java.util.UUID
 import androidx.compose.ui.unit.DpSize
 
 /**
+ * Set WM_CLASS for proper Linux desktop integration.
+ * This must be called before any AWT windows are created.
+ */
+private fun setLinuxWMClass() {
+    if (!System.getProperty("os.name").lowercase().contains("linux")) return
+
+    try {
+        // Set the AWT application class name for X11 WM_CLASS
+        val toolkit = java.awt.Toolkit.getDefaultToolkit()
+        val field = toolkit.javaClass.getDeclaredField("awtAppClassName")
+        field.isAccessible = true
+        field.set(toolkit, "bossterm")
+    } catch (e: Exception) {
+        // Ignore - best effort, StartupWMClass in .desktop file is primary mechanism
+    }
+}
+
+/**
  * Represents a single terminal window with its own state.
  */
 data class TerminalWindow(
@@ -89,7 +107,11 @@ object WindowManager {
     fun hasWindows(): Boolean = _windows.isNotEmpty()
 }
 
-fun main() = application {
+fun main() {
+    // Set WM_CLASS for Linux desktop integration (must be before any AWT init)
+    setLinuxWMClass()
+
+    application {
     // Create initial window if none exist
     if (WindowManager.windows.isEmpty()) {
         WindowManager.createWindow()
@@ -551,5 +573,6 @@ fun main() = application {
                 )
             }
         }
+    }
     }
 }

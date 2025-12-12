@@ -112,7 +112,7 @@ fun loadTerminalFont(fontName: String? = null): FontFamily {
 }
 
 /**
- * Lazily loaded bundled symbol font (Noto Color Emoji).
+ * Lazily loaded bundled symbol font (Noto Sans Symbols 2).
  * Used as fallback for symbols like ⏵ ★ ⚡ when system font lacks coverage.
  */
 val bundledSymbolFont: FontFamily by lazy {
@@ -120,15 +120,15 @@ val bundledSymbolFont: FontFamily by lazy {
 }
 
 /**
- * Load the bundled Noto Color Emoji font for symbol/emoji fallback.
+ * Load the bundled Noto Sans Symbols 2 font for symbol fallback.
  */
 private fun loadBundledSymbolFont(): FontFamily {
     return try {
         val fontStream = object {}.javaClass.classLoader
-            ?.getResourceAsStream("fonts/NotoColorEmoji-Regular.ttf")
+            ?.getResourceAsStream("fonts/NotoSansSymbols2-Regular.ttf")
             ?: return FontFamily.Default
 
-        val tempFile = java.io.File.createTempFile("NotoColorEmoji", ".ttf")
+        val tempFile = java.io.File.createTempFile("NotoSansSymbols2", ".ttf")
         tempFile.deleteOnExit()
         fontStream.use { input ->
             tempFile.outputStream().use { output ->

@@ -817,9 +817,14 @@ object TerminalCanvasRenderer {
         isItalic: Boolean,
         isUnderline: Boolean
     ) {
-        val fontForChar = if (isEmojiOrWideSymbol || isEmojiWithVariationSelector || isCursiveOrMath) {
+        val fontForChar = if (isEmojiWithVariationSelector) {
+            // True color emoji (with variation selector) - use system font for color rendering
             FontFamily.Default
-        } else if (isTechnicalSymbol) {
+        } else if (isEmojiOrWideSymbol || isTechnicalSymbol) {
+            // Symbols/emoji without variation selector - terminal font (MesloLGS) has these
+            ctx.measurementFontFamily
+        } else if (isCursiveOrMath) {
+            // Math symbols - try STIX Two Math, fallback to terminal font
             val skiaTypeface = FontMgr.default.matchFamilyStyle("STIX Two Math", org.jetbrains.skia.FontStyle.NORMAL)
             if (skiaTypeface != null) {
                 FontFamily(androidx.compose.ui.text.platform.Typeface(skiaTypeface))

@@ -818,8 +818,8 @@ object TerminalCanvasRenderer {
         isUnderline: Boolean
     ) {
         val isMacOS = System.getProperty("os.name")?.lowercase()?.contains("mac") == true
-        // Default: macOS uses system font, Linux uses bundled font. Setting overrides this.
-        val useSystemFont = if (ctx.settings.preferTerminalFontForSymbols != null) {
+        // Default: macOS uses system font for emoji, Linux uses bundled font. Setting overrides this.
+        val useSystemFontForEmoji = if (ctx.settings.preferTerminalFontForSymbols != null) {
             !ctx.settings.preferTerminalFontForSymbols!!
         } else {
             isMacOS  // Default: system font on macOS, bundled on Linux
@@ -827,20 +827,26 @@ object TerminalCanvasRenderer {
         val fontForChar = if (isEmojiWithVariationSelector) {
             // True color emoji (with variation selector) - use system font for color rendering
             FontFamily.Default
-        } else if (isEmojiOrWideSymbol || isTechnicalSymbol) {
-            // Symbols/emoji without variation selector
-            if (useSystemFont) {
+        } else if (isEmojiOrWideSymbol) {
+            // Emoji/symbols without variation selector - platform specific
+            if (useSystemFontForEmoji) {
                 FontFamily.Default
             } else {
                 ai.rever.bossterm.compose.util.bundledSymbolFont
             }
-        } else if (isCursiveOrMath) {
-            // Math symbols - try STIX Two Math, fallback to terminal font
-            val skiaTypeface = FontMgr.default.matchFamilyStyle("STIX Two Math", org.jetbrains.skia.FontStyle.NORMAL)
-            if (skiaTypeface != null) {
-                FontFamily(androidx.compose.ui.text.platform.Typeface(skiaTypeface))
+        } else if (isTechnicalSymbol || isCursiveOrMath) {
+            // Technical symbols (⏸ ⏵) and math - use STIX Two Math, fallback to terminal font
+            // This preserves original behavior: NOT FontFamily.Default
+            if (ctx.settings.preferTerminalFontForSymbols == true) {
+                // User explicitly wants bundled font
+                ai.rever.bossterm.compose.util.bundledSymbolFont
             } else {
-                ctx.measurementFontFamily
+                val skiaTypeface = FontMgr.default.matchFamilyStyle("STIX Two Math", org.jetbrains.skia.FontStyle.NORMAL)
+                if (skiaTypeface != null) {
+                    FontFamily(androidx.compose.ui.text.platform.Typeface(skiaTypeface))
+                } else {
+                    ctx.measurementFontFamily
+                }
             }
         } else {
             ctx.measurementFontFamily

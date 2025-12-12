@@ -216,6 +216,171 @@ object UpdateScriptGenerator {
     }
 
     /**
+     * Generate Linux Deb update script.
+     */
+    fun generateLinuxDebUpdateScript(
+        debPath: String,
+        appPid: Long
+    ): File {
+        validatePath(debPath, "Deb path")
+        val escapedDebPath = escapeShellArg(debPath)
+
+        println("🔒 Security: Validated and escaped Linux Deb update script parameters")
+
+        val tempDir = File(System.getProperty("java.io.tmpdir"), "bossterm-updater")
+        tempDir.mkdirs()
+
+        val scriptFile = File(tempDir, "update_bossterm_${System.currentTimeMillis()}.sh")
+
+        val script = """
+            #!/bin/bash
+
+            # BossTerm Update Helper Script (Debian/Ubuntu)
+
+            echo "BossTerm Update Helper started"
+            echo "Waiting for BossTerm to quit (PID: $appPid)..."
+
+            WAIT_COUNT=0
+            MAX_WAIT=30
+            while kill -0 $appPid 2>/dev/null; do
+                sleep 1
+                WAIT_COUNT=${'$'}((WAIT_COUNT + 1))
+                if [ ${'$'}WAIT_COUNT -ge ${'$'}MAX_WAIT ]; then
+                    echo "Timeout waiting for app to quit"
+                    exit 1
+                fi
+            done
+
+            echo "BossTerm has quit. Starting installation..."
+            sleep 2
+
+            echo "Installing Deb package: $escapedDebPath"
+
+            # Try pkexec first (graphical sudo prompt)
+            if command -v pkexec &> /dev/null; then
+                pkexec dpkg -i $escapedDebPath
+                INSTALL_RESULT=${'$'}?
+            # Fall back to sudo if available
+            elif command -v sudo &> /dev/null; then
+                sudo dpkg -i $escapedDebPath
+                INSTALL_RESULT=${'$'}?
+            else
+                echo "Error: Neither pkexec nor sudo available for installation"
+                exit 1
+            fi
+
+            if [ ${'$'}INSTALL_RESULT -ne 0 ]; then
+                echo "Installation failed, trying to fix dependencies..."
+                if command -v pkexec &> /dev/null; then
+                    pkexec apt-get install -f -y
+                else
+                    sudo apt-get install -f -y
+                fi
+            fi
+
+            echo "Installation complete!"
+
+            # Launch the updated app
+            echo "Launching BossTerm..."
+            if [ -x /opt/bossterm/bin/BossTerm ]; then
+                nohup /opt/bossterm/bin/BossTerm > /dev/null 2>&1 &
+            elif [ -x /usr/bin/bossterm ]; then
+                nohup /usr/bin/bossterm > /dev/null 2>&1 &
+            fi
+
+            sleep 2
+            rm -f "${'$'}0"
+            exit 0
+        """.trimIndent()
+
+        scriptFile.writeText(script)
+        makeExecutable(scriptFile)
+
+        println("Generated Linux Deb update script: ${scriptFile.absolutePath}")
+        return scriptFile
+    }
+
+    /**
+     * Generate Linux RPM update script.
+     */
+    fun generateLinuxRpmUpdateScript(
+        rpmPath: String,
+        appPid: Long
+    ): File {
+        validatePath(rpmPath, "RPM path")
+        val escapedRpmPath = escapeShellArg(rpmPath)
+
+        println("🔒 Security: Validated and escaped Linux RPM update script parameters")
+
+        val tempDir = File(System.getProperty("java.io.tmpdir"), "bossterm-updater")
+        tempDir.mkdirs()
+
+        val scriptFile = File(tempDir, "update_bossterm_${System.currentTimeMillis()}.sh")
+
+        val script = """
+            #!/bin/bash
+
+            # BossTerm Update Helper Script (Fedora/RHEL)
+
+            echo "BossTerm Update Helper started"
+            echo "Waiting for BossTerm to quit (PID: $appPid)..."
+
+            WAIT_COUNT=0
+            MAX_WAIT=30
+            while kill -0 $appPid 2>/dev/null; do
+                sleep 1
+                WAIT_COUNT=${'$'}((WAIT_COUNT + 1))
+                if [ ${'$'}WAIT_COUNT -ge ${'$'}MAX_WAIT ]; then
+                    echo "Timeout waiting for app to quit"
+                    exit 1
+                fi
+            done
+
+            echo "BossTerm has quit. Starting installation..."
+            sleep 2
+
+            echo "Installing RPM package: $escapedRpmPath"
+
+            # Try pkexec first (graphical sudo prompt)
+            if command -v pkexec &> /dev/null; then
+                pkexec rpm -U $escapedRpmPath
+                INSTALL_RESULT=${'$'}?
+            # Fall back to sudo if available
+            elif command -v sudo &> /dev/null; then
+                sudo rpm -U $escapedRpmPath
+                INSTALL_RESULT=${'$'}?
+            else
+                echo "Error: Neither pkexec nor sudo available for installation"
+                exit 1
+            fi
+
+            if [ ${'$'}INSTALL_RESULT -ne 0 ]; then
+                echo "RPM installation failed with exit code ${'$'}INSTALL_RESULT"
+            else
+                echo "Installation complete!"
+            fi
+
+            # Launch the updated app
+            echo "Launching BossTerm..."
+            if [ -x /opt/bossterm/bin/BossTerm ]; then
+                nohup /opt/bossterm/bin/BossTerm > /dev/null 2>&1 &
+            elif [ -x /usr/bin/bossterm ]; then
+                nohup /usr/bin/bossterm > /dev/null 2>&1 &
+            fi
+
+            sleep 2
+            rm -f "${'$'}0"
+            exit 0
+        """.trimIndent()
+
+        scriptFile.writeText(script)
+        makeExecutable(scriptFile)
+
+        println("Generated Linux RPM update script: ${scriptFile.absolutePath}")
+        return scriptFile
+    }
+
+    /**
      * Launch the update script in the background.
      */
     fun launchScript(scriptFile: File) {

@@ -46,12 +46,34 @@ object UpdateInstaller {
     private fun extractVersionFromFilename(file: File): Version? {
         return try {
             val filename = file.name
-            val versionStr = filename
-                .removePrefix("BossTerm-")
-                .removeSuffix("-Universal.dmg")
-                .removeSuffix(".dmg")
-                .removeSuffix(".msi")
-                .removeSuffix(".jar")
+            val versionStr = when {
+                // macOS: BossTerm-1.0.0-macos.dmg
+                filename.endsWith(".dmg") -> filename
+                    .removePrefix("BossTerm-")
+                    .removeSuffix("-macos.dmg")
+                    .removeSuffix("-Universal.dmg")
+                    .removeSuffix(".dmg")
+                // Windows: BossTerm-1.0.0.msi
+                filename.endsWith(".msi") -> filename
+                    .removePrefix("BossTerm-")
+                    .removeSuffix(".msi")
+                // Linux deb: bossterm_1.0.0_amd64.deb or bossterm_1.0.0_arm64.deb
+                filename.endsWith(".deb") -> filename
+                    .removePrefix("bossterm_")
+                    .removeSuffix("_amd64.deb")
+                    .removeSuffix("_arm64.deb")
+                // Linux rpm: bossterm-1.0.0.x86_64.rpm or bossterm-1.0.0.aarch64.rpm
+                filename.endsWith(".rpm") -> filename
+                    .removePrefix("bossterm-")
+                    .removeSuffix(".x86_64.rpm")
+                    .removeSuffix(".aarch64.rpm")
+                // JAR: bossterm-1.0.0.jar
+                filename.endsWith(".jar") -> filename
+                    .removePrefix("bossterm-")
+                    .removePrefix("BossTerm-")
+                    .removeSuffix(".jar")
+                else -> filename
+            }
 
             Version.parse(versionStr)
         } catch (e: Exception) {
@@ -108,6 +130,8 @@ object UpdateInstaller {
             when (getCurrentPlatform()) {
                 "macOS" -> installMacOSUpdate(downloadFile)
                 "Windows" -> installWindowsUpdate(downloadFile)
+                "Linux-deb" -> installLinuxDebUpdate(downloadFile)
+                "Linux-rpm" -> installLinuxRpmUpdate(downloadFile)
                 else -> installJarUpdate(downloadFile)
             }
         } catch (e: Exception) {
@@ -229,6 +253,54 @@ object UpdateInstaller {
     }
 
     /**
+     * Install Linux Deb update using helper script pattern.
+     */
+    private suspend fun installLinuxDebUpdate(downloadFile: File): InstallResult {
+        return withContext(Dispatchers.IO) {
+            try {
+                println("Starting Linux Deb update installation...")
+                validateDownloadFile(downloadFile, ".deb")
+
+                val currentPid = ProcessHandle.current().pid()
+                val scriptFile = UpdateScriptGenerator.generateLinuxDebUpdateScript(
+                    debPath = downloadFile.absolutePath,
+                    appPid = currentPid
+                )
+
+                UpdateScriptGenerator.launchScript(scriptFile)
+
+                InstallResult.RequiresRestart("Update is ready to install. The app will quit and install the update.")
+            } catch (e: Exception) {
+                InstallResult.Error(e.message ?: "Unknown error")
+            }
+        }
+    }
+
+    /**
+     * Install Linux RPM update using helper script pattern.
+     */
+    private suspend fun installLinuxRpmUpdate(downloadFile: File): InstallResult {
+        return withContext(Dispatchers.IO) {
+            try {
+                println("Starting Linux RPM update installation...")
+                validateDownloadFile(downloadFile, ".rpm")
+
+                val currentPid = ProcessHandle.current().pid()
+                val scriptFile = UpdateScriptGenerator.generateLinuxRpmUpdateScript(
+                    rpmPath = downloadFile.absolutePath,
+                    appPid = currentPid
+                )
+
+                UpdateScriptGenerator.launchScript(scriptFile)
+
+                InstallResult.RequiresRestart("Update is ready to install. The app will quit and install the update.")
+            } catch (e: Exception) {
+                InstallResult.Error(e.message ?: "Unknown error")
+            }
+        }
+    }
+
+    /**
      * Get current application path for macOS .app bundle.
      */
     fun getCurrentApplicationPath(): String? {
@@ -313,8 +385,48 @@ object UpdateInstaller {
         return when {
             osName.contains("mac") || osName.contains("darwin") -> "macOS"
             osName.contains("win") -> "Windows"
-            osName.contains("linux") -> "Linux"
+            osName.contains("linux") -> detectLinuxDistroType()
             else -> "Unknown"
+        }
+    }
+
+    /**
+     * Detect Linux distribution type (deb-based or rpm-based).
+     */
+    private fun detectLinuxDistroType(): String {
+        return try {
+            // Check for dpkg (Debian/Ubuntu)
+            val dpkgCheck = ProcessBuilder("which", "dpkg").start()
+            dpkgCheck.waitFor()
+            if (dpkgCheck.exitValue() == 0) {
+                return "Linux-deb"
+            }
+
+            // Check for rpm (Fedora/RHEL/CentOS)
+            val rpmCheck = ProcessBuilder("which", "rpm").start()
+            rpmCheck.waitFor()
+            if (rpmCheck.exitValue() == 0) {
+                return "Linux-rpm"
+            }
+
+            // Check /etc/os-release for more info
+            val osRelease = File("/etc/os-release")
+            if (osRelease.exists()) {
+                val content = osRelease.readText().lowercase()
+                return when {
+                    content.contains("debian") || content.contains("ubuntu") ||
+                    content.contains("mint") || content.contains("pop") -> "Linux-deb"
+                    content.contains("fedora") || content.contains("rhel") ||
+                    content.contains("centos") || content.contains("rocky") ||
+                    content.contains("alma") -> "Linux-rpm"
+                    else -> "Linux"
+                }
+            }
+
+            "Linux"
+        } catch (e: Exception) {
+            println("Could not detect Linux distro type: ${e.message}")
+            "Linux"
         }
     }
 }

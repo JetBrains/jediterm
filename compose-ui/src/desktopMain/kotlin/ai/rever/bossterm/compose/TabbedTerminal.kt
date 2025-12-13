@@ -111,8 +111,8 @@ fun TabbedTerminal(
     LaunchedEffect(menuActions, tabController) {
         menuActions?.apply {
             onNewTab = {
-                val workingDir = tabController.getActiveWorkingDirectory()
-                tabController.createTab(workingDir = workingDir)
+                // New tabs always start in home directory (no working dir inheritance)
+                tabController.createTab()
             }
             onCloseTab = {
                 tabController.closeTab(tabController.activeTabIndex)
@@ -225,8 +225,8 @@ fun TabbedTerminal(
                 onTabSelected = { index -> tabController.switchToTab(index) },
                 onTabClosed = { index -> tabController.closeTab(index) },
                 onNewTab = {
-                    val workingDir = tabController.getActiveWorkingDirectory()
-                    tabController.createTab(workingDir = workingDir)
+                    // New tabs always start in home directory (no working dir inheritance)
+                    tabController.createTab()
                 },
                 onTabMoveToNewWindow = { index ->
                     // Get tab first to access its ID for split state lookup
@@ -326,8 +326,8 @@ fun TabbedTerminal(
                     activeTab.title.value = newTitle
                 },
                 onNewTab = {
-                    val workingDir = tabController.getActiveWorkingDirectory()
-                    tabController.createTab(workingDir = workingDir)
+                    // New tabs always start in home directory (no working dir inheritance)
+                    tabController.createTab()
                 },
                 onCloseTab = {
                     tabController.closeTab(tabController.activeTabIndex)

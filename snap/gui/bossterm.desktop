@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=BossTerm
+GenericName=Terminal Emulator
+Comment=Modern terminal emulator with tabs, search, and emoji support
+Exec=bossterm %U
+Icon=${SNAP}/meta/gui/bossterm.png
+Terminal=false
+Type=Application
+Categories=System;TerminalEmulator;Utility;
+Keywords=terminal;shell;console;command;prompt;
+StartupWMClass=BossTerm
+StartupNotify=true
+MimeType=application/x-terminal-emulator;

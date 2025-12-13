@@ -259,7 +259,27 @@ class DesktopUpdateService {
         return when (getCurrentPlatform()) {
             "macOS" -> "BossTerm-${version}.dmg"
             "Windows" -> "BossTerm-${version}.msi"
-            else -> "BossTerm-${version}.jar"
+            "Linux-deb" -> "bossterm_${version}_${getLinuxArch()}.deb"
+            "Linux-rpm" -> "bossterm-${version}.${getRpmArch()}.rpm"
+            else -> "bossterm-${version}.jar"
+        }
+    }
+
+    private fun getLinuxArch(): String {
+        val arch = System.getProperty("os.arch").lowercase()
+        return when {
+            arch.contains("aarch64") || arch.contains("arm64") -> "arm64"
+            arch.contains("amd64") || arch.contains("x86_64") -> "amd64"
+            else -> "amd64"
+        }
+    }
+
+    private fun getRpmArch(): String {
+        val arch = System.getProperty("os.arch").lowercase()
+        return when {
+            arch.contains("aarch64") || arch.contains("arm64") -> "aarch64"
+            arch.contains("amd64") || arch.contains("x86_64") -> "x86_64"
+            else -> "x86_64"
         }
     }
 

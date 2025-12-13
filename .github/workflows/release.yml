@@ -255,8 +255,181 @@ jobs:
           path: .gradleBuild/compose-ui/compose/binaries/main/dmg/*.dmg
           retention-days: 30
 
+  build-linux-amd64:
+    needs: prepare-version
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Setup JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: false
+
+      - name: Install RPM Tools
+        run: sudo apt-get update && sudo apt-get install -y rpm
+
+      - name: Generate Linux Icons
+        run: |
+          pip install pillow
+          python3 create_icon.py || echo "Icon generation requires fonts, using placeholder"
+          # Create placeholder icons if generation fails
+          if [ ! -f "BossTerm.png" ]; then
+            convert -size 256x256 xc:black -fill green -gravity center -pointsize 72 -annotate 0 "BOSS" BossTerm.png || \
+            echo "Using existing icon or creating minimal placeholder"
+          fi
+          mkdir -p snap/gui
+          if [ ! -f "snap/gui/bossterm.png" ]; then
+            cp BossTerm.png snap/gui/bossterm.png 2>/dev/null || true
+          fi
+
+      - name: Build Linux Packages (Deb & RPM)
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :compose-ui:packageDeb :compose-ui:packageRpm
+        env:
+          RELEASE_BUILD: true
+          BUILD_NUMBER: ${{ github.run_number }}
+
+      - name: Build Uber JAR
+        run: |
+          ./gradlew :compose-ui:packageUberJarForCurrentOS
+        env:
+          RELEASE_BUILD: true
+          BUILD_NUMBER: ${{ github.run_number }}
+
+      - name: Upload Deb Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: bossterm-linux-amd64-deb-${{ needs.prepare-version.outputs.version }}
+          path: .gradleBuild/compose-ui/compose/binaries/main/deb/*.deb
+          retention-days: 30
+
+      - name: Upload RPM Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: bossterm-linux-amd64-rpm-${{ needs.prepare-version.outputs.version }}
+          path: .gradleBuild/compose-ui/compose/binaries/main/rpm/*.rpm
+          retention-days: 30
+
+      - name: Upload Uber JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: bossterm-jar-${{ needs.prepare-version.outputs.version }}
+          path: .gradleBuild/compose-ui/compose/jars/*.jar
+          retention-days: 30
+
+  build-linux-arm64:
+    needs: prepare-version
+    runs-on: ubuntu-24.04-arm
+    # ARM64 runners may not be available in all GitHub plans
+    # This job will be skipped if the runner is not available
+    continue-on-error: true
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Setup JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: false
+
+      - name: Install RPM Tools
+        run: sudo apt-get update && sudo apt-get install -y rpm
+
+      - name: Generate Linux Icons
+        run: |
+          pip install pillow
+          python3 create_icon.py || echo "Icon generation requires fonts, using placeholder"
+          if [ ! -f "BossTerm.png" ]; then
+            convert -size 256x256 xc:black -fill green -gravity center -pointsize 72 -annotate 0 "BOSS" BossTerm.png || true
+          fi
+          mkdir -p snap/gui
+          if [ ! -f "snap/gui/bossterm.png" ]; then
+            cp BossTerm.png snap/gui/bossterm.png 2>/dev/null || true
+          fi
+
+      - name: Build Linux Packages (Deb & RPM)
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :compose-ui:packageDeb :compose-ui:packageRpm
+        env:
+          RELEASE_BUILD: true
+          BUILD_NUMBER: ${{ github.run_number }}
+
+      - name: Upload Deb Package (ARM64)
+        uses: actions/upload-artifact@v4
+        with:
+          name: bossterm-linux-arm64-deb-${{ needs.prepare-version.outputs.version }}
+          path: .gradleBuild/compose-ui/compose/binaries/main/deb/*.deb
+          retention-days: 30
+
+      - name: Upload RPM Package (ARM64)
+        uses: actions/upload-artifact@v4
+        with:
+          name: bossterm-linux-arm64-rpm-${{ needs.prepare-version.outputs.version }}
+          path: .gradleBuild/compose-ui/compose/binaries/main/rpm/*.rpm
+          retention-days: 30
+
+  build-snap:
+    needs: prepare-version
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Generate Snap Icon
+        run: |
+          pip install pillow
+          python3 create_icon.py || echo "Icon generation failed, continuing..."
+          mkdir -p snap/gui
+          if [ ! -f "snap/gui/bossterm.png" ]; then
+            # Create a simple placeholder
+            convert -size 512x512 xc:black -fill green -gravity center -pointsize 144 -annotate 0 "BOSS" snap/gui/bossterm.png || true
+          fi
+
+      - name: Build Snap
+        uses: snapcore/action-build@v1
+        id: snapcraft
+
+      - name: Upload Snap
+        uses: actions/upload-artifact@v4
+        with:
+          name: bossterm-snap-${{ needs.prepare-version.outputs.version }}
+          path: ${{ steps.snapcraft.outputs.snap }}
+          retention-days: 30
+
+      # Optional: Publish to Snap Store (requires SNAPCRAFT_STORE_CREDENTIALS secret)
+      # To get credentials: snapcraft export-login --snaps=bossterm --acls package_access,package_push,package_update,package_release credentials.txt
+      - name: Publish to Snap Store
+        if: env.SNAPCRAFT_STORE_CREDENTIALS != ''
+        uses: snapcore/action-publish@v1
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+        with:
+          snap: ${{ steps.snapcraft.outputs.snap }}
+          release: edge
+
   create-release:
-    needs: [prepare-version, build-macos]
+    needs: [prepare-version, build-macos, build-linux-amd64, build-linux-arm64, build-snap]
+    # Continue even if ARM64 build fails (may not be available)
+    if: always() && needs.build-macos.result == 'success' && needs.build-linux-amd64.result == 'success'
     runs-on: ubuntu-latest
 
     steps:
@@ -272,7 +445,24 @@ jobs:
         run: |
           mkdir -p ./release-assets
           VERSION="${{ needs.prepare-version.outputs.version }}"
+
+          # macOS
           find ./artifacts -name "*.dmg" -exec cp {} ./release-assets/BossTerm-${VERSION}.dmg \;
+
+          # Linux AMD64
+          find ./artifacts -name "*.deb" -path "*amd64*" -exec cp {} ./release-assets/bossterm_${VERSION}_amd64.deb \;
+          find ./artifacts -name "*.rpm" -path "*amd64*" -exec cp {} ./release-assets/bossterm-${VERSION}.x86_64.rpm \;
+
+          # Linux ARM64 (if available)
+          find ./artifacts -name "*.deb" -path "*arm64*" -exec cp {} ./release-assets/bossterm_${VERSION}_arm64.deb \; 2>/dev/null || true
+          find ./artifacts -name "*.rpm" -path "*arm64*" -exec cp {} ./release-assets/bossterm-${VERSION}.aarch64.rpm \; 2>/dev/null || true
+
+          # Snap (if available)
+          find ./artifacts -name "*.snap" -exec cp {} ./release-assets/bossterm_${VERSION}_amd64.snap \; 2>/dev/null || true
+
+          # Uber JAR
+          find ./artifacts -name "*.jar" -exec cp {} ./release-assets/bossterm-${VERSION}.jar \; 2>/dev/null || true
+
           echo "Release assets:"
           ls -la ./release-assets/
 
@@ -294,24 +484,52 @@ jobs:
             ## BossTerm v${{ needs.prepare-version.outputs.version }}
 
             ### Downloads
-            - **macOS**: `BossTerm-${{ needs.prepare-version.outputs.version }}.dmg` (Apple Silicon & Intel)
+
+            | Platform | Architecture | Package |
+            |----------|--------------|---------|
+            | **macOS** | Universal | `BossTerm-${{ needs.prepare-version.outputs.version }}.dmg` |
+            | **Ubuntu/Debian** | AMD64 | `bossterm_${{ needs.prepare-version.outputs.version }}_amd64.deb` |
+            | **Ubuntu/Debian** | ARM64 | `bossterm_${{ needs.prepare-version.outputs.version }}_arm64.deb` |
+            | **Fedora/RHEL** | AMD64 | `bossterm-${{ needs.prepare-version.outputs.version }}.x86_64.rpm` |
+            | **Fedora/RHEL** | ARM64 | `bossterm-${{ needs.prepare-version.outputs.version }}.aarch64.rpm` |
+            | **Snap** | AMD64 | `bossterm_${{ needs.prepare-version.outputs.version }}_amd64.snap` |
+            | **Any (JAR)** | Any | `bossterm-${{ needs.prepare-version.outputs.version }}.jar` |
 
             ### Installation
 
-            **Via Homebrew (recommended):**
+            **macOS (Homebrew):**
             ```bash
             brew tap kshivang/bossterm
             brew install --cask bossterm
             ```
 
-            **Manual:**
-            1. Download the DMG file
-            2. Open it and drag BossTerm to Applications
-            3. Launch from Applications folder
+            **Ubuntu/Debian:**
+            ```bash
+            sudo dpkg -i bossterm_${{ needs.prepare-version.outputs.version }}_amd64.deb
+            sudo apt-get install -f  # Install dependencies
+            ```
+
+            **Fedora/RHEL:**
+            ```bash
+            sudo dnf install bossterm-${{ needs.prepare-version.outputs.version }}.x86_64.rpm
+            ```
+
+            **Snap:**
+            ```bash
+            sudo snap install bossterm --classic
+            # Or from downloaded file:
+            sudo snap install bossterm_*.snap --classic --dangerous
+            ```
+
+            **JAR (requires Java 17+):**
+            ```bash
+            java -jar bossterm-${{ needs.prepare-version.outputs.version }}.jar
+            ```
 
             ### System Requirements
-            - macOS 11.0+ (Big Sur or later)
-            - Apple Silicon or Intel processor
+            - **macOS**: 11.0+ (Big Sur or later), Apple Silicon or Intel
+            - **Linux**: X11 or Wayland, glibc 2.31+
+            - **JAR**: Java 17+ runtime
           files: ./release-assets/*
           draft: false
           prerelease: false

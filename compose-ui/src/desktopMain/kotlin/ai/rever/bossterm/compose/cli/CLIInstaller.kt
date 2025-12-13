@@ -10,6 +10,9 @@ object CLIInstaller {
     private const val CLI_NAME = "bossterm"
     private const val INSTALL_PATH = "/usr/local/bin/bossterm"
 
+    private val isMacOS = System.getProperty("os.name").lowercase().contains("mac")
+    private val isLinux = System.getProperty("os.name").lowercase().contains("linux")
+
     /**
      * Check if CLI is already installed
      */
@@ -108,23 +111,30 @@ object CLIInstaller {
             tempFile.writeText(scriptContent)
             tempFile.setExecutable(true)
 
-            // Use osascript to run with admin privileges
-            val script = """
-                do shell script "cp '${tempFile.absolutePath}' '$INSTALL_PATH' && chmod +x '$INSTALL_PATH'" with administrator privileges
-            """.trimIndent()
+            val process = if (isMacOS) {
+                // macOS: Use osascript to run with admin privileges
+                val script = """
+                    do shell script "cp '${tempFile.absolutePath}' '$INSTALL_PATH' && chmod +x '$INSTALL_PATH'" with administrator privileges
+                """.trimIndent()
+                ProcessBuilder("osascript", "-e", script)
+            } else if (isLinux) {
+                // Linux: Use pkexec (PolicyKit) for GUI privilege escalation
+                ProcessBuilder("pkexec", "sh", "-c", "cp '${tempFile.absolutePath}' '$INSTALL_PATH' && chmod +x '$INSTALL_PATH'")
+            } else {
+                tempFile.delete()
+                return InstallResult.Error("Unsupported platform. Please manually copy the script to $INSTALL_PATH")
+            }
 
-            val process = ProcessBuilder("osascript", "-e", script)
-                .redirectErrorStream(true)
-                .start()
-
-            val exitCode = process.waitFor()
+            process.redirectErrorStream(true)
+            val proc = process.start()
+            val exitCode = proc.waitFor()
             tempFile.delete()
 
             if (exitCode == 0) {
                 InstallResult.Success
             } else {
-                val error = process.inputStream.bufferedReader().readText()
-                if (error.contains("User canceled") || error.contains("cancelled")) {
+                val error = proc.inputStream.bufferedReader().readText()
+                if (error.contains("User canceled") || error.contains("cancelled") || error.contains("dismissed") || exitCode == 126) {
                     InstallResult.Cancelled
                 } else {
                     InstallResult.Error("Installation failed: $error")
@@ -137,21 +147,28 @@ object CLIInstaller {
 
     private fun uninstallWithAdminPrivileges(): InstallResult {
         return try {
-            val script = """
-                do shell script "rm -f '$INSTALL_PATH'" with administrator privileges
-            """.trimIndent()
+            val process = if (isMacOS) {
+                // macOS: Use osascript
+                val script = """
+                    do shell script "rm -f '$INSTALL_PATH'" with administrator privileges
+                """.trimIndent()
+                ProcessBuilder("osascript", "-e", script)
+            } else if (isLinux) {
+                // Linux: Use pkexec
+                ProcessBuilder("pkexec", "rm", "-f", INSTALL_PATH)
+            } else {
+                return InstallResult.Error("Unsupported platform. Please manually remove $INSTALL_PATH")
+            }
 
-            val process = ProcessBuilder("osascript", "-e", script)
-                .redirectErrorStream(true)
-                .start()
-
-            val exitCode = process.waitFor()
+            process.redirectErrorStream(true)
+            val proc = process.start()
+            val exitCode = proc.waitFor()
 
             if (exitCode == 0) {
                 InstallResult.Success
             } else {
-                val error = process.inputStream.bufferedReader().readText()
-                if (error.contains("User canceled") || error.contains("cancelled")) {
+                val error = proc.inputStream.bufferedReader().readText()
+                if (error.contains("User canceled") || error.contains("cancelled") || error.contains("dismissed") || exitCode == 126) {
                     InstallResult.Cancelled
                 } else {
                     InstallResult.Error("Uninstall failed: $error")
@@ -163,16 +180,23 @@ object CLIInstaller {
     }
 
     /**
-     * Get the CLI script content
+     * Get the CLI script content for the current platform
      */
     private fun getCLIScript(): String {
+        // Determine platform-specific resource path
+        val resourcePath = when {
+            isMacOS -> "macos/bossterm"
+            isLinux -> "linux/bossterm"
+            else -> "macos/bossterm" // fallback
+        }
+
         // Try to load from resources first
-        val resourceStream = CLIInstaller::class.java.classLoader?.getResourceAsStream("cli/bossterm")
+        val resourceStream = CLIInstaller::class.java.classLoader?.getResourceAsStream(resourcePath)
         if (resourceStream != null) {
             return resourceStream.bufferedReader().readText()
         }
 
-        // Fallback to embedded script
+        // Fallback to embedded script (macOS version)
         return EMBEDDED_CLI_SCRIPT
     }
 

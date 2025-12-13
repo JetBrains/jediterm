@@ -124,16 +124,23 @@ compose.desktop {
     application {
         mainClass = "ai.rever.bossterm.compose.demo.MainKt"
 
-        // JVM args for macOS blur effect (access to internal AWT classes)
+        // JVM args for platform-specific features (access to internal AWT classes)
         jvmArgs += listOf(
+            // macOS blur effect
             "--add-opens", "java.desktop/sun.lwawt=ALL-UNNAMED",
             "--add-opens", "java.desktop/sun.lwawt.macosx=ALL-UNNAMED",
             "--add-opens", "java.desktop/java.awt=ALL-UNNAMED",
-            "--add-opens", "java.desktop/java.awt.peer=ALL-UNNAMED"
+            "--add-opens", "java.desktop/java.awt.peer=ALL-UNNAMED",
+            // Linux X11 WM_CLASS for proper taskbar icon/name
+            "--add-opens", "java.desktop/sun.awt.X11=ALL-UNNAMED"
         )
 
         nativeDistributions {
-            targetFormats(org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg)
+            targetFormats(
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg,
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Deb,
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Rpm
+            )
 
             packageName = "BossTerm"
             packageVersion = project.version.toString().removeSuffix("-SNAPSHOT")
@@ -172,13 +179,29 @@ compose.desktop {
                 }
             }
 
+            linux {
+                iconFile.set(rootProject.file("BossTerm.png"))
+                debMaintainer = "shivang.risa@gmail.com"
+                menuGroup = "System;TerminalEmulator"
+                appCategory = "Utility"
+                shortcut = true
+                // RPM-specific options
+                rpmLicenseType = "LGPL-3.0"
+                // Set app name for desktop integration
+                appRelease = "1"
+                debPackageVersion = project.version.toString().removeSuffix("-SNAPSHOT")
+            }
+
             // Include required JVM modules
             modules("java.sql", "jdk.unsupported", "jdk.management.agent")
 
-            // JVM args for better performance
+            // JVM args for better performance and desktop integration
             jvmArgs += listOf(
                 "-Xmx2G",
-                "-Dapple.awt.application.appearance=system"
+                "-Dapple.awt.application.appearance=system",
+                // Linux: Set WM_CLASS for proper desktop integration
+                "-Dawt.useSystemAAFontSettings=on",
+                "-Dsun.java2d.xrender=true"
             )
         }
     }
@@ -388,9 +411,68 @@ tasks.register("signPty4jBinaries") {
     }
 }
 
+// Fix Linux .desktop file to add StartupWMClass for proper desktop integration
+// This task post-processes the .deb file after jpackage creates it
+tasks.register("fixLinuxDesktopFile") {
+    description = "Adds StartupWMClass to Linux .desktop file for proper taskbar integration"
+    group = "build"
+
+    val isLinux = System.getProperty("os.name").lowercase().contains("linux")
+    onlyIf { isLinux }
+
+    // Inject ExecOperations for exec calls
+    val injected = project.objects.newInstance<InjectedExecOps>()
+
+    doLast {
+        val debDir = project.layout.buildDirectory.dir("compose/binaries/main/deb").get().asFile
+        val debFile = debDir.listFiles()?.find { it.name.endsWith(".deb") }
+
+        if (debFile != null) {
+            println("📦 Fixing .desktop file in ${debFile.name}...")
+
+            val workDir = File(debDir, "fix-temp-${System.currentTimeMillis()}")
+            workDir.mkdirs()
+
+            try {
+                // Extract deb contents
+                injected.execOps.exec {
+                    commandLine("dpkg-deb", "-R", debFile.absolutePath, workDir.absolutePath)
+                }
+
+                // Find and modify .desktop file (only actual .desktop files, not directories)
+                var modified = false
+                workDir.walkTopDown()
+                    .filter { it.isFile && it.name.endsWith(".desktop") }
+                    .forEach { desktopFile ->
+                        var content = desktopFile.readText()
+                        if (!content.contains("StartupWMClass")) {
+                            content = content.trimEnd() + "\nStartupWMClass=bossterm\n"
+                            desktopFile.writeText(content)
+                            println("✅ Added StartupWMClass to ${desktopFile.name}")
+                            modified = true
+                        }
+                    }
+
+                if (modified) {
+                    // Repack deb using dpkg-deb --build
+                    injected.execOps.exec {
+                        commandLine("dpkg-deb", "--build", "--root-owner-group", workDir.absolutePath, debFile.absolutePath)
+                    }
+                    println("✅ Repacked ${debFile.name}")
+                }
+            } finally {
+                workDir.deleteRecursively()
+            }
+        } else {
+            println("⚠️ No .deb file found in $debDir")
+        }
+    }
+}
+
 // Configure task dependencies for PTY4J signing and DMG packaging
 afterEvaluate {
     val isMacOS = System.getProperty("os.name").lowercase().contains("mac")
+    val isLinux = System.getProperty("os.name").lowercase().contains("linux")
     val signingDisabled = System.getenv("DISABLE_MACOS_SIGNING") == "true"
 
     // Make signPty4jBinaries run AFTER createDistributable
@@ -404,6 +486,17 @@ afterEvaluate {
         if (isMacOS && !signingDisabled) {
             finalizedBy("signPty4jBinaries")
             println("📝 createDistributable will be finalized by signPty4jBinaries")
+        }
+    }
+
+    // Fix Linux desktop file AFTER packaging (post-process the .deb)
+    if (isLinux) {
+        tasks.findByName("fixLinuxDesktopFile")?.apply {
+            mustRunAfter("packageDeb")
+        }
+        // packageDeb is finalized by fixLinuxDesktopFile - runs automatically after
+        tasks.findByName("packageDeb")?.apply {
+            finalizedBy("fixLinuxDesktopFile")
         }
     }
 

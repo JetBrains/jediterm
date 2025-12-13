@@ -123,17 +123,26 @@ class TerminalTextBuffer internal constructor(
   }
 
 
-  fun resize(newTermSize: TermSize, oldCursor: CellPosition, selection: TerminalSelection?): TerminalResizeResult {
+  fun resize(newTermSize: TermSize, oldCursor: CellPosition, selection: TerminalSelection?, savedCursor: CellPosition? = null): TerminalResizeResult {
     val newWidth = newTermSize.columns
     val newHeight = newTermSize.rows
     var newCursorX = oldCursor.x
     var newCursorY = oldCursor.y
     val oldCursorY = oldCursor.y
 
+    // Track saved cursor position through resize (for DECSC/DECRC used by Powerlevel10k)
+    var newSavedCursorX: Int? = savedCursor?.x
+    var newSavedCursorY: Int? = savedCursor?.y
+
     if (width != newWidth) {
       val changeWidthOperation = ChangeWidthOperation(this, newWidth, newHeight)
       val cursorPoint = Point(oldCursor.x - 1, oldCursor.y - 1)
       changeWidthOperation.addPointToTrack(cursorPoint, true)
+      // Track saved cursor through reflow (not force visible - can go to history)
+      val savedCursorPoint = savedCursor?.let { Point(it.x - 1, it.y - 1) }
+      if (savedCursorPoint != null) {
+        changeWidthOperation.addPointToTrack(savedCursorPoint, false)
+      }
       if (selection != null) {
         changeWidthOperation.addPointToTrack(selection.start, false)
         val selectionEnd = selection.end
@@ -152,6 +161,12 @@ class TerminalTextBuffer internal constructor(
       val newCursor = changeWidthOperation.getTrackedPoint(cursorPoint)
       newCursorX = newCursor.x + 1
       newCursorY = newCursor.y + 1
+      // Get tracked saved cursor position after reflow
+      if (savedCursorPoint != null) {
+        val trackedSavedCursor = changeWidthOperation.getTrackedPoint(savedCursorPoint)
+        newSavedCursorX = trackedSavedCursor.x + 1
+        newSavedCursorY = trackedSavedCursor.y + 1
+      }
       if (selection != null) {
         selection.start.setLocation(changeWidthOperation.getTrackedPoint(selection.start))
         val selectionEnd = selection.end
@@ -201,6 +216,8 @@ class TerminalTextBuffer internal constructor(
           addLinesToHistory(removedLines)
           newCursorY = oldCursorY - linesToRemoveFromTop
           selection?.shiftY(-linesToRemoveFromTop)
+          // Adjust saved cursor Y when lines move to history
+          newSavedCursorY = newSavedCursorY?.let { max(1, it - linesToRemoveFromTop) }
           // Notify callback so image anchors can be adjusted
           resizeCallback?.onLinesMovedToHistory(linesToRemoveFromTop)
         }
@@ -223,6 +240,8 @@ class TerminalTextBuffer internal constructor(
           screenLinesStorage.addAllToTop(removedLines)
           newCursorY = oldCursorY + historyLinesCount
           selection?.shiftY(historyLinesCount)
+          // Adjust saved cursor Y when lines are restored from history
+          newSavedCursorY = newSavedCursorY?.let { it + historyLinesCount }
           // Notify callback so image anchors can be adjusted
           if (historyLinesCount > 0) {
             resizeCallback?.onLinesRestoredFromHistory(historyLinesCount)
@@ -238,7 +257,11 @@ class TerminalTextBuffer internal constructor(
     height = newHeight
 
     fireModelChangeEvent()
-    return TerminalResizeResult(CellPosition(newCursorX, newCursorY))
+    // Return result with both cursor positions
+    val newSavedCursorPos = if (newSavedCursorX != null && newSavedCursorY != null) {
+      CellPosition(newSavedCursorX, newSavedCursorY)
+    } else null
+    return TerminalResizeResult(CellPosition(newCursorX, newCursorY), newSavedCursorPos)
   }
 
   fun addModelListener(listener: TerminalModelListener) {

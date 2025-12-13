@@ -1318,11 +1318,11 @@ fun ProperTerminal(
       } else {
         // Only show terminal UI when connected
 
-        // Create incremental snapshot for lock-free rendering with copy-on-write optimization
+        // Create snapshot for lock-free rendering with copy-on-write optimization
         // Uses version tracking to reuse unchanged lines (99%+ allocation reduction)
         // Snapshot cached by Compose - recreated when display triggers redraw OR buffer dimensions change
-        // This eliminates both lock contention (94%) AND allocation churn (99.5%)
-        val bufferSnapshot = remember(display.redrawTrigger.value, textBuffer.width, textBuffer.height) {
+        val currentTrigger = display.redrawTrigger.value
+        val bufferSnapshot = remember(currentTrigger, textBuffer.width, textBuffer.height) {
           textBuffer.createIncrementalSnapshot()
         }
 

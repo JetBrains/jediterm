@@ -23,10 +23,41 @@ def create_icon(size):
     # Calculate font size - each letter fills a quadrant
     font_size = int(size * 0.35)
 
-    # Use Roboto Regular - normal weight
-    try:
-        font = ImageFont.truetype("/Library/Fonts/Roboto-Regular.ttf", font_size)
-    except:
+    # Try multiple font paths (local project, macOS, Linux, Windows)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    font_paths = [
+        # Local project fonts (highest priority for consistency)
+        os.path.join(script_dir, "fonts/Roboto-Regular.ttf"),
+        os.path.join(script_dir, "Roboto-Regular.ttf"),
+        # macOS
+        "/Library/Fonts/Roboto-Regular.ttf",
+        "/System/Library/Fonts/Helvetica.ttc",
+        "/System/Library/Fonts/SFNSText.ttf",
+        # Linux - common locations
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+        "/usr/share/fonts/TTF/DejaVuSans.ttf",
+        "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+        # Ubuntu/Debian
+        "/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+        # Fedora/RHEL
+        "/usr/share/fonts/google-noto/NotoSans-Regular.ttf",
+        # Windows
+        "C:/Windows/Fonts/arial.ttf",
+    ]
+
+    font = None
+    for font_path in font_paths:
+        try:
+            font = ImageFont.truetype(font_path, font_size)
+            break
+        except:
+            continue
+
+    if font is None:
+        print(f"Warning: No suitable font found, using default (may look different)")
         font = ImageFont.load_default()
 
     # Letters: B O S S in corners
@@ -83,6 +114,9 @@ def create_icon(size):
     return img
 
 def main():
+    import platform
+    is_macos = platform.system() == "Darwin"
+
     # Create iconset directory
     iconset_dir = "BossTerm.iconset"
     os.makedirs(iconset_dir, exist_ok=True)
@@ -103,22 +137,42 @@ def main():
             img.save(os.path.join(iconset_dir, filename_2x))
             print(f"Created {filename_2x}")
 
-    # Convert to .icns using iconutil
-    print("\nConverting to .icns...")
-    result = subprocess.run(
-        ["iconutil", "-c", "icns", iconset_dir],
-        capture_output=True,
-        text=True
-    )
+    # Generate standalone PNGs for Linux packaging
+    print("\n--- Linux Icons ---")
 
-    if result.returncode == 0:
-        print("Successfully created BossTerm.icns")
-        # Clean up iconset directory
-        import shutil
-        shutil.rmtree(iconset_dir)
-        print(f"Cleaned up {iconset_dir}")
+    # 256x256 for Deb/RPM package
+    img_256 = create_icon(256)
+    img_256.save("BossTerm.png")
+    print("Created BossTerm.png (256x256) for Deb/RPM")
+
+    # 512x512 for Snap
+    img_512 = create_icon(512)
+    snap_gui_dir = "snap/gui"
+    os.makedirs(snap_gui_dir, exist_ok=True)
+    img_512.save(os.path.join(snap_gui_dir, "bossterm.png"))
+    print(f"Created {snap_gui_dir}/bossterm.png (512x512) for Snap")
+
+    # Convert to .icns using iconutil (macOS only)
+    if is_macos:
+        print("\n--- macOS Icon ---")
+        print("Converting to .icns...")
+        result = subprocess.run(
+            ["iconutil", "-c", "icns", iconset_dir],
+            capture_output=True,
+            text=True
+        )
+
+        if result.returncode == 0:
+            print("Successfully created BossTerm.icns")
+            # Clean up iconset directory
+            import shutil
+            shutil.rmtree(iconset_dir)
+            print(f"Cleaned up {iconset_dir}")
+        else:
+            print(f"Error creating .icns: {result.stderr}")
     else:
-        print(f"Error creating .icns: {result.stderr}")
+        print("\nSkipping .icns generation (not on macOS)")
+        print(f"PNG icons available in {iconset_dir}/")
 
 if __name__ == "__main__":
     main()

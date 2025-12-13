@@ -217,6 +217,45 @@ class DesktopProcessService : PlatformServices.ProcessService {
         }
 
         override fun getExitCode(): Int? = if (process.isAlive) null else process.exitValue()
+
+        override fun getPid(): Long? {
+            return try {
+                process.pid().toLong()
+            } catch (e: Exception) {
+                null
+            }
+        }
+
+        override fun getWorkingDirectory(): String? {
+            val pid = getPid() ?: return null
+            return try {
+                val osName = System.getProperty("os.name")?.lowercase() ?: ""
+                when {
+                    osName.contains("linux") -> {
+                        // On Linux, read /proc/<pid>/cwd symlink
+                        val cwdLink = java.io.File("/proc/$pid/cwd")
+                        if (cwdLink.exists()) {
+                            cwdLink.canonicalPath
+                        } else null
+                    }
+                    osName.contains("mac") -> {
+                        // On macOS, use lsof to get current working directory
+                        val proc = ProcessBuilder("lsof", "-a", "-p", pid.toString(), "-d", "cwd", "-Fn")
+                            .redirectErrorStream(true)
+                            .start()
+                        val output = proc.inputStream.bufferedReader().readText()
+                        proc.waitFor()
+                        // lsof output format: "n/path/to/directory" on a line starting with 'n'
+                        output.lines()
+                            .find { it.startsWith("n/") }
+                            ?.substring(1)  // Remove 'n' prefix
+                    }
+                    else -> null
+                }
+            } catch (e: Exception) {
+                null
+            }
+        }
     }
 }
 

@@ -259,7 +259,10 @@ fun TabbedTerminal(
             val onSplitHorizontal: () -> Unit = {
                 // Only inherit working directory if setting is enabled
                 val workingDir = if (settings.splitInheritWorkingDirectory) {
-                    splitState.getFocusedSession()?.workingDirectory?.value
+                    val session = splitState.getFocusedSession()
+                    // First try OSC 7 tracked directory, then fall back to querying process
+                    session?.workingDirectory?.value
+                        ?: session?.processHandle?.value?.getWorkingDirectory()
                 } else null
                 var newSessionRef: TerminalSession? = null
                 val newSession = tabController.createSessionForSplit(
@@ -280,7 +283,10 @@ fun TabbedTerminal(
             val onSplitVertical: () -> Unit = {
                 // Only inherit working directory if setting is enabled
                 val workingDir = if (settings.splitInheritWorkingDirectory) {
-                    splitState.getFocusedSession()?.workingDirectory?.value
+                    val session = splitState.getFocusedSession()
+                    // First try OSC 7 tracked directory, then fall back to querying process
+                    session?.workingDirectory?.value
+                        ?: session?.processHandle?.value?.getWorkingDirectory()
                 } else null
                 var newSessionRef: TerminalSession? = null
                 val newSession = tabController.createSessionForSplit(

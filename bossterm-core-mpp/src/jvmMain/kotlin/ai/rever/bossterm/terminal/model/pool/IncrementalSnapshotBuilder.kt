@@ -2,22 +2,29 @@ package ai.rever.bossterm.terminal.model.pool
 
 import ai.rever.bossterm.terminal.model.LinesStorage
 import ai.rever.bossterm.terminal.model.TerminalLine
+import java.util.Collections
+import java.util.IdentityHashMap
 import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Incremental snapshot builder that minimizes allocations using copy-on-write semantics.
  *
  * **Core Optimization Strategy**:
- * 1. Track version numbers on each line
- * 2. Compare current version to previous snapshot's version
- * 3. Reuse unchanged lines (zero-copy reference sharing)
- * 4. Only copy changed lines using pooled CharArrays
- * 5. Release previous snapshot's pooled copies for reuse
+ * 1. Track lines by object identity using IdentityHashMap (not by position)
+ * 2. Compare current version to cached version for each line
+ * 3. Reuse unchanged line copies (zero-copy reference sharing)
+ * 4. Only copy changed lines
+ * 5. Prune cache when lines are deleted from buffer
+ *
+ * **Why IdentityHashMap?**
+ * CyclicBufferLinesStorage uses ArrayDeque internally, where indices shift during scroll.
+ * A line at index 5 may move to index 4 after scrolling. By tracking object identity
+ * instead of position, we can find cached copies regardless of index changes.
  *
  * **Expected Performance Impact**:
  * - 99%+ reduction in allocations for typical terminal use
  * - Most frames have 0-5 changed lines vs copying all 1000+ lines
- * - Pooled CharArrays eliminate GC pressure from repeated allocations
+ * - ~320KB memory overhead for identity cache (acceptable trade-off)
  *
  * **Thread Safety**:
  * - Builder instance is NOT thread-safe (use one per TerminalTextBuffer)
@@ -26,16 +33,27 @@ import java.util.concurrent.atomic.AtomicLong
  */
 class IncrementalSnapshotBuilder(
     /**
-     * Feature flag to disable pooling for debugging/comparison.
-     * When false, falls back to full deep copy behavior.
+     * Feature flag to enable incremental identity-based line reuse.
+     *
+     * When true (default): Uses IdentityHashMap to track and reuse unchanged lines (~1-10KB/frame)
+     * When false: Uses full deep copy (reliable but ~430KB/frame)
      */
-    private val enablePooling: Boolean = System.getenv("BOSSTERM_DISABLE_SNAPSHOT_POOLING") != "true"
+    private val enablePooling: Boolean = true
 ) {
     /**
-     * Previous snapshot for version comparison.
-     * Null on first call or after clear().
+     * Identity-based cache: maps original TerminalLine reference to its VersionedLine copy.
+     * Uses IdentityHashMap for O(1) lookup by object identity (not equals()).
+     *
+     * This allows tracking lines across position changes in CyclicBufferLinesStorage.
      */
-    private var previousSnapshot: VersionedBufferSnapshot? = null
+    private val lineCache = IdentityHashMap<TerminalLine, VersionedLine>()
+
+    /**
+     * Metadata for detecting structural changes that require cache clear.
+     */
+    private var previousWidth: Int = -1
+    private var previousHeight: Int = -1
+    private var previousAlternateBuffer: Boolean = false
 
     /**
      * Statistics for monitoring optimization effectiveness.
@@ -70,88 +88,91 @@ class IncrementalSnapshotBuilder(
             )
         }
 
-        val prev = previousSnapshot
-
-        // Full copy on first snapshot or structural changes
-        if (prev == null ||
-            prev.width != width ||
-            prev.height != height ||
-            prev.isUsingAlternateBuffer != isUsingAlternateBuffer ||
-            prev.screenLines.size != screenLinesStorage.size ||
-            prev.historyLines.size != historyLinesStorage.size
+        // Force cache clear on structural changes
+        if (width != previousWidth ||
+            height != previousHeight ||
+            isUsingAlternateBuffer != previousAlternateBuffer
         ) {
             stats.fullCopyCount.incrementAndGet()
-            val newSnapshot = createFullSnapshot(
-                screenLinesStorage, historyLinesStorage,
-                width, height, isUsingAlternateBuffer
-            )
-            previousSnapshot = newSnapshot
-            return newSnapshot
+            lineCache.clear()
         }
 
-        // Incremental copy: compare versions and reuse unchanged lines
-        var screenLinesReused = 0
-        var screenLinesCopied = 0
-        var historyLinesReused = 0
-        var historyLinesCopied = 0
-
-        // Process screen lines
-        val newScreenLines = ArrayList<VersionedLine>(screenLinesStorage.size)
-        for (i in 0 until screenLinesStorage.size) {
-            val currentLine = screenLinesStorage[i]
-            val currentVersion = currentLine.getSnapshotVersion()
-            val prevVersionedLine = prev.screenLines.getOrNull(i)
-
-            if (prevVersionedLine != null && prevVersionedLine.version == currentVersion) {
-                // ZERO-COPY: reuse reference to previous line copy
-                newScreenLines.add(prevVersionedLine)
-                screenLinesReused++
-            } else {
-                // Copy changed line
-                val lineCopy = currentLine.copy()
-                newScreenLines.add(VersionedLine(lineCopy, currentVersion))
-                screenLinesCopied++
-            }
+        // Build snapshot using identity-based lookup
+        val screenLines = (0 until screenLinesStorage.size).map { i ->
+            processLine(screenLinesStorage[i])
         }
 
-        // Process history lines
-        val newHistoryLines = ArrayList<VersionedLine>(historyLinesStorage.size)
-        for (i in 0 until historyLinesStorage.size) {
-            val currentLine = historyLinesStorage[i]
-            val currentVersion = currentLine.getSnapshotVersion()
-            val prevVersionedLine = prev.historyLines.getOrNull(i)
-
-            if (prevVersionedLine != null && prevVersionedLine.version == currentVersion) {
-                // ZERO-COPY: reuse reference to previous line copy
-                newHistoryLines.add(prevVersionedLine)
-                historyLinesReused++
-            } else {
-                // Copy changed line
-                val lineCopy = currentLine.copy()
-                newHistoryLines.add(VersionedLine(lineCopy, currentVersion))
-                historyLinesCopied++
-            }
+        val historyLines = (0 until historyLinesStorage.size).map { i ->
+            processLine(historyLinesStorage[i])
         }
 
-        // Update statistics
-        stats.linesReused.addAndGet((screenLinesReused + historyLinesReused).toLong())
-        stats.linesCopied.addAndGet((screenLinesCopied + historyLinesCopied).toLong())
+        // Prune stale cache entries (lines no longer in either buffer)
+        pruneCache(screenLinesStorage, historyLinesStorage)
 
-        val newSnapshot = VersionedBufferSnapshot(
-            screenLines = newScreenLines,
-            historyLines = newHistoryLines,
+        // Update metadata
+        previousWidth = width
+        previousHeight = height
+        previousAlternateBuffer = isUsingAlternateBuffer
+
+        return VersionedBufferSnapshot(
+            screenLines = screenLines,
+            historyLines = historyLines,
             width = width,
             height = height,
             historyLinesCount = historyLinesStorage.size,
             isUsingAlternateBuffer = isUsingAlternateBuffer
         )
+    }
 
-        previousSnapshot = newSnapshot
-        return newSnapshot
+    /**
+     * Process a single line: return cached copy if unchanged, or create new copy.
+     * Uses object identity (not position) to find cached entries.
+     */
+    private fun processLine(originalLine: TerminalLine): VersionedLine {
+        val currentVersion = originalLine.getSnapshotVersion()
+
+        // Look up by IDENTITY (object reference), not position
+        val cached = lineCache[originalLine]
+
+        if (cached != null && cached.version == currentVersion) {
+            // ZERO-COPY: line hasn't changed, reuse the cached copy
+            stats.linesReused.incrementAndGet()
+            return cached
+        }
+
+        // Line changed or new - create fresh copy
+        val lineCopy = originalLine.copy()
+        val newEntry = VersionedLine(lineCopy, currentVersion)
+
+        // Update cache with new entry
+        lineCache[originalLine] = newEntry
+        stats.linesCopied.incrementAndGet()
+
+        return newEntry
+    }
+
+    /**
+     * Remove cache entries for lines that are no longer in any buffer.
+     * This prevents memory leaks when lines are deleted.
+     */
+    private fun pruneCache(screenStorage: LinesStorage, historyStorage: LinesStorage) {
+        // Build set of current line identities
+        val currentLines: MutableSet<TerminalLine> = Collections.newSetFromMap(IdentityHashMap())
+
+        for (i in 0 until screenStorage.size) {
+            currentLines.add(screenStorage[i])
+        }
+        for (i in 0 until historyStorage.size) {
+            currentLines.add(historyStorage[i])
+        }
+
+        // Remove entries for lines no longer in buffers
+        lineCache.keys.retainAll(currentLines)
     }
 
     /**
      * Create a full deep-copy snapshot (fallback path).
+     * Uses map{} to create immutable List.
      */
     private fun createFullSnapshot(
         screenLinesStorage: LinesStorage,
@@ -160,16 +181,15 @@ class IncrementalSnapshotBuilder(
         height: Int,
         isUsingAlternateBuffer: Boolean
     ): VersionedBufferSnapshot {
-        val screenLines = ArrayList<VersionedLine>(screenLinesStorage.size)
-        for (i in 0 until screenLinesStorage.size) {
+        // Use map{} to create immutable List
+        val screenLines = (0 until screenLinesStorage.size).map { i ->
             val line = screenLinesStorage[i]
-            screenLines.add(VersionedLine(line.copy(), line.getSnapshotVersion()))
+            VersionedLine(line.copy(), line.getSnapshotVersion())
         }
 
-        val historyLines = ArrayList<VersionedLine>(historyLinesStorage.size)
-        for (i in 0 until historyLinesStorage.size) {
+        val historyLines = (0 until historyLinesStorage.size).map { i ->
             val line = historyLinesStorage[i]
-            historyLines.add(VersionedLine(line.copy(), line.getSnapshotVersion()))
+            VersionedLine(line.copy(), line.getSnapshotVersion())
         }
 
         stats.linesCopied.addAndGet((screenLines.size + historyLines.size).toLong())
@@ -185,10 +205,13 @@ class IncrementalSnapshotBuilder(
     }
 
     /**
-     * Clear cached snapshot state. Call when buffer is cleared or reset.
+     * Clear cached state. Call when buffer is cleared or reset.
      */
     fun clear() {
-        previousSnapshot = null
+        lineCache.clear()
+        previousWidth = -1
+        previousHeight = -1
+        previousAlternateBuffer = false
     }
 
     /**

@@ -1281,6 +1281,37 @@ class BossTerminal(
         }
     }
 
+    /**
+     * Creates a new StoredCursor with updated position but preserving all other attributes.
+     * Used when saved cursor position needs adjustment after terminal resize/reflow.
+     */
+    private fun updateStoredCursorPosition(old: StoredCursor, newX: Int, newY: Int): StoredCursor {
+        return StoredCursor(
+            cursorX = newX,
+            cursorY = newY,
+            textStyle = old.textStyle,
+            isAutoWrap = old.isAutoWrap,
+            isOriginMode = old.isOriginMode,
+            graphicSetState = recreateGraphicSetState(old)
+        )
+    }
+
+    /**
+     * Recreates a GraphicSetState from a StoredCursor's saved character set designations.
+     */
+    private fun recreateGraphicSetState(stored: StoredCursor): GraphicSetState {
+        val state = GraphicSetState()
+        for (i in 0..3) {
+            stored.designations[i]?.let { state.designateGraphicSet(i, it) }
+        }
+        state.setGL(stored.gLMapping)
+        state.setGR(stored.gRMapping)
+        if (stored.gLOverride >= 0) {
+            state.overrideGL(stored.gLOverride)
+        }
+        return state
+    }
+
     override fun reset(clearScrollBackBuffer: Boolean) {
         myGraphicSetState.resetState()
 
@@ -1581,13 +1612,25 @@ class BossTerminal(
     private fun doResize(newTermSize: TermSize, origin: RequestOrigin, oldHeight: Int) {
         val oldTermSize = TermSize(myTerminalWidth, myTerminalHeight)
         terminalTextBuffer.modify(Runnable {
-            val result = terminalTextBuffer.resize(newTermSize, cursorPosition, myDisplay.selection)
+            // Get saved cursor position if exists (convert to 1-based for TerminalTextBuffer)
+            val savedCursorPos = myStoredCursor?.let {
+                CellPosition(it.cursorX + 1, it.cursorY + 1)
+            }
+
+            val result = terminalTextBuffer.resize(newTermSize, cursorPosition, myDisplay.selection, savedCursorPos)
             myTerminalWidth = newTermSize.columns
             myTerminalHeight = newTermSize.rows
             myCursorX = result.newCursor.x - 1
             myCursorY = result.newCursor.y
             myTabulator.resize(myTerminalWidth)
             myScrollRegionBottom += myTerminalHeight - oldHeight
+
+            // Update saved cursor position if it was tracked through resize
+            result.newSavedCursor?.let { newSavedPos ->
+                myStoredCursor = myStoredCursor?.let { old ->
+                    updateStoredCursorPosition(old, newSavedPos.x - 1, newSavedPos.y - 1)
+                }
+            }
 
             myDisplay.setCursor(myCursorX, myCursorY)
             myDisplay.onResize(newTermSize, origin)

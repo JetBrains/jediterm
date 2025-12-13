@@ -137,22 +137,36 @@ class ComposeTerminalDisplay : TerminalDisplay {
         if (debugCursor && (_cursorX.value != x || _cursorY.value != y)) {
             println("🔵 CURSOR MOVE: (${ _cursorX.value},${_cursorY.value}) → ($x,$y)")
         }
+        val changed = _cursorX.value != x || _cursorY.value != y
         _cursorX.value = x
         _cursorY.value = y
+        // Trigger redraw when cursor moves - fixes p10k/zsh TUI not updating
+        // Cursor-only changes (no buffer modification) still need screen refresh
+        if (changed) {
+            requestRedraw()
+        }
     }
 
     override fun setCursorShape(cursorShape: CursorShape?) {
         if (debugCursor && _cursorShape.value != cursorShape) {
             println("🔷 CURSOR SHAPE: ${_cursorShape.value} → $cursorShape")
         }
+        val changed = _cursorShape.value != cursorShape
         _cursorShape.value = cursorShape
+        if (changed) {
+            requestRedraw()
+        }
     }
 
     override fun setCursorVisible(isCursorVisible: Boolean) {
         if (debugCursor && _cursorVisible.value != isCursorVisible) {
             println("👁️  CURSOR VISIBLE: ${_cursorVisible.value} → $isCursorVisible")
         }
+        val changed = _cursorVisible.value != isCursorVisible
         _cursorVisible.value = isCursorVisible
+        if (changed) {
+            requestRedraw()
+        }
     }
 
     override fun beep() {
@@ -183,7 +197,9 @@ class ComposeTerminalDisplay : TerminalDisplay {
     }
 
     override fun useAlternateScreenBuffer(useAlternateScreenBuffer: Boolean) {
-        // No-op for now - alternate screen buffer handling could be added later
+        // Buffer switch is handled by TerminalTextBuffer, but we need to trigger redraw
+        // to ensure the screen refreshes when switching between main and alternate buffer
+        requestImmediateRedraw()
     }
 
     override var windowTitle: String?

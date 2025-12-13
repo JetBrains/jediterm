@@ -426,6 +426,7 @@ jobs:
       # To get credentials: snapcraft export-login --snaps=bossterm --acls package_access,package_push,package_update,package_release credentials.txt
       - name: Publish to Snap Store
         if: env.SNAPCRAFT_STORE_CREDENTIALS != ''
+        continue-on-error: true  # Don't fail build if snap publish fails (e.g., review queue)
         uses: snapcore/action-publish@v1
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}

@@ -321,6 +321,7 @@ private fun SettingsContent(
                 settings = settings,
                 onSettingsChange = onSettingsChange
             )
+            SettingsCategory.ABOUT -> AboutSection()
         }
     }
 }

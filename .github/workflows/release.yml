@@ -25,6 +25,7 @@ env:
 jobs:
   prepare-version:
     runs-on: ubuntu-latest
+    environment: release
     outputs:
       version: ${{ steps.version.outputs.version }}
       base_version: ${{ steps.version.outputs.base_version }}
@@ -92,7 +93,6 @@ jobs:
   build-macos:
     needs: prepare-version
     runs-on: macos-latest
-    environment: release
 
     steps:
       - name: Checkout Repository

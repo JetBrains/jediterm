@@ -261,31 +261,23 @@ class ComposeTerminalDisplay : TerminalDisplay {
      */
     private fun startRedrawProcessor() {
         redrawScope.launch {
-            var lastRedrawTime = 0L
-
             for (request in redrawChannel) {
-                val now = System.currentTimeMillis()
-
                 when (request.priority) {
                     RedrawPriority.IMMEDIATE -> {
                         actualRedraw()
-                        lastRedrawTime = System.currentTimeMillis()
                     }
 
                     RedrawPriority.NORMAL -> {
                         // Apply adaptive debouncing based on current mode
                         val mode = detectAndUpdateMode()
-                        val elapsed = now - lastRedrawTime
 
-                        if (elapsed >= mode.debounceMs) {
-                            actualRedraw()
-                            lastRedrawTime = System.currentTimeMillis()
-                        } else {
-                            // Need to wait before next redraw
-                            delay(mode.debounceMs - elapsed)
-                            actualRedraw()
-                            lastRedrawTime = System.currentTimeMillis()
-                        }
+                        // CRITICAL: Always wait before rendering to coalesce updates
+                        // This prevents TUI flickering where clear+write sequences
+                        // would otherwise render the intermediate "cleared" state.
+                        // The CONFLATED channel ensures only ONE render after the delay,
+                        // even if dozens of updates arrive during the wait.
+                        delay(mode.debounceMs)
+                        actualRedraw()
                     }
                 }
             }

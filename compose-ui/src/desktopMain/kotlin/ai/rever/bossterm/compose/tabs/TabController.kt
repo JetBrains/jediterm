@@ -185,7 +185,9 @@ class TabController(
         // never knows when to redraw after new text is written to the buffer!
         textBuffer.addModelListener(object : ai.rever.bossterm.terminal.model.TerminalModelListener {
             override fun modelChanged() {
-                display.requestImmediateRedraw()
+                // Use adaptive debouncing to prevent TUI flickering during streaming
+                // Clear+write sequences coalesce into single render within debounce window
+                display.requestRedraw()
             }
         })
 
@@ -397,7 +399,9 @@ class TabController(
         // Register ModelListener to trigger redraws when buffer content changes
         textBuffer.addModelListener(object : ai.rever.bossterm.terminal.model.TerminalModelListener {
             override fun modelChanged() {
-                display.requestImmediateRedraw()
+                // Use adaptive debouncing to prevent TUI flickering during streaming
+                // Clear+write sequences coalesce into single render within debounce window
+                display.requestRedraw()
             }
         })
 
@@ -603,7 +607,9 @@ class TabController(
 
         textBuffer.addModelListener(object : ai.rever.bossterm.terminal.model.TerminalModelListener {
             override fun modelChanged() {
-                display.requestImmediateRedraw()
+                // Use adaptive debouncing to prevent TUI flickering during streaming
+                // Clear+write sequences coalesce into single render within debounce window
+                display.requestRedraw()
             }
         })
 

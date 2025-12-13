@@ -37,11 +37,26 @@ fun AboutSection(modifier: Modifier = Modifier) {
         System.getProperty("os.name")?.lowercase()?.contains("mac") == true
     }
 
+    // Derive version display and release channel from Version.CURRENT
+    val version = Version.CURRENT
+    val versionDisplay = remember {
+        val base = version.toString()
+        // Show "dev" indicator if version is the fallback value (1.0.0)
+        if (version.major == 1 && version.minor == 0 && version.patch == 0 && version.preRelease == null) {
+            "$base (dev)"
+        } else {
+            base
+        }
+    }
+    val releaseChannel = remember {
+        version.preRelease?.lowercase() ?: "stable"
+    }
+
     Column(modifier = modifier) {
         // Section 1: Application Info
         SettingsSection(title = "Application") {
-            InfoRow("Version", Version.CURRENT.toString())
-            InfoRow("Release Channel", "stable")
+            InfoRow("Version", versionDisplay)
+            InfoRow("Release Channel", releaseChannel)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -50,6 +65,8 @@ fun AboutSection(modifier: Modifier = Modifier) {
         SettingsSection(title = "System") {
             InfoRow("Operating System", "${System.getProperty("os.name")} ${System.getProperty("os.version")}")
             InfoRow("Architecture", System.getProperty("os.arch") ?: "Unknown")
+            // Show Java runtime name (helps identify JBR, OpenJDK, Temurin, etc.)
+            InfoRow("Java Runtime", System.getProperty("java.runtime.name") ?: "Unknown")
             InfoRow("Java Version", System.getProperty("java.version") ?: "Unknown")
             InfoRow("Java Vendor", System.getProperty("java.vendor") ?: "Unknown")
         }
@@ -151,7 +168,7 @@ private fun LinkRow(
                 try {
                     Desktop.getDesktop().browse(URI(url))
                 } catch (e: Exception) {
-                    // Ignore if browser can't be opened
+                    System.err.println("Failed to open URL '$url': ${e.message}")
                 }
             }
             .padding(horizontal = 12.dp, vertical = 10.dp),

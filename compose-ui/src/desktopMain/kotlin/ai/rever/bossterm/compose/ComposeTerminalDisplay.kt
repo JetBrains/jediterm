@@ -83,10 +83,12 @@ class ComposeTerminalDisplay : TerminalDisplay {
             reportMetrics()
         }
     }
-    private val _cursorX = mutableStateOf(0)
-    private val _cursorY = mutableStateOf(0)
-    private val _cursorVisible = mutableStateOf(true)
-    private val _cursorShape = mutableStateOf<CursorShape?>(null)
+    // Non-reactive cursor state - only redrawTrigger controls recomposition
+    // This prevents flickering caused by Compose State updates racing with debounced redraws
+    @Volatile private var _cursorXValue = 0
+    @Volatile private var _cursorYValue = 0
+    @Volatile private var _cursorVisibleValue = true
+    @Volatile private var _cursorShapeValue: CursorShape? = null
     private val _bracketedPasteMode = mutableStateOf(false)
     private val _termSize = mutableStateOf(TermSize(80, 24))
     private val _windowTitle = MutableStateFlow("")
@@ -96,11 +98,11 @@ class ComposeTerminalDisplay : TerminalDisplay {
     private val _progressState = mutableStateOf(TerminalDisplay.ProgressState.HIDDEN)
     private val _progressValue = mutableStateOf(0)
 
-    // Compose state properties
-    val cursorX: State<Int> = _cursorX
-    val cursorY: State<Int> = _cursorY
-    val cursorVisible: State<Boolean> = _cursorVisible
-    val cursorShape: State<CursorShape?> = _cursorShape
+    // Snapshot getters for cursor - non-reactive, read inside remember() blocks
+    val cursorXSnapshot: Int get() = _cursorXValue
+    val cursorYSnapshot: Int get() = _cursorYValue
+    val cursorVisibleSnapshot: Boolean get() = _cursorVisibleValue
+    val cursorShapeSnapshot: CursorShape? get() = _cursorShapeValue
     val bracketedPasteMode: State<Boolean> = _bracketedPasteMode
     val termSize: State<TermSize> = _termSize
     val mouseMode: State<MouseMode> = _mouseMode
@@ -134,12 +136,12 @@ class ComposeTerminalDisplay : TerminalDisplay {
      * scrollArea() or other buffer modification methods.
      */
     override fun setCursor(x: Int, y: Int) {
-        if (debugCursor && (_cursorX.value != x || _cursorY.value != y)) {
-            println("🔵 CURSOR MOVE: (${ _cursorX.value},${_cursorY.value}) → ($x,$y)")
+        if (debugCursor && (_cursorXValue != x || _cursorYValue != y)) {
+            println("🔵 CURSOR MOVE: ($_cursorXValue,$_cursorYValue) → ($x,$y)")
         }
-        val changed = _cursorX.value != x || _cursorY.value != y
-        _cursorX.value = x
-        _cursorY.value = y
+        val changed = _cursorXValue != x || _cursorYValue != y
+        _cursorXValue = x
+        _cursorYValue = y
         // Trigger redraw when cursor moves - fixes p10k/zsh TUI not updating
         // Cursor-only changes (no buffer modification) still need screen refresh
         if (changed) {
@@ -148,22 +150,22 @@ class ComposeTerminalDisplay : TerminalDisplay {
     }
 
     override fun setCursorShape(cursorShape: CursorShape?) {
-        if (debugCursor && _cursorShape.value != cursorShape) {
-            println("🔷 CURSOR SHAPE: ${_cursorShape.value} → $cursorShape")
+        if (debugCursor && _cursorShapeValue != cursorShape) {
+            println("🔷 CURSOR SHAPE: $_cursorShapeValue → $cursorShape")
         }
-        val changed = _cursorShape.value != cursorShape
-        _cursorShape.value = cursorShape
+        val changed = _cursorShapeValue != cursorShape
+        _cursorShapeValue = cursorShape
         if (changed) {
             requestRedraw()
         }
     }
 
     override fun setCursorVisible(isCursorVisible: Boolean) {
-        if (debugCursor && _cursorVisible.value != isCursorVisible) {
-            println("👁️  CURSOR VISIBLE: ${_cursorVisible.value} → $isCursorVisible")
+        if (debugCursor && _cursorVisibleValue != isCursorVisible) {
+            println("👁️  CURSOR VISIBLE: $_cursorVisibleValue → $isCursorVisible")
         }
-        val changed = _cursorVisible.value != isCursorVisible
-        _cursorVisible.value = isCursorVisible
+        val changed = _cursorVisibleValue != isCursorVisible
+        _cursorVisibleValue = isCursorVisible
         if (changed) {
             requestRedraw()
         }
@@ -259,31 +261,23 @@ class ComposeTerminalDisplay : TerminalDisplay {
      */
     private fun startRedrawProcessor() {
         redrawScope.launch {
-            var lastRedrawTime = 0L
-
             for (request in redrawChannel) {
-                val now = System.currentTimeMillis()
-
                 when (request.priority) {
                     RedrawPriority.IMMEDIATE -> {
                         actualRedraw()
-                        lastRedrawTime = System.currentTimeMillis()
                     }
 
                     RedrawPriority.NORMAL -> {
                         // Apply adaptive debouncing based on current mode
                         val mode = detectAndUpdateMode()
-                        val elapsed = now - lastRedrawTime
 
-                        if (elapsed >= mode.debounceMs) {
-                            actualRedraw()
-                            lastRedrawTime = System.currentTimeMillis()
-                        } else {
-                            // Need to wait before next redraw
-                            delay(mode.debounceMs - elapsed)
-                            actualRedraw()
-                            lastRedrawTime = System.currentTimeMillis()
-                        }
+                        // CRITICAL: Always wait before rendering to coalesce updates
+                        // This prevents TUI flickering where clear+write sequences
+                        // would otherwise render the intermediate "cleared" state.
+                        // The CONFLATED channel ensures only ONE render after the delay,
+                        // even if dozens of updates arrive during the wait.
+                        delay(mode.debounceMs)
+                        actualRedraw()
                     }
                 }
             }

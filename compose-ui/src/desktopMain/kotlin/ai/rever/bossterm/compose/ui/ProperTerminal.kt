@@ -260,14 +260,9 @@ fun ProperTerminal(
   // ProcessTerminalOutput is now defined in TabController
   // No longer needed here since terminal output routing is set up during tab initialization
 
-  // Watch redraw trigger to force recomposition
-  // Use predicted cursor position from type-ahead manager if available
-  // This makes the cursor respond immediately to keystrokes even on high-latency connections
-  // Note: typeAheadManager.cursorX returns 1-based (for Swing), we need 0-based for Compose rendering
-  val cursorX = tab.typeAheadManager?.let { it.cursorX - 1 } ?: display.cursorX.value
-  val cursorY = display.cursorY.value
-  val cursorVisible = display.cursorVisible.value
-  val cursorShape = display.cursorShape.value
+  // Cursor state is now captured atomically with snapshot inside remember() block
+  // This prevents flickering caused by cursor updates triggering separate recompositions
+  // Type-ahead cursor override is handled separately in the Canvas
 
   // Blink state for SLOW_BLINK and RAPID_BLINK text attributes
   var slowBlinkVisible by remember { mutableStateOf(true) }
@@ -1321,10 +1316,18 @@ fun ProperTerminal(
         // Create snapshot for lock-free rendering with copy-on-write optimization
         // Uses version tracking to reuse unchanged lines (99%+ allocation reduction)
         // Snapshot cached by Compose - recreated when display triggers redraw OR buffer dimensions change
+        // Cursor state is captured atomically to prevent flickering from partial updates
         val currentTrigger = display.redrawTrigger.value
         val bufferSnapshot = remember(currentTrigger, textBuffer.width, textBuffer.height) {
           textBuffer.createIncrementalSnapshot()
         }
+        // Capture cursor state atomically with redrawTrigger - prevents partial updates
+        val cursorX = remember(currentTrigger) { display.cursorXSnapshot }
+        val cursorY = remember(currentTrigger) { display.cursorYSnapshot }
+        val cursorVisible = remember(currentTrigger) { display.cursorVisibleSnapshot }
+        val cursorShape = remember(currentTrigger) { display.cursorShapeSnapshot }
+        // Type-ahead manager can override cursor X for local echo prediction
+        val effectiveCursorX = tab.typeAheadManager?.let { it.cursorX - 1 } ?: cursorX
 
         Canvas(modifier = Modifier.padding(start = 4.dp, top = 4.dp).fillMaxSize().clipToBounds()) {
           // Guard against invalid canvas sizes during resize - prevents drawText constraint failures
@@ -1366,7 +1369,7 @@ fun ProperTerminal(
             searchQuery = searchQuery,
             searchMatches = searchMatches,
             currentMatchIndex = currentMatchIndex,
-            cursorX = cursorX,
+            cursorX = effectiveCursorX,
             cursorY = cursorY,
             cursorVisible = cursorVisible,
             cursorBlinkVisible = cursorBlinkVisible,

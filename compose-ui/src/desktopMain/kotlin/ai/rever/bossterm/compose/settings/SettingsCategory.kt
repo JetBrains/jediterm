@@ -77,6 +77,11 @@ enum class SettingsCategory(
         displayName = "Splits",
         icon = Icons.Default.Splitscreen,
         description = "Split pane behavior and appearance"
+    ),
+    ABOUT(
+        displayName = "About",
+        icon = Icons.Default.Favorite,
+        description = "Application information and credits"
     );
 
     companion object {

@@ -113,6 +113,19 @@ interface PlatformServices {
              * Get process exit code (null if still running)
              */
             fun getExitCode(): Int?
+
+            /**
+             * Get process ID (PID) of the spawned process.
+             * Returns null if PID cannot be determined.
+             */
+            fun getPid(): Long?
+
+            /**
+             * Get the current working directory of the process.
+             * This reads from /proc/<pid>/cwd on Linux or uses other OS-specific methods.
+             * Returns null if the directory cannot be determined.
+             */
+            fun getWorkingDirectory(): String?
         }
     }
 

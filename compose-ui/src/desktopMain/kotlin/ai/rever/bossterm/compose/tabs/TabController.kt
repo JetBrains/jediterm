@@ -1228,7 +1228,12 @@ class TabController(
      * Returns null if no working directory is tracked (OSC 7 not received yet).
      */
     fun getActiveWorkingDirectory(): String? {
-        return activeTab?.workingDirectory?.value
+        val tab = activeTab ?: return null
+        // First, try OSC 7 tracked working directory (most accurate, shell-reported)
+        tab.workingDirectory.value?.let { return it }
+        // Fallback: query the process's current working directory directly
+        // This works even without shell OSC 7 integration
+        return tab.processHandle.value?.getWorkingDirectory()
     }
 
     /**

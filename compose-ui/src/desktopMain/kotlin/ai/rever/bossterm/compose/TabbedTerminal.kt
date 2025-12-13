@@ -111,8 +111,8 @@ fun TabbedTerminal(
     LaunchedEffect(menuActions, tabController) {
         menuActions?.apply {
             onNewTab = {
-                val workingDir = tabController.getActiveWorkingDirectory()
-                tabController.createTab(workingDir = workingDir)
+                // New tabs always start in home directory (no working dir inheritance)
+                tabController.createTab()
             }
             onCloseTab = {
                 tabController.closeTab(tabController.activeTabIndex)
@@ -225,8 +225,8 @@ fun TabbedTerminal(
                 onTabSelected = { index -> tabController.switchToTab(index) },
                 onTabClosed = { index -> tabController.closeTab(index) },
                 onNewTab = {
-                    val workingDir = tabController.getActiveWorkingDirectory()
-                    tabController.createTab(workingDir = workingDir)
+                    // New tabs always start in home directory (no working dir inheritance)
+                    tabController.createTab()
                 },
                 onTabMoveToNewWindow = { index ->
                     // Get tab first to access its ID for split state lookup
@@ -259,7 +259,10 @@ fun TabbedTerminal(
             val onSplitHorizontal: () -> Unit = {
                 // Only inherit working directory if setting is enabled
                 val workingDir = if (settings.splitInheritWorkingDirectory) {
-                    splitState.getFocusedSession()?.workingDirectory?.value
+                    val session = splitState.getFocusedSession()
+                    // First try OSC 7 tracked directory, then fall back to querying process
+                    session?.workingDirectory?.value
+                        ?: session?.processHandle?.value?.getWorkingDirectory()
                 } else null
                 var newSessionRef: TerminalSession? = null
                 val newSession = tabController.createSessionForSplit(
@@ -280,7 +283,10 @@ fun TabbedTerminal(
             val onSplitVertical: () -> Unit = {
                 // Only inherit working directory if setting is enabled
                 val workingDir = if (settings.splitInheritWorkingDirectory) {
-                    splitState.getFocusedSession()?.workingDirectory?.value
+                    val session = splitState.getFocusedSession()
+                    // First try OSC 7 tracked directory, then fall back to querying process
+                    session?.workingDirectory?.value
+                        ?: session?.processHandle?.value?.getWorkingDirectory()
                 } else null
                 var newSessionRef: TerminalSession? = null
                 val newSession = tabController.createSessionForSplit(
@@ -320,8 +326,8 @@ fun TabbedTerminal(
                     activeTab.title.value = newTitle
                 },
                 onNewTab = {
-                    val workingDir = tabController.getActiveWorkingDirectory()
-                    tabController.createTab(workingDir = workingDir)
+                    // New tabs always start in home directory (no working dir inheritance)
+                    tabController.createTab()
                 },
                 onCloseTab = {
                     tabController.closeTab(tabController.activeTabIndex)

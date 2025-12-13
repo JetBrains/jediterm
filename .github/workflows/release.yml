@@ -404,6 +404,13 @@ jobs:
             convert -size 512x512 xc:black -fill green -gravity center -pointsize 144 -annotate 0 "BOSS" snap/gui/bossterm.png || true
           fi
 
+      - name: Update Snap Version
+        run: |
+          VERSION="${{ needs.prepare-version.outputs.version }}"
+          sed -i "s/^version: .*/version: '$VERSION'/" snapcraft.yaml
+          echo "Updated snapcraft.yaml version to $VERSION"
+          grep "^version:" snapcraft.yaml
+
       - name: Build Snap
         uses: snapcore/action-build@v1
         id: snapcraft

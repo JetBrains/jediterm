@@ -196,9 +196,12 @@ compose.desktop {
             modules("java.sql", "jdk.unsupported", "jdk.management.agent")
 
             // JVM args for better performance and desktop integration
+            val packageVer = project.version.toString().removeSuffix("-SNAPSHOT")
             jvmArgs += listOf(
                 "-Xmx2G",
                 "-Dapple.awt.application.appearance=system",
+                // Version for runtime detection (especially on Linux where there's no Info.plist)
+                "-Dbossterm.version=$packageVer",
                 // Linux: Set WM_CLASS for proper desktop integration
                 "-Dawt.useSystemAAFontSettings=on",
                 "-Dsun.java2d.xrender=true"

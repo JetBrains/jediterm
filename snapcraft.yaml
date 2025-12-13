@@ -28,6 +28,8 @@ parts:
   bossterm:
     plugin: nil
     source: .
+    build-snaps:
+      - gradle
     build-packages:
       - openjdk-17-jdk
       - wget
@@ -42,8 +44,8 @@ parts:
       - libgl1
       - libx11-6
     override-build: |
-      # Build the uber JAR using Gradle
-      ./gradlew :compose-ui:packageUberJarForCurrentOS --no-daemon
+      # Build the uber JAR using Gradle (from build-snap, no network download)
+      gradle :compose-ui:packageUberJarForCurrentOS --no-daemon
 
       # Find and copy the JAR (path varies based on build location)
       mkdir -p $CRAFT_PART_INSTALL/lib

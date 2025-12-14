@@ -27,6 +27,14 @@ fun BehaviorSettingsSection(
                 onCheckedChange = { onSettingsChange(settings.copy(useLoginSession = it)) },
                 description = "Show 'Last login' message and register in utmp/wtmp"
             )
+
+            SettingsTextField(
+                label = "Initial Command",
+                value = settings.initialCommand,
+                onValueChange = { onSettingsChange(settings.copy(initialCommand = it)) },
+                placeholder = "e.g., neofetch, cd ~/projects",
+                description = "Command to run automatically when a new tab is created"
+            )
         }
 
         Spacer(modifier = Modifier.height(24.dp))

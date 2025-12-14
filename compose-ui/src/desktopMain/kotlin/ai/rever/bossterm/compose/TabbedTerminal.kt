@@ -114,7 +114,8 @@ fun TabbedTerminal(
         menuActions?.apply {
             onNewTab = {
                 // New tabs always start in home directory (no working dir inheritance)
-                tabController.createTab()
+                // Use initial command from settings if configured
+                tabController.createTab(initialCommand = settings.initialCommand.ifEmpty { null })
             }
             onCloseTab = {
                 tabController.closeTab(tabController.activeTabIndex)
@@ -195,7 +196,9 @@ fun TabbedTerminal(
                 }
             } else {
                 // No pending tab, create fresh terminal with optional initial command
-                tabController.createTab(initialCommand = initialCommand)
+                // Priority: parameter > settings > none
+                val effectiveInitialCommand = initialCommand ?: settings.initialCommand.ifEmpty { null }
+                tabController.createTab(initialCommand = effectiveInitialCommand)
             }
         }
     }
@@ -228,7 +231,8 @@ fun TabbedTerminal(
                 onTabClosed = { index -> tabController.closeTab(index) },
                 onNewTab = {
                     // New tabs always start in home directory (no working dir inheritance)
-                    tabController.createTab()
+                    // Use initial command from settings if configured
+                    tabController.createTab(initialCommand = settings.initialCommand.ifEmpty { null })
                 },
                 onTabMoveToNewWindow = { index ->
                     // Get tab first to access its ID for split state lookup
@@ -329,7 +333,8 @@ fun TabbedTerminal(
                 },
                 onNewTab = {
                     // New tabs always start in home directory (no working dir inheritance)
-                    tabController.createTab()
+                    // Use initial command from settings if configured
+                    tabController.createTab(initialCommand = settings.initialCommand.ifEmpty { null })
                 },
                 onCloseTab = {
                     tabController.closeTab(tabController.activeTabIndex)

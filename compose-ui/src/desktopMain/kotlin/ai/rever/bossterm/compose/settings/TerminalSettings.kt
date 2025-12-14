@@ -155,6 +155,14 @@ data class TerminalSettings(
     val useLoginSession: Boolean = true,
 
     /**
+     * Initial command to run when a new terminal tab is created.
+     * This command is automatically sent to the shell after it starts.
+     * Empty string means no initial command.
+     * Example: "neofetch", "cd ~/projects", "source ~/.profile && clear"
+     */
+    val initialCommand: String = "",
+
+    /**
      * Automatically copy selected text to clipboard
      */
     val copyOnSelect: Boolean = false,

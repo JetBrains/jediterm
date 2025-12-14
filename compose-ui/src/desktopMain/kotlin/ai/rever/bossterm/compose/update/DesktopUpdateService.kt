@@ -52,6 +52,128 @@ class DesktopUpdateService {
     }
 
     /**
+     * Fetch all available releases from GitHub.
+     * Used for version selection in About section.
+     */
+    suspend fun getAllReleases(includePreReleases: Boolean = false): Result<List<GitHubRelease>> {
+        return try {
+            val response = apiClient.get(RELEASES_ENDPOINT) {
+                headers {
+                    append("Accept", "application/vnd.github.v3+json")
+                    append("User-Agent", "BossTerm-Desktop-${Version.CURRENT}")
+                    GitHubConfig.token?.let { append("Authorization", "Bearer $it") }
+                }
+            }
+
+            if (response.status.value !in 200..299) {
+                val errorBody = response.bodyAsText()
+                val errorMessage = when {
+                    errorBody.contains("rate limit", ignoreCase = true) ->
+                        "GitHub API rate limit exceeded. Please try again later."
+                    else -> "Unable to fetch releases (HTTP ${response.status.value})"
+                }
+                return Result.failure(Exception(errorMessage))
+            }
+
+            val releases = response.body<List<GitHubRelease>>()
+            val filteredReleases = releases
+                .filter { !it.draft && (includePreReleases || !it.prerelease) }
+                .sortedByDescending { Version.parse(it.tag_name) }
+
+            Result.success(filteredReleases)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Download a specific release version.
+     * Returns the path to the downloaded file.
+     */
+    suspend fun downloadRelease(
+        release: GitHubRelease,
+        onProgress: (progress: Float) -> Unit
+    ): Result<String> {
+        val version = Version.parse(release.tag_name)
+            ?: return Result.failure(Exception("Invalid version: ${release.tag_name}"))
+
+        val expectedAssetName = getExpectedAssetName(version)
+        val asset = release.assets.find { it.name.equals(expectedAssetName, ignoreCase = true) }
+            ?: return Result.failure(Exception("No asset available for ${getCurrentPlatform()}"))
+
+        val downloadUrl = asset.browser_download_url
+            ?: return Result.failure(Exception("No download URL for asset"))
+
+        return try {
+            val response = downloadClient.get(downloadUrl)
+            if (response.status.value !in 200..299) {
+                return Result.failure(Exception("Download failed (HTTP ${response.status.value})"))
+            }
+
+            val totalSize = response.headers["Content-Length"]?.toLongOrNull() ?: asset.size
+            val tempDir = File(System.getProperty("java.io.tmpdir"), "bossterm-updates")
+            tempDir.mkdirs()
+
+            val downloadFile = File(tempDir, asset.name)
+            if (downloadFile.exists()) {
+                downloadFile.delete()
+            }
+
+            withContext(Dispatchers.IO) {
+                val channel = response.bodyAsChannel()
+                val outputStream = FileOutputStream(downloadFile)
+
+                var downloadedBytes = 0L
+                val buffer = ByteArray(8192)
+                var lastProgressUpdate = 0L
+
+                while (!channel.isClosedForRead) {
+                    val bytesRead = channel.readAvailable(buffer)
+                    if (bytesRead > 0) {
+                        outputStream.write(buffer, 0, bytesRead)
+                        downloadedBytes += bytesRead
+
+                        val shouldUpdateProgress = if (totalSize > 0) {
+                            downloadedBytes - lastProgressUpdate >= 262144 ||
+                                (downloadedBytes.toFloat() / totalSize - lastProgressUpdate.toFloat() / totalSize) >= 0.05f
+                        } else {
+                            downloadedBytes - lastProgressUpdate >= 131072
+                        }
+
+                        if (shouldUpdateProgress) {
+                            val progress = if (totalSize > 0) {
+                                (downloadedBytes.toFloat() / totalSize.toFloat()).coerceIn(0f, 1f)
+                            } else {
+                                0.1f + (downloadedBytes / 1048576f % 0.8f)
+                            }
+
+                            withContext(Dispatchers.Main) {
+                                onProgress(progress)
+                            }
+                            lastProgressUpdate = downloadedBytes
+                        }
+                    }
+                }
+
+                outputStream.close()
+                channel.cancel()
+
+                withContext(Dispatchers.Main) {
+                    onProgress(1f)
+                }
+            }
+
+            if (downloadFile.exists() && downloadFile.length() > 0) {
+                Result.success(downloadFile.absolutePath)
+            } else {
+                Result.failure(Exception("Download failed: file is empty"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Check for available updates.
      */
     suspend fun checkForUpdates(): UpdateInfo {

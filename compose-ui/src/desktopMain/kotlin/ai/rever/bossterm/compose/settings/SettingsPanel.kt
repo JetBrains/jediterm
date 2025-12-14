@@ -173,9 +173,12 @@ private fun NavigationRail(
     onCategorySelected: (SettingsCategory) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val scrollState = rememberScrollState()
+
     Column(
         modifier = modifier
             .background(SurfaceColor)
+            .verticalScroll(scrollState)
             .padding(vertical = 8.dp)
     ) {
         SettingsCategory.entries.forEach { category ->

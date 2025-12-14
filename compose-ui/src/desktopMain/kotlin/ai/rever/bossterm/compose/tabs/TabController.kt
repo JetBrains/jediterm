@@ -142,13 +142,15 @@ class TabController(
      * @param command Shell command to execute (default: $SHELL or /bin/bash)
      * @param arguments Command-line arguments for the shell (default: empty)
      * @param onProcessExit Callback invoked when shell process exits (before auto-closing tab)
+     * @param initialCommand Optional command to execute after terminal is ready (sent as input with newline)
      * @return The newly created TerminalTab
      */
     fun createTab(
         workingDir: String? = null,
         command: String? = null,
         arguments: List<String> = emptyList(),
-        onProcessExit: (() -> Unit)? = null
+        onProcessExit: (() -> Unit)? = null,
+        initialCommand: String? = null
     ): TerminalTab {
         tabCounter++
 
@@ -329,7 +331,7 @@ class TabController(
         }
 
         // Initialize the terminal session (spawn PTY, start coroutines)
-        initializeTerminalSession(tab, workingDir, effectiveCommand, effectiveArguments)
+        initializeTerminalSession(tab, workingDir, effectiveCommand, effectiveArguments, initialCommand)
 
         // Add to tabs list
         tabs.add(tab)
@@ -921,12 +923,14 @@ class TabController(
      * @param workingDir Working directory for the shell
      * @param command Shell command to execute
      * @param arguments Command-line arguments
+     * @param initialCommand Optional command to execute after terminal is ready
      */
     private fun initializeTerminalSession(
         tab: TerminalTab,
         workingDir: String?,
         command: String,
-        arguments: List<String>
+        arguments: List<String>,
+        initialCommand: String? = null
     ) {
         tab.coroutineScope.launch(Dispatchers.IO) {
             try {
@@ -1028,6 +1032,16 @@ class TabController(
                         } catch (e: Exception) {
                             println("DEBUG: State capture coroutine stopped: ${e.message}")
                         }
+                    }
+                }
+
+                // Send initial command if provided (after terminal is ready)
+                if (initialCommand != null) {
+                    launch(Dispatchers.IO) {
+                        // Wait for shell to be ready (prompt should appear)
+                        delay(500)
+                        // Send the command followed by newline
+                        handle.write(initialCommand + "\n")
                     }
                 }
 

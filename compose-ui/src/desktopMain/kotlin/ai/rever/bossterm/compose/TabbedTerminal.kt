@@ -52,6 +52,7 @@ import ai.rever.bossterm.compose.ui.ProperTerminal
  * @param onNewWindow Called when user requests a new window (Cmd/Ctrl+N)
  * @param menuActions Optional menu action callbacks for wiring up menu bar
  * @param isWindowFocused Lambda returning whether this window is currently focused (for notifications)
+ * @param initialCommand Optional command to run in the first terminal tab after startup
  * @param modifier Compose modifier for the terminal container
  */
 @Composable
@@ -62,6 +63,7 @@ fun TabbedTerminal(
     onShowSettings: () -> Unit = {},
     menuActions: MenuActions? = null,
     isWindowFocused: () -> Boolean = { true },
+    initialCommand: String? = null,
     modifier: Modifier = Modifier
 ) {
     // Settings integration
@@ -192,8 +194,8 @@ fun TabbedTerminal(
                     splitStates[pendingTab.id] = pendingSplitState
                 }
             } else {
-                // No pending tab, create fresh terminal
-                tabController.createTab()
+                // No pending tab, create fresh terminal with optional initial command
+                tabController.createTab(initialCommand = initialCommand)
             }
         }
     }

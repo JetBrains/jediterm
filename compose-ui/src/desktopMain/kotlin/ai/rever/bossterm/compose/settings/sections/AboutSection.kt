@@ -25,6 +25,7 @@ import ai.rever.bossterm.compose.settings.SettingsTheme.TextPrimary
 import ai.rever.bossterm.compose.settings.SettingsTheme.TextSecondary
 import ai.rever.bossterm.compose.settings.components.SettingsSection
 import ai.rever.bossterm.compose.update.Version
+import ai.rever.bossterm.compose.update.VersionManagementSection
 import java.awt.Desktop
 import java.net.URI
 
@@ -61,7 +62,14 @@ fun AboutSection(modifier: Modifier = Modifier) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Section 2: System Info
+        // Section 2: Version Management
+        SettingsSection(title = "Version Management") {
+            VersionManagementSection()
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Section 3: System Info
         SettingsSection(title = "System") {
             InfoRow("Operating System", "${System.getProperty("os.name")} ${System.getProperty("os.version")}")
             InfoRow("Architecture", System.getProperty("os.arch") ?: "Unknown")

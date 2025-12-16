@@ -35,6 +35,17 @@ fun BehaviorSettingsSection(
                 placeholder = "e.g., neofetch, cd ~/projects",
                 description = "Command to run automatically when a new tab is created"
             )
+
+            SettingsSlider(
+                label = "Initial Command Delay",
+                value = settings.initialCommandDelayMs.toFloat(),
+                onValueChange = { onSettingsChange(settings.copy(initialCommandDelayMs = it.toInt())) },
+                valueRange = 100f..2000f,
+                steps = 18,
+                valueDisplay = { "${it.toInt()} ms" },
+                description = "Fallback delay if OSC 133 shell integration is not configured",
+                enabled = settings.initialCommand.isNotEmpty()
+            )
         }
 
         Spacer(modifier = Modifier.height(24.dp))

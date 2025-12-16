@@ -163,6 +163,15 @@ data class TerminalSettings(
     val initialCommand: String = "",
 
     /**
+     * Fallback delay (in milliseconds) before sending initial command.
+     * Used when OSC 133 shell integration is not configured.
+     * With OSC 133, the command is sent immediately when the prompt appears.
+     * Without OSC 133, waits this long for the shell to be ready.
+     * Range: 100-5000ms. Default: 500ms.
+     */
+    val initialCommandDelayMs: Int = 500,
+
+    /**
      * Automatically copy selected text to clipboard
      */
     val copyOnSelect: Boolean = false,

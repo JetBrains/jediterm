@@ -129,8 +129,8 @@ fun TabbedTerminal(
         }
     }
 
-    // Wire up split menu actions (updates when active tab changes)
-    LaunchedEffect(menuActions, tabController.activeTabIndex) {
+    // Wire up split menu actions (updates when active tab changes or tabs are added)
+    LaunchedEffect(menuActions, tabController.activeTabIndex, tabController.tabs.size) {
         if (tabController.tabs.isEmpty()) return@LaunchedEffect
         val activeTab = tabController.tabs.getOrNull(tabController.activeTabIndex) ?: return@LaunchedEffect
         val splitState = splitStates.getOrPut(activeTab.id) { SplitViewState(initialSession = activeTab) }

@@ -33,7 +33,7 @@ fun BehaviorSettingsSection(
                 value = settings.initialCommand,
                 onValueChange = { onSettingsChange(settings.copy(initialCommand = it)) },
                 placeholder = "e.g., neofetch, cd ~/projects",
-                description = "Command to run automatically when a new tab is created"
+                description = "Command to run when a new tab is created (applies to new tabs only)"
             )
 
             SettingsSlider(
@@ -43,7 +43,7 @@ fun BehaviorSettingsSection(
                 valueRange = 100f..2000f,
                 steps = 18,
                 valueDisplay = { "${it.toInt()} ms" },
-                description = "Fallback delay if OSC 133 shell integration is not configured",
+                description = "Fallback delay without OSC 133 shell integration (applies to new tabs)",
                 enabled = settings.initialCommand.isNotEmpty()
             )
         }

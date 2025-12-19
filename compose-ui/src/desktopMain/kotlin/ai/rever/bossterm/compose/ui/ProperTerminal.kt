@@ -129,6 +129,7 @@ fun ProperTerminal(
   onNavigateNextPane: () -> Unit = {},  // Cmd+]: Navigate to next pane (cycles)
   onNavigatePreviousPane: () -> Unit = {},  // Cmd+[: Navigate to previous pane (cycles)
   onMoveToNewTab: (() -> Unit)? = null,  // Move current pane to new tab (context menu)
+  onPaneFocus: () -> Unit = {},  // Called when pane receives mouse press (for split focus)
   menuActions: MenuActions? = null,
   modifier: Modifier = Modifier
 ) {
@@ -747,6 +748,11 @@ fun ProperTerminal(
           // Skip if event was already consumed by an overlay (SearchBar, DebugPanel, etc.)
           if (change.isConsumed) return@onPointerEvent
           if (change.pressed && change.previousPressed.not()) {
+            // FIRST: Set pane focus before any other processing
+            // This ensures split pane focus is set even when mouse events are
+            // forwarded to terminal applications (like nvim with mouse reporting)
+            onPaneFocus()
+
             // Check if mouse event should be forwarded to terminal application
             val shiftPressed = event.isShiftPressed()
             if (settings.enableMouseReporting && isRemoteMouseAction(shiftPressed)) {

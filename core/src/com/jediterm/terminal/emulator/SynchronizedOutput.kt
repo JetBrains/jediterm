@@ -1,6 +1,9 @@
 package com.jediterm.terminal.emulator
 
+import com.jediterm.terminal.ArrayTerminalDataStream
+import com.jediterm.terminal.Terminal
 import com.jediterm.terminal.TerminalDataStream
+import com.jediterm.terminal.model.JediTerminal
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.IOException
@@ -8,7 +11,10 @@ import java.io.IOException
 /**
  * https://github.com/contour-terminal/vt-extensions/blob/master/synchronized-output.md
  */
-internal class SynchronizedOutput(private val dataStream: TerminalDataStream) {
+internal class SynchronizedOutput(
+  private val dataStream: TerminalDataStream,
+  private val terminal: Terminal,
+) {
 
   private val buffer: StringBuilder = StringBuilder(8192)
   private val startTime: Long = System.currentTimeMillis()
@@ -23,7 +29,6 @@ internal class SynchronizedOutput(private val dataStream: TerminalDataStream) {
       catch (e: IOException) {
         LOG.info("Aborting synchronized output", e)
         end()
-        break
       }
     }
   }
@@ -53,7 +58,33 @@ internal class SynchronizedOutput(private val dataStream: TerminalDataStream) {
     }
     ended = true
     val charArray = buffer.charArray
-    dataStream.pushBackBuffer(charArray, charArray.size)
+    if (terminal !is JediTerminal) {
+      dataStream.pushBackBuffer(charArray, charArray.size)
+    }
+    else {
+      // Ensure the text buffer is not accessed during applying the synchronized output.
+      // Otherwise, the inconsistent state of the text buffer will be observed, leading to flickering.
+      terminal.terminalTextBuffer.modify {
+        applySyncOutput(charArray, terminal)
+      }
+    }
+  }
+
+  private fun applySyncOutput(output: CharArray, terminal: JediTerminal) {
+    val bufferDataStream = ArrayTerminalDataStream(output, 0, output.size)
+    val newEmulator = JediEmulator(bufferDataStream, terminal)
+    try {
+      while (true) {
+        val ch = bufferDataStream.getChar()
+        newEmulator.processChar(ch, terminal)
+      }
+    }
+    catch (_: TerminalDataStream.EOF) {
+      // Expected, reached the end of buffer
+    }
+    catch (e: Exception) {
+      LOG.error("Error applying synchronized output", e)
+    }
   }
 
   companion object {

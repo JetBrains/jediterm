@@ -63,10 +63,23 @@ public class ArrayTerminalDataStream implements TerminalDataStream {
     return nonControlCharacters;
   }
 
-  public void pushBackBuffer(final char[] bytes, final int length) throws EOF {
-    for (int i = length - 1; i >= 0; i--) {
-      pushChar(bytes[i]);
+  public void pushBackBuffer(final char[] chars, final int length) {
+    if (myLength + length > myBuf.length) {
+      char[] newBuf = new char[myLength + length];
+      // move rest chars in myBuf to the end of newBuf
+      System.arraycopy(myBuf, myOffset, newBuf, newBuf.length - myLength, myLength);
+      myOffset = newBuf.length - myLength;
+      myBuf = newBuf;
     }
+    else if (myOffset < length) {
+      // myBuf contains enough space for `chars`
+      // just move rest chars in myBuf a bit to accommodate `chars`
+      System.arraycopy(myBuf, myOffset, myBuf, length, myLength);
+      myOffset = length;
+    }
+    System.arraycopy(chars, 0, myBuf, myOffset - length, length);
+    myOffset -= length;
+    myLength += length;
   }
 
   @Override

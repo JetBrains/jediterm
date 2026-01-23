@@ -1879,6 +1879,12 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
         return true;
       }
 
+      // Shift+Enter handling as Esc+CR.
+      if (mySettingsProvider.shiftEnterSendsEscCR() && keycode == KeyEvent.VK_ENTER && isShiftPressedOnly(e)) {
+        myTerminalStarter.sendBytes(new byte[]{ASCII_ESC, '\r'}, true);
+        return true;
+      }
+
       final byte[] code = myTerminalStarter.getTerminal().getCodeForKey(keycode, e.getModifiers());
       if (code != null) {
         myTerminalStarter.sendBytes(code, true);
@@ -1918,6 +1924,14 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
             (modifiersEx & InputEvent.ALT_GRAPH_DOWN_MASK) == 0 &&
             (modifiersEx & InputEvent.CTRL_DOWN_MASK) == 0 &&
             (modifiersEx & InputEvent.SHIFT_DOWN_MASK) == 0;
+  }
+
+  private static boolean isShiftPressedOnly(@NotNull KeyEvent e) {
+    int modifiersEx = e.getModifiersEx();
+    return (modifiersEx & InputEvent.SHIFT_DOWN_MASK) != 0 &&
+      (modifiersEx & InputEvent.ALT_DOWN_MASK) == 0 &&
+      (modifiersEx & InputEvent.ALT_GRAPH_DOWN_MASK) == 0 &&
+      (modifiersEx & InputEvent.CTRL_DOWN_MASK) == 0;
   }
 
   private boolean processCharacter(@NotNull KeyEvent e) {

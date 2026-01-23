@@ -189,15 +189,17 @@ public class EmulatorTest extends EmulatorTestAbstract {
   }
 
   public void testCharactersFromUnsupportedCsiAreNotPrinted() throws IOException {
-    TestSession session = new TestSession(10, 2);
+    TestSession session = new TestSession(20, 2);
     session.process(String.join("", List.of(
       "foo",
       "\u001b[=5u", // https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement
       " bar",
-      "\u001b[=0u"
+      "\u001b[=0u",
+      " baz",
+      "\u001b[<u"  // https://sw.kovidgoyal.net/kitty/keyboard-protocol/#quickstart
     )));
     assertScreenLines(session, List.of(
-      "foo bar"
+      "foo bar baz"
     ));
   }
 

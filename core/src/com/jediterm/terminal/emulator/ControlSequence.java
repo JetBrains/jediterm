@@ -22,9 +22,7 @@ public class ControlSequence {
   private boolean myStartsWithExclamationMark = false; // true when CSI !
   private boolean myStartsWithQuestionMark = false; // true when CSI ?
   private boolean myStartsWithMoreMark = false; // true when CSI >
-  @SuppressWarnings({"FieldCanBeLocal", "unused"})
   private boolean myStartsWithLessMark = false; // true when CSI <
-  @SuppressWarnings({"FieldCanBeLocal", "unused"})
   private boolean myStartsWithEqualsMark = false; // true when CSI =
 
   private final StringBuilder mySequenceString = new StringBuilder();
@@ -125,12 +123,17 @@ public class ControlSequence {
     if (myStartsWithExclamationMark) {
       bytes[i++] = (byte)'!';
     }
-    if (myStartsWithQuestionMark) {
+    else if (myStartsWithQuestionMark) {
       bytes[i++] = (byte)'?';
     }
-    
-    if (myStartsWithMoreMark) {
+    else if (myStartsWithMoreMark) {
       bytes[i++] = (byte)'>';
+    }
+    else if (myStartsWithLessMark) {
+      bytes[i++] = (byte)'<';
+    }
+    else if (myStartsWithEqualsMark) {
+      bytes[i++] = (byte)'=';
     }
 
     for (int argi = 0; argi < myArgc; argi++) {
@@ -162,11 +165,17 @@ public class ControlSequence {
     if (myStartsWithExclamationMark) {
       sb.append("!");
     }
-    if (myStartsWithQuestionMark) {
+    else if (myStartsWithQuestionMark) {
       sb.append("?");
     }
-    if (myStartsWithMoreMark) {
+    else if (myStartsWithMoreMark) {
       sb.append(">");
+    }
+    else if (myStartsWithLessMark) {
+      sb.append("<");
+    }
+    else if (myStartsWithEqualsMark) {
+      sb.append("=");
     }
 
     String sep = "";

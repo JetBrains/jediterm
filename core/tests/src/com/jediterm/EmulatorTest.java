@@ -20,9 +20,9 @@ import java.util.List;
 public class EmulatorTest extends EmulatorTestAbstract {
   public void testSetCursorPosition() throws IOException {
     doTest(3, 4, "X00\n" +  //X wins
-            "0X \n" +
-            "X X\n" +
-            "   \n");
+          "0X \n" +
+          "X X\n" +
+          "   \n");
   }
 
   //public void testTooLargeScrollRegion() throws IOException { TODO: this test fails on Travis somehow
@@ -200,6 +200,42 @@ public class EmulatorTest extends EmulatorTestAbstract {
     )));
     assertScreenLines(session, List.of(
       "foo bar baz"
+    ));
+  }
+
+  public void testDeviceStatusReportWithOriginMode() throws IOException {
+    TestSession session = new TestSession(80, 24);
+    // Set scrolling region to lines 2-23 (leaving 1 line at top and bottom).
+    session.process("\u001B[2;23r");
+    // Set Origin Mode (DECOM).
+    session.process("\u001B[?6h");
+    // Move cursor to 1,1 (relative to scrolling region, so absolute 2,1).
+    session.process("\u001B[1;1H");
+    assertEquals(2,session.getTerminal().getCursorY());
+    // Request Cursor Position (DSR).
+    session.process("\u001B[6n");
+    String response = session.getTerminal().getOutputAndClear();
+    assertEquals("\u001B[1;1R", response);
+  }
+
+  public void testNoScrollWhenOutsideScrollRegion() throws IOException {
+    TestSession session = new TestSession(80, 5);
+    // Set scrolling region to lines 1-3.
+    session.process("\u001B[1;3r");
+    // Fill lines 1-3.
+    session.process("Line 1\r\nLine 2\r\nLine 3");
+    // Move to line 4 (outside region).
+    session.process("\u001B[4;1H");
+    session.process("Line 4");
+    // Newline at line 4 should move to line 5 and NOT scroll region 1-3.
+    session.process("\r\n");
+    session.process("Line 5");
+    assertScreenLines(session,List.of(
+      "Line 1",
+      "Line 2",
+      "Line 3",
+      "Line 4",
+      "Line 5"
     ));
   }
 

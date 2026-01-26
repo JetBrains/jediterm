@@ -122,7 +122,18 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
       myTerminalTextBuffer.setLineWrapped(myCursorY - 1, false);
       if (isAutoWrap()) {
         myTerminalTextBuffer.setLineWrapped(myCursorY - 1, true);
-        myCursorY += 1;
+        moveCursorDownOrScroll();
+      }
+    }
+  }
+
+  private void moveCursorDownOrScroll() {
+    if (myCursorY == myScrollRegionBottom) {
+      scrollArea(myScrollRegionTop, scrollingRegionSize(), -1);
+    } else {
+      myCursorY += 1;
+      if (myCursorY > myTerminalHeight) {
+        myCursorY = myTerminalHeight;
       }
     }
   }
@@ -192,14 +203,9 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   public void scrollY() {
     myTerminalTextBuffer.lock();
     try {
-      if (myCursorY > myScrollRegionBottom) {
-        final int dy = myScrollRegionBottom - myCursorY;
-        myCursorY = myScrollRegionBottom;
-        scrollArea(myScrollRegionTop, scrollingRegionSize(), dy);
+      if (myCursorY > myTerminalHeight) {
+        myCursorY = myTerminalHeight;
         myDisplay.setCursor(myCursorX, myCursorY);
-      }
-      if (myCursorY < myScrollRegionTop) {
-        myCursorY = myScrollRegionTop;
       }
     } finally {
       myTerminalTextBuffer.unlock();
@@ -214,9 +220,8 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   @Override
   public void newLine() {
     myCursorYChanged = true;
-    myCursorY += 1;
-
-    scrollY();
+    
+    moveCursorDownOrScroll();
 
     if (isAutoNewLine()) {
       carriageReturn();
@@ -716,7 +721,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
       myCursorX = Math.max(0, x - 1);
       myCursorX = Math.min(myCursorX, myTerminalWidth - 1);
 
-      myCursorY = Math.max(0, myCursorY);
+      myCursorY = Math.max(1, myCursorY);
 
       adjustXY(-1);
 
@@ -754,6 +759,10 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   @Override
   public void resetScrollRegions() {
     setScrollingRegion(1, myTerminalHeight);
+  }
+
+  public int getScrollRegionTop() {
+    return myScrollRegionTop;
   }
 
   @Override

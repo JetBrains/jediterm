@@ -1,6 +1,5 @@
 package com.jediterm.terminal.model
 
-import com.jediterm.core.compatibility.Point
 import com.jediterm.core.util.CellPosition
 import com.jediterm.core.util.TermSize
 import com.jediterm.terminal.StyledTextConsumer
@@ -13,7 +12,6 @@ import org.slf4j.LoggerFactory
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
-import kotlin.math.max
 import kotlin.math.min
 
 /**
@@ -100,85 +98,18 @@ class TerminalTextBuffer internal constructor(
   }
 
   fun resize(newTermSize: TermSize, oldCursor: CellPosition, selection: TerminalSelection?): TerminalResizeResult {
-    val newWidth = newTermSize.columns
-    val newHeight = newTermSize.rows
-    var newCursorX = oldCursor.x
-    var newCursorY = oldCursor.y
-    val oldCursorY = oldCursor.y
+    val result = doResizeTextBuffer(this, newTermSize, oldCursor, selection)
 
-    if (width != newWidth) {
-      val changeWidthOperation = ChangeWidthOperation(this, newWidth, newHeight)
-      val cursorPoint = Point(oldCursor.x - 1, oldCursor.y - 1)
-      changeWidthOperation.addPointToTrack(cursorPoint, true)
-      if (selection != null) {
-        changeWidthOperation.addPointToTrack(selection.start, false)
-        changeWidthOperation.addPointToTrack(selection.end, false)
-      }
-      changeWidthOperation.run()
-      width = newWidth
-      height = newHeight
-      val newCursor = changeWidthOperation.getTrackedPoint(cursorPoint)
-      newCursorX = newCursor.x + 1
-      newCursorY = newCursor.y + 1
-      if (selection != null) {
-        selection.start.setLocation(changeWidthOperation.getTrackedPoint(selection.start))
-        selection.end.setLocation(changeWidthOperation.getTrackedPoint(selection.end))
-      }
+    val widthChanged = width != newTermSize.columns
+    width = newTermSize.columns
+    height = newTermSize.rows
+
+    if (widthChanged) {
       changesMulticaster.widthResized()
     }
-
-    val oldHeight = height
-    if (newHeight < oldHeight) {
-      if (!alternateBuffer) {
-        val lineDiffCount = oldHeight - newHeight
-
-        // We need to move lines from text buffer to the scroll buffer,
-        // but empty bottom lines up to the cursor can be collapsed
-
-        // Number of lines to remove until the new height or cursor if it is located below the new height.
-        val maxBottomLinesToRemove = min(lineDiffCount, max(0, oldHeight - oldCursorY))
-        // Number of already empty lines on the screen (but not greater than required count to remove)
-        val emptyLinesCount = min(maxBottomLinesToRemove, oldHeight - screenLinesStorage.size)
-        // Count of lines to remove from the screen buffer (TerminalLine objects are created for those lines)
-        val actualLinesToRemove = maxBottomLinesToRemove - emptyLinesCount
-        // Total count of already empty lines and removed empty lines
-        val emptyLinesDeleted = emptyLinesCount + removeBottomEmptyLines(actualLinesToRemove)
-
-        val screenLinesToMove = lineDiffCount - emptyLinesDeleted
-        val removedLines = screenLinesStorage.removeFromTop(screenLinesToMove)
-        addLinesToHistory(removedLines)
-        newCursorY = oldCursorY - screenLinesToMove
-        selection?.shiftY(-screenLinesToMove)
-      }
-      else {
-        newCursorY = oldCursorY
-      }
-    }
-    else if (newHeight > oldHeight) {
-      if (USE_CONPTY_COMPATIBLE_RESIZE) {
-        // do not move lines from scroll buffer to the screen buffer
-        newCursorY = oldCursorY
-      }
-      else {
-        if (!alternateBuffer) {
-          //we need to move lines from scroll buffer to the text buffer
-          val historyLinesCount = min(newHeight - oldHeight, historyLinesStorage.size)
-          val removedLines = historyLinesStorage.removeFromBottom(historyLinesCount)
-          screenLinesStorage.addAllToTop(removedLines)
-          newCursorY = oldCursorY + historyLinesCount
-          selection?.shiftY(historyLinesCount)
-        }
-        else {
-          newCursorY = oldCursorY
-        }
-      }
-    }
-
-    width = newWidth
-    height = newHeight
-
     fireModelChangeEvent()
-    return TerminalResizeResult(CellPosition(newCursorX, newCursorY))
+
+    return result
   }
 
   fun addModelListener(listener: TerminalModelListener) {
@@ -528,7 +459,7 @@ class TerminalTextBuffer internal constructor(
     }
   }
 
-  private fun removeBottomEmptyLines(maxCount: Int): Int {
+  internal fun removeBottomEmptyLines(maxCount: Int): Int {
     val removedLinesCount = screenLinesStorage.removeBottomEmptyLines(maxCount)
     if (removedLinesCount > 0) {
       changesMulticaster.linesChanged(fromIndex = screenLinesStorage.size)
@@ -536,7 +467,7 @@ class TerminalTextBuffer internal constructor(
     return removedLinesCount
   }
 
-  private fun addLinesToHistory(linesToAdd: List<TerminalLine>) {
+  internal fun addLinesToHistory(linesToAdd: List<TerminalLine>) {
     // If size of the buffer exceeds the limit in a result of adding new lines,
     // collect the lines we have to discard.
     val linesToDiscard = if (historyLinesStorage.size + linesToAdd.size > maxHistoryLinesCount) {
@@ -590,6 +521,5 @@ class TerminalTextBuffer internal constructor(
 
   companion object {
     private val LOG: Logger = LoggerFactory.getLogger(TerminalTextBuffer::class.java)
-    private const val USE_CONPTY_COMPATIBLE_RESIZE = true
   }
 }

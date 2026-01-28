@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 
 /**
- * Performs reflow-like resize of the <b>Main</b> text buffer (even if an alternative buffer is active now).
+ * Performs reflow-like resize of the <b>active</b> text buffer (either main or alternative).
  * All lines are reflowed to fit the new width, soft wrapping the lines if needed.
  * Some old lines may be dropped from the scrollback buffer if width is being decreased.
  */
@@ -53,7 +53,7 @@ class ChangeWidthOperation {
   }
 
   void run() {
-    LinesStorage historyLinesStorage = myTextBuffer.getHistoryLinesStorageOrBackup$core();
+    LinesStorage historyLinesStorage = myTextBuffer.getHistoryLinesStorage();
     for (int i = 0; i < historyLinesStorage.getSize(); i++) {
       TerminalLine line = historyLinesStorage.get(i);
       addLine(line);
@@ -65,7 +65,7 @@ class ChangeWidthOperation {
     if (screenStartInd < 0) {
       throw new IndexOutOfBoundsException("screenStartInd < 0: " + screenStartInd);
     }
-    LinesStorage screenLinesStorage = myTextBuffer.getScreenLinesStorageOrBackup$core();
+    LinesStorage screenLinesStorage = myTextBuffer.getScreenLinesStorage();
     if (screenLinesStorage.getSize() > myTextBuffer.getHeight()) {
       LOG.warn("Terminal height < screen buffer line count: " + myTextBuffer.getHeight() + " < " + screenLinesStorage.getSize());
     }

@@ -443,8 +443,20 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
   @Override
   public void useAlternateBuffer(boolean enabled) {
-    myTerminalTextBuffer.useAlternateBuffer(enabled);
-    myDisplay.useAlternateScreenBuffer(enabled);
+    myTerminalTextBuffer.modify(() -> {
+      boolean wasUsingAlternateBuffer = myTerminalTextBuffer.isUsingAlternateBuffer();
+      myTerminalTextBuffer.useAlternateBuffer(enabled);
+
+      TermSize curSize = getSize();
+      if (wasUsingAlternateBuffer && !enabled && myTerminalTextBuffer.getSize() != curSize) {
+        // If the alternate buffer was disabled,
+        // the size of the main buffer is the same now as it was before entering the alternative buffer.
+        // So, we need to trigger the main buffer resize to make it respect the current screen size.
+        resizeTextBufferAndUpdateCursor(curSize);
+      }
+
+      myDisplay.useAlternateScreenBuffer(enabled);
+    });
   }
 
   @Override
@@ -1153,20 +1165,27 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   private void doResize(@NotNull TermSize newTermSize, @NotNull RequestOrigin origin, int oldHeight) {
     TermSize oldTermSize = new TermSize(myTerminalWidth, myTerminalHeight);
     myTerminalTextBuffer.modify(() -> {
-      TerminalResizeResult result = myTerminalTextBuffer.resize(newTermSize, getCursorPosition(), myDisplay.getSelection());
+      resizeTextBufferAndUpdateCursor(newTermSize);
       myTerminalWidth = newTermSize.getColumns();
       myTerminalHeight = newTermSize.getRows();
-      myCursorX = result.getNewCursor().getX() - 1;
-      myCursorY = result.getNewCursor().getY();
       myTabulator.resize(myTerminalWidth);
       myScrollRegionBottom += myTerminalHeight - oldHeight;
 
-      myDisplay.setCursor(myCursorX, myCursorY);
       myDisplay.onResize(newTermSize, origin);
       for (TerminalResizeListener resizeListener : myTerminalResizeListeners) {
         resizeListener.onResize(oldTermSize, newTermSize);
       }
     });
+  }
+
+  /**
+   * Requires text buffer lock
+   */
+  private void resizeTextBufferAndUpdateCursor(@NotNull TermSize newTermSize) {
+    TerminalResizeResult result = myTerminalTextBuffer.resize(newTermSize, getCursorPosition(), myDisplay.getSelection());
+    myCursorX = result.getNewCursor().getX() - 1;
+    myCursorY = result.getNewCursor().getY();
+    myDisplay.setCursor(myCursorX, myCursorY);
   }
 
   public static @NotNull TermSize ensureTermMinimumSize(@NotNull TermSize termSize) {

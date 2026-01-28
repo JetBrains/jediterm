@@ -29,11 +29,17 @@ class TerminalTextBuffer internal constructor(
   private val maxHistoryLinesCount: Int,
   internal val textProcessing: TextProcessing?
 ) {
-  var width: Int = initialWidth
+  /**
+   * The size of the screen of the active buffer (either main or alternative one)
+   */
+  var size: TermSize = TermSize(initialWidth, initialHeight)
     private set
-  var height: Int = initialHeight
-    private set
+  val width: Int
+    get() = size.columns
+  val height: Int
+    get() = size.rows
 
+  // The state of the active buffer's screen and history
   var historyLinesStorage: LinesStorage = createHistoryLinesStorage()
     private set
   var screenLinesStorage: LinesStorage = createScreenLinesStorage()
@@ -47,12 +53,6 @@ class TerminalTextBuffer internal constructor(
   var screenBuffer: LinesBuffer = createLinesBuffer(screenLinesStorage)
     private set
 
-  internal val historyLinesStorageOrBackup: LinesStorage
-    get() = if (isUsingAlternateBuffer) historyLinesStorageBackup!! else historyLinesStorage
-
-  internal val screenLinesStorageOrBackup: LinesStorage
-    get() = if (isUsingAlternateBuffer) screenLinesStorageBackup!! else screenLinesStorage
-
   val historyLinesCount: Int
     get() = historyLinesStorage.size
 
@@ -61,13 +61,15 @@ class TerminalTextBuffer internal constructor(
 
   private val myLock: Lock = ReentrantLock()
 
+  // The state of the main buffer's screen and history at the moment of entering the alternate buffer.
   private var historyLinesStorageBackup: LinesStorage? = null
   private var screenLinesStorageBackup: LinesStorage? = null
 
-  private var historyBufferBackup: LinesBuffer? = null
-  private var screenBufferBackup: LinesBuffer? = null // to store textBuffer after switching to alternate buffer
+  // The size of the main buffer's screen at the moment of entering the alternate buffer.
+  private var backupStorageSize: TermSize? = null
 
-  private var alternateBuffer = false
+  private var historyBufferBackup: LinesBuffer? = null
+  private var screenBufferBackup: LinesBuffer? = null
 
   var isUsingAlternateBuffer: Boolean = false
     private set
@@ -101,8 +103,7 @@ class TerminalTextBuffer internal constructor(
     val result = doResizeTextBuffer(this, newTermSize, oldCursor, selection)
 
     val widthChanged = width != newTermSize.columns
-    width = newTermSize.columns
-    height = newTermSize.rows
+    size = newTermSize
 
     if (widthChanged) {
       changesMulticaster.widthResized()
@@ -323,7 +324,6 @@ class TerminalTextBuffer internal constructor(
   }
 
   fun useAlternateBuffer(enabled: Boolean) {
-    alternateBuffer = enabled
     if (enabled) {
       if (!isUsingAlternateBuffer) {
         screenLinesStorageBackup = screenLinesStorage
@@ -335,23 +335,29 @@ class TerminalTextBuffer internal constructor(
         historyBufferBackup = historyBuffer
         screenBuffer = createLinesBuffer(screenLinesStorage)
         historyBuffer = createLinesBuffer(historyLinesStorage)
-        isUsingAlternateBuffer = true
+
+        backupStorageSize = size
       }
     }
     else {
       if (isUsingAlternateBuffer) {
         screenLinesStorage = screenLinesStorageBackup!!
         historyLinesStorage = historyLinesStorageBackup!!
-        screenLinesStorageBackup = createScreenLinesStorage()
-        historyLinesStorageBackup = createHistoryLinesStorage()
+        screenLinesStorageBackup = null
+        historyLinesStorageBackup = null
 
         screenBuffer = screenBufferBackup!!
         historyBuffer = historyBufferBackup!!
-        screenBufferBackup = createLinesBuffer(screenLinesStorageBackup!!)
-        historyBufferBackup = createLinesBuffer(historyLinesStorageBackup!!)
-        isUsingAlternateBuffer = false
+        screenBufferBackup = null
+        historyBufferBackup = null
+
+        // Restore the size of the main buffer screen that was at the moment of entering the alternate buffer.
+        size = backupStorageSize!!
+        backupStorageSize = null
       }
     }
+
+    isUsingAlternateBuffer = enabled
     fireModelChangeEvent()
   }
 

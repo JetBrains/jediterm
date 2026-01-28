@@ -3,6 +3,7 @@ package com.jediterm.terminal.model
 import com.jediterm.core.compatibility.Point
 import com.jediterm.core.util.CellPosition
 import com.jediterm.core.util.TermSize
+import com.jediterm.terminal.model.TerminalLine.TextEntry
 import kotlin.math.max
 import kotlin.math.min
 
@@ -29,9 +30,11 @@ private fun resizeWhenMainBufferActive(
   check(!buffer.isUsingAlternateBuffer) { "resizeWhenMainBufferActive should be called only when main buffer is active" }
 
   return if (newTermSize.columns != buffer.width) {
+    // If the width is changed - we need to reflow the lines to fit the new width.
     resizeWithReflow(buffer, newTermSize, oldCursor, selection)
   }
   else if (newTermSize.rows < buffer.height) {
+    // If only height is decreased - we need to move lines from the screen buffer to the scroll buffer.
     decreaseHeight(buffer, newTermSize.rows, oldCursor, selection)
   }
   else {
@@ -50,14 +53,13 @@ private fun resizeWhenAlternateBufferActive(
 ): TerminalResizeResult {
   check(buffer.isUsingAlternateBuffer) { "resizeWhenAlternateBufferActive should be called only when alternate buffer is active" }
 
-  return if (buffer.width != newTermSize.columns) {
-    resizeWithReflow(buffer, newTermSize, oldCursor, selection)
-  }
-  else TerminalResizeResult(oldCursor)
+  // If the alternate buffer is active, resize it by just truncating the part out of new bounds.
+  // The running application should rewrite the screen in a moment.
+  return truncateToSize(buffer, newTermSize, oldCursor, selection)
 }
 
 /**
- * Resizes the **Main** buffer trying to fit the new width and height, trying to preserve the cursor and selection location.
+ * Resizes the **active** buffer trying to fit the new width and height, trying to preserve the cursor and selection location.
  * The lines are reflown with adding/removing soft wraps.
  */
 private fun resizeWithReflow(
@@ -85,7 +87,7 @@ private fun resizeWithReflow(
 }
 
 /**
- * Moves top lines of the screen to the scroll buffer, so the height of the screen becomes [newHeight].
+ * Moves top lines of the **active** buffer screen to the scroll buffer, so the height of the screen becomes [newHeight].
  */
 private fun decreaseHeight(
   buffer: TerminalTextBuffer,
@@ -116,4 +118,65 @@ private fun decreaseHeight(
   selection?.shiftY(-screenLinesToMove)
   val newCursorY = oldCursor.y - screenLinesToMove
   return TerminalResizeResult(CellPosition(oldCursor.x, newCursorY))
+}
+
+/**
+ * Truncates the **active** buffer to the new size by removing all rows and columns that are out of bounds.
+ * The cursor and selection are moved to the nearest valid position within the new bounds.
+ */
+private fun truncateToSize(
+  buffer: TerminalTextBuffer,
+  newSize: TermSize,
+  oldCursor: CellPosition,
+  selection: TerminalSelection?
+): TerminalResizeResult {
+  if (newSize.rows >= buffer.height && newSize.columns >= buffer.width) {
+    // If the size is increased, the buffer can be left as is.
+    return TerminalResizeResult(oldCursor)
+  }
+
+  val screenLines = buffer.screenLinesStorage
+  val newLines = mutableListOf<TerminalLine>()
+  for (ind in 0 until screenLines.size) {
+    if (ind >= newSize.rows) {
+      break
+    }
+    val line = screenLines[ind]
+    val newLine = line.truncateToLen(newSize.columns)
+    newLines.add(newLine)
+  }
+
+  screenLines.clear()
+  screenLines.addAllToBottom(newLines)
+
+  if (selection != null) {
+    selection.start.setLocation(selection.start.x.coerceIn(0, newSize.columns), selection.start.y.coerceIn(0, newSize.rows))
+    selection.end.setLocation(selection.end.x.coerceIn(0, newSize.columns), selection.end.y.coerceIn(0, newSize.rows))
+  }
+
+  val newCursor = CellPosition(oldCursor.x.coerceIn(1, newSize.columns), oldCursor.y.coerceIn(1, newSize.rows))
+  return TerminalResizeResult(newCursor)
+}
+
+private fun TerminalLine.truncateToLen(newLength: Int): TerminalLine {
+  if (length() <= newLength) {
+    return this
+  }
+
+  val newLine = TerminalLine.createEmpty()
+  forEachEntry { entry ->
+    if (newLine.length() + entry.length <= newLength) {
+      newLine.appendEntry(entry)
+    }
+    else {
+      val sizeLeft = newLength - newLine.length()
+      if (sizeLeft > 0) {
+        val newEntry = TextEntry(entry.style, entry.text.subBuffer(0, sizeLeft))
+        newLine.appendEntry(newEntry)
+      }
+      return@forEachEntry
+    }
+  }
+
+  return newLine
 }

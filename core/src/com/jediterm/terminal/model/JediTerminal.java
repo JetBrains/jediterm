@@ -441,8 +441,22 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
   @Override
   public void useAlternateBuffer(boolean enabled) {
-    myTerminalTextBuffer.useAlternateBuffer(enabled);
-    myDisplay.useAlternateScreenBuffer(enabled);
+    myTerminalTextBuffer.modify(() -> {
+      boolean wasUsingAlternateBuffer = myTerminalTextBuffer.isUsingAlternateBuffer();
+      myTerminalTextBuffer.useAlternateBuffer(enabled);
+      myDisplay.useAlternateScreenBuffer(enabled);
+
+      if (wasUsingAlternateBuffer && !enabled) {
+        // If the alternate buffer was disabled,
+        // the size of the main buffer is the same now as it was before entering the alternative buffer.
+        // So, we need to trigger the main buffer resize to make it respect the current screen size.
+        TermSize curSize = new TermSize(myTerminalWidth, myTerminalHeight);
+        var result = myTerminalTextBuffer.resize(curSize, getCursorPosition(), myDisplay.getSelection());
+        myCursorX = result.getNewCursor().getX() - 1;
+        myCursorY = result.getNewCursor().getY();
+        myDisplay.setCursor(myCursorX, myCursorY);
+      }
+    });
   }
 
   @Override

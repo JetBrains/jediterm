@@ -7,6 +7,11 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
+/**
+ * Performs reflow-like resize of the <b>Main</b> text buffer (even if an alternative buffer is active now).
+ * All lines are reflowed to fit the new width, soft wrapping the lines if needed.
+ * Some old lines may be dropped from the scrollback buffer if width is being decreased.
+ */
 class ChangeWidthOperation {
   private static final Logger LOG = LoggerFactory.getLogger(TerminalTextBuffer.class);
 

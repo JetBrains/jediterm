@@ -6,8 +6,6 @@ import com.jediterm.core.util.TermSize
 import kotlin.math.max
 import kotlin.math.min
 
-private const val USE_CONPTY_COMPATIBLE_RESIZE = true
-
 internal fun doResizeTextBuffer(
   buffer: TerminalTextBuffer,
   newTermSize: TermSize,
@@ -65,23 +63,9 @@ internal fun doResizeTextBuffer(
     }
   }
   else if (newHeight > oldHeight) {
-    if (USE_CONPTY_COMPATIBLE_RESIZE) {
-      // do not move lines from scroll buffer to the screen buffer
-      newCursorY = oldCursorY
-    }
-    else {
-      if (!buffer.isUsingAlternateBuffer) {
-        //we need to move lines from scroll buffer to the text buffer
-        val historyLinesCount = min(newHeight - oldHeight, buffer.historyLinesStorage.size)
-        val removedLines = buffer.historyLinesStorage.removeFromBottom(historyLinesCount)
-        buffer.screenLinesStorage.addAllToTop(removedLines)
-        newCursorY = oldCursorY + historyLinesCount
-        selection?.shiftY(historyLinesCount)
-      }
-      else {
-        newCursorY = oldCursorY
-      }
-    }
+    // Do not move lines from the scroll buffer to the screen buffer.
+    // It is crucial for compatibility with ConPTY.
+    newCursorY = oldCursorY
   }
 
   return TerminalResizeResult(CellPosition(newCursorX, newCursorY))

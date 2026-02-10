@@ -220,6 +220,10 @@ public class TextProcessing {
     myHyperlinkFilters.add(filter);
   }
 
+  /**
+   * @deprecated use {@link TextProcessing#processHyperlinks(LinesStorage, TerminalLine)} instead
+   */
+  @Deprecated
   public @NotNull List<LinkResultItem> applyFilter(@NotNull String line) {
     return myHyperlinkFilters.stream().map(filter -> {
         CompletableFuture<@Nullable LinkResult> resultFuture = filter.apply(new AsyncHyperlinkFilter.LineInfo() {

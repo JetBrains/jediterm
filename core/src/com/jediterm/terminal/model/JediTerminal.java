@@ -13,8 +13,9 @@ import com.jediterm.terminal.emulator.charset.CharacterSet;
 import com.jediterm.terminal.emulator.charset.GraphicSet;
 import com.jediterm.terminal.emulator.charset.GraphicSetState;
 import com.jediterm.terminal.emulator.mouse.*;
+import com.jediterm.terminal.model.hyperlinks.HyperlinkFilter;
+import com.jediterm.terminal.model.hyperlinks.LinkResult;
 import com.jediterm.terminal.model.hyperlinks.LinkResultItem;
-import com.jediterm.terminal.model.hyperlinks.TextProcessing;
 import com.jediterm.terminal.util.CharUtils;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
@@ -76,6 +77,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
   private final List<TerminalApplicationTitleListener> myApplicationTitleListeners = new CopyOnWriteArrayList<>();
   private final List<TerminalResizeListener> myTerminalResizeListeners = new CopyOnWriteArrayList<>();
+  private @Nullable HyperlinkFilter myUrlHyperlinkFilter;
 
   public JediTerminal(@NotNull TerminalDisplay display, @NotNull TerminalTextBuffer buf, @NotNull StyleState initialStyleState) {
     myTerminalKeyEncoder = new TerminalKeyEncoder(Platform.current());
@@ -1044,14 +1046,19 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
   @Override
   public void setLinkUriStarted(@NotNull String uri) {
-    TextProcessing textProcessing = myTerminalTextBuffer.getTextProcessing$core();
-    if (textProcessing != null) {
-      TextStyle style = myStyleState.getCurrent();
-      List<LinkResultItem> linkResultItems = textProcessing.applyFilter(uri);
-      linkResultItems.stream()
-        .filter(item -> item.getStartOffset() == 0 && item.getEndOffset() == uri.length())
-        .findFirst().ifPresent(linkItem ->
-          myStyleState.setCurrent(new HyperlinkStyle(style, linkItem.getLinkInfo())));
+    HyperlinkFilter urlFilter = myUrlHyperlinkFilter;
+    if (urlFilter != null) {
+      LinkResult linkResult = urlFilter.apply(uri);
+      if (linkResult != null) {
+        TextStyle style = myStyleState.getCurrent();
+        @SuppressWarnings("SimplifyOptionalCallChains")
+        LinkResultItem linkItem = linkResult.getItems().stream()
+          .filter(item -> item.getStartOffset() == 0 && item.getEndOffset() == uri.length())
+          .findFirst().orElse(null);
+        if (linkItem != null) {
+          myStyleState.setCurrent(new HyperlinkStyle(style, linkItem.getLinkInfo()));
+        }
+      }
     }
   }
 
@@ -1064,6 +1071,17 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
         myStyleState.setCurrent(prevTextStyle);
       }
     }
+  }
+
+  /**
+   * Sets the URL hyperlink filter for parsing URLs in OSC8 links.
+   * Please note it can be called with acquired `com.jediterm.terminal.model.TerminalTextBuffer#lock()`.
+   * Therefore, to avoid deadlocks, it shouldn't acquire any other locks, like IntelliJ global read/write lock.
+   * 
+   * @param urlHyperlinkFilter The URL hyperlink filter to set.
+   */
+  public void setUrlHyperlinkFilter(@Nullable HyperlinkFilter urlHyperlinkFilter) {
+    myUrlHyperlinkFilter = urlHyperlinkFilter;
   }
 
   @Override

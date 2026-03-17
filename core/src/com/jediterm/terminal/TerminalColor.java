@@ -22,8 +22,16 @@ public class TerminalColor {
     this(colorIndex, null, null);
   }
 
+  /**
+   * @deprecated use {@link #TerminalColor(Color)} instead
+   */
+  @Deprecated
   public TerminalColor(int r, int g, int b) {
     this(-1, new Color(r, g, b), null);
+  }
+
+  public TerminalColor(@NotNull Color color) {
+    this(-1, color, null);
   }
 
   public TerminalColor(@NotNull Supplier<Color> colorSupplier) {
@@ -50,8 +58,8 @@ public class TerminalColor {
     return new TerminalColor(colorIndex);
   }
 
-  public static TerminalColor rgb(int r, int g, int b) {
-    return new TerminalColor(r, g, b);
+  public static @NotNull TerminalColor rgb(int r, int g, int b) {
+    return new TerminalColor(new Color(r, g, b));
   }
 
   public boolean isIndexed() {

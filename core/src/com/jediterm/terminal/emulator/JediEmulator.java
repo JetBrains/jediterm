@@ -1120,7 +1120,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       if ((val0 >= 0 && val0 < 256) &&
               (val1 >= 0 && val1 < 256) &&
               (val2 >= 0 && val2 < 256)) {
-        return new TerminalColor(val0, val1, val2);
+        return TerminalColor.rgb(val0, val1, val2);
       } else {
         LOG.warn("Bogus color setting " + args);
         return null;

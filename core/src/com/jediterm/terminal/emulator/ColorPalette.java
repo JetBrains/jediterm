@@ -54,7 +54,7 @@ public abstract class ColorPalette {
     for (int red = 0; red < 6; red++) {
       for (int green = 0; green < 6; green++) {
         for (int blue = 0; blue < 6; blue++) {
-          COL_RES_256[36 * red + 6 * green + blue] = new TerminalColor(getCubeColorValue(red),
+          COL_RES_256[36 * red + 6 * green + blue] = TerminalColor.rgb(getCubeColorValue(red),
                                                                        getCubeColorValue(green),
                                                                        getCubeColorValue(blue));
         }
@@ -65,7 +65,7 @@ public abstract class ColorPalette {
     // black and white
     for (int gray = 0; gray < 24; gray++) {
       int level = 10 * gray + 8;
-      COL_RES_256[216 + gray] = new TerminalColor(level, level, level);
+      COL_RES_256[216 + gray] = TerminalColor.rgb(level, level, level);
     }
   }
 

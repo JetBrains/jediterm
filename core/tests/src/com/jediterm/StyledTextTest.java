@@ -61,40 +61,40 @@ public class StyledTextTest extends TestCase {
   public void test24BitForegroundColourParsing() throws IOException {
     TerminalTextBuffer terminalTextBuffer = getBufferFor(12, 1, CSI + "38;2;0;128;0mHello");
     TextStyle style = terminalTextBuffer.getStyleAt(0, 0);
-    assertEquals(new TerminalColor(0, 128, 0), style.getForeground());
+    assertEquals(TerminalColor.rgb(0, 128, 0), style.getForeground());
   }
 
   public void test24BitBackgroundColourParsing() throws IOException {
     TerminalTextBuffer terminalTextBuffer = getBufferFor(12, 1, CSI + "48;2;0;128;0mHello");
     TextStyle style = terminalTextBuffer.getStyleAt(0, 0);
-    assertEquals(new TerminalColor(0, 128, 0), style.getBackground());
+    assertEquals(TerminalColor.rgb(0, 128, 0), style.getBackground());
   }
 
   public void test24BitCombinedColourParsing() throws IOException {
     TerminalTextBuffer terminalTextBuffer = getBufferFor(12, 1, CSI + "0;38;2;0;128;0;48;2;0;255;0;1mHello");
     TextStyle style = terminalTextBuffer.getStyleAt(0, 0);
-    assertEquals(new TerminalColor(0, 128, 0), style.getForeground());
-    assertEquals(new TerminalColor(0, 255, 0), style.getBackground());
+    assertEquals(TerminalColor.rgb(0, 128, 0), style.getForeground());
+    assertEquals(TerminalColor.rgb(0, 255, 0), style.getBackground());
     assertTrue(style.hasOption(TextStyle.Option.BOLD));
   }
 
   public void testIndexedForegroundColourParsing() throws IOException {
     TerminalTextBuffer terminalTextBuffer = getBufferFor(12, 1, CSI + "38;5;46mHello");
     TextStyle style = terminalTextBuffer.getStyleAt(0, 0);
-    assertEquals(new TerminalColor(0, 255, 0), style.getForeground());
+    assertEquals(TerminalColor.rgb(0, 255, 0), style.getForeground());
   }
 
   public void testIndexedBackgroundColourParsing() throws IOException {
     TerminalTextBuffer terminalTextBuffer = getBufferFor(12, 1, CSI + "48;5;46mHello");
     TextStyle style = terminalTextBuffer.getStyleAt(0, 0);
-    assertEquals(new TerminalColor(0, 255, 0), style.getBackground());
+    assertEquals(TerminalColor.rgb(0, 255, 0), style.getBackground());
   }
 
   public void testIndexedCombinedColourParsing() throws IOException {
     TerminalTextBuffer terminalTextBuffer = getBufferFor(12, 1, CSI + "0;38;5;46;48;5;196;1mHello");
     TextStyle style = terminalTextBuffer.getStyleAt(0, 0);
-    assertEquals(new TerminalColor(0, 255, 0), style.getForeground());
-    assertEquals(new TerminalColor(255, 0, 0), style.getBackground());
+    assertEquals(TerminalColor.rgb(0, 255, 0), style.getForeground());
+    assertEquals(TerminalColor.rgb(255, 0, 0), style.getBackground());
     assertTrue(style.hasOption(TextStyle.Option.BOLD));
   }
 

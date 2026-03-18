@@ -124,8 +124,30 @@ public class TerminalStarter implements TerminalOutputStream {
   public void postResize(@NotNull TermSize termSize, @NotNull RequestOrigin origin) {
     execute(() -> {
       myTerminal.resize(termSize, origin);
-      scheduleTtyConnectorResize(termSize);
+
+      TtyConnectorResizeStrategy resizeStrategy = getResizeStrategy(myTtyConnector);
+      switch (resizeStrategy) {
+        case POSTPONED:
+          scheduleTtyConnectorResize(termSize);
+          break;
+        case IMMEDIATE:
+          myTtyConnector.resize(termSize);
+          break;
+        default:
+          LOG.warn("Unsupported resize strategy: {}, using IMMEDIATE", resizeStrategy);
+          myTtyConnector.resize(termSize);
+          break;
+      }
     });
+  }
+
+  private @NotNull TtyConnectorResizeStrategy getResizeStrategy(@NotNull TtyConnector ttyConnector) {
+    if (ttyConnector instanceof TtyConnectorResizeStrategyProvider) {
+      return ((TtyConnectorResizeStrategyProvider) ttyConnector).getResizeStrategy();
+    }
+    else {
+      return TtyConnectorResizeStrategy.IMMEDIATE;
+    }
   }
 
   /**

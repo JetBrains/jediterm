@@ -7,18 +7,18 @@ import org.junit.Test
 internal class TerminalColorTest {
 
   @Test
-  fun `fromColor preserves alpha component`() {
+  fun `color preserves alpha component`() {
     checkColor(Color(255, 128, 64, 32))
   }
 
   @Test
-  fun `fromColor with null returns null`() {
-    val terminalColor = TerminalColor.fromColor(null)
+  fun `color with null returns null`() {
+    val terminalColor = TerminalColor.color(null)
     assertNull(terminalColor)
   }
 
   private fun checkColor(color: Color) {
-    val terminalColor = TerminalColor.fromColor(color)
+    val terminalColor = TerminalColor.color(color)
     assertNotNull(terminalColor)
     assertEquals(color, terminalColor!!.toColor())
   }

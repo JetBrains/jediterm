@@ -28,7 +28,7 @@ public class TextProcessingTest extends TestCase {
   public void setUp() throws Exception {
     super.setUp();
     mySession = new TestSession(100, 5);
-    TextStyle hyperlinkTextStyle = new TextStyle(TerminalColor.fromColor(TestSession.BLUE), TerminalColor.WHITE);
+    TextStyle hyperlinkTextStyle = new TextStyle(TerminalColor.color(TestSession.BLUE), TerminalColor.WHITE);
     myHyperlinkStyle = new HyperlinkStyle(hyperlinkTextStyle, new LinkInfo(() -> {}));
   }
 

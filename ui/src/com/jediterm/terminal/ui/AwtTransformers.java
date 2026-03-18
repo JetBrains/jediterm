@@ -19,6 +19,6 @@ public final class AwtTransformers {
 
   @Contract("null -> null; !null -> new")
   public static @Nullable TerminalColor fromAwtToTerminalColor(@Nullable java.awt.Color color) {
-    return color == null ? null : TerminalColor.fromColor(fromAwtColor(color));
+    return color == null ? null : TerminalColor.color(fromAwtColor(color));
   }
 }

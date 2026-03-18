@@ -27,7 +27,7 @@ public class TestSession {
 
   public TestSession(int width, int height) {
     myStyleState = new StyleState();
-    TextStyle hyperlinkTextStyle = new TextStyle(TerminalColor.fromColor(BLUE), TerminalColor.WHITE);
+    TextStyle hyperlinkTextStyle = new TextStyle(TerminalColor.color(BLUE), TerminalColor.WHITE);
     myTextProcessing = new TextProcessing(hyperlinkTextStyle, HyperlinkStyle.HighlightMode.ALWAYS);
     myTerminalTextBuffer = new TerminalTextBuffer(width, height, myStyleState, LinesStorage.DEFAULT_MAX_LINES_COUNT, myTextProcessing);
     myTextProcessing.setTerminalTextBuffer(myTerminalTextBuffer);

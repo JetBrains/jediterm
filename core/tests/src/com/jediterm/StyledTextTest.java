@@ -8,7 +8,6 @@ import com.jediterm.terminal.emulator.JediEmulator;
 import com.jediterm.terminal.model.JediTerminal;
 import com.jediterm.terminal.model.StyleState;
 import com.jediterm.terminal.model.TerminalTextBuffer;
-import com.jediterm.util.BackBufferDisplay;
 import com.jediterm.util.TestSession;
 import junit.framework.TestCase;
 import org.jetbrains.annotations.NotNull;
@@ -16,6 +15,8 @@ import org.junit.Assert;
 
 import java.io.IOException;
 import java.util.EnumSet;
+
+import static com.jediterm.util.TerminalTestUtil.createJediTerminal;
 
 /**
  * @author traff
@@ -123,7 +124,7 @@ public class StyledTextTest extends TestCase {
   private @NotNull TerminalTextBuffer getBufferFor(int width, int height, String content) throws IOException {
     StyleState state = new StyleState();
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(width, height, state);
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = createJediTerminal(terminalTextBuffer, state);
     Emulator emulator = new JediEmulator(new ArrayTerminalDataStream(content.toCharArray()), terminal);
     while (emulator.hasNext()) {
       emulator.next();

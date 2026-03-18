@@ -1,5 +1,6 @@
 package com.jediterm.util;
 
+import com.jediterm.core.Platform;
 import com.jediterm.terminal.TerminalOutputStream;
 import com.jediterm.terminal.model.JediTerminal;
 import com.jediterm.terminal.model.StyleState;
@@ -29,7 +30,7 @@ public class BackBufferTerminal extends JediTerminal {
   private BackBufferTerminal(@NotNull BackBufferDisplay bufferDisplay,
                              @NotNull TerminalTextBuffer terminalTextBuffer,
                              @NotNull StyleState initialStyleState) {
-    super(bufferDisplay, terminalTextBuffer, initialStyleState);
+    super(bufferDisplay, terminalTextBuffer, initialStyleState, Platform.current());
     myBufferDisplay = bufferDisplay;
     myTextBuffer = terminalTextBuffer;
   }

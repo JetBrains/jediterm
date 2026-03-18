@@ -1,6 +1,6 @@
 package com.jediterm.core
 
-internal enum class Platform {
+enum class Platform {
   Windows,
 
   @Suppress("EnumEntryName")

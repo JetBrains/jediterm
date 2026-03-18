@@ -79,8 +79,16 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   private final List<TerminalResizeListener> myTerminalResizeListeners = new CopyOnWriteArrayList<>();
   private @Nullable HyperlinkFilter myUrlHyperlinkFilter;
 
+  /**
+   * @deprecated Use constructor with Platform parameter instead
+   */
+  @Deprecated(forRemoval = true)
   public JediTerminal(@NotNull TerminalDisplay display, @NotNull TerminalTextBuffer buf, @NotNull StyleState initialStyleState) {
-    myTerminalKeyEncoder = new TerminalKeyEncoder(Platform.current());
+    this(display, buf, initialStyleState, Platform.current());
+  }
+
+  public JediTerminal(@NotNull TerminalDisplay display, @NotNull TerminalTextBuffer buf, @NotNull StyleState initialStyleState, @NotNull Platform platform) {
+    myTerminalKeyEncoder = new TerminalKeyEncoder(platform);
     myDisplay = display;
     myTerminalTextBuffer = buf;
     myStyleState = initialStyleState;

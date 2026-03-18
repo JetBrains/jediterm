@@ -1,6 +1,7 @@
 package com.jediterm.terminal.ui;
 
 import com.jediterm.core.Color;
+import com.jediterm.core.Platform;
 import com.jediterm.core.typeahead.TerminalTypeAheadManager;
 import com.jediterm.core.typeahead.TypeAheadTerminalModel;
 import com.jediterm.terminal.*;
@@ -130,7 +131,7 @@ public class JediTermWidget extends JPanel implements TerminalSession, TerminalW
   protected @NotNull JediTerminal createTerminal(@NotNull TerminalDisplay display,
                                                  @NotNull TerminalTextBuffer textBuffer,
                                                  @NotNull StyleState initialStyleState) {
-    return new JediTerminal(display, textBuffer, initialStyleState);
+    return new JediTerminal(display, textBuffer, initialStyleState, Platform.current());
   }
 
   @SuppressWarnings({"removal", "DeprecatedIsStillUsed"})

@@ -7,9 +7,10 @@ import com.jediterm.terminal.model.JediTerminal;
 import com.jediterm.terminal.model.SelectionUtil;
 import com.jediterm.terminal.model.StyleState;
 import com.jediterm.terminal.model.TerminalTextBuffer;
-import com.jediterm.util.BackBufferDisplay;
 import com.jediterm.util.TestSession;
 import junit.framework.TestCase;
+
+import static com.jediterm.util.TerminalTestUtil.createJediTerminal;
 
 /**
  * @author traff
@@ -20,7 +21,7 @@ public class SelectionTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(15, 5, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = createJediTerminal(terminalTextBuffer, state);
 
     terminal.writeString("  1. line ");
     terminal.newLine();
@@ -38,7 +39,7 @@ public class SelectionTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(15, 5, state);
 
-    JediTerminal writer = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal writer = createJediTerminal(terminalTextBuffer, state);
 
     writer.writeString("   line   ");
     writer.newLine();
@@ -73,7 +74,7 @@ public class SelectionTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(15, 5, state);
 
-    JediTerminal writer = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal writer = createJediTerminal(terminalTextBuffer, state);
 
     writer.writeString("first line");
     writer.newLine();
@@ -89,7 +90,7 @@ public class SelectionTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(15, 5, state);
 
-    JediTerminal writer = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal writer = createJediTerminal(terminalTextBuffer, state);
 
     writer.writeString("first line");
     writer.newLine();
@@ -107,7 +108,7 @@ public class SelectionTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(5, 3, state);
 
-    JediTerminal writer = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal writer = createJediTerminal(terminalTextBuffer, state);
 
     writer.writeString("12");
     writer.newLine();
@@ -135,7 +136,7 @@ public class SelectionTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(10, 2, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = createJediTerminal(terminalTextBuffer, state);
 
     terminal.writeString("生活習慣病");
 

@@ -7,9 +7,10 @@ import com.jediterm.terminal.model.LinesStorageKt;
 import com.jediterm.terminal.model.StyleState;
 import com.jediterm.terminal.model.TerminalTextBuffer;
 import com.jediterm.util.ArrayBasedTextConsumer;
-import com.jediterm.util.BackBufferDisplay;
 import com.jediterm.util.TestSession;
 import junit.framework.TestCase;
+
+import static com.jediterm.util.TerminalTestUtil.createJediTerminal;
 
 /**
  * @author traff
@@ -21,7 +22,7 @@ public class ScrollingTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(5, 3, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = createJediTerminal(terminalTextBuffer, state);
 
     terminal.writeString("line");
     terminal.newLine();
@@ -49,7 +50,7 @@ public class ScrollingTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(5, 3, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = createJediTerminal(terminalTextBuffer, state);
 
     terminal.writeString("line");
     terminal.newLine();
@@ -118,7 +119,7 @@ public class ScrollingTest extends TestCase {
 
     TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(2, 3, state);
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    JediTerminal terminal = createJediTerminal(terminalTextBuffer, state);
 
     terminal.writeString("1");
     terminal.newLine();

@@ -92,9 +92,6 @@ public class TerminalColor {
   }
 
   public static @Nullable TerminalColor fromColor(@Nullable Color color) {
-    if (color == null) {
-      return null;
-    }
-    return rgb(color.getRed(), color.getGreen(), color.getBlue());
+    return color != null ? new TerminalColor(color) : null;
   }
 }

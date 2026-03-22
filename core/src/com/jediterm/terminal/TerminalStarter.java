@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -35,6 +34,7 @@ public class TerminalStarter implements TerminalOutputStream {
 
   private final TerminalTypeAheadManager myTypeAheadManager;
   private final ScheduledExecutorService mySingleThreadScheduledExecutor;
+  private final Object myWriteLock = new Object();
   private volatile boolean myStopped = false;
   private volatile ScheduledFuture<?> myScheduledTtyConnectorResizeFuture;
   private volatile boolean myIsLastSentByteEscape = false;
@@ -174,14 +174,16 @@ public class TerminalStarter implements TerminalOutputStream {
       myIsLastSentByteEscape = bytes[length - 1] == KeyEvent.VK_ESCAPE;
     }
     execute(() -> {
-      try {
-        if (userInput) {
-          TerminalTypeAheadManager.TypeAheadEvent.fromByteArray(bytes).forEach(myTypeAheadManager::onKeyEvent);
+      synchronized (myWriteLock) {
+        try {
+          if (userInput) {
+            TerminalTypeAheadManager.TypeAheadEvent.fromByteArray(bytes).forEach(myTypeAheadManager::onKeyEvent);
+          }
+          myTtyConnector.write(bytes);
         }
-        myTtyConnector.write(bytes);
-      }
-      catch (IOException e) {
-        logWriteError(e);
+        catch (IOException e) {
+          logWriteError(e);
+        }
       }
     });
   }
@@ -192,14 +194,14 @@ public class TerminalStarter implements TerminalOutputStream {
     if (length > 0) {
       myIsLastSentByteEscape = bytes[length - 1] == KeyEvent.VK_ESCAPE;
     }
-    executeAndWait(() -> {
+    synchronized (myWriteLock) {
       try {
         myTtyConnector.write(bytes);
       }
       catch (IOException e) {
         logWriteError(e);
       }
-    });
+    }
   }
 
   @Override
@@ -209,15 +211,16 @@ public class TerminalStarter implements TerminalOutputStream {
       myIsLastSentByteEscape = string.charAt(length - 1) == KeyEvent.VK_ESCAPE;
     }
     execute(() -> {
-      try {
-        if (userInput) {
-          TerminalTypeAheadManager.TypeAheadEvent.fromString(string).forEach(myTypeAheadManager::onKeyEvent);
+      synchronized (myWriteLock) {
+        try {
+          if (userInput) {
+            TerminalTypeAheadManager.TypeAheadEvent.fromString(string).forEach(myTypeAheadManager::onKeyEvent);
+          }
+          myTtyConnector.write(string);
         }
-
-        myTtyConnector.write(string);
-      }
-      catch (IOException e) {
-        logWriteError(e);
+        catch (IOException e) {
+          logWriteError(e);
+        }
       }
     });
   }
@@ -228,36 +231,13 @@ public class TerminalStarter implements TerminalOutputStream {
     if (length > 0) {
       myIsLastSentByteEscape = string.charAt(length - 1) == KeyEvent.VK_ESCAPE;
     }
-    executeAndWait(() -> {
+    synchronized (myWriteLock) {
       try {
         myTtyConnector.write(string);
       }
       catch (IOException e) {
         logWriteError(e);
       }
-    });
-  }
-
-  private void executeAndWait(@NotNull Runnable runnable) {
-    if (mySingleThreadScheduledExecutor.isShutdown()) {
-      return;
-    }
-    CountDownLatch latch = new CountDownLatch(1);
-    mySingleThreadScheduledExecutor.execute(() -> {
-      try {
-        runnable.run();
-      }
-      finally {
-        latch.countDown();
-      }
-    });
-    try {
-      if (!latch.await(5, TimeUnit.SECONDS)) {
-        LOG.warn("Timeout waiting for synchronous write to complete");
-      }
-    }
-    catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
     }
   }
 

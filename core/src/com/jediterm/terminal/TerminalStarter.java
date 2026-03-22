@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -191,12 +192,14 @@ public class TerminalStarter implements TerminalOutputStream {
     if (length > 0) {
       myIsLastSentByteEscape = bytes[length - 1] == KeyEvent.VK_ESCAPE;
     }
-    try {
-      myTtyConnector.write(bytes);
-    }
-    catch (IOException e) {
-      logWriteError(e);
-    }
+    executeAndWait(() -> {
+      try {
+        myTtyConnector.write(bytes);
+      }
+      catch (IOException e) {
+        logWriteError(e);
+      }
+    });
   }
 
   @Override
@@ -225,11 +228,35 @@ public class TerminalStarter implements TerminalOutputStream {
     if (length > 0) {
       myIsLastSentByteEscape = string.charAt(length - 1) == KeyEvent.VK_ESCAPE;
     }
-    try {
-      myTtyConnector.write(string);
+    executeAndWait(() -> {
+      try {
+        myTtyConnector.write(string);
+      }
+      catch (IOException e) {
+        logWriteError(e);
+      }
+    });
+  }
+
+  private void executeAndWait(@NotNull Runnable runnable) {
+    if (mySingleThreadScheduledExecutor.isShutdown()) {
+      return;
     }
-    catch (IOException e) {
-      logWriteError(e);
+    Thread currentThread = Thread.currentThread();
+    CountDownLatch latch = new CountDownLatch(1);
+    mySingleThreadScheduledExecutor.execute(() -> {
+      try {
+        runnable.run();
+      }
+      finally {
+        latch.countDown();
+      }
+    });
+    try {
+      latch.await();
+    }
+    catch (InterruptedException e) {
+      currentThread.interrupt();
     }
   }
 

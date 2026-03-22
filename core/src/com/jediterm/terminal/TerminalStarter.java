@@ -186,6 +186,20 @@ public class TerminalStarter implements TerminalOutputStream {
   }
 
   @Override
+  public void sendBytesImmediately(byte @NotNull [] bytes) {
+    int length = bytes.length;
+    if (length > 0) {
+      myIsLastSentByteEscape = bytes[length - 1] == KeyEvent.VK_ESCAPE;
+    }
+    try {
+      myTtyConnector.write(bytes);
+    }
+    catch (IOException e) {
+      logWriteError(e);
+    }
+  }
+
+  @Override
   public void sendString(@NotNull String string, boolean userInput) {
     int length = string.length();
     if (length > 0) {
@@ -203,6 +217,20 @@ public class TerminalStarter implements TerminalOutputStream {
         logWriteError(e);
       }
     });
+  }
+
+  @Override
+  public void sendStringImmediately(@NotNull String string) {
+    int length = string.length();
+    if (length > 0) {
+      myIsLastSentByteEscape = string.charAt(length - 1) == KeyEvent.VK_ESCAPE;
+    }
+    try {
+      myTtyConnector.write(string);
+    }
+    catch (IOException e) {
+      logWriteError(e);
+    }
   }
 
   private void logWriteError(@NotNull IOException e) {

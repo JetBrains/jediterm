@@ -93,6 +93,9 @@ public class EmulatorTest extends EmulatorTestAbstract {
 
     session.process("\u001B]4;232;?\7");
     Assert.assertEquals("\033]4;232;rgb:0808/0808/0808\7", session.getTerminal().getOutputAndClear());
+
+    session.process("\u001B]4;0;?\u001B\\");
+    Assert.assertEquals("\033]4;0;rgb:0000/0000/0000\u001B\\", session.getTerminal().getOutputAndClear());
   }
 
   public void testOsc4MultipleQuery() throws IOException {

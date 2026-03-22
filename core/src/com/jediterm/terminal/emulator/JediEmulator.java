@@ -336,6 +336,11 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     if (argCount < 3) {
       return false;
     }
+    // Expect pairs of (index;?) after the first argument.
+    // If (argCount - 1) is odd, there is a trailing unpaired argument and the sequence is malformed.
+    if (((argCount - 1) & 1) != 0) {
+      return false;
+    }
     for (int i = 1; i < argCount - 1; i += 2) {
       int index = args.getIntAt(i, -1);
       if (index < 0 || index >= 256) {

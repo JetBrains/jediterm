@@ -280,6 +280,8 @@ public class JediEmulator extends DataStreamIteratingEmulator {
           return true;
         }
         break;
+      case 4:
+        return processPaletteColorQuery(args);
       case 10:
       case 11:
         return processColorQuery(args);
@@ -324,6 +326,37 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         LOG.debug("Responding to OSC " + ps + " query: " + str);
       }
       myTerminal.deviceStatusReport(str);
+    }
+    return true;
+  }
+
+  private boolean processPaletteColorQuery(@NotNull SystemCommandSequence args) {
+    List<String> argList = args.getArgs();
+    int argCount = argList.size();
+    if (argCount < 3) {
+      return false;
+    }
+    // Expect pairs of (index;?) after the first argument.
+    // If (argCount - 1) is odd, there is a trailing unpaired argument and the sequence is malformed.
+    if (((argCount - 1) & 1) != 0) {
+      return false;
+    }
+    for (int i = 1; i < argCount - 1; i += 2) {
+      int index = args.getIntAt(i, -1);
+      if (index < 0 || index >= 256) {
+        return false;
+      }
+      if (!"?".equals(args.getStringAt(i + 1))) {
+        return false;
+      }
+      Color color = myTerminal.getPaletteColor(index);
+      if (color != null) {
+        String str = args.format(List.of("4", String.valueOf(index), color.toXParseColor()));
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Responding to OSC 4 query for index " + index + ": " + str);
+        }
+        myTerminal.deviceStatusReport(str);
+      }
     }
     return true;
   }

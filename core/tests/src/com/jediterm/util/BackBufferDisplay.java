@@ -114,7 +114,6 @@ public class BackBufferDisplay implements TerminalDisplay {
     if (index < 16) {
       return ColorPaletteImpl.XTERM_PALETTE.getForeground(TerminalColor.index(index));
     }
-    TerminalColor color = ColorPalette.getIndexedTerminalColor(index);
-    return color != null ? color.toColor() : null;
+    return ColorPalette.getIndexedTerminalColor(index).toColor();
   }
 }

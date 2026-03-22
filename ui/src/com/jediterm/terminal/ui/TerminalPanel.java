@@ -1020,8 +1020,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     if (index < 16) {
       return getPalette().getForeground(TerminalColor.index(index));
     }
-    TerminalColor color = ColorPalette.getIndexedTerminalColor(index);
-    return color != null ? color.toColor() : null;
+    return ColorPalette.getIndexedTerminalColor(index).toColor();
   }
 
   private @NotNull java.awt.Color getEffectiveForeground(@NotNull TextStyle style) {

@@ -169,16 +169,16 @@ public class TerminalStarter implements TerminalOutputStream {
 
   @Override
   public void sendBytes(byte @NotNull [] bytes, boolean userInput) {
-    int length = bytes.length;
-    if (length > 0) {
-      myIsLastSentByteEscape = bytes[length - 1] == KeyEvent.VK_ESCAPE;
+    if (userInput) {
+      TerminalTypeAheadManager.TypeAheadEvent.fromByteArray(bytes).forEach(myTypeAheadManager::onKeyEvent);
     }
     execute(() -> {
       synchronized (myWriteLock) {
+        int length = bytes.length;
+        if (length > 0) {
+          myIsLastSentByteEscape = bytes[length - 1] == KeyEvent.VK_ESCAPE;
+        }
         try {
-          if (userInput) {
-            TerminalTypeAheadManager.TypeAheadEvent.fromByteArray(bytes).forEach(myTypeAheadManager::onKeyEvent);
-          }
           myTtyConnector.write(bytes);
         }
         catch (IOException e) {
@@ -190,11 +190,11 @@ public class TerminalStarter implements TerminalOutputStream {
 
   @Override
   public void sendBytesImmediately(byte @NotNull [] bytes) {
-    int length = bytes.length;
-    if (length > 0) {
-      myIsLastSentByteEscape = bytes[length - 1] == KeyEvent.VK_ESCAPE;
-    }
     synchronized (myWriteLock) {
+      int length = bytes.length;
+      if (length > 0) {
+        myIsLastSentByteEscape = bytes[length - 1] == KeyEvent.VK_ESCAPE;
+      }
       try {
         myTtyConnector.write(bytes);
       }
@@ -206,16 +206,16 @@ public class TerminalStarter implements TerminalOutputStream {
 
   @Override
   public void sendString(@NotNull String string, boolean userInput) {
-    int length = string.length();
-    if (length > 0) {
-      myIsLastSentByteEscape = string.charAt(length - 1) == KeyEvent.VK_ESCAPE;
+    if (userInput) {
+      TerminalTypeAheadManager.TypeAheadEvent.fromString(string).forEach(myTypeAheadManager::onKeyEvent);
     }
     execute(() -> {
       synchronized (myWriteLock) {
+        int length = string.length();
+        if (length > 0) {
+          myIsLastSentByteEscape = string.charAt(length - 1) == KeyEvent.VK_ESCAPE;
+        }
         try {
-          if (userInput) {
-            TerminalTypeAheadManager.TypeAheadEvent.fromString(string).forEach(myTypeAheadManager::onKeyEvent);
-          }
           myTtyConnector.write(string);
         }
         catch (IOException e) {
@@ -227,11 +227,11 @@ public class TerminalStarter implements TerminalOutputStream {
 
   @Override
   public void sendStringImmediately(@NotNull String string) {
-    int length = string.length();
-    if (length > 0) {
-      myIsLastSentByteEscape = string.charAt(length - 1) == KeyEvent.VK_ESCAPE;
-    }
     synchronized (myWriteLock) {
+      int length = string.length();
+      if (length > 0) {
+        myIsLastSentByteEscape = string.charAt(length - 1) == KeyEvent.VK_ESCAPE;
+      }
       try {
         myTtyConnector.write(string);
       }

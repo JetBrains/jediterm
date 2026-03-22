@@ -242,7 +242,6 @@ public class TerminalStarter implements TerminalOutputStream {
     if (mySingleThreadScheduledExecutor.isShutdown()) {
       return;
     }
-    Thread currentThread = Thread.currentThread();
     CountDownLatch latch = new CountDownLatch(1);
     mySingleThreadScheduledExecutor.execute(() -> {
       try {
@@ -253,10 +252,12 @@ public class TerminalStarter implements TerminalOutputStream {
       }
     });
     try {
-      latch.await();
+      if (!latch.await(5, TimeUnit.SECONDS)) {
+        LOG.warn("Timeout waiting for synchronous write to complete");
+      }
     }
     catch (InterruptedException e) {
-      currentThread.interrupt();
+      Thread.currentThread().interrupt();
     }
   }
 

@@ -320,6 +320,11 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     return myDisplay.getWindowBackground();
   }
 
+  @Override
+  public @Nullable Color getPaletteColor(int index) {
+    return myDisplay.getPaletteColor(index);
+  }
+
   private final List<TerminalCustomCommandListener> myCustomCommandListeners = new CopyOnWriteArrayList<>();
 
   @Override

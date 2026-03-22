@@ -80,6 +80,21 @@ public class EmulatorTest extends EmulatorTestAbstract {
     Assert.assertEquals("\033]11;rgb:1010/0f0f/0e0e\u001B\\", session.getTerminal().getOutputAndClear());
   }
 
+  public void testOsc4Query() throws IOException {
+    TestSession session = new TestSession(10, 10);
+    session.process("\u001B]4;0;?\7");
+    Assert.assertEquals("\033]4;0;rgb:0000/0000/0000\7", session.getTerminal().getOutputAndClear());
+
+    session.process("\u001B]4;1;?\7");
+    Assert.assertEquals("\033]4;1;rgb:cdcd/0000/0000\7", session.getTerminal().getOutputAndClear());
+
+    session.process("\u001B]4;16;?\7");
+    Assert.assertEquals("\033]4;16;rgb:0000/0000/0000\7", session.getTerminal().getOutputAndClear());
+
+    session.process("\u001B]4;232;?\7");
+    Assert.assertEquals("\033]4;232;rgb:0808/0808/0808\7", session.getTerminal().getOutputAndClear());
+  }
+
   public void testResetToInitialState() throws IOException {
     TestSession session = new TestSession(20, 4);
     for (int i = 1; i <= 9; i++) {

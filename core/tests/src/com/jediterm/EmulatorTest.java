@@ -95,6 +95,14 @@ public class EmulatorTest extends EmulatorTestAbstract {
     Assert.assertEquals("\033]4;232;rgb:0808/0808/0808\7", session.getTerminal().getOutputAndClear());
   }
 
+  public void testOsc4MultipleQuery() throws IOException {
+    TestSession session = new TestSession(10, 10);
+    session.process("\u001B]4;0;?;1;?\7");
+    String output = session.getTerminal().getOutputAndClear();
+    Assert.assertTrue(output.contains("\033]4;0;rgb:0000/0000/0000\7"));
+    Assert.assertTrue(output.contains("\033]4;1;rgb:cdcd/0000/0000\7"));
+  }
+
   public void testResetToInitialState() throws IOException {
     TestSession session = new TestSession(20, 4);
     for (int i = 1; i <= 9; i++) {

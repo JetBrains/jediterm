@@ -331,20 +331,27 @@ public class JediEmulator extends DataStreamIteratingEmulator {
   }
 
   private boolean processPaletteColorQuery(@NotNull SystemCommandSequence args) {
-    int index = args.getIntAt(1, -1);
-    if (index < 0 || index >= 256) {
+    List<String> argList = args.getArgs();
+    int argCount = argList.size();
+    if (argCount < 3) {
       return false;
     }
-    if (!"?".equals(args.getStringAt(2))) {
-      return false;
-    }
-    Color color = myTerminal.getPaletteColor(index);
-    if (color != null) {
-      String str = args.format(List.of("4", String.valueOf(index), color.toXParseColor()));
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Responding to OSC 4 query for index " + index + ": " + str);
+    for (int i = 1; i < argCount - 1; i += 2) {
+      int index = args.getIntAt(i, -1);
+      if (index < 0 || index >= 256) {
+        return false;
       }
-      myTerminal.deviceStatusReport(str);
+      if (!"?".equals(args.getStringAt(i + 1))) {
+        return false;
+      }
+      Color color = myTerminal.getPaletteColor(index);
+      if (color != null) {
+        String str = args.format(List.of("4", String.valueOf(index), color.toXParseColor()));
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Responding to OSC 4 query for index " + index + ": " + str);
+        }
+        myTerminal.deviceStatusReport(str);
+      }
     }
     return true;
   }

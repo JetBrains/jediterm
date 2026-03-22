@@ -169,10 +169,10 @@ public class TerminalStarter implements TerminalOutputStream {
 
   @Override
   public void sendBytes(byte @NotNull [] bytes, boolean userInput) {
-    if (userInput) {
-      TerminalTypeAheadManager.TypeAheadEvent.fromByteArray(bytes).forEach(myTypeAheadManager::onKeyEvent);
-    }
     execute(() -> {
+      if (userInput) {
+        TerminalTypeAheadManager.TypeAheadEvent.fromByteArray(bytes).forEach(myTypeAheadManager::onKeyEvent);
+      }
       synchronized (myWriteLock) {
         int length = bytes.length;
         if (length > 0) {
@@ -206,10 +206,10 @@ public class TerminalStarter implements TerminalOutputStream {
 
   @Override
   public void sendString(@NotNull String string, boolean userInput) {
-    if (userInput) {
-      TerminalTypeAheadManager.TypeAheadEvent.fromString(string).forEach(myTypeAheadManager::onKeyEvent);
-    }
     execute(() -> {
+      if (userInput) {
+        TerminalTypeAheadManager.TypeAheadEvent.fromString(string).forEach(myTypeAheadManager::onKeyEvent);
+      }
       synchronized (myWriteLock) {
         int length = string.length();
         if (length > 0) {

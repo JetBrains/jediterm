@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
@@ -482,11 +483,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         return scrollDown(args);
       case 'c': //Send Device Attributes (Primary DA)
         if (args.startsWithMoreMark()) { //Send Device Attributes (Secondary DA)
-          if (args.getArg(0, 0) == 0) { //apply on to VT220 but xterm extends this to VT100
-            sendDeviceAttributes();
-            return true;
-          }
-          return false;
+          return sendSecondaryDeviceAttributes(args);
         }
         return sendDeviceAttributes();
       case 'd': //VPA
@@ -829,6 +826,19 @@ public class JediEmulator extends DataStreamIteratingEmulator {
     }
     myTerminal.deviceAttributes(CharUtils.VT102_RESPONSE);
 
+    return true;
+  }
+
+  // https://vt100.net/docs/vt510-rm/DA2.html
+  private boolean sendSecondaryDeviceAttributes(@NotNull ControlSequence args) {
+    if (args.getArg(0, 0) != 0) {
+      LOG.debug("Skipping unknown Secondary Device Attributes");
+      return false;
+    }
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Identifying as VT102");
+    }
+    myTerminal.deviceAttributes("\u001b[>0;10;0c".getBytes(StandardCharsets.UTF_8));
     return true;
   }
 

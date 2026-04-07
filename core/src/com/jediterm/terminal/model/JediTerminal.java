@@ -995,7 +995,9 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     }
     if (shouldSendMouseData(MouseMode.MOUSE_REPORTING_ALL_MOTION)) {
       if (myTerminalOutput != null) {
-        myTerminalOutput.sendBytes(mouseReport(MouseButtonCodes.RELEASE, x + 1, y + 1), true);
+        myTerminalOutput.sendBytes(
+          mouseReport(MouseButtonCodes.RELEASE | MouseButtonModifierFlags.MOUSE_BUTTON_MOTION_FLAG, x + 1, y + 1), true
+        );
       }
     }
     myLastMotionReport = new Point(x, y);
@@ -1089,7 +1091,7 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
    * Sets the URL hyperlink filter for parsing URLs in OSC8 links.
    * Please note it can be called with acquired `com.jediterm.terminal.model.TerminalTextBuffer#lock()`.
    * Therefore, to avoid deadlocks, it shouldn't acquire any other locks, like IntelliJ global read/write lock.
-   * 
+   *
    * @param urlHyperlinkFilter The URL hyperlink filter to set.
    */
   public void setUrlHyperlinkFilter(@Nullable HyperlinkFilter urlHyperlinkFilter) {

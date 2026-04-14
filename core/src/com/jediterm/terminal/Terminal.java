@@ -148,6 +148,10 @@ public interface Terminal {
 
   void setTabStopAtCursor();
 
+  int previousTab(int position);
+
+  int nextTab(int position);
+
   void writeUnwrappedString(String string);
 
   void setTerminalOutput(@Nullable TerminalOutputStream terminalOutput);

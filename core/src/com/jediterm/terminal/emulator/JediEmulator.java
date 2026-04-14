@@ -466,6 +466,8 @@ public class JediEmulator extends DataStreamIteratingEmulator {
       case 'f':
       case 'H': //CUP
         return cursorPosition(args);
+      case 'I': //CHT
+        return cursorForwardTab(args.getArg(0, 1));
       case 'J': //DECSED
         return eraseInDisplay(args);
       case 'K': //EL
@@ -482,6 +484,8 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         return scrollUp(args);
       case 'T': //SD
         return scrollDown(args);
+      case 'Z': //CBT
+        return cursorBackwardTab(args.getArg(0, 1));
       case 'c': //Send Device Attributes (Primary DA)
         if (args.startsWithMoreMark()) { //Send Device Attributes (Secondary DA)
           return sendSecondaryDeviceAttributes(args);
@@ -1176,5 +1180,32 @@ public class JediEmulator extends DataStreamIteratingEmulator {
 
   public void setMouseMode(MouseMode mouseMode) {
     myTerminal.setMouseMode(mouseMode);
+  }
+
+  private boolean cursorBackwardTab(int count) {
+    if (count == 0) count = 1;
+    int curX = myTerminal.getCursorX() - 1;
+    for (int i = 0; i < count && curX > 0; i++) {
+      curX = myTerminal.previousTab(curX);
+      if (curX < 0) {
+        curX = 0;
+      }
+    }
+    myTerminal.cursorPosition(curX + 1, myTerminal.getCursorY());
+    return true;
+  }
+
+  private boolean cursorForwardTab(int count) {
+    if (count == 0) count = 1;
+    int curX = myTerminal.getCursorX() - 1;
+    int width = myTerminal.getTerminalWidth();
+    for (int i = 0; i < count && curX < width - 1; i++) {
+      curX = myTerminal.nextTab(curX);
+      if (curX >= width) {
+        curX = width - 1;
+      }
+    }
+    myTerminal.cursorPosition(curX + 1, myTerminal.getCursorY());
+    return true;
   }
 }

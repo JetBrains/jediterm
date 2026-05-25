@@ -110,10 +110,16 @@ public class EmulatorTest extends EmulatorTestAbstract {
     assertScreenLines(session, List.of("foo 6", "foo 7", "foo 8", "foo 9"));
     assertHistoryLines(session, List.of("foo 1", "foo 2", "foo 3", "foo 4", "foo 5"));
 
+    session.process(csi("2;3r"));
+    assertEquals(2, session.getTerminal().getScrollRegionTop());
+
     session.process(csi("!p"));
 
-    assertScreenLines(session, List.of(""));
+    // DECSTR (Soft Terminal Reset) must not clear the screen or move the cursor.
+    assertScreenLines(session, List.of("foo 6", "foo 7", "foo 8", "foo 9"));
     assertHistoryLines(session, List.of("foo 1", "foo 2", "foo 3", "foo 4", "foo 5"));
+
+    assertEquals(1, session.getTerminal().getScrollRegionTop());
   }
 
   public void testEraseInDisplay3() throws IOException {

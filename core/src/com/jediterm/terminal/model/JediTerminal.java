@@ -835,27 +835,29 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   @Override
-  public void reset(boolean clearScrollBackBuffer) {
+  public void reset(boolean fullReset) {
+    // First, process DECSTR (Soft Terminal Reset). It's a part of RIS (Reset to Initial State)
+
     myGraphicSetState.resetState();
 
     myStyleState.reset();
 
-    resetScrollRegions();
-
-    useAlternateBuffer(false);
-    if (clearScrollBackBuffer) {
-      myTerminalTextBuffer.clearScreenAndHistoryBuffers();
-    }
-    else {
-      myTerminalTextBuffer.clearScreenBuffer();
-    }
+    // reset scrolling region, but do not touch cursor position
+    myScrollRegionTop = 1;
+    myScrollRegionBottom = myTerminalHeight;
 
     initModes();
 
     initMouseModes();
 
-    cursorPosition(1, 1);
     cursorShape(null);
+
+    if (fullReset) {
+      // RIS: clear everything and home the cursor
+      useAlternateBuffer(false);
+      myTerminalTextBuffer.clearScreenAndHistoryBuffers();
+      cursorPosition(1, 1);
+    }
   }
 
   private void initMouseModes() {

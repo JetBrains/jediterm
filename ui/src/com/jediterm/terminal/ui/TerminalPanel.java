@@ -884,9 +884,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     TextStyle selectionStyle = getSelectionColor();
     builder.setBackground(selectionStyle.getBackground());
     builder.setForeground(selectionStyle.getForeground());
-    if (builder instanceof HyperlinkStyle.Builder) {
-      return ((HyperlinkStyle.Builder)builder).build(true);
-    }
     return builder.build();
   }
 
@@ -1323,16 +1320,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     int height = Math.min(myCharSize.height - (includeSpaceBetweenLines ? 0 : mySpaceBetweenLines), getHeight() - yCoord);
     int width = Math.min(textLength * TerminalPanel.this.myCharSize.width, TerminalPanel.this.getWidth() - xCoord);
 
-    if (style instanceof HyperlinkStyle) {
-      HyperlinkStyle hyperlinkStyle = (HyperlinkStyle) style;
-
-      if (hyperlinkStyle.getHighlightMode() == HyperlinkStyle.HighlightMode.ALWAYS || (isHoveredHyperlink(hyperlinkStyle) && hyperlinkStyle.getHighlightMode() == HyperlinkStyle.HighlightMode.HOVER)) {
-
-        // substitute text style with the hyperlink highlight style if applicable
-        style = hyperlinkStyle.getHighlightStyle();
-      }
-    }
-
     java.awt.Color backgroundColor = getEffectiveBackground(style);
     gfx.setColor(backgroundColor);
     gfx.fillRect(xCoord,
@@ -1348,11 +1335,24 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
 
     drawChars(x, y, buf, style, gfx);
 
-    if (style.hasOption(TextStyle.Option.UNDERLINED)) {
+    if (hasUnderline(style)) {
       int baseLine = (y + 1) * myCharSize.height - mySpaceBetweenLines / 2 - myDescent;
       int lineY = baseLine + 3;
       gfx.drawLine(xCoord, lineY, (x + textLength) * myCharSize.width + getInsetX(), lineY);
     }
+  }
+
+  private boolean hasUnderline(@NotNull TextStyle style) {
+    if (style.hasOption(TextStyle.Option.UNDERLINED)) {
+      return true;
+    }
+    if (style instanceof HyperlinkStyle) {
+      HyperlinkStyle hyperlinkStyle = (HyperlinkStyle) style;
+      HyperlinkStyle.HighlightMode highlightMode = hyperlinkStyle.getHighlightMode();
+      return highlightMode == HyperlinkStyle.HighlightMode.ALWAYS ||
+        (highlightMode == HyperlinkStyle.HighlightMode.HOVER && isHoveredHyperlink(hyperlinkStyle));
+    }
+    return false;
   }
 
   private boolean isHoveredHyperlink(@NotNull HyperlinkStyle link) {

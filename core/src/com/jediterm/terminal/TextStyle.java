@@ -26,7 +26,7 @@ public class TextStyle {
   public TextStyle(@Nullable TerminalColor foreground, @Nullable TerminalColor background, @NotNull EnumSet<Option> options) {
     myForeground = foreground;
     myBackground = background;
-    myOptions = options.clone();
+    myOptions = EnumSet.copyOf(options);
   }
 
   @Nullable
@@ -45,6 +45,10 @@ public class TextStyle {
 
   public boolean hasOption(final Option option) {
     return myOptions.contains(option);
+  }
+
+  @NotNull EnumSet<Option> getOptions() {
+    return EnumSet.copyOf(myOptions);
   }
 
   @Override
@@ -95,7 +99,7 @@ public class TextStyle {
     public Builder(@NotNull TextStyle textStyle) {
       myForeground = textStyle.myForeground;
       myBackground = textStyle.myBackground;
-      myOptions = textStyle.myOptions.clone();
+      myOptions = EnumSet.copyOf(textStyle.myOptions);
     }
 
     public Builder() {
@@ -125,6 +129,12 @@ public class TextStyle {
     @NotNull
     public TextStyle build() {
       return new TextStyle(myForeground, myBackground, myOptions);
+    }
+
+    public void reset() {
+      myForeground = null;
+      myBackground = null;
+      myOptions.clear();
     }
   }
 }

@@ -13,39 +13,34 @@ public class HyperlinkStyle extends TextStyle {
   @NotNull
   private final LinkInfo myLinkInfo;
 
-  @Nullable
-  private final TextStyle myPrevTextStyle;
-
   @NotNull
   private final HighlightMode myHighlightMode;
 
   public HyperlinkStyle(@NotNull TextStyle prevTextStyle, @NotNull LinkInfo hyperlinkInfo) {
-    this(prevTextStyle.getForeground(), prevTextStyle.getBackground(), hyperlinkInfo, HighlightMode.HOVER, prevTextStyle);
+    this(
+      prevTextStyle.getForeground(),
+      prevTextStyle.getBackground(),
+      prevTextStyle.getOptions(),
+      hyperlinkInfo,
+      HighlightMode.HOVER
+    );
   }
 
   public HyperlinkStyle(@Nullable TerminalColor foreground,
                         @Nullable TerminalColor background,
                         @NotNull LinkInfo hyperlinkInfo,
-                        @NotNull HighlightMode mode,
-                        @Nullable TextStyle prevTextStyle) {
-    this(foreground, background, EnumSet.noneOf(Option.class), hyperlinkInfo, mode, prevTextStyle);
+                        @NotNull HighlightMode mode) {
+    this(foreground, background, EnumSet.noneOf(Option.class), hyperlinkInfo, mode);
   }
 
   private HyperlinkStyle(@Nullable TerminalColor foreground,
                          @Nullable TerminalColor background,
                          @NotNull EnumSet<Option> options,
                          @NotNull LinkInfo hyperlinkInfo,
-                         @NotNull HighlightMode mode,
-                         @Nullable TextStyle prevTextStyle) {
+                         @NotNull HighlightMode mode) {
     super(foreground, background, options);
     myLinkInfo = hyperlinkInfo;
     myHighlightMode = mode;
-    myPrevTextStyle = prevTextStyle;
-  }
-
-  @Nullable
-  public TextStyle getPrevTextStyle() {
-    return myPrevTextStyle;
   }
 
   @NotNull
@@ -73,16 +68,12 @@ public class HyperlinkStyle extends TextStyle {
     @NotNull
     private final LinkInfo myLinkInfo;
 
-    @Nullable
-    private final TextStyle myPrevTextStyle;
-
     @NotNull
     private final HighlightMode myHighlightMode;
 
     private Builder(@NotNull HyperlinkStyle style) {
       super(style);
       myLinkInfo = style.myLinkInfo;
-      myPrevTextStyle = style.myPrevTextStyle;
       myHighlightMode = style.myHighlightMode;
     }
 
@@ -92,7 +83,7 @@ public class HyperlinkStyle extends TextStyle {
       TerminalColor foreground = style.getForeground();
       TerminalColor background = style.getBackground();
       EnumSet<Option> options = style.getOptions();
-      return new HyperlinkStyle(foreground, background, options, myLinkInfo, myHighlightMode, myPrevTextStyle);
+      return new HyperlinkStyle(foreground, background, options, myLinkInfo, myHighlightMode);
     }
   }
 }

@@ -1080,10 +1080,8 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   public void setLinkUriFinished() {
     TextStyle current = myStyleState.getCurrent();
     if (current instanceof HyperlinkStyle) {
-      TextStyle prevTextStyle = ((HyperlinkStyle) current).getPrevTextStyle();
-      if (prevTextStyle != null) {
-        myStyleState.setCurrent(prevTextStyle);
-      }
+      TextStyle styleWithoutLink = new TextStyle.Builder(current).build();
+      myStyleState.setCurrent(styleWithoutLink);
     }
   }
 

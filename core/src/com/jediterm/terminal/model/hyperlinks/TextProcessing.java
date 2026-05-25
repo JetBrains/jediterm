@@ -167,7 +167,7 @@ public class TextProcessing {
     for (LinkResultItem item : linkResultItems) {
       if (item.getStartOffset() < 0 || item.getEndOffset() > lineStr.length()) continue;
       TextStyle style = new HyperlinkStyle(myHyperlinkColor.getForeground(), myHyperlinkColor.getBackground(),
-                                           item.getLinkInfo(), myHighlightMode, null);
+                                           item.getLinkInfo(), myHighlightMode);
       int prevLinesLength = 0;
       for (TerminalLine line : lineInfo.myLinesToProcess) {
         int startLineOffset = Math.max(prevLinesLength, item.getStartOffset());

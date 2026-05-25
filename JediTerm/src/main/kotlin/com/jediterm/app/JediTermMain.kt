@@ -4,6 +4,7 @@ import com.jediterm.pty.PtyProcessTtyConnector
 import com.jediterm.terminal.LoggingTtyConnector
 import com.jediterm.terminal.LoggingTtyConnector.TerminalState
 import com.jediterm.terminal.TtyConnector
+import com.jediterm.terminal.model.JediTerminal
 import com.jediterm.terminal.model.getLinesAsString
 import com.jediterm.terminal.ui.JediTermWidget
 import com.jediterm.terminal.ui.settings.SettingsProvider
@@ -90,7 +91,9 @@ class JediTerm : AbstractTerminalFrame() {
 
   override fun createTerminalWidget(settingsProvider: SettingsProvider): JediTermWidget {
     val widget = super.createTerminalWidget(settingsProvider)
-    widget.addHyperlinkFilter(UrlFilter())
+    val urlFilter = UrlFilter()
+    widget.addHyperlinkFilter(urlFilter)
+    (widget.terminal as JediTerminal).setUrlHyperlinkFilter(urlFilter)
     return widget
   }
 

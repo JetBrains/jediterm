@@ -81,9 +81,10 @@ public class TextProcessingTest extends TestCase {
   public void testOscLink() throws IOException {
     mySession.getTerminal().setUrlHyperlinkFilter(new TestSyncFilter());
     mySession.process("\u001B]8;;" + TestFilter.formatLink("foo") + "\u001B\\Foo link\u001B]8;;\u001B\\ Some text 1");
+    HyperlinkStyle linkStyle = new HyperlinkStyle(TextStyle.EMPTY, new LinkInfo(() -> {}));
     assertEquals(
       Arrays.asList(
-        new TerminalLine.TextEntry(myHyperlinkStyle, new CharBuffer("Foo link")),
+        new TerminalLine.TextEntry(linkStyle, new CharBuffer("Foo link")),
         new TerminalLine.TextEntry(mySession.getCurrentStyle(), new CharBuffer(" Some text 1"))
       ),
       getTextBuffer().getLine(0).getEntries()
@@ -92,7 +93,7 @@ public class TextProcessingTest extends TestCase {
     mySession.process("\u001B]8;;" + TestFilter.formatLink("bar") + "\u0007Bar link\u001B]8;;\u0007 Some text 2");
     assertEquals(
       Arrays.asList(
-        new TerminalLine.TextEntry(myHyperlinkStyle, new CharBuffer("Bar link")),
+        new TerminalLine.TextEntry(linkStyle, new CharBuffer("Bar link")),
         new TerminalLine.TextEntry(mySession.getCurrentStyle(), new CharBuffer(" Some text 2"))
       ),
       getTextBuffer().getLine(1).getEntries()

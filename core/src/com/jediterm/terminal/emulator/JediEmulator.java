@@ -986,10 +986,10 @@ public class JediEmulator extends DataStreamIteratingEmulator {
 
   @NotNull
   private static TextStyle createStyleState(@NotNull TextStyle textStyle, ControlSequence args) {
-    TextStyle.Builder builder = textStyle.toBuilder();
+    final TextStyle.Builder builder = textStyle.toBuilder();
     final int argCount = args.getCount();
     if (argCount == 0) {
-      builder = new TextStyle.Builder();
+      builder.reset();
     }
 
     int i = 0;
@@ -1005,7 +1005,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
 
       switch (arg) {
         case 0: //Normal (default)
-          builder = new TextStyle.Builder();
+          builder.reset();
           break;
         case 1:// Bold
           builder.setOption(TextStyle.Option.BOLD, true);

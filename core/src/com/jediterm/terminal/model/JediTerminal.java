@@ -145,6 +145,8 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
         }
       }
       wrapLines();
+      myCursorX = Math.max(0, myCursorX);
+      myCursorY = Math.max(1, myCursorY);
 
       if (string.length != 0) {
         CharBuffer characters = newCharBuf(string);
@@ -331,10 +333,11 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   @Override
   public void backspace() {
     myCursorX -= 1;
-    if (myCursorX < 0) {
+    if (myCursorX < 0 && myCursorY > 1) {
       myCursorY -= 1;
       myCursorX = myTerminalWidth - 1;
     }
+    myCursorX = Math.max(0, myCursorX);
     adjustXY(-1);
     myDisplay.setCursor(myCursorX, myCursorY);
   }

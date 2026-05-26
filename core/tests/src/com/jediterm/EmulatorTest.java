@@ -209,6 +209,23 @@ public class EmulatorTest extends EmulatorTestAbstract {
     ));
   }
 
+  public void testCursorIsLockedInsideScreen1() throws IOException {
+    TestSession session = new TestSession(80, 24);
+    session.process(csi("1;1H"));
+    session.process("foo");
+    session.process("\b\b\b\b");
+    session.process("bar");
+    assertScreenLines(session, List.of("bar"));
+  }
+
+  public void testCursorIsLockedInsideScreen2() throws IOException {
+    TestSession session = new TestSession(80, 24);
+    session.process("\r" + csi("2d") + "Ready");
+    session.process("\r" + csi("1d") + "Steady");
+    session.process("\r" + csi("0d") + "Go");
+    assertScreenLines(session, List.of("Goeady", "Ready"));
+  }
+
   public void testDeviceStatusReportWithOriginMode() throws IOException {
     TestSession session = new TestSession(80, 24);
     // Set scrolling region to lines 2-23 (leaving 1 line at top and bottom).

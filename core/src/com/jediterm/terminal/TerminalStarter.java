@@ -34,6 +34,7 @@ public class TerminalStarter implements TerminalOutputStream {
 
   private final TerminalTypeAheadManager myTypeAheadManager;
   private final ScheduledExecutorService mySingleThreadScheduledExecutor;
+  private final Object myWriteLock = new Object();
   private volatile boolean myStopped = false;
   private volatile ScheduledFuture<?> myScheduledTtyConnectorResizeFuture;
   private volatile boolean myIsLastSentByteEscape = false;
@@ -190,41 +191,76 @@ public class TerminalStarter implements TerminalOutputStream {
 
   @Override
   public void sendBytes(byte @NotNull [] bytes, boolean userInput) {
-    int length = bytes.length;
-    if (length > 0) {
-      myIsLastSentByteEscape = bytes[length - 1] == KeyEvent.VK_ESCAPE;
-    }
     execute(() -> {
-      try {
-        if (userInput) {
-          TerminalTypeAheadManager.TypeAheadEvent.fromByteArray(bytes).forEach(myTypeAheadManager::onKeyEvent);
-        }
-        myTtyConnector.write(bytes);
+      if (userInput) {
+        TerminalTypeAheadManager.TypeAheadEvent.fromByteArray(bytes).forEach(myTypeAheadManager::onKeyEvent);
       }
-      catch (IOException e) {
-        logWriteError(e);
+      synchronized (myWriteLock) {
+        int length = bytes.length;
+        if (length > 0) {
+          myIsLastSentByteEscape = bytes[length - 1] == KeyEvent.VK_ESCAPE;
+        }
+        try {
+          myTtyConnector.write(bytes);
+        }
+        catch (IOException e) {
+          logWriteError(e);
+        }
       }
     });
   }
 
   @Override
-  public void sendString(@NotNull String string, boolean userInput) {
-    int length = string.length();
-    if (length > 0) {
-      myIsLastSentByteEscape = string.charAt(length - 1) == KeyEvent.VK_ESCAPE;
-    }
-    execute(() -> {
+  public void sendBytesImmediately(byte @NotNull [] bytes) {
+    synchronized (myWriteLock) {
+      int length = bytes.length;
+      if (length > 0) {
+        myIsLastSentByteEscape = bytes[length - 1] == KeyEvent.VK_ESCAPE;
+      }
       try {
-        if (userInput) {
-          TerminalTypeAheadManager.TypeAheadEvent.fromString(string).forEach(myTypeAheadManager::onKeyEvent);
-        }
+        myTtyConnector.write(bytes);
+      }
+      catch (IOException e) {
+        logWriteError(e);
+      }
+    }
+  }
 
+  @Override
+  public void sendString(@NotNull String string, boolean userInput) {
+    execute(() -> {
+      if (userInput) {
+        TerminalTypeAheadManager.TypeAheadEvent.fromString(string).forEach(myTypeAheadManager::onKeyEvent);
+      }
+      synchronized (myWriteLock) {
+        int length = string.length();
+        if (length > 0) {
+          myIsLastSentByteEscape = string.charAt(length - 1) == KeyEvent.VK_ESCAPE;
+        }
+        try {
+          myTtyConnector.write(string);
+        }
+        catch (IOException e) {
+          logWriteError(e);
+        }
+      }
+    });
+  }
+
+  @Override
+  public void sendStringImmediately(@NotNull String string) {
+    synchronized (myWriteLock) {
+      int length = string.length();
+      if (length > 0) {
+        myIsLastSentByteEscape = string.charAt(length - 1) == KeyEvent.VK_ESCAPE;
+      }
+      try {
         myTtyConnector.write(string);
       }
       catch (IOException e) {
         logWriteError(e);
       }
-    });
+    }
   }
 
   private void logWriteError(@NotNull IOException e) {

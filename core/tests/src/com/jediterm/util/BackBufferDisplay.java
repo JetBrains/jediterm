@@ -2,7 +2,10 @@ package com.jediterm.util;
 
 import com.jediterm.core.Color;
 import com.jediterm.terminal.CursorShape;
+import com.jediterm.terminal.TerminalColor;
 import com.jediterm.terminal.TerminalDisplay;
+import com.jediterm.terminal.emulator.ColorPalette;
+import com.jediterm.terminal.emulator.ColorPaletteImpl;
 import com.jediterm.terminal.emulator.mouse.MouseFormat;
 import com.jediterm.terminal.emulator.mouse.MouseMode;
 import com.jediterm.terminal.model.TerminalSelection;
@@ -101,5 +104,16 @@ public class BackBufferDisplay implements TerminalDisplay {
 
   public void setWindowBackground(@Nullable Color backgroundColor) {
     myBackgroundColor = backgroundColor;
+  }
+
+  @Override
+  public @Nullable Color getPaletteColor(int index) {
+    if (index < 0 || index >= 256) {
+      return null;
+    }
+    if (index < 16) {
+      return ColorPaletteImpl.XTERM_PALETTE.getForeground(TerminalColor.index(index));
+    }
+    return ColorPalette.getIndexedTerminalColor(index).toColor();
   }
 }

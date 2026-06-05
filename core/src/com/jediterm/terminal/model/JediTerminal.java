@@ -124,7 +124,11 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
       myTerminalTextBuffer.setLineWrapped(myCursorY - 1, false);
       if (isAutoWrap()) {
         myTerminalTextBuffer.setLineWrapped(myCursorY - 1, true);
-        scrollY(() -> myCursorY++);
+        if (myTerminalTextBuffer.isUsingAlternateBuffer() && myCursorY == myTerminalHeight) {
+          // Do not scroll on wrap at the bottom of the alternate buffer.
+        } else {
+          scrollY(() -> myCursorY++);
+        }
       }
     }
   }

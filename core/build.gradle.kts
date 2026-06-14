@@ -27,6 +27,7 @@ dependencies {
   implementation("org.slf4j:slf4j-api:2.0.9")
   implementation("org.jetbrains:annotations:24.0.1")
   testImplementation("junit:junit:4.13.2")
+  testImplementation("com.ibm.icu:icu4j:78.3")
   testRuntimeOnly("org.slf4j:slf4j-simple:2.0.9")
 }
 

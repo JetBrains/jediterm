@@ -389,4 +389,19 @@ public class TerminalTextBufferTest extends TestCase {
     assertEquals("生\uE000活\uE000習\uE000慣\uE000病\uE000\n" +
             "          \n", terminalTextBuffer.getScreenLines());
   }
+
+  public void testEmojiDoubleWidth() {
+    StyleState state = new StyleState();
+
+    TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(10, 2, state);
+
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+
+    // Emoji-presentation characters (e.g. ✅ U+2705, ❌ U+274C) must occupy two cells,
+    // otherwise text relying on that width (ASCII tables, progress bars, ...) gets misaligned.
+    terminal.writeString("✅a❌b");
+
+    assertEquals("✅\uE000a❌\uE000b    \n" +
+            "          \n", terminalTextBuffer.getScreenLines());
+  }
 }

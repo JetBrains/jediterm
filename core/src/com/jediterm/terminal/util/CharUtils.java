@@ -119,12 +119,37 @@ public class CharUtils {
     return result;
   }
 
+  private static final DoubleWidthProvider DOUBLE_WIDTH_PROVIDER =
+          "legacy".equals(System.getProperty("com.jediterm.terminal.double_width_provider"))
+                  ? new LegacyDoubleWidthProvider()
+                  : new WidecharwidthProvider();
+
   public static boolean isDoubleWidthCharacter(int c, boolean ambiguousIsDWC) {
-    if (c == DWC || c <= 0xa0 || (c > 0x452 && c < 0x1100)) {
+    // Fast path for the common case: ASCII/Latin-1 (and the DWC marker) are never double-width.
+    if (c == DWC || c <= 0xa0) {
       return false;
     }
+    return DOUBLE_WIDTH_PROVIDER.isDoubleWidth(c, ambiguousIsDWC);
+  }
 
-    return mk_wcwidth(c, ambiguousIsDWC) == 2;
+  /**
+   * Legacy width source: the 2007 {@code wcwidth.c} port retained below. It predates emoji and so
+   * under-reports ✅/❌ as single-width. Opt in via the system property
+   * {@code com.jediterm.terminal.double_width_provider=legacy}; otherwise {@link WidecharwidthProvider} is used.
+   */
+  static final class LegacyDoubleWidthProvider implements DoubleWidthProvider {
+    @Override
+    public boolean isDoubleWidth(int c, boolean ambiguousIsDWC) {
+      if (c == DWC || c <= 0xa0 || (c > 0x452 && c < 0x1100)) {
+        return false;
+      }
+      return mk_wcwidth(c, ambiguousIsDWC) == 2;
+    }
+
+    @Override
+    public @NotNull String getName() {
+      return "legacy";
+    }
   }
 
 

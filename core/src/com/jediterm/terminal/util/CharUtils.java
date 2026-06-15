@@ -51,18 +51,6 @@ public class CharUtils {
     return new String(buf, offset - length, length);
   }
 
-  public static int countDoubleWidthCharacters(char[] buf, int start, int length, boolean ambiguousIsDWC) {
-    int cnt = 0;
-    for (int i = 0; i < length; i++) {
-      int ucs = Character.codePointAt(buf, i + start);
-      if (isDoubleWidthCharacter(ucs, ambiguousIsDWC)) {
-        cnt++;
-      }
-    }
-
-    return cnt;
-  }
-
   public enum CharacterType {
     NONPRINTING,
     PRINTING,

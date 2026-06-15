@@ -17,6 +17,7 @@ import com.jediterm.terminal.model.hyperlinks.HyperlinkFilter;
 import com.jediterm.terminal.model.hyperlinks.LinkResult;
 import com.jediterm.terminal.model.hyperlinks.LinkResultItem;
 import com.jediterm.terminal.util.CharUtils;
+import com.jediterm.terminal.util.CharUtilsKt;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -1212,29 +1213,45 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
 
   @NotNull
   private CharBuffer newCharBuf(char[] str) {
-    int dwcCount = CharUtils.countDoubleWidthCharacters(str, 0, str.length, myDisplay.ambiguousCharsAreDoubleWidth());
-
-    char[] buf;
-
-    if (dwcCount > 0) {
-      // Leave gaps for the private use "DWC" character, which simply tells the rendering code to advance one cell.
-      buf = new char[str.length + dwcCount];
-
-      int j = 0;
-      for (int i = 0; i < str.length; i++) {
-        buf[j] = str[i];
-        int codePoint = Character.codePointAt(str, i);
-        boolean doubleWidthCharacter = CharUtils.isDoubleWidthCharacter(codePoint, myDisplay.ambiguousCharsAreDoubleWidth());
-        if (doubleWidthCharacter) {
-          j++;
-          buf[j] = CharUtils.DWC;
-        }
-        j++;
-      }
-    } else {
-      buf = str;
+    int dwcCount = estimateCountOfDoubleWidthCharacters(str);
+    if (dwcCount == 0) {
+      return new CharBuffer(str, 0, str.length);
     }
-    return new CharBuffer(buf, 0, buf.length);
+    StringBuilder result = new StringBuilder(str.length + dwcCount);
+    boolean ambiguousIsDWC = myDisplay.ambiguousCharsAreDoubleWidth();
+    boolean highSurrogateMet = false;
+    for (char ch : str) {
+      result.append(ch);
+      if (Character.isHighSurrogate(ch)) {
+        highSurrogateMet = true;
+        continue;
+      }
+      if (highSurrogateMet && Character.isLowSurrogate(ch)) {
+        continue;
+      }
+      highSurrogateMet = false;
+      // ch is not a high-surrogate pair
+      // no need to use `int codePoint = Character.codePointAt(str, i)`
+      boolean doubleWidthCharacter = CharUtils.isDoubleWidthCharacter(ch, ambiguousIsDWC);
+      if (doubleWidthCharacter) {
+        // Leave gaps for the private use "DWC" character, which simply tells the rendering code to advance one cell.
+        result.append(CharUtils.DWC);
+      }
+    }
+    char[] charArray = CharUtilsKt.getCharArray(result);
+    return new CharBuffer(charArray, 0, charArray.length);
+  }
+
+  private int estimateCountOfDoubleWidthCharacters(char[] str) {
+    int count = 0;
+    boolean ambiguousIsDWC = myDisplay.ambiguousCharsAreDoubleWidth();
+    for (int i = 0; i < str.length; i++) {
+      int codePoint = Character.codePointAt(str, i);
+      if (CharUtils.isDoubleWidthCharacter(codePoint, ambiguousIsDWC)) {
+        count++;
+      }
+    }
+    return count;
   }
 
   @Override

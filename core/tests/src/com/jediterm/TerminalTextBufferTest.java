@@ -2,13 +2,15 @@ package com.jediterm;
 
 import com.jediterm.terminal.StyledTextConsumerAdapter;
 import com.jediterm.terminal.TextStyle;
-import com.jediterm.terminal.model.CharBuffer;
-import com.jediterm.terminal.model.JediTerminal;
-import com.jediterm.terminal.model.StyleState;
-import com.jediterm.terminal.model.TerminalTextBuffer;
+import com.jediterm.terminal.model.*;
 import com.jediterm.util.BackBufferDisplay;
+import com.jediterm.terminal.util.CharUtils;
+import com.jediterm.util.TestSession;
 import junit.framework.TestCase;
 import org.jetbrains.annotations.NotNull;
+import org.junit.Assert;
+
+import java.util.List;
 
 /**
  * @author traff
@@ -377,31 +379,84 @@ public class TerminalTextBufferTest extends TestCase {
   }
 
   public void testDoubleWidth() {
-    StyleState state = new StyleState();
+    TestSession session = new TestSession(10, 2);
 
-    TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(10, 2, state);
+    session.getTerminal().writeString("生活習慣病");
 
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
-
-    terminal.writeString("生活習慣病");
-
-
-    assertEquals("生\uE000活\uE000習\uE000慣\uE000病\uE000\n" +
-            "          \n", terminalTextBuffer.getScreenLines());
+    assertScreenLines(session, List.of(
+      "生" + CharUtils.DWC + "活" + CharUtils.DWC + "習" + CharUtils.DWC + "慣" + CharUtils.DWC + "病" + CharUtils.DWC));
   }
 
   public void testEmojiDoubleWidth() {
-    StyleState state = new StyleState();
-
-    TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(10, 2, state);
-
-    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+    TestSession session = new TestSession(10, 2);
 
     // Emoji-presentation characters (e.g. ✅ U+2705, ❌ U+274C) must occupy two cells,
     // otherwise text relying on that width (ASCII tables, progress bars, ...) gets misaligned.
-    terminal.writeString("✅a❌b");
+    session.getTerminal().writeString("✅a❌b");
 
-    assertEquals("✅\uE000a❌\uE000b    \n" +
-            "          \n", terminalTextBuffer.getScreenLines());
+    assertScreenLines(session, List.of("✅" + CharUtils.DWC + "a❌" + CharUtils.DWC + "b"));
+  }
+
+  public void testSupplementaryEmojiDoubleWidth() {
+    TestSession session = new TestSession(10, 2);
+
+    // 😀 (U+1F600) is a supplementary-plane emoji stored as a UTF-16 surrogate pair. It must
+    // occupy two cells with the pair kept contiguous and no DWC marker wedged between the halves (the
+    // pair already spans two cells), otherwise tables relying on two-cell emoji get misaligned.
+    session.getTerminal().writeString("a😀b");
+
+    assertScreenLines(session, List.of("a😀b"));
+  }
+
+  public void testMixedBmpAndSupplementaryDoubleWidth() {
+    TestSession session = new TestSession(10, 2);
+
+    // BMP wide 生 gets a DWC placeholder; supplementary 😀 does not (its surrogate pair spans two cells).
+    session.getTerminal().writeString("生😀");
+
+    assertScreenLines(session, List.of("生" + CharUtils.DWC + "😀"));
+  }
+
+  public void testBmpDoubleWidthAfterSurrogatePair() {
+    TestSession session = new TestSession(10, 2);
+
+    // A BMP wide character (生) following a supplementary surrogate pair (😀) must still get
+    // its DWC placeholder: 😀 = two cells (no DWC), 生 = two cells (DWC), four cells total.
+    session.getTerminal().writeString("😀生");
+
+    assertScreenLines(session, List.of("😀生" + CharUtils.DWC));
+  }
+
+  public void testConsecutiveSupplementaryEmoji() {
+    TestSession session = new TestSession(10, 2);
+
+    // Two supplementary emoji in a row: each surrogate pair spans two cells and gets no DWC; the
+    // highSurrogateMet flag must reset between them so the second pair is handled correctly.
+    session.getTerminal().writeString("😀🚀");
+
+    assertScreenLines(session, List.of("😀🚀"));
+  }
+
+  public void testWideBmpAfterUnpairedHighSurrogate() {
+    TestSession session = new TestSession(10, 2);
+
+    // An unpaired high surrogate followed by a wide BMP char (生): because the next char is NOT a low
+    // surrogate, 生 must still be treated normally and get its DWC (the lone high surrogate is one cell).
+    session.getTerminal().writeString(((char) 0xD83D) + "生");
+
+    assertScreenLines(session, List.of(((char) 0xD83D) + "生" + CharUtils.DWC));
+  }
+
+  public void testLoneLowSurrogate() {
+    TestSession session = new TestSession(10, 2);
+
+    // A lone low surrogate (no preceding high) is not double-width and gets no DWC.
+    session.getTerminal().writeString("a" + ((char) 0xDE00) + "b");
+
+    assertScreenLines(session, List.of("a" + ((char) 0xDE00) + "b"));
+  }
+
+  private void assertScreenLines(@NotNull TestSession session, @NotNull List<String> expectedScreenLines) {
+    Assert.assertEquals(expectedScreenLines, TerminalLinesUtilKt.getLineTexts(session.getTerminalTextBuffer().getScreenLinesStorage()));
   }
 }

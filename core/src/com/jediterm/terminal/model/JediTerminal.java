@@ -369,6 +369,16 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   }
 
   @Override
+  public int previousTab(int position) {
+    return myTabulator.previousTab(position);
+  }
+
+  @Override
+  public int nextTab(int position) {
+    return myTabulator.nextTab(position);
+  }
+
+  @Override
   public void eraseInDisplay(final int arg) {
     // ED (Erase in Display) https://vt100.net/docs/vt510-rm/ED.html
     myTerminalTextBuffer.lock();

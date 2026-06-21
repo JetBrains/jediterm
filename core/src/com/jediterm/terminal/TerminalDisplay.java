@@ -47,4 +47,8 @@ public interface TerminalDisplay {
   default @Nullable Color getWindowBackground() {
     return null;
   }
+
+  default @Nullable Color getPaletteColor(int index) {
+    return null;
+  }
 }

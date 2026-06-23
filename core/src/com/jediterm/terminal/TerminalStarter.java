@@ -51,7 +51,7 @@ public class TerminalStarter implements TerminalOutputStream {
     mySingleThreadScheduledExecutor = executorServiceManager.getSingleThreadScheduledExecutor();
   }
 
-  protected JediEmulator createEmulator(TerminalDataStream dataStream, Terminal terminal) {
+  protected Emulator createEmulator(TerminalDataStream dataStream, Terminal terminal) {
     return new JediEmulator(dataStream, terminal);
   }
 

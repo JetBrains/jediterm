@@ -27,6 +27,7 @@ class TerminalTextBuffer internal constructor(
   initialHeight: Int,
   private val styleState: StyleState,
   private val maxHistoryLinesCount: Int,
+  @get:JvmName("getTextProcessing") // keep the name stable for Java callers
   internal val textProcessing: TextProcessing?
 ) {
   /**

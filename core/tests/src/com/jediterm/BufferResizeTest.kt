@@ -578,6 +578,105 @@ class BufferResizeTest {
     session.assertCursorPosition(1, 4)
   }
 
+  @Test
+  fun `main buffer - decrease height with cursor above full screen content (IJPL-236506)`() {
+    val session = TestSession(10, 5)
+    val textBuffer = session.terminalTextBuffer
+    val terminal = session.terminal
+
+    terminal.writeText("""
+      line1
+      line2
+      line3
+      line4
+      line5
+    """.trimIndent())
+
+    // Move the cursor up to row 2 while the screen stays fully populated.
+    terminal.cursorPosition(1, 2)
+    session.assertCursorPosition(1, 2)
+
+    // Decrease height: 5 -> 2.
+    terminal.resize(TermSize(10, 2), RequestOrigin.User)
+
+    assertEquals("""
+      line1
+      line2
+      line3
+    """.trimIndent(), textBuffer.historyLinesStorage.getLinesAsString())
+    assertEquals(paddedText(10, """
+      line4
+      line5
+    """), textBuffer.getScreenLines())
+
+    // The cursor's original line was moved to history, so the cursor is clamped to the top row.
+    session.assertCursorPosition(1, 1)
+  }
+
+  @Test
+  fun `main buffer - decrease height with cursor row equal to removed line count (IJPL-236506)`() {
+    val session = TestSession(10, 5)
+    val textBuffer = session.terminalTextBuffer
+    val terminal = session.terminal
+
+    terminal.writeText("""
+      line1
+      line2
+      line3
+      line4
+      line5
+    """.trimIndent())
+
+    terminal.cursorPosition(1, 3)
+    session.assertCursorPosition(1, 3)
+
+    terminal.resize(TermSize(10, 2), RequestOrigin.User)
+
+    assertEquals("""
+      line1
+      line2
+      line3
+    """.trimIndent(), textBuffer.historyLinesStorage.getLinesAsString())
+    assertEquals(paddedText(10, """
+      line4
+      line5
+    """), textBuffer.getScreenLines())
+
+    session.assertCursorPosition(1, 1)
+  }
+
+  @Test
+  fun `main buffer - decrease height keeps selection tracking content moved to history`() {
+    val session = TestSession(10, 5)
+    val textBuffer = session.terminalTextBuffer
+    val terminal = session.terminal
+    val display = session.display
+
+    terminal.writeText("""
+      line1
+      line2
+      line3
+      line4
+      line5
+    """.trimIndent())
+
+    // Select "line2" (screen row index 1) — this line is pushed into history by the resize below
+    display.selection = TerminalSelection(Point(0, 1), Point(5, 1))
+    val selectionTextBefore = SelectionUtil.getSelectionText(display.selection!!, textBuffer)
+    assertEquals("line2", selectionTextBefore)
+
+    terminal.cursorPosition(1, 2)
+    terminal.resize(TermSize(10, 2), RequestOrigin.User)
+
+    // The cursor is clamped to the top row (its original line moved to history).
+    session.assertCursorPosition(1, 1)
+    // The selection followed its content into history: y shifted from 1 to -2 (3 lines moved up)...
+    assertEquals(-2, display.selection!!.start.y)
+    assertEquals(-2, display.selection!!.end.y)
+    // ...and it still resolves to the same text.
+    assertEquals(selectionTextBefore, SelectionUtil.getSelectionText(display.selection!!, textBuffer))
+  }
+
   // ========== Alternate Buffer Tests ==========
 
   @Test

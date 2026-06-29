@@ -116,7 +116,7 @@ private fun decreaseHeight(
   buffer.addLinesToHistory(removedLines)
 
   selection?.shiftY(-screenLinesToMove)
-  val newCursorY = oldCursor.y - screenLinesToMove
+  val newCursorY = (oldCursor.y - screenLinesToMove).coerceAtLeast(1)
   return TerminalResizeResult(CellPosition(oldCursor.x, newCursorY))
 }
 

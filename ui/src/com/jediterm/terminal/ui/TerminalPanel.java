@@ -1052,6 +1052,10 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     return 4;
   }
 
+  protected int getSpaceBetweenLines() {
+    return mySpaceBetweenLines;
+  }
+
   public void addTerminalMouseListener(final TerminalMouseListener listener) {
     addMouseListener(new MouseAdapter() {
       @Override
@@ -1343,7 +1347,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
    * Draw every char in separate terminal cell to guaranty equal width for different lines.
    * Nevertheless, to improve kerning we draw word characters as one block for monospaced fonts.
    */
-  private void drawChars(int x, int y, @NotNull CharBuffer buf, @NotNull TextStyle style, @NotNull Graphics2D gfx) {
+  protected void drawChars(int x, int y, @NotNull CharBuffer buf, @NotNull TextStyle style, @NotNull Graphics2D gfx) {
     // workaround to fix Swing bad rendering of bold special chars on Linux
     // TODO required for italic?
     CharBuffer renderingBuffer;
@@ -1388,7 +1392,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     gfx.setClip(null);
   }
 
-  private static int shiftDwcToEnd(char[] text, int startOffset, int endOffset) {
+  protected static int shiftDwcToEnd(char[] text, int startOffset, int endOffset) {
     int ind = startOffset;
     for (int i = startOffset; i < endOffset; i++) {
       if (text[i] != CharUtils.DWC) {
@@ -1399,7 +1403,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
     return ind;
   }
 
-  private static int extendEndOffset(char[] text, @NotNull BreakIterator iterator, int startOffset, int endOffset) {
+  protected static int extendEndOffset(char[] text, @NotNull BreakIterator iterator, int startOffset, int endOffset) {
     while (shouldExtend(text, startOffset, endOffset)) {
       int newEndOffset = iterator.next();
       if (newEndOffset == BreakIterator.DONE) {

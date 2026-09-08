@@ -315,6 +315,11 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     return myDisplay.getWindowBackground();
   }
 
+  @Override
+  public @Nullable Color getPaletteColor(int index) {
+    return myDisplay.getPaletteColor(index);
+  }
+
   private final List<TerminalCustomCommandListener> myCustomCommandListeners = new CopyOnWriteArrayList<>();
 
   @Override
@@ -918,14 +923,14 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
   @Override
   public void deviceStatusReport(String str) {
     if (myTerminalOutput != null) {
-      myTerminalOutput.sendString(str, false);
+      myTerminalOutput.sendStringImmediately(str);
     }
   }
 
   @Override
   public void deviceAttributes(byte[] response) {
     if (myTerminalOutput != null) {
-      myTerminalOutput.sendBytes(response, false);
+      myTerminalOutput.sendBytesImmediately(response);
     }
   }
 

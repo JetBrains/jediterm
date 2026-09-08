@@ -172,6 +172,10 @@ public interface Terminal {
 
   @Nullable Color getWindowBackground();
 
+  default @Nullable Color getPaletteColor(int index) {
+    return null;
+  }
+
   default void addApplicationTitleListener(@NotNull TerminalApplicationTitleListener listener) {}
 
   default void removeApplicationTitleListener(@NotNull TerminalApplicationTitleListener listener) {}

@@ -272,6 +272,28 @@ public class EmulatorTest extends EmulatorTestAbstract {
     ));
   }
 
+  public void testCursorBackwardTab() throws IOException {
+    TestSession session = new TestSession(24, 3);
+    session.process("\u001b[1;1H"); // move cursor to column 1
+    session.process("\t"); // tab to column 9
+    session.process("\t"); // tab to column 17
+    session.assertCursorPosition(17, 1);
+    session.process("\u001b[Z"); // CBT: back one tab stop
+    session.assertCursorPosition(9, 1);
+    session.process("\u001b[2Z"); // CBT: back two tab stops
+    session.assertCursorPosition(1, 1);
+  }
+
+  public void testCursorForwardTab() throws IOException {
+    TestSession session = new TestSession(24, 3);
+    session.process("\u001b[1;1H"); // move cursor to column 1
+    session.assertCursorPosition(1, 1);
+    session.process("\u001b[I"); // CHT: forward one tab stop
+    session.assertCursorPosition(9, 1);
+    session.process("\u001b[2I"); // CHT: forward two tab stops
+    session.assertCursorPosition(24, 1); // clamped at terminal width (last column)
+  }
+
   private void assertScreenLines(@NotNull TestSession session, @NotNull List<String> expectedScreenLines) {
     Assert.assertEquals(expectedScreenLines, TerminalLinesUtilKt.getLineTexts(session.getTerminalTextBuffer().getScreenLinesStorage()));
   }

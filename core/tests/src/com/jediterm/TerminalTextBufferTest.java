@@ -459,4 +459,29 @@ public class TerminalTextBufferTest extends TestCase {
   private void assertScreenLines(@NotNull TestSession session, @NotNull List<String> expectedScreenLines) {
     Assert.assertEquals(expectedScreenLines, TerminalLinesUtilKt.getLineTexts(session.getTerminalTextBuffer().getScreenLinesStorage()));
   }
+
+  public void testAlternativeBufferWrapAtBottom() {
+    StyleState state = new StyleState();
+    TerminalTextBuffer terminalTextBuffer = new TerminalTextBuffer(5, 3, state);
+    JediTerminal terminal = new JediTerminal(new BackBufferDisplay(terminalTextBuffer), terminalTextBuffer, state);
+
+    terminal.useAlternateBuffer(true);
+
+    terminal.cursorPosition(1, 1);
+    terminal.writeString("11111");
+    terminal.cursorPosition(1, 2);
+    terminal.writeString("22222");
+    terminal.cursorPosition(1, 3);
+    terminal.writeString("33333");
+
+    // Write one more character to trigger wrap.
+    terminal.writeString("4");
+
+    // The screen should not have scrolled. Row 1 and 2 must be preserved, and
+    // the wrapped character "4" overwrites the start of the bottom row.
+    assertEquals("11111\n" +
+      "22222\n" +
+      "43333\n", terminalTextBuffer.getScreenLines());
+  }
 }
+

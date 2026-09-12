@@ -768,6 +768,13 @@ public class JediEmulator extends DataStreamIteratingEmulator {
 
   private boolean deviceStatusReport(ControlSequence args) {
     if (args.startsWithQuestionMark()) {
+      int decCode = args.getArg(0, 0);
+      if (decCode == 996) { // query for light/dark color scheme preference
+        String str = "\033[?997;" + myTerminal.getColorMode().getReportCode() + "n";
+        LOG.debug("Sending Device Report Status : " + str);
+        myTerminal.deviceStatusReport(str);
+        return true;
+      }
       LOG.warn("Don't support DEC-specific Device Report Status: " + args.getDebugInfo());
       return false;
     }

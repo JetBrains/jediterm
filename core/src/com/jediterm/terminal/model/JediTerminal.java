@@ -922,6 +922,18 @@ public class JediTerminal implements Terminal, TerminalMouseListener, TerminalCo
     }
   }
 
+  private volatile TerminalColorMode myColorMode = TerminalColorMode.UNKNOWN;
+
+  @Override
+  public @NotNull TerminalColorMode getColorMode() {
+    return myColorMode;
+  }
+
+  /** Lets the embedding application report its actual light/dark preference. */
+  public void setColorMode(@NotNull TerminalColorMode colorMode) {
+    myColorMode = colorMode;
+  }
+
   @Override
   public void deviceAttributes(byte[] response) {
     if (myTerminalOutput != null) {

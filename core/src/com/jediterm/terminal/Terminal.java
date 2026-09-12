@@ -172,6 +172,16 @@ public interface Terminal {
 
   @Nullable Color getWindowBackground();
 
+  /**
+   * Color scheme to report for a DEC-specific Device Status Report query
+   * (CSI ?996n), letting programs inside the terminal detect a light/dark
+   * preference. Unknown unless the embedding application sets one — see
+   * {@link com.jediterm.terminal.model.JediTerminal#setColorMode}.
+   */
+  default @NotNull TerminalColorMode getColorMode() {
+    return TerminalColorMode.UNKNOWN;
+  }
+
   default void addApplicationTitleListener(@NotNull TerminalApplicationTitleListener listener) {}
 
   default void removeApplicationTitleListener(@NotNull TerminalApplicationTitleListener listener) {}

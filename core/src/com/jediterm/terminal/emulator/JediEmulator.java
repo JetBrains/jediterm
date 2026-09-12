@@ -768,7 +768,7 @@ public class JediEmulator extends DataStreamIteratingEmulator {
 
   private boolean deviceStatusReport(ControlSequence args) {
     if (args.startsWithQuestionMark()) {
-      LOG.warn("Don't support DEC-specific Device Report Status");
+      LOG.warn("Don't support DEC-specific Device Report Status: " + args.getDebugInfo());
       return false;
     }
     int c = args.getArg(0, 0);

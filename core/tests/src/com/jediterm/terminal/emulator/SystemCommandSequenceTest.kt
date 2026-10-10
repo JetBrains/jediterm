@@ -35,6 +35,13 @@ class SystemCommandSequenceTest {
     Assert.assertEquals("$ESC_CHAR]bar;baz$TWO_BYTES_TERMINATOR", seq2.format(listOf("bar", "baz")))
   }
 
+  @Test
+  fun `toString shows the introducer it was opened with`() {
+    Assert.assertEquals("ESC]0;titleBEL", create("0;title$BEL_CHAR").toString())
+    val dcs = SystemCommandSequence(ArrayTerminalDataStream("zz$TWO_BYTES_TERMINATOR".toCharArray()), 'P')
+    Assert.assertEquals("ESCPzzESC\\", dcs.toString())
+  }
+
   @Suppress("unused")
   fun `perf test`() {
     val args = 1000

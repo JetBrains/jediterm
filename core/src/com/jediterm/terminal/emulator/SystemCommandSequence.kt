@@ -6,8 +6,12 @@ import com.jediterm.terminal.util.CharUtils
 import java.io.IOException
 import java.lang.StringBuilder
 
+/**
+ * A string sequence (OSC, DCS, APC) read up to its BEL/ST terminator. [introducer] is the
+ * char after ESC that opened it (`]`, `P`, `_`); it only affects [toString].
+ */
 internal class SystemCommandSequence
-@Throws(IOException::class) constructor(stream: TerminalDataStream) {
+@Throws(IOException::class) @JvmOverloads constructor(stream: TerminalDataStream, private val introducer: Char = ']') {
 
   private val text: String
   val args: List<String>
@@ -38,7 +42,7 @@ internal class SystemCommandSequence
     return Ascii.ESC_CHAR + "]" + args.joinToString(ARG_SEPARATOR.toString()) + text.takeLast(terminatorLength(text))
   }
 
-  override fun toString(): String = CharUtils.toHumanReadableText(Ascii.ESC_CHAR + "]" + text)
+  override fun toString(): String = CharUtils.toHumanReadableText(Ascii.ESC_CHAR + introducer.toString() + text)
 
   internal companion object {
     private const val ST: Char = 0x9c.toChar()

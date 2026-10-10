@@ -170,10 +170,11 @@ public class JediEmulator extends DataStreamIteratingEmulator {
         terminal.singleShiftSelect(3); //Single Shift Select of G3 Character Set (SS3). This affects next character only.
         break;
       case 'P': // Device Control String (DCS)
-        SystemCommandSequence command = new SystemCommandSequence(myDataStream);
-
-        if (!deviceControlString(command)) {
-          LOG.warn("Error processing DCS: ESCP" + command);
+        SystemCommandSequence command = new SystemCommandSequence(myDataStream, 'P');
+        // An unrecognized DCS has been consumed whole, so ignoring it is harmless — the same
+        // as xterm, which silently drops DCS it doesn't implement. Not worth a WARN.
+        if (!deviceControlString(command) && LOG.isDebugEnabled()) {
+          LOG.debug("Unhandled DCS: " + command);
         }
         break;
       case ']': // Operating System Command (OSC)

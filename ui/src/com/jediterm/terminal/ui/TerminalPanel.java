@@ -864,7 +864,9 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
         else {
           cursorStyle = normalStyle;
         }
-        myCursor.drawCursor(cursorChar, gfx, cursorStyle);
+        // Cursor-only output may move it while we paint. Draw at the coordinates
+        // used to sample the character, so an old blank cannot cover a new cell.
+        myCursor.drawCursor(cursorX, cursorY, cursorChar, gfx, cursorStyle);
       }
     } finally {
       myTerminalTextBuffer.unlock();
@@ -1188,7 +1190,7 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
       return computeBlinkingState();
     }
 
-    void drawCursor(String c, Graphics2D gfx, TextStyle style) {
+    void drawCursor(int x, int y, String c, Graphics2D gfx, TextStyle style) {
       TerminalCursorState state = computeCursorState();
 
       // hidden: do nothing
@@ -1196,8 +1198,6 @@ public class TerminalPanel extends JComponent implements TerminalDisplay, Termin
         return;
       }
 
-      final int x = getCoordX();
-      final int y = getCoordY();
       // Outside bounds of window: do nothing
       if (y < 0 || y >= myTermSize.getRows()) {
         return;
